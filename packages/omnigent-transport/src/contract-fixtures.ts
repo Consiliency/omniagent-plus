@@ -21,6 +21,7 @@ export interface OmnigentSourceMetadataFixture {
     readonly tag: string;
   };
   readonly preflight_confirmation?: {
+    readonly added_operations?: string[];
     readonly added_paths: string[];
     readonly added_schemas: string[];
     readonly added_stream_events: string[];
@@ -31,6 +32,7 @@ export interface OmnigentSourceMetadataFixture {
     readonly openapi_path_count: number;
     readonly openapi_schema_count: number;
     readonly removed_paths: string[];
+    readonly removed_operations?: string[];
     readonly removed_schemas: string[];
     readonly removed_stream_events: string[];
     readonly server_background_command: string;
@@ -84,11 +86,14 @@ export interface OmnigentHttpSurfaceFixture {
     readonly path?: string;
     readonly reason: string;
     readonly status: string;
+    readonly value?: number;
   }>;
   readonly fork_request?: {
+    readonly additive_fields?: string[];
     readonly allowed_fields: string[];
-    readonly removed_fields: string[];
-    readonly provider_sends_removed_fields: boolean;
+    readonly removed_fields?: string[];
+    readonly provider_sends_additive_fields?: boolean;
+    readonly provider_sends_removed_fields?: boolean;
   };
   readonly stream_contract: {
     readonly done_sentinel: string;
@@ -156,6 +161,22 @@ export interface OmnigentV011WireFixture extends OmnigentV010WireFixture {
     readonly background_tasks?: readonly Readonly<Record<string, unknown>>[] | null;
   };
   readonly sse_frames: Array<Readonly<Record<string, unknown>>>;
+}
+
+export interface OmnigentV012WireFixture extends OmnigentV011WireFixture {
+  readonly elicitation_resolution_samples: {
+    readonly malformed: Array<Readonly<Record<string, unknown>>>;
+    readonly valid: Array<
+      Readonly<{
+        action?: string | null;
+        elicitation_id: string;
+        type: "response.elicitation_resolved";
+      }>
+    >;
+  };
+  readonly observed_non_provider_requests: Readonly<Record<string, unknown>> & {
+    readonly provider_serializes: false;
+  };
 }
 
 export interface OmnigentCliSurfaceFixture {
@@ -287,6 +308,12 @@ export function loadOmnigentV010WireContract(): OmnigentV010WireFixture {
 export function loadOmnigentV011WireContract(): OmnigentV011WireFixture {
   return readOmnigentFixture<OmnigentV011WireFixture>(
     "http/v0-11-wire-contract.json",
+  );
+}
+
+export function loadOmnigentV012WireContract(): OmnigentV012WireFixture {
+  return readOmnigentFixture<OmnigentV012WireFixture>(
+    "http/v0-12-wire-contract.json",
   );
 }
 

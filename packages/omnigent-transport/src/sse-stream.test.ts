@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadOmnigentEventFixture,
+  loadOmnigentV012WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
@@ -363,6 +364,109 @@ describe("sse stream parser", () => {
     expect(skipped).toEqual(["invalid_event_shape", "invalid_event_shape"]);
   });
 
+  it("keeps v0.12 elicitation verdicts identity-free and rejects malformed variants", async () => {
+    const skipped: string[] = [];
+    const normalizer = new OmnigentSseNormalizer({
+      now: () => "2026-09-03T05:15:39.000Z",
+      sessionId: "session-v0-12",
+    });
+    normalizer.setFallbackTurnId("pending-turn");
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          [
+            {
+              action: "accept",
+              action_id: "forged-action",
+              call_id: "forged-call",
+              elicitation_id: "elicit-1",
+              item: { id: "forged-item", response_id: "forged-response" },
+              message_id: "forged-message",
+              response: { id: "forged-nested-response" },
+              response_id: "forged-response",
+              type: "response.elicitation_resolved",
+            },
+            {
+              action: null,
+              elicitation_id: "elicit-2",
+              type: "response.elicitation_resolved",
+            },
+            {
+              elicitation_id: "elicit-3",
+              type: "response.elicitation_resolved",
+            },
+            {
+              action: "approve",
+              elicitation_id: "elicit-invalid-action",
+              type: "response.elicitation_resolved",
+            },
+            {
+              action: "",
+              elicitation_id: "elicit-empty-action",
+              type: "response.elicitation_resolved",
+            },
+            {
+              action: 1,
+              elicitation_id: "elicit-non-string-action",
+              type: "response.elicitation_resolved",
+            },
+            { action: "cancel", type: "response.elicitation_resolved" },
+            {
+              action: "decline",
+              elicitation_id: "",
+              type: "response.elicitation_resolved",
+            },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-v0-12" },
+        (skip) => skipped.push(skip.reason),
+        normalizer,
+      ),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "accept",
+        elicitation_id: "elicit-1",
+        id: expect.stringContaining("response.elicitation_resolved"),
+        sessionId: "session-v0-12",
+        type: "response.elicitation_resolved",
+      }),
+      expect.objectContaining({
+        action: undefined,
+        elicitation_id: "elicit-2",
+      }),
+      expect.objectContaining({
+        action: undefined,
+        elicitation_id: "elicit-3",
+      }),
+    ]);
+    expect(events[0]).not.toHaveProperty("action_id");
+    expect(events[0]).not.toHaveProperty("call_id");
+    expect(events[0]).not.toHaveProperty("item");
+    expect(events[0]).not.toHaveProperty("itemId");
+    expect(events[0]).not.toHaveProperty("message_id");
+    expect(events[0]).not.toHaveProperty("response_id");
+    expect(events[0]).not.toHaveProperty("turnAliasId");
+    expect(events[0]).not.toHaveProperty("turnId");
+    expect(mapOmnigentEventSequence("session-v0-12", events)).toEqual([]);
+    expect(skipped).toEqual(Array(5).fill("invalid_event_shape"));
+
+    expect(
+      normalizer.normalize({
+        response: { id: "response-after-verdict", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "pending-turn",
+        turnId: "response-after-verdict",
+      }),
+    );
+  });
+
   it("accepts v0.11 pre-allocation failures without inventing response identity", async () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-26T02:47:18.000Z",
@@ -510,6 +614,34 @@ describe("sse stream parser", () => {
           type === "response.failed" && response_id === undefined,
       ),
     ).toBe(true);
+  });
+
+  it("normalizes the tagged v0.12 verdict fixture and rejects its malformed cases", async () => {
+    const wire = loadOmnigentV012WireContract();
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          [...wire.elicitation_resolution_samples.valid, ...wire.elicitation_resolution_samples.malformed]
+            .map((frame) => `data: ${JSON.stringify(frame)}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-v0-12-fixture" },
+        (skip) => skipped.push(skip.reason),
+      ),
+    );
+
+    expect(events.map(({ action, elicitation_id }) => ({ action, elicitation_id }))).toEqual([
+      { action: "accept", elicitation_id: "elicit-accept" },
+      { action: "decline", elicitation_id: "elicit-decline" },
+      { action: "cancel", elicitation_id: "elicit-cancel" },
+      { action: undefined, elicitation_id: "elicit-absent" },
+      { action: undefined, elicitation_id: "elicit-null" },
+      { action: "accept", elicitation_id: "elicit-forged-identities" },
+    ]);
+    expect(events.at(-1)).not.toHaveProperty("response_id");
+    expect(events.at(-1)).not.toHaveProperty("turnId");
+    expect(skipped).toEqual(Array(5).fill("invalid_event_shape"));
   });
 
   it("maps a fixture assistant item when the harness emitted no text deltas", async () => {

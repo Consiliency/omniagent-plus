@@ -25,11 +25,11 @@ describe("capability probe", () => {
     expect(snapshot.capabilities.canClose).toBe(true);
     expect(snapshot.capabilities.canSpawnChildSessions).toBe(false);
     expect(snapshot.endpoint).toBe("http://127.0.0.1:4010");
-    expect(snapshot.gitSha).toBe("496b7b13f6af3ed5330b957df408fc91290b6307");
-    expect(snapshot.version).toBe("0.11.0");
+    expect(snapshot.gitSha).toBe("f04b0354fb5344c1ea8b92795ceb6760a9ad7595");
+    expect(snapshot.version).toBe("0.12.0");
   });
 
-  it("keeps v0.11 metadata and collaboration behavior non-capabilities", () => {
+  it("keeps v0.12 metadata and administration behavior non-capabilities", () => {
     const source = loadOmnigentSourceMetadata();
     const matrix = loadOmnigentCapabilityMatrix();
 
@@ -61,6 +61,22 @@ describe("capability probe", () => {
         }),
         expect.objectContaining({
           name: "permission_mode_mutation",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "project_aware_create_and_import",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "configurable_fork",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "existing_branch_checkout",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "elicitation_resolution_verdict",
           provider_capability: false,
         }),
       ]),

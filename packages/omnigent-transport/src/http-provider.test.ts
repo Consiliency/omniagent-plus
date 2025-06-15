@@ -1878,7 +1878,7 @@ describe("http provider", () => {
     await expect(streamRead).resolves.toEqual({ done: true, value: undefined });
   });
 
-  it("does not mutate a provisional turn from snapshot or v0.11 metadata evidence", async () => {
+  it("does not mutate a provisional turn from v0.11 or v0.12 metadata evidence", async () => {
     const snapshot = {
       active_response_id: null as string | null,
       agent_id: "agent-snapshot-reconcile",
@@ -1919,6 +1919,15 @@ describe("http provider", () => {
                 response_id: "forged-response",
                 title: "Metadata rename",
                 type: "session.title",
+              },
+              {
+                action: "accept",
+                action_id: "forged-action",
+                call_id: "forged-call",
+                elicitation_id: "elicit-metadata-only",
+                item: { id: "forged-item" },
+                response_id: "forged-response",
+                type: "response.elicitation_resolved",
               },
             ]
               .map((event) => `data: ${JSON.stringify(event)}\n\n`)

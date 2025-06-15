@@ -30,6 +30,75 @@
       "updated_at": "2026-07-08T20:55:13Z"
     },
     {
+      "acceptance_criteria_count": 10,
+      "created_at": "2026-09-03T05:15:39Z",
+      "file": "plans/detailed-omnigent-v0-12-accommodation-20260903-051539.md",
+      "handoff_path": ".dev-skills/handoffs/codex-plan-detailed/20260903T051539Z-omnigent-v012-plan.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260903T051539Z-omnigent-v012-plan.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-09-03T05:15:39Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "advisor_board_delivered_seats": 4,
+            "advisor_board_distinct_vendors": 4,
+            "advisor_board_requested_seats": 4,
+            "advisor_board_review": "unanimous_four_vendor_agree",
+            "artifact": "plans/detailed-omnigent-v0-12-accommodation-20260903-051539.md",
+            "fable_adapter": "canonical_subscription_tui",
+            "handoff_path": ".dev-skills/handoffs/codex-plan-detailed/20260903T051539Z-omnigent-v012-plan.md",
+            "original_plan_sha256": "c7d3f2f1ac3233828f54e9a7de1c9fe78ba6d32700d66eb2b806d793cfdcabde",
+            "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
+            "review_record": ".dev-skills/handoffs/codex-plan-detailed/20260903T061405Z-omnigent-v012-advisor-board-review.md",
+            "upstream_omnigent_release": "v0.12.0",
+            "upstream_tag_commit": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595"
+          },
+          "transition": "committed"
+        },
+        {
+          "at": "2026-09-03T15:49:11Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-12-accommodation-20260903-051539.md",
+            "base_sha": "9b66d53623099dade90d0b7bf198f6a91cefbe6c",
+            "branch": "codex/omnigent-v0-12",
+            "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
+            "preflight_amendment": "property-map title keys preserved; six structural schema changes; four-vendor board reconfirmed",
+            "run_id": "20260903T061405Z-omnigent-v012-execution",
+            "worktree": "/mnt/workspace/worktrees/omniagent-plus-omnigent-v0-12"
+          },
+          "transition": "executing"
+        },
+        {
+          "at": "2026-09-03T16:35:37Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "acceptance_criteria": "10/10",
+            "diagnostic": "implementation_and_verification_passed",
+            "dirty_path_classification": "all paths plan-owned; ignored build/install output only; no unrelated or non-plan output",
+            "doc_delta_decision": "docs_updated",
+            "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
+            "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/fcd59ee9/codex-omnigent-v0-12/20260903T061405Z-omnigent-v012-execution.md",
+            "run_id": "20260903T061405Z-omnigent-v012-execution",
+            "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260903T163441Z-omnigent-v012-verification.md",
+            "verification_status": "passed"
+          },
+          "transition": "completed"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee9/main/20260903T051539Z-omnigent-v012-plan.md",
+      "roadmap_ref": null,
+      "slug": "detailed-omnigent-v0-12-accommodation-20260903-051539",
+      "status": "completed",
+      "task_summary": "Plan official Omnigent v0.12.0 transport authority accommodation and transport-only 0.7.0 release.",
+      "type": "detailed",
+      "updated_at": "2026-09-03T16:35:37Z"
+    },
+    {
       "acceptance_criteria_count": 11,
       "created_at": "2026-07-05T00:20:32Z",
       "file": "plans/detailed-omnigent-v0-4-adaptation-20260705-002032.md",

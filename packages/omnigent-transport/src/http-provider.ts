@@ -752,6 +752,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
 
       for await (const rawEvent of stream.events) {
+        if (rawEvent.type === "response.elicitation_resolved") {
+          continue;
+        }
         const reopenedCancellationTurnId = this.recordConsumedPendingItem(
           sessionId,
           rawEvent,

@@ -59,7 +59,8 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-The official Omnigent `v0.11.0` freeze contains exactly 54 stream event types.
+The official Omnigent `v0.12.0` freeze contains the same exact 54 stream event
+types.
 Reconnect opens SSE before fetching the snapshot and all cursor-paginated
 history. The persisted-item mapper never manufactures successful completion
 from an idle snapshot; success requires tagged response lifecycle evidence. Stream item IDs
@@ -96,3 +97,12 @@ emit no neutral runtime event. They cannot grant approval or permission
 authority. Pre-allocation `response.failed` frames may omit response identity;
 they reuse conservative turn correlation and remain unattributed when
 ambiguous. Malformed background-task detail cannot suppress a status edge.
+
+## V0.12 Elicitation Verdict Metadata
+
+`response.elicitation_resolved` may carry `accept`, `decline`, or `cancel`, or
+no recorded verdict through an absent or null action. The parser requires the
+tagged non-empty `elicitation_id`, strips every supplied lifecycle and item
+identity, and emits no neutral runtime event. It is discarded before mapper
+deduplication and provider cancellation or fence bookkeeping, so observational
+verdict metadata cannot mutate session or turn lifecycle.

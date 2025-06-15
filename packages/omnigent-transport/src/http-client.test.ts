@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadOmnigentV010WireContract,
-  loadOmnigentV011WireContract,
+  loadOmnigentV012WireContract,
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
@@ -28,6 +28,10 @@ describe("http client", () => {
         agentSpec: { kind: "named_agent", value: "agent-http-client" },
         idempotencyKey: "http-client",
         initialMessage: "initial hello",
+        metadata: {
+          project_id: "must-not-be-serialized",
+          terminal_launch_args: ["--dangerous-untyped-control"],
+        },
         repoRoot: "/repo/root",
         runtime: "omnigent",
         targetHarness: "codex",
@@ -323,8 +327,8 @@ describe("http client", () => {
     expect(children[0]).not.toHaveProperty("status");
   });
 
-  it("preserves v0.11 background-task detail without making snapshots brittle", async () => {
-    const wire = loadOmnigentV011WireContract();
+  it("preserves v0.12 background-task detail without making snapshots brittle", async () => {
+    const wire = loadOmnigentV012WireContract();
     const response = {
       ...wire.session_response,
       background_tasks: [

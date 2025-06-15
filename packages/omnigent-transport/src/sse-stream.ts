@@ -38,6 +38,16 @@ function isKnownOmnigentEventType(
 }
 
 function hasValidEventShape(value: Record<string, unknown>): boolean {
+  if (value.type === "response.elicitation_resolved") {
+    return (
+      stringValue(value.elicitation_id) !== undefined &&
+      (value.action === undefined ||
+        value.action === null ||
+        value.action === "accept" ||
+        value.action === "decline" ||
+        value.action === "cancel")
+    );
+  }
   if (value.type === "session.permission_mode") {
     return (
       stringValue(value.conversation_id) !== undefined &&
@@ -312,6 +322,17 @@ export class OmnigentSseNormalizer {
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
     this.frameOrdinal += 1;
     const raw = tagged as Record<string, unknown>;
+    if (tagged.type === "response.elicitation_resolved") {
+      const sessionId = this.options.sessionId;
+      return {
+        action: raw.action === null ? undefined : stringValue(raw.action),
+        elicitation_id: stringValue(raw.elicitation_id),
+        id: `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${this.frameOrdinal}`,
+        occurredAt: this.now(),
+        sessionId,
+        type: tagged.type,
+      };
+    }
     const response = isRecord(raw.response) ? raw.response : undefined;
     const data = isRecord(raw.data) ? raw.data : undefined;
     const item = isRecord(raw.item) ? raw.item : undefined;

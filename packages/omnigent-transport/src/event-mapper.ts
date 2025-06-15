@@ -106,6 +106,7 @@ export class OmnigentEventMapper {
 
   map(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     if (
+      rawEvent.type === "response.elicitation_resolved" ||
       rawEvent.type === "session.permission_mode" ||
       rawEvent.type === "session.title"
     ) {

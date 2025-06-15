@@ -1,7 +1,7 @@
 # Omnigent Transport
 
-`@consiliency/omnigent-transport@0.6.0` implements the official Omnigent
-`v0.11.0` boundary while preserving the neutral runtime-provider contract.
+`@consiliency/omnigent-transport@0.7.0` implements the official Omnigent
+`v0.12.0` boundary while preserving the neutral runtime-provider contract.
 
 ## Modes
 
@@ -52,7 +52,7 @@ failure policy.
 
 ## Event Boundary
 
-The v0.11 live allowlist contains exactly 54 tagged types. A stateful SSE
+The v0.12 live allowlist remains exactly 54 tagged types. A stateful SSE
 normalizer handles nested response objects, route/session identifiers, missing
 timestamps, stable item IDs, and response context before calling the neutral
 mapper. Reconnect completes the stream handshake before snapshot/history reads and
@@ -65,11 +65,23 @@ identity, and attributed to a turn only when existing correlation is
 unambiguous. Background-task detail is preserved best-effort without becoming
 lifecycle or control authority.
 
+V0.12 `response.elicitation_resolved` verdicts are validated, identity-free
+metadata-only no-ops. Only the required `elicitation_id`, an optional
+`accept`/`decline`/`cancel` action, and a synthetic event ID survive. Absent and
+explicit-null actions normalize alike, and forged lifecycle or item identities
+cannot reach mapper, dedupe, cancellation, or fence state.
+
 Persisted history maps messages, tool calls/results, errors, and interruptions.
 It does not synthesize successful completion. Metadata-only rows and stream
 events remain no-ops unless they carry an existing neutral lifecycle meaning.
 Child `session.created`, routing decisions, browser actions, and uncorrelated
 bare turns do not broaden the neutral vocabulary.
+
+Project-aware create and import, configurable forks, existing-branch
+worktrees, and the bare-`omni` behavior change remain upstream administration
+surfaces. The HTTP provider keeps its legacy required-agent create body, and
+the process manager keeps the canonical `omnigent server --background`,
+`server status --json`, and `server stop` lifecycle.
 
 `response.output_text.delta` is behaviorally unchanged. Equal identity-free
 text remains undecidable and is emitted losslessly; replay is deduplicated only

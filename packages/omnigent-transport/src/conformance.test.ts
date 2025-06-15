@@ -6,6 +6,7 @@ import {
   loadOmnigentFakeServerScenarios,
   loadOmnigentHttpSurface,
   loadOmnigentSourceMetadata,
+  loadOmnigentV012WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
@@ -15,22 +16,23 @@ import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import { OmnigentHttpError } from "./http-client.js";
 import { omnigentStreamEventTypes } from "./types.js";
 
-describe("official Omnigent v0.11 conformance", () => {
+describe("official Omnigent v0.12 conformance", () => {
   it("freezes the release authority without broadening neutral capabilities", () => {
     const source = loadOmnigentSourceMetadata();
     const http = loadOmnigentHttpSurface();
     const cli = loadOmnigentCliSurface();
     const capabilities = loadOmnigentCapabilityMatrix();
-    const wire = loadOmnigentV011WireContract();
+    const wire = loadOmnigentV012WireContract();
+    const historicalV011Wire = loadOmnigentV011WireContract();
     const historicalV010Wire = loadOmnigentV010WireContract();
     const historicalV09Wire = loadOmnigentV09WireContract();
 
     expect(source.freeze_target).toEqual(
       expect.objectContaining({
-        commit: "496b7b13f6af3ed5330b957df408fc91290b6307",
-        package_version: "0.11.0",
+        commit: "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
+        package_version: "0.12.0",
         requires_python: ">=3.12",
-        tag: "v0.11.0",
+        tag: "v0.12.0",
       }),
     );
     expect(wire.authority).toEqual(
@@ -45,6 +47,12 @@ describe("official Omnigent v0.11 conformance", () => {
         tag: "v0.10.0",
       }),
     );
+    expect(historicalV011Wire.authority).toEqual(
+      expect.objectContaining({
+        commit: "496b7b13f6af3ed5330b957df408fc91290b6307",
+        tag: "v0.11.0",
+      }),
+    );
     expect(historicalV09Wire.authority).toEqual(
       expect.objectContaining({
         commit: "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2",
@@ -53,42 +61,41 @@ describe("official Omnigent v0.11 conformance", () => {
     );
     expect(source.preflight_confirmation).toEqual(
       expect.objectContaining({
-        added_paths: [],
+        added_operations: ["POST /v1/imports/local"],
+        added_paths: ["/v1/imports/local"],
         added_schemas: [
-          "BackgroundTaskInfo",
-          "FailedResponseObject",
-          "SessionPermissionModeEvent",
-          "SessionTitleEvent",
+          "ImportedSessionRef",
+          "LocalImportRequest",
+          "LocalImportResponse",
         ],
         changed_schemas: [
-          "FailedEvent",
-          "ServerStreamEvent",
-          "SessionModelEvent",
-          "SessionProjectSummary",
-          "SessionResponse",
-          "SessionStatusEvent",
-          "SessionUsage",
+          "AutomaticSessionRenameRequest",
+          "ElicitationResolvedEvent",
+          "ImportSessionRequest",
+          "SessionForkRequest",
+          "SessionGitOptions",
           "UpdateSessionRequest",
         ],
         newer_stable_release: false,
         official_release_event_count: 54,
-        openapi_operation_count: 100,
-        openapi_path_count: 72,
-        openapi_schema_count: 143,
+        openapi_operation_count: 101,
+        openapi_path_count: 73,
+        openapi_schema_count: 146,
+        removed_operations: [],
         removed_paths: [],
         removed_schemas: [],
       }),
     );
     expect(http.openapi_delta).toEqual(
       expect.objectContaining({
-        operation_count: 100,
-        path_count: 72,
-        schema_count: 143,
+        operation_count: 101,
+        path_count: 73,
+        schema_count: 146,
       }),
     );
 
     expect(wire.child_page.data.map(({ task_summary }) => task_summary)).toEqual([
-      "Inspect the tagged v0.11 transport contract.",
+      "Inspect the tagged v0.12 transport contract.",
       null,
     ]);
     expect(http.child_session_public_surface).toEqual(
@@ -146,6 +153,11 @@ describe("official Omnigent v0.11 conformance", () => {
         expect.objectContaining({ type: "session.permission_mode" }),
         expect.objectContaining({ type: "session.title" }),
         expect.objectContaining({
+          action: "accept",
+          elicitation_id: "elicit-accept",
+          type: "response.elicitation_resolved",
+        }),
+        expect.objectContaining({
           response: expect.objectContaining({ status: "failed" }),
           type: "response.failed",
         }),
@@ -166,6 +178,9 @@ describe("official Omnigent v0.11 conformance", () => {
       expect.objectContaining({ type: "response.completed" }),
     ]);
     expect(wire.acknowledgements).toContainEqual({ queued: false });
+    expect(wire.observed_non_provider_requests.provider_serializes).toBe(false);
+    expect(wire.elicitation_resolution_samples.valid).toHaveLength(5);
+    expect(wire.elicitation_resolution_samples.malformed).toHaveLength(6);
 
     expect(cli.documented_commands).toContain("omnigent server --background");
     expect(cli.non_provider_required_commands).toEqual(
@@ -211,6 +226,22 @@ describe("official Omnigent v0.11 conformance", () => {
           name: "permission_mode_mutation",
           provider_capability: false,
         }),
+        expect.objectContaining({
+          name: "project_aware_create_and_import",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "configurable_fork",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "existing_branch_checkout",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "elicitation_resolution_verdict",
+          provider_capability: false,
+        }),
       ]),
     );
     expect(source.security_posture).toEqual(
@@ -235,11 +266,18 @@ describe("official Omnigent v0.11 conformance", () => {
     ]) {
       expect(capabilityNames).not.toContain(forbidden);
     }
-    expect(
-      http.optional_release_surfaces?.filter(
-        ({ status }) => status === "observed_not_provider_required",
-      ),
-    ).toHaveLength(14);
+    expect(http.optional_release_surfaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "/v1/imports/local" }),
+        expect.objectContaining({ field: "ProjectSessionCreateRequest.project_id" }),
+        expect.objectContaining({ field: "SessionForkRequest.model_override" }),
+        expect.objectContaining({ field: "SessionGitOptions.existing_branch" }),
+        expect.objectContaining({
+          field: "ElicitationResolvedEvent.action",
+          status: "metadata_only",
+        }),
+      ]),
+    );
   });
 
   it("preserves create, page, event, and SSE behavior", async () => {
@@ -342,6 +380,7 @@ describe("official Omnigent v0.11 conformance", () => {
       expect(loadOmnigentFakeServerScenarios().scenarios).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ name: "v0_11_official_wire" }),
+          expect.objectContaining({ name: "v0_12_official_wire" }),
           expect.objectContaining({ name: "v0_10_official_wire" }),
           expect.objectContaining({ name: "v0_9_official_wire" }),
         ]),

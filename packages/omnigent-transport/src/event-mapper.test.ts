@@ -165,6 +165,36 @@ describe("event mapper", () => {
     ]);
   });
 
+  it("keeps v0.12 elicitation verdicts outside mapping and dedupe state", () => {
+    const base: Omit<OmnigentRawEvent, "type"> = {
+      id: "shared-event-id",
+      occurredAt: "2026-09-03T05:15:39.000Z",
+      sessionId: "session-v0-12",
+    };
+
+    expect(
+      mapOmnigentEventSequence("session-v0-12", [
+        {
+          ...base,
+          action: "accept",
+          elicitation_id: "elicit-1",
+          type: "response.elicitation_resolved",
+        },
+        {
+          ...base,
+          status: "running",
+          turnId: "turn-after-verdict",
+          type: "response.created",
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        turnId: "turn-after-verdict",
+        type: "runtime.turn.started",
+      }),
+    ]);
+  });
+
   it("maps only attributed v0.11 pre-allocation failures", () => {
     const failure: OmnigentRawEvent = {
       failure: { message: "setup failed" },
