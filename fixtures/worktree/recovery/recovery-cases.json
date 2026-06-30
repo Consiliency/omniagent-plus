@@ -1,0 +1,107 @@
+{
+  "gate": "IF-0-WORKTREE-7",
+  "cases": [
+    {
+      "name": "expired_clean_missing_process",
+      "currentHost": "display",
+      "holderHost": "display",
+      "processState": "missing",
+      "leaseDirtyState": "clean",
+      "currentDirtyState": "clean",
+      "branchMatches": true,
+      "ledgerEvidencePresent": true,
+      "leaseExpiresAt": "2026-06-30T00:05:00.000Z",
+      "now": "2026-06-30T00:06:00.000Z",
+      "expected": {
+        "reusable": true,
+        "cleanupAllowed": true,
+        "reason": "stale_recovery_allowed"
+      }
+    },
+    {
+      "name": "active_process",
+      "currentHost": "display",
+      "holderHost": "display",
+      "processState": "alive",
+      "leaseDirtyState": "clean",
+      "currentDirtyState": "clean",
+      "branchMatches": true,
+      "ledgerEvidencePresent": true,
+      "leaseExpiresAt": "2026-06-30T00:05:00.000Z",
+      "now": "2026-06-30T00:06:00.000Z",
+      "expected": {
+        "reusable": false,
+        "cleanupAllowed": false,
+        "reason": "active_process"
+      }
+    },
+    {
+      "name": "different_host",
+      "currentHost": "display",
+      "holderHost": "remote-host",
+      "processState": "different_host",
+      "leaseDirtyState": "clean",
+      "currentDirtyState": "clean",
+      "branchMatches": true,
+      "ledgerEvidencePresent": true,
+      "leaseExpiresAt": "2026-06-30T00:05:00.000Z",
+      "now": "2026-06-30T00:06:00.000Z",
+      "expected": {
+        "reusable": false,
+        "cleanupAllowed": false,
+        "reason": "different_host"
+      }
+    },
+    {
+      "name": "dirty_worktree",
+      "currentHost": "display",
+      "holderHost": "display",
+      "processState": "missing",
+      "leaseDirtyState": "dirty",
+      "currentDirtyState": "dirty",
+      "branchMatches": true,
+      "ledgerEvidencePresent": true,
+      "leaseExpiresAt": "2026-06-30T00:05:00.000Z",
+      "now": "2026-06-30T00:06:00.000Z",
+      "expected": {
+        "reusable": false,
+        "cleanupAllowed": false,
+        "reason": "dirty_worktree"
+      }
+    },
+    {
+      "name": "branch_diverged",
+      "currentHost": "display",
+      "holderHost": "display",
+      "processState": "missing",
+      "leaseDirtyState": "clean",
+      "currentDirtyState": "clean",
+      "branchMatches": false,
+      "ledgerEvidencePresent": true,
+      "leaseExpiresAt": "2026-06-30T00:05:00.000Z",
+      "now": "2026-06-30T00:06:00.000Z",
+      "expected": {
+        "reusable": false,
+        "cleanupAllowed": false,
+        "reason": "branch_diverged"
+      }
+    },
+    {
+      "name": "missing_ledger_evidence",
+      "currentHost": "display",
+      "holderHost": "display",
+      "processState": "missing",
+      "leaseDirtyState": "clean",
+      "currentDirtyState": "clean",
+      "branchMatches": true,
+      "ledgerEvidencePresent": false,
+      "leaseExpiresAt": "2026-06-30T00:05:00.000Z",
+      "now": "2026-06-30T00:06:00.000Z",
+      "expected": {
+        "reusable": false,
+        "cleanupAllowed": false,
+        "reason": "missing_ledger_evidence"
+      }
+    }
+  ]
+}

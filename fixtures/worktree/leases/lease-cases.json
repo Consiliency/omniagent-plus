@@ -1,0 +1,40 @@
+{
+  "gate": "IF-0-WORKTREE-7",
+  "exclusiveWrite": {
+    "request": {
+      "repoId": "omniagent-plus",
+      "repoRoot": "/tmp/placeholder-repo",
+      "baseRef": "main",
+      "branchName": "feature/worktree",
+      "taskId": "task-worktree",
+      "mode": "exclusive_write",
+      "requestedTtlSeconds": 120
+    },
+    "holder": {
+      "processId": 4242,
+      "host": "display",
+      "sessionId": "session-worktree",
+      "turnId": "turn-worktree-1"
+    }
+  },
+  "sequentialContinue": {
+    "request": {
+      "repoId": "omniagent-plus",
+      "repoRoot": "/tmp/placeholder-repo",
+      "baseRef": "main",
+      "branchName": "feature/worktree",
+      "taskId": "task-worktree",
+      "mode": "sequential_continue",
+      "allowReuseExisting": true,
+      "requestedTtlSeconds": 120
+    },
+    "candidate": {
+      "taskId": "task-worktree",
+      "repoId": "omniagent-plus",
+      "branchName": "feature/worktree",
+      "path": "/tmp/worktree-continue",
+      "dirtyState": "clean",
+      "branchHeadMatches": true
+    }
+  }
+}

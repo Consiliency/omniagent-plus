@@ -1,0 +1,33 @@
+{
+  "gate": "IF-0-WORKTREE-7",
+  "cases": [
+    {
+      "name": "fencing_token_mismatch",
+      "expectedReason": "fencing_token_mismatch"
+    },
+    {
+      "name": "dirty_worktree",
+      "expectedReason": "dirty_worktree"
+    },
+    {
+      "name": "unknown_dirty_state",
+      "expectedReason": "unknown_dirty_state"
+    },
+    {
+      "name": "active_process",
+      "expectedReason": "active_process"
+    },
+    {
+      "name": "different_host",
+      "expectedReason": "different_host"
+    },
+    {
+      "name": "branch_diverged",
+      "expectedReason": "branch_diverged"
+    },
+    {
+      "name": "read_only_reviewer",
+      "expectedReason": "read_only_reviewer"
+    }
+  ]
+}

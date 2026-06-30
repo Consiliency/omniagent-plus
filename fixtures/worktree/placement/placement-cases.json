@@ -1,0 +1,11 @@
+{
+  "gate": "IF-0-WORKTREE-7",
+  "mounted": {
+    "projectName": "omniagent-plus",
+    "branchName": "feature/worktree"
+  },
+  "fallback": {
+    "projectName": "omniagent-plus",
+    "branchName": "feature/fallback"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "gate": "IF-0-WORKTREE-7",
+  "resourceId": "worktree-race",
+  "repoId": "omniagent-plus",
+  "branchName": "feature/race",
+  "taskId": "task-race"
+}
