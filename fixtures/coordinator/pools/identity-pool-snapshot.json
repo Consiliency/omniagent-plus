@@ -1,0 +1,19 @@
+{
+  "evaluatedAt": "2026-06-30T10:00:00.000Z",
+  "candidates": [
+    {
+      "profileId": "profile-google-primary",
+      "provider": "google",
+      "available": true,
+      "targetActiveTurns": 3,
+      "availableTurnSlots": 2,
+      "currentCapacity": 0.67
+    },
+    {
+      "profileId": "profile-openai-primary",
+      "provider": "openai",
+      "available": false,
+      "blockedReason": "fixed_window_usage_cap"
+    }
+  ]
+}

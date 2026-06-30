@@ -1,0 +1,7 @@
+{
+  "action": "allowed",
+  "reason": "persisted before launch",
+  "routeDecisionPersisted": true,
+  "labelsMatch": true,
+  "manualConfirmationProvided": false
+}

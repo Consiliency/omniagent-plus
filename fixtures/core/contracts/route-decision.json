@@ -6,11 +6,30 @@
   "selectedIdentityProfileId": "profile-codex",
   "preferredProvider": "openai",
   "preferredHarness": "codex",
+  "preferredTarget": {
+    "provider": "openai",
+    "harness": "codex",
+    "identityProfileId": "profile-codex"
+  },
   "fallbackUsed": false,
   "capabilityFit": 0.95,
   "providerHealth": 0.88,
   "currentCapacity": 0.72,
   "contextPortability": "high",
+  "portabilityScore": 0.91,
+  "activeTurnTarget": 2,
+  "cooldownState": {
+    "providerFamilyBlocked": false,
+    "identityBlocked": false,
+    "sameProviderAccountSwitch": "forbidden"
+  },
+  "launchGate": {
+    "action": "allowed",
+    "reason": "persisted before launch",
+    "routeDecisionPersisted": true,
+    "labelsMatch": true,
+    "manualConfirmationProvided": false
+  },
   "routeReason": "capability_fit",
   "silentDowngrade": false,
   "evidenceRefs": [

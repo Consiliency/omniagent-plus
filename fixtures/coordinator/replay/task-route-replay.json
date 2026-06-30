@@ -1,0 +1,66 @@
+{
+  "decision": {
+    "schema": "route_decision.v0.1",
+    "taskId": "task-replay-1",
+    "selectedProvider": "google",
+    "selectedHarness": "codex",
+    "selectedIdentityProfileId": "profile-google-primary",
+    "preferredProvider": "openai",
+    "preferredHarness": "codex",
+    "preferredTarget": {
+      "provider": "openai",
+      "harness": "codex",
+      "identityProfileId": "profile-openai-primary"
+    },
+    "fallbackUsed": true,
+    "fallbackReason": "fixed_window_usage_cap",
+    "capabilityFit": 0.96,
+    "providerHealth": 0.93,
+    "currentCapacity": 0.67,
+    "contextPortability": "high",
+    "portabilityScore": 0.9,
+    "activeTurnTarget": 2,
+    "cooldownState": {
+      "providerFamilyBlocked": false,
+      "identityBlocked": false,
+      "sameProviderAccountSwitch": "forbidden"
+    },
+    "launchGate": {
+      "action": "allowed",
+      "reason": "persisted before launch",
+      "routeDecisionPersisted": true,
+      "labelsMatch": true,
+      "manualConfirmationProvided": false
+    },
+    "routeReason": "provider_cooldown",
+    "silentDowngrade": false,
+    "evidenceRefs": [
+      {
+        "kind": "test",
+        "label": "route-proof",
+        "path": "fixtures/coordinator/replay/task-route-replay.json"
+      }
+    ]
+  },
+  "classification": {
+    "schema": "limit_classification.v0.1",
+    "type": "fixed_window_usage_cap",
+    "scope": "provider_family",
+    "confidence": 0.99,
+    "provider": "openai",
+    "harness": "codex",
+    "retryAfterSeconds": 600,
+    "resetAt": "2026-07-01T00:00:00.000Z",
+    "rawSignal": {
+      "statusCode": 429
+    },
+    "routingAction": {
+      "retrySameSession": false,
+      "reduceConcurrency": true,
+      "routeNewWorkElsewhere": true,
+      "migrateExistingPortableWork": true,
+      "requireManualReview": false,
+      "sameProviderAccountSwitch": "forbidden"
+    }
+  }
+}

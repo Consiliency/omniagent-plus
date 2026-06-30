@@ -1,0 +1,96 @@
+{
+  "poolInput": {
+    "profiles": [
+      {
+        "id": "profile-openai-primary",
+        "provider": "openai",
+        "harness": "codex",
+        "authMode": "local_subscription",
+        "isolation": "isolated_home",
+        "maxOpenSessions": 2,
+        "maxActiveTurns": 3
+      },
+      {
+        "id": "profile-google-primary",
+        "provider": "google",
+        "harness": "codex",
+        "authMode": "local_subscription",
+        "isolation": "isolated_home",
+        "maxOpenSessions": 2,
+        "maxActiveTurns": 3
+      }
+    ],
+    "statuses": [
+      {
+        "schema": "identity_profile_status.v0.1",
+        "profileId": "profile-openai-primary",
+        "provider": "openai",
+        "harness": "codex",
+        "status": "cooldown",
+        "checkedAt": "2026-06-30T11:00:00.000Z",
+        "activeSessions": 0,
+        "activeTurns": 0,
+        "reason": "fixed_window_usage_cap"
+      },
+      {
+        "schema": "identity_profile_status.v0.1",
+        "profileId": "profile-google-primary",
+        "provider": "google",
+        "harness": "codex",
+        "status": "ready",
+        "checkedAt": "2026-06-30T11:00:00.000Z",
+        "activeSessions": 1,
+        "activeTurns": 1
+      }
+    ],
+    "providerCooldowns": [
+      {
+        "schema": "provider_family_cooldown.v0.1",
+        "provider": "openai",
+        "scope": "provider_family",
+        "active": true,
+        "reason": "fixed_window_usage_cap",
+        "observedAt": "2026-06-30T10:55:00.000Z",
+        "resetAt": "2026-07-01T00:00:00.000Z",
+        "source": "limit_classification"
+      }
+    ],
+    "classificationByProvider": {
+      "openai": {
+        "schema": "limit_classification.v0.1",
+        "type": "fixed_window_usage_cap",
+        "scope": "provider_family",
+        "confidence": 0.99,
+        "provider": "openai",
+        "harness": "codex",
+        "retryAfterSeconds": 600,
+        "resetAt": "2026-07-01T00:00:00.000Z",
+        "rawSignal": {
+          "statusCode": 429
+        },
+        "routingAction": {
+          "retrySameSession": false,
+          "reduceConcurrency": true,
+          "routeNewWorkElsewhere": true,
+          "migrateExistingPortableWork": true,
+          "requireManualReview": false,
+          "sameProviderAccountSwitch": "forbidden"
+        }
+      }
+    },
+    "capabilityFitByProfileId": {
+      "profile-openai-primary": 0.92,
+      "profile-google-primary": 0.96
+    },
+    "providerHealth": {
+      "openai": 0.72,
+      "google": 0.93
+    },
+    "now": "2026-06-30T11:00:00.000Z"
+  },
+  "preferred": {
+    "provider": "openai",
+    "harness": "codex",
+    "identityProfileId": "profile-openai-primary"
+  }
+}

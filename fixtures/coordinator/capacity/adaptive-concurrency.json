@@ -1,0 +1,8 @@
+{
+  "baseTarget": 4,
+  "maxActiveTurns": 4,
+  "activeTurns": 1,
+  "providerHealth": 0.4,
+  "classificationType": "concurrency_limit",
+  "expectedTargetActiveTurns": 1
+}

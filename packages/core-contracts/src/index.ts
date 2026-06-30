@@ -111,8 +111,20 @@ export {
   stateLedgerRecordKinds,
   stateLedgerRecordSchema,
 } from "./state-ledger.js";
-export type { RouteDecision } from "./route-decision.js";
-export { routeDecisionSchema } from "./route-decision.js";
+export type {
+  RouteDecision,
+  RouteDecisionCooldownState,
+  RouteDecisionLaunchGate,
+  RouteDecisionLaunchGateAction,
+  RouteDecisionPreferredTarget,
+} from "./route-decision.js";
+export {
+  routeDecisionCooldownStateSchema,
+  routeDecisionLaunchGateActions,
+  routeDecisionLaunchGateSchema,
+  routeDecisionPreferredTargetSchema,
+  routeDecisionSchema,
+} from "./route-decision.js";
 export {
   agentSessionStateSchema,
   agentRuntimeProviderSchema,

@@ -1,0 +1,6 @@
+{
+  "provider": "openai",
+  "reason": "fixed_window_usage_cap",
+  "resetAt": "2026-07-01T09:00:00.000Z",
+  "sameProviderAccountSwitch": "manual_confirmation_required"
+}

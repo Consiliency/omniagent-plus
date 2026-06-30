@@ -1,0 +1,10 @@
+{
+  "score": 0.9,
+  "level": "high",
+  "migrateAcrossProviders": true,
+  "reasons": [
+    "new work can move without session affinity",
+    "handoff evidence supports migration",
+    "worktree lease keeps repo context portable"
+  ]
+}

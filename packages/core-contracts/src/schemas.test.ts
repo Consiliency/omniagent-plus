@@ -119,6 +119,10 @@ describe("schemas", () => {
     expect(handoff.objective).toContain("Bootstrap");
     expect(limit.type).toBe("fixed_window_usage_cap");
     expect(route.routeReason).toBe("capability_fit");
+    expect(route.portabilityScore).toBeGreaterThan(0.8);
+    expect(route.activeTurnTarget).toBe(2);
+    expect(route.cooldownState?.providerFamilyBlocked).toBe(false);
+    expect(route.launchGate?.routeDecisionPersisted).toBe(true);
     expect(failure.category).toBe("concurrency_limit");
     expect(profile.harness).toBe("codex");
     expect(lease.mode).toBe("exclusive_write");

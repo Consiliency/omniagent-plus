@@ -1,0 +1,5 @@
+{
+  "failureCategory": "rate_limit",
+  "classificationType": "fixed_window_usage_cap",
+  "action": "pause_provider_family"
+}

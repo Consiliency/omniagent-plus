@@ -1,0 +1,6 @@
+{
+  "classificationType": "overload_or_transient",
+  "repeatedFailures": 3,
+  "action": "route_new_work_elsewhere",
+  "reason": "retry_storm_guardrail"
+}
