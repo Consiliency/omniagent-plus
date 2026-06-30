@@ -1,0 +1,19 @@
+{
+  "family": "opencode",
+  "fixtures": [
+    {
+      "id": "opencode-overload",
+      "signal": {
+        "harness": "opencode",
+        "exitCode": 1,
+        "stderrText": "OpenCode upstream is overloaded, please try again later."
+      },
+      "expected": {
+        "type": "overload_or_transient",
+        "scope": "provider_family",
+        "confidenceMin": 0.75,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

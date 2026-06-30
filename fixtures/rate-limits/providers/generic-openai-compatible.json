@@ -1,0 +1,25 @@
+{
+  "family": "generic-openai-compatible",
+  "fixtures": [
+    {
+      "id": "generic-openai-rpm",
+      "signal": {
+        "provider": "generic-openai-compatible",
+        "statusCode": 429,
+        "bodyText": "Too many requests. Request rate limit exceeded for this endpoint.",
+        "headers": {
+          "retry-after": "15",
+          "x-ratelimit-reset": "2026-07-01T00:20:00.000Z"
+        }
+      },
+      "expected": {
+        "type": "burst_rate_limit",
+        "scope": "provider_family",
+        "confidenceMin": 0.8,
+        "retryAfterSeconds": 15,
+        "resetAt": "2026-07-01T00:20:00.000Z",
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

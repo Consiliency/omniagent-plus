@@ -1,0 +1,20 @@
+{
+  "family": "zai",
+  "fixtures": [
+    {
+      "id": "zai-daily-quota",
+      "signal": {
+        "provider": "zai",
+        "statusCode": 429,
+        "bodyText": "Daily quota exhausted and resets at 2026-07-02T00:00:00.000Z."
+      },
+      "expected": {
+        "type": "fixed_window_usage_cap",
+        "scope": "project",
+        "confidenceMin": 0.8,
+        "resetAt": "2026-07-02T00:00:00.000Z",
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    }
+  ]
+}

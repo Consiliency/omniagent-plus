@@ -48,6 +48,12 @@ importers:
         specifier: workspace:*
         version: link:../state-ledger
 
+  packages/rate-limit-catalog:
+    dependencies:
+      '@omniagent-plus/core-contracts':
+        specifier: workspace:*
+        version: link:../core-contracts
+
   packages/state-ledger:
     dependencies:
       '@omniagent-plus/core-contracts':

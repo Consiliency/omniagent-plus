@@ -1,0 +1,19 @@
+{
+  "family": "pi",
+  "fixtures": [
+    {
+      "id": "pi-concurrency",
+      "signal": {
+        "harness": "pi",
+        "exitCode": 1,
+        "stderrText": "Pi runner already has too many active sessions for this identity."
+      },
+      "expected": {
+        "type": "concurrency_limit",
+        "scope": "session",
+        "confidenceMin": 0.75,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

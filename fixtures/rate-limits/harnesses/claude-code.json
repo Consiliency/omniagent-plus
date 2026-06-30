@@ -1,0 +1,20 @@
+{
+  "family": "claude-code",
+  "fixtures": [
+    {
+      "id": "claude-code-daily-cap",
+      "signal": {
+        "harness": "claude-code",
+        "exitCode": 1,
+        "stderrText": "Claude Code usage limit reached for this workspace and resets at 2026-07-01T09:00:00.000Z."
+      },
+      "expected": {
+        "type": "fixed_window_usage_cap",
+        "scope": "project",
+        "confidenceMin": 0.8,
+        "resetAt": "2026-07-01T09:00:00.000Z",
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    }
+  ]
+}

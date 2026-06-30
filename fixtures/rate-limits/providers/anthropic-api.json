@@ -1,0 +1,39 @@
+{
+  "family": "anthropic-api",
+  "fixtures": [
+    {
+      "id": "anthropic-requests-reset",
+      "signal": {
+        "provider": "anthropic-api",
+        "statusCode": 429,
+        "bodyText": "Request rate limit exceeded for Claude messages per minute.",
+        "headers": {
+          "retry-after": "30",
+          "anthropic-ratelimit-requests-reset": "2026-07-01T00:05:00.000Z"
+        }
+      },
+      "expected": {
+        "type": "burst_rate_limit",
+        "scope": "provider_family",
+        "confidenceMin": 0.8,
+        "retryAfterSeconds": 30,
+        "resetAt": "2026-07-01T00:05:00.000Z",
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    },
+    {
+      "id": "anthropic-credit-balance",
+      "signal": {
+        "provider": "anthropic-api",
+        "statusCode": 403,
+        "bodyText": "Your credit balance is too low to access Claude right now."
+      },
+      "expected": {
+        "type": "auth_or_billing_problem",
+        "scope": "identity_profile",
+        "confidenceMin": 0.8,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

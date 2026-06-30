@@ -1,0 +1,19 @@
+{
+  "family": "minimax",
+  "fixtures": [
+    {
+      "id": "minimax-balance-insufficient",
+      "signal": {
+        "provider": "minimax",
+        "statusCode": 403,
+        "bodyText": "Account balance is insufficient for this request."
+      },
+      "expected": {
+        "type": "auth_or_billing_problem",
+        "scope": "identity_profile",
+        "confidenceMin": 0.8,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

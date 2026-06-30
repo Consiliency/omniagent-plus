@@ -1,0 +1,56 @@
+{
+  "family": "openai-api",
+  "fixtures": [
+    {
+      "id": "openai-burst-rpm",
+      "note": "OpenAI request-per-minute pressure should stay retryable.",
+      "signal": {
+        "provider": "openai-api",
+        "statusCode": 429,
+        "bodyText": "Rate limit reached for gpt-4o-mini on requests per minute. Please retry after 20 seconds.",
+        "headers": {
+          "retry-after": "20"
+        }
+      },
+      "expected": {
+        "type": "burst_rate_limit",
+        "scope": "provider_family",
+        "confidenceMin": 0.8,
+        "retryAfterSeconds": 20,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    },
+    {
+      "id": "openai-token-tpm",
+      "signal": {
+        "provider": "openai-api",
+        "statusCode": 429,
+        "bodyText": "Rate limit reached for gpt-4o on tokens per minute (TPM). Reduce prompt size and retry after 25 seconds.",
+        "headers": {
+          "retry-after": "25"
+        }
+      },
+      "expected": {
+        "type": "token_rate_limit",
+        "scope": "model",
+        "confidenceMin": 0.8,
+        "retryAfterSeconds": 25,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    },
+    {
+      "id": "openai-hard-quota",
+      "signal": {
+        "provider": "openai-api",
+        "statusCode": 429,
+        "bodyText": "insufficient_quota: billing hard limit has been reached for this organization."
+      },
+      "expected": {
+        "type": "monthly_spend_or_quota_cap",
+        "scope": "organization",
+        "confidenceMin": 0.8,
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    }
+  ]
+}

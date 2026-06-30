@@ -1,0 +1,35 @@
+{
+  "family": "unknown",
+  "fixtures": [
+    {
+      "id": "ambiguous-reset-only",
+      "signal": {
+        "statusCode": 429,
+        "bodyText": "429 response received.",
+        "headers": {
+          "x-ratelimit-reset": "2026-07-01T00:15:00.000Z"
+        }
+      },
+      "expected": {
+        "type": "unknown_limit",
+        "scope": "unknown",
+        "confidenceMin": 0.4,
+        "resetAt": "2026-07-01T00:15:00.000Z",
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    },
+    {
+      "id": "malformed-limit-string",
+      "signal": {
+        "exitCode": 1,
+        "stderrText": "limit?? maybe later, unknown backend condition"
+      },
+      "expected": {
+        "type": "unknown_limit",
+        "scope": "unknown",
+        "confidenceMin": 0.4,
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    }
+  ]
+}

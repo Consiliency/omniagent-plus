@@ -1,0 +1,20 @@
+{
+  "family": "codex",
+  "fixtures": [
+    {
+      "id": "codex-token-limit",
+      "signal": {
+        "harness": "codex",
+        "exitCode": 1,
+        "stderrText": "Codex backend rate limit: tokens per minute exceeded for gpt-5. Retry after 25 seconds."
+      },
+      "expected": {
+        "type": "token_rate_limit",
+        "scope": "model",
+        "confidenceMin": 0.8,
+        "retryAfterSeconds": 25,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

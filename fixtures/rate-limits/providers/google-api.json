@@ -1,0 +1,24 @@
+{
+  "family": "google-api",
+  "fixtures": [
+    {
+      "id": "google-quota-metric",
+      "signal": {
+        "provider": "google-api",
+        "statusCode": 429,
+        "bodyText": "RESOURCE_EXHAUSTED: quota exceeded for quota metric GenerateContent requests per minute and resets at 2026-07-01T00:10:00.000Z.",
+        "headers": {
+          "retry-after": "60"
+        }
+      },
+      "expected": {
+        "type": "fixed_window_usage_cap",
+        "scope": "project",
+        "confidenceMin": 0.8,
+        "retryAfterSeconds": 60,
+        "resetAt": "2026-07-01T00:10:00.000Z",
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    }
+  ]
+}

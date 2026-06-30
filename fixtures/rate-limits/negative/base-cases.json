@@ -1,0 +1,56 @@
+{
+  "family": "negative",
+  "fixtures": [
+    {
+      "id": "non-limit-429-validation",
+      "signal": {
+        "statusCode": 429,
+        "bodyText": "Schema validation failed: turn payload missing required field."
+      },
+      "expected": {
+        "type": "none",
+        "scope": "unknown",
+        "confidenceMin": 0.75
+      }
+    },
+    {
+      "id": "auth-key-rejected",
+      "signal": {
+        "statusCode": 401,
+        "bodyText": "Invalid API key supplied for this identity profile."
+      },
+      "expected": {
+        "type": "auth_or_billing_problem",
+        "scope": "identity_profile",
+        "confidenceMin": 0.8,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    },
+    {
+      "id": "policy-review-block",
+      "signal": {
+        "statusCode": 403,
+        "bodyText": "Request blocked by trust and safety policy review."
+      },
+      "expected": {
+        "type": "abuse_or_policy_block",
+        "scope": "identity_profile",
+        "confidenceMin": 0.8,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    },
+    {
+      "id": "provider-outage",
+      "signal": {
+        "statusCode": 503,
+        "bodyText": "Service temporarily unavailable due to upstream capacity maintenance."
+      },
+      "expected": {
+        "type": "overload_or_transient",
+        "scope": "provider_family",
+        "confidenceMin": 0.75,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}

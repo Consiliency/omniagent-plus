@@ -1,0 +1,19 @@
+{
+  "family": "gemini-antigravity",
+  "fixtures": [
+    {
+      "id": "gemini-antigravity-acceleration",
+      "signal": {
+        "harness": "gemini-antigravity",
+        "exitCode": 1,
+        "stderrText": "AGY RESOURCE_EXHAUSTED: requests are increasing too quickly for this provider family."
+      },
+      "expected": {
+        "type": "acceleration_limit",
+        "scope": "provider_family",
+        "confidenceMin": 0.75,
+        "sameProviderAccountSwitch": "forbidden"
+      }
+    }
+  ]
+}
