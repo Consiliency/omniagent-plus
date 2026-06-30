@@ -7,9 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "pnpm --filter @omniagent-plus/core-contracts build",
+    "build": "pnpm -r --filter \"@omniagent-plus/*\" build",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "pnpm --filter @omniagent-plus/core-contracts typecheck",
+    "typecheck": "pnpm -r --filter \"@omniagent-plus/*\" typecheck",
     "test": "vitest --config vitest.config.ts --run"
   },
   "devDependencies": {

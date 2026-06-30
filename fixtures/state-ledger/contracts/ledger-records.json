@@ -1,0 +1,289 @@
+[
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "session-1",
+    "sequence": 1,
+    "kind": "session",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:00.000Z",
+    "sessionId": "session-1",
+    "payload": {
+      "id": "session-1",
+      "runtime": "omnigent",
+      "targetHarness": "codex",
+      "targetProvider": "openai",
+      "identityProfileId": "profile-openai",
+      "title": "Durable state smoke test",
+      "state": "idle",
+      "createdAt": "2026-06-30T00:00:00.000Z",
+      "updatedAt": "2026-06-30T00:00:05.000Z",
+      "repoRoot": "/workspace/omniagent-plus"
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "turn-1",
+    "sequence": 2,
+    "kind": "turn",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:01.000Z",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "payload": {
+      "sessionId": "session-1",
+      "turnId": "turn-1",
+      "idempotencyKey": "turn-1",
+      "state": "completed",
+      "createdAt": "2026-06-30T00:00:01.000Z",
+      "updatedAt": "2026-06-30T00:00:09.000Z",
+      "eventCursor": 6
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "event-1",
+    "sequence": 3,
+    "kind": "runtime_event",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:02.000Z",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "payload": {
+      "schema": "runtime_event.v0.1",
+      "eventId": "event-1",
+      "sequence": 1,
+      "sessionId": "session-1",
+      "turnId": "turn-1",
+      "type": "runtime.turn.completed",
+      "occurredAt": "2026-06-30T00:00:02.000Z",
+      "payload": {
+        "outcome": "completed",
+        "outputSummary": "Saved route outcome."
+      },
+      "redaction": "metadata_only",
+      "terminal": true
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "route-1",
+    "sequence": 4,
+    "kind": "route_decision",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:03.000Z",
+    "taskId": "task-1",
+    "payload": {
+      "schema": "route_decision.v0.1",
+      "taskId": "task-1",
+      "selectedProvider": "openai",
+      "selectedHarness": "codex",
+      "selectedIdentityProfileId": "profile-openai",
+      "preferredProvider": "openai",
+      "preferredHarness": "codex",
+      "fallbackUsed": false,
+      "capabilityFit": 1,
+      "providerHealth": 0.92,
+      "currentCapacity": 0.6,
+      "contextPortability": "high",
+      "routeReason": "capability_fit",
+      "silentDowngrade": false
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "limit-1",
+    "sequence": 5,
+    "kind": "limit_classification",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:04.000Z",
+    "sessionId": "session-1",
+    "taskId": "task-1",
+    "payload": {
+      "schema": "limit_classification.v0.1",
+      "type": "fixed_window_usage_cap",
+      "scope": "provider_family",
+      "confidence": 0.98,
+      "provider": "openai",
+      "harness": "codex",
+      "identityProfileId": "profile-openai",
+      "sessionId": "session-1",
+      "retryAfterSeconds": 3600,
+      "resetAt": "2026-07-01T00:00:00.000Z",
+      "rawSignal": {
+        "statusCode": 429,
+        "stderrExcerpt": "Usage cap reached.",
+        "headers": {
+          "retry-after": "3600"
+        }
+      },
+      "routingAction": {
+        "retrySameSession": false,
+        "reduceConcurrency": true,
+        "routeNewWorkElsewhere": true,
+        "migrateExistingPortableWork": true,
+        "requireManualReview": false,
+        "sameProviderAccountSwitch": "forbidden"
+      },
+      "notes": [
+        "Persisted as a provider-family cooldown trigger."
+      ]
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "identity-1",
+    "sequence": 6,
+    "kind": "identity_profile_status",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:05.000Z",
+    "payload": {
+      "schema": "identity_profile_status.v0.1",
+      "profileId": "profile-openai",
+      "provider": "openai",
+      "harness": "codex",
+      "status": "cooldown",
+      "checkedAt": "2026-06-30T00:00:05.000Z",
+      "activeSessions": 1,
+      "activeTurns": 0,
+      "reason": "Usage cap cooldown",
+      "cooldown": {
+        "active": true,
+        "reason": "fixed_window_usage_cap",
+        "resetAt": "2026-07-01T00:00:00.000Z"
+      }
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "cooldown-1",
+    "sequence": 7,
+    "kind": "provider_cooldown",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:06.000Z",
+    "payload": {
+      "schema": "provider_family_cooldown.v0.1",
+      "provider": "openai",
+      "scope": "provider_family",
+      "active": true,
+      "reason": "fixed_window_usage_cap",
+      "observedAt": "2026-06-30T00:00:06.000Z",
+      "resetAt": "2026-07-01T00:00:00.000Z",
+      "source": "limit_classification"
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "lease-1",
+    "sequence": 8,
+    "kind": "worktree_lease",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:07.000Z",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "payload": {
+      "id": "lease-1",
+      "fencingToken": "token-1",
+      "repoId": "ViperJuice/omniagent-plus",
+      "path": "/mnt/workspace/worktrees/omniagent-plus-feature",
+      "branchName": "feature/state-ledger",
+      "mode": "exclusive_write",
+      "holder": {
+        "processId": 12345,
+        "host": "local",
+        "sessionId": "session-1",
+        "turnId": "turn-1"
+      },
+      "acquiredAt": "2026-06-30T00:00:07.000Z",
+      "renewedAt": "2026-06-30T00:00:07.000Z",
+      "expiresAt": "2026-06-30T01:00:07.000Z",
+      "dirtyState": "clean"
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "approval-request-1",
+    "sequence": 9,
+    "kind": "approval_request",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:08.000Z",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "payload": {
+      "approvalRequestId": "approval-1",
+      "toolCallId": "tool-1",
+      "sessionId": "session-1",
+      "turnId": "turn-1",
+      "requestedAction": "apply_patch README.md",
+      "risk": "medium",
+      "allowedApprovers": [
+        "operator"
+      ],
+      "expiresAt": "2026-06-30T00:10:08.000Z"
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "approval-response-1",
+    "sequence": 10,
+    "kind": "approval_response",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:09.000Z",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "payload": {
+      "approvalRequestId": "approval-1",
+      "decision": "approved",
+      "decidedBy": "operator",
+      "decidedAt": "2026-06-30T00:00:09.000Z",
+      "reason": "README doc update is in scope."
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "capability-1",
+    "sequence": 11,
+    "kind": "capability_snapshot",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:10.000Z",
+    "payload": {
+      "schema": "omnigent_capability_snapshot.v0.1",
+      "runtime": "omnigent",
+      "capturedAt": "2026-06-30T00:00:10.000Z",
+      "supportedHarnesses": [
+        "claude-code",
+        "codex"
+      ],
+      "capabilities": {
+        "canCreateSession": true,
+        "canSendTurn": true,
+        "canReadHistory": true,
+        "canStreamEvents": true,
+        "canCancel": true,
+        "canClose": false,
+        "canListSessions": true,
+        "canSpawnChildSessions": false,
+        "canUseHarnessOverride": false
+      },
+      "version": "0.4.2",
+      "gitSha": "abc123def456",
+      "endpoint": "http://127.0.0.1:4444"
+    }
+  },
+  {
+    "schema": "state_ledger_record.v0.1",
+    "recordId": "evidence-1",
+    "sequence": 12,
+    "kind": "evidence_ref",
+    "schemaVersion": 1,
+    "recordedAt": "2026-06-30T00:00:11.000Z",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "taskId": "task-1",
+    "payload": {
+      "kind": "log",
+      "label": "rate-limit summary",
+      "path": ".phase-loop/runs/sample/verification.log",
+      "excerpt": "429 usage cap persisted with a redacted summary."
+    }
+  }
+]

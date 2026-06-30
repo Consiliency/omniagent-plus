@@ -131,7 +131,34 @@
         "SL-3",
         "SL-4"
       ],
-      "lifecycle": [],
+      "lifecycle": [
+        {
+          "at": "2026-06-30T16:39:22Z",
+          "by": "codex-execute-phase",
+          "metadata": {
+            "phase": "STATELEDGER",
+            "plan": "plans/phase-plan-v1-STATELEDGER.md"
+          },
+          "transition": "executing"
+        },
+        {
+          "at": "2026-06-30T16:39:22Z",
+          "by": "codex-execute-phase",
+          "metadata": {
+            "dirty_summary": "phase-owned STATELEDGER outputs plus control artifacts remain uncommitted for runner closeout",
+            "handoff_ref": ".dev-skills/handoffs/codex-execute-phase/20260630T161331Z-01-stateledger-execute.md",
+            "if_gates_produced": [
+              "IF-0-STATELEDGER-3"
+            ],
+            "phase": "STATELEDGER",
+            "plan": "plans/phase-plan-v1-STATELEDGER.md",
+            "reflection_ref": "/home/viperjuice/.codex/skills/codex-execute-phase/reflections/fcd59ee94a74/main/20260630T161331Z-01-stateledger-execute.md",
+            "terminal_status": "awaiting_phase_closeout",
+            "verification_status": "passed"
+          },
+          "transition": "completed"
+        }
+      ],
       "owner_skill": "codex-plan-phase",
       "phase_alias": "STATELEDGER",
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-phase/reflections/fcd59ee94a74/main/20260630T160919Z-stateledger-plan.md",
@@ -142,10 +169,10 @@
         "type": "phase"
       },
       "slug": "v1-STATELEDGER",
-      "status": "committed",
+      "status": "completed",
       "task_summary": "Plan STATELEDGER durable state ledger implementation lanes.",
       "type": "phase",
-      "updated_at": "2026-06-30T16:09:19Z"
+      "updated_at": "2026-06-30T16:39:22Z"
     }
   ],
   "schema_version": 1

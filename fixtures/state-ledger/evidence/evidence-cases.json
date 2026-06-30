@@ -1,0 +1,51 @@
+{
+  "allowed": [
+    {
+      "kind": "log",
+      "label": "verification summary",
+      "sourceType": "redacted_excerpt",
+      "sourceCategory": "runtime_log",
+      "excerpt": "429 usage cap recorded with a redacted summary.",
+      "sessionId": "session-1",
+      "turnId": "turn-1"
+    },
+    {
+      "kind": "file",
+      "label": "verification artifact",
+      "sourceType": "artifact_ref",
+      "sourceCategory": "other",
+      "path": ".phase-loop/runs/sample/verification.json",
+      "taskId": "task-1"
+    }
+  ],
+  "rejected": [
+    {
+      "kind": "log",
+      "label": "secret leak",
+      "sourceType": "redacted_excerpt",
+      "sourceCategory": "runtime_log",
+      "excerpt": "Bearer sk-secret-token-1234567890123456"
+    },
+    {
+      "kind": "log",
+      "label": "raw transcript",
+      "sourceType": "redacted_excerpt",
+      "sourceCategory": "transcript",
+      "excerpt": "raw transcript line"
+    },
+    {
+      "kind": "log",
+      "label": "provider payload",
+      "sourceType": "redacted_excerpt",
+      "sourceCategory": "provider_payload",
+      "excerpt": "{\"token_usage\":1000}"
+    },
+    {
+      "kind": "log",
+      "label": "env dump",
+      "sourceType": "redacted_excerpt",
+      "sourceCategory": "env_dump",
+      "excerpt": "HOME=/tmp/test\nPATH=/usr/bin"
+    }
+  ]
+}

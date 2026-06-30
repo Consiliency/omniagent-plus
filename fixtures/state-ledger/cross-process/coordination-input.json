@@ -1,0 +1,26 @@
+{
+  "cooldown": {
+    "schema": "provider_family_cooldown.v0.1",
+    "provider": "openai",
+    "scope": "provider_family",
+    "active": true,
+    "reason": "rate limit",
+    "observedAt": "2026-06-30T00:00:00.000Z",
+    "resetAt": "2026-06-30T00:10:00.000Z",
+    "source": "limit_classification"
+  },
+  "leaseRequest": {
+    "repoId": "ViperJuice/omniagent-plus",
+    "repoRoot": "/tmp/placeholder",
+    "branchName": "feature/state-ledger",
+    "taskId": "task-1",
+    "mode": "exclusive_write",
+    "requestedTtlSeconds": 300
+  },
+  "holder": {
+    "processId": 4242,
+    "host": "local",
+    "sessionId": "session-1",
+    "turnId": "turn-1"
+  }
+}

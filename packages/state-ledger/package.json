@@ -1,0 +1,22 @@
+{
+  "name": "@omniagent-plus/state-ledger",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": ["src"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json --pretty false",
+    "typecheck": "tsc -p tsconfig.json --pretty false",
+    "test": "pnpm --dir ../.. exec vitest --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@omniagent-plus/core-contracts": "workspace:*",
+    "zod": "^3.25.76"
+  }
+}

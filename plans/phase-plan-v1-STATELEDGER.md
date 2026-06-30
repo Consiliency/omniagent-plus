@@ -43,12 +43,12 @@ SL-1 — Schema, migrations, retention, and append-only store
   Parallel-safe: yes
 
 SL-2 — Audit ledger persistence APIs
-  Depends on: SL-1
+  Depends on: SL-0, SL-1
   Blocks: SL-3, SL-4
   Parallel-safe: yes
 
 SL-3 — Redacted evidence store and cross-process coordination
-  Depends on: SL-1, SL-2
+  Depends on: SL-0, SL-1, SL-2
   Blocks: SL-4
   Parallel-safe: yes
 

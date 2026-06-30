@@ -1,4 +1,10 @@
-export type { RuntimeEvent, RuntimeEventEnvelope } from "./events.js";
+export type {
+  RuntimeApprovalRequest,
+  RuntimeApprovalResponse,
+  RuntimeEvent,
+  RuntimeEventEnvelope,
+  RuntimeToolCall,
+} from "./events.js";
 export {
   createRuntimeEvent,
   runtimeApprovalRequestSchema,
@@ -48,6 +54,25 @@ export {
   redactionStatusSchema,
   runtimeEvidenceRefSchema,
 } from "./redaction.js";
+export type {
+  IdentityProfileStatus,
+  OmnigentCapabilities,
+  OmnigentCapabilitySnapshot,
+  ProviderFamilyCooldown,
+  StateLedgerEntry,
+  StateLedgerRecord,
+  StateLedgerRecordKind,
+} from "./state-ledger.js";
+export {
+  createStateLedgerRecord,
+  identityProfileStatusSchema,
+  omnigentCapabilitiesSchema,
+  omnigentCapabilitySnapshotSchema,
+  providerFamilyCooldownSchema,
+  stateLedgerRecordArraySchema,
+  stateLedgerRecordKinds,
+  stateLedgerRecordSchema,
+} from "./state-ledger.js";
 export type { RouteDecision } from "./route-decision.js";
 export { routeDecisionSchema } from "./route-decision.js";
 export {
@@ -113,7 +138,12 @@ export {
   providerFamilyIds,
   runtimeIds,
 } from "./types.js";
-export type { WorktreeLease, WorktreeLeaseMode, WorktreeLeaseRef } from "./worktree.js";
+export type {
+  WorktreeLease,
+  WorktreeLeaseMode,
+  WorktreeLeaseRef,
+  WorktreeLeaseRequest,
+} from "./worktree.js";
 export {
   worktreeLeaseModes,
   worktreeLeaseRefSchema,

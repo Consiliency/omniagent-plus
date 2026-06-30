@@ -1,0 +1,158 @@
+{
+  "session": {
+    "id": "session-1",
+    "runtime": "omnigent",
+    "targetHarness": "codex",
+    "targetProvider": "openai",
+    "identityProfileId": "profile-openai",
+    "title": "Audit persistence",
+    "state": "idle",
+    "createdAt": "2026-06-30T00:00:00.000Z",
+    "updatedAt": "2026-06-30T00:00:00.000Z"
+  },
+  "turn": {
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "idempotencyKey": "turn-1",
+    "state": "completed",
+    "createdAt": "2026-06-30T00:00:01.000Z",
+    "updatedAt": "2026-06-30T00:00:02.000Z",
+    "eventCursor": 2
+  },
+  "runtimeEvent": {
+    "schema": "runtime_event.v0.1",
+    "eventId": "event-1",
+    "sequence": 1,
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "type": "runtime.turn.completed",
+    "occurredAt": "2026-06-30T00:00:02.000Z",
+    "payload": {
+      "outcome": "completed",
+      "outputSummary": "done"
+    },
+    "redaction": "metadata_only",
+    "terminal": true
+  },
+  "routeDecision": {
+    "schema": "route_decision.v0.1",
+    "taskId": "task-1",
+    "selectedProvider": "openai",
+    "selectedHarness": "codex",
+    "fallbackUsed": false,
+    "capabilityFit": 1,
+    "providerHealth": 0.95,
+    "currentCapacity": 0.6,
+    "contextPortability": "high",
+    "routeReason": "capability_fit",
+    "silentDowngrade": false
+  },
+  "limitClassification": {
+    "schema": "limit_classification.v0.1",
+    "type": "fixed_window_usage_cap",
+    "scope": "provider_family",
+    "confidence": 0.99,
+    "provider": "openai",
+    "harness": "codex",
+    "identityProfileId": "profile-openai",
+    "sessionId": "session-1",
+    "retryAfterSeconds": 600,
+    "resetAt": "2026-06-30T00:10:00.000Z",
+    "rawSignal": {
+      "statusCode": 429,
+      "stderrExcerpt": "cap reached"
+    },
+    "routingAction": {
+      "retrySameSession": false,
+      "reduceConcurrency": true,
+      "routeNewWorkElsewhere": true,
+      "migrateExistingPortableWork": true,
+      "requireManualReview": false,
+      "sameProviderAccountSwitch": "forbidden"
+    }
+  },
+  "identityProfileStatus": {
+    "schema": "identity_profile_status.v0.1",
+    "profileId": "profile-openai",
+    "provider": "openai",
+    "harness": "codex",
+    "status": "cooldown",
+    "checkedAt": "2026-06-30T00:03:00.000Z",
+    "activeSessions": 1,
+    "activeTurns": 0,
+    "reason": "usage cap",
+    "cooldown": {
+      "active": true,
+      "reason": "fixed_window_usage_cap",
+      "resetAt": "2026-06-30T00:10:00.000Z"
+    }
+  },
+  "providerCooldown": {
+    "schema": "provider_family_cooldown.v0.1",
+    "provider": "openai",
+    "scope": "provider_family",
+    "active": true,
+    "reason": "usage cap",
+    "observedAt": "2026-06-30T00:03:00.000Z",
+    "resetAt": "2026-06-30T00:10:00.000Z",
+    "source": "limit_classification"
+  },
+  "worktreeLease": {
+    "id": "lease-1",
+    "fencingToken": "token-1",
+    "repoId": "ViperJuice/omniagent-plus",
+    "path": "/mnt/workspace/worktrees/omniagent-plus-main",
+    "branchName": "main",
+    "mode": "exclusive_write",
+    "holder": {
+      "processId": 1234,
+      "host": "local",
+      "sessionId": "session-1",
+      "turnId": "turn-1"
+    },
+    "acquiredAt": "2026-06-30T00:04:00.000Z",
+    "renewedAt": "2026-06-30T00:04:00.000Z",
+    "expiresAt": "2026-06-30T00:14:00.000Z",
+    "dirtyState": "clean"
+  },
+  "approvalRequest": {
+    "approvalRequestId": "approval-1",
+    "toolCallId": "tool-1",
+    "sessionId": "session-1",
+    "turnId": "turn-1",
+    "requestedAction": "write durable state docs",
+    "risk": "medium",
+    "allowedApprovers": ["operator"]
+  },
+  "approvalResponse": {
+    "approvalRequestId": "approval-1",
+    "decision": "approved",
+    "decidedBy": "operator",
+    "decidedAt": "2026-06-30T00:05:00.000Z",
+    "reason": "docs are in scope"
+  },
+  "capabilitySnapshot": {
+    "schema": "omnigent_capability_snapshot.v0.1",
+    "runtime": "omnigent",
+    "capturedAt": "2026-06-30T00:06:00.000Z",
+    "supportedHarnesses": ["codex"],
+    "capabilities": {
+      "canCreateSession": true,
+      "canSendTurn": true,
+      "canReadHistory": true,
+      "canStreamEvents": true,
+      "canCancel": true,
+      "canClose": false,
+      "canListSessions": true,
+      "canSpawnChildSessions": false,
+      "canUseHarnessOverride": false
+    },
+    "version": "0.4.2"
+  },
+  "evidenceRef": {
+    "kind": "log",
+    "label": "verification summary",
+    "path": ".phase-loop/runs/sample/verification.log",
+    "excerpt": "All durable-state checks passed with redacted summaries only."
+  }
+}

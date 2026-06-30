@@ -1,0 +1,9 @@
+{
+  "schema": "state_ledger_store_manifest.v0.1",
+  "schemaVersion": 1,
+  "recordCount": 2,
+  "lastSequence": 7,
+  "createdAt": "2026-06-30T00:00:00.000Z",
+  "updatedAt": "2026-06-30T00:05:00.000Z",
+  "recoveredTailTruncations": 0
+}
