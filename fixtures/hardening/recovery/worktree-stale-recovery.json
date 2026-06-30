@@ -1,0 +1,33 @@
+{
+  "staleRecovery": {
+    "allowed": {
+      "branchMatches": true,
+      "currentDirtyState": "clean",
+      "currentHost": "display",
+      "holderHost": "display",
+      "leaseDirtyState": "clean",
+      "leaseExpiresAt": "2026-06-30T00:00:00.000Z",
+      "ledgerEvidencePresent": true,
+      "now": "2026-06-30T00:10:00.000Z",
+      "processState": "missing",
+      "expectedReason": "stale_recovery_allowed"
+    },
+    "blockedDirty": {
+      "branchMatches": true,
+      "currentDirtyState": "dirty",
+      "currentHost": "display",
+      "holderHost": "display",
+      "leaseDirtyState": "clean",
+      "leaseExpiresAt": "2026-06-30T00:00:00.000Z",
+      "ledgerEvidencePresent": true,
+      "now": "2026-06-30T00:10:00.000Z",
+      "processState": "missing",
+      "expectedReason": "dirty_worktree"
+    }
+  },
+  "cleanup": {
+    "branchName": "feature/hardening",
+    "expectedBlockedReason": "fencing_token_mismatch",
+    "expectedSuccessReason": "cleanup_complete"
+  }
+}

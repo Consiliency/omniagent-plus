@@ -1,0 +1,22 @@
+{
+  "timeoutCase": {
+    "advanceMs": 10000,
+    "command": [
+      "omnigent",
+      "server",
+      "start"
+    ],
+    "heartbeatTimeoutMs": 5000,
+    "processGroupId": 42,
+    "startedAt": "2026-06-30T00:00:00.000Z"
+  },
+  "parentDeathCase": {
+    "command": [
+      "omnigent",
+      "server",
+      "start"
+    ],
+    "parentPid": 999,
+    "processGroupId": 77
+  }
+}

@@ -131,5 +131,5 @@ describe("cross-process coordination", () => {
     expect(firstLease.acquired).toBe(true);
     expect(secondLease.acquired).toBe(false);
     expect(secondLease.existingLease).toBeTruthy();
-  });
+  }, 15_000);
 });

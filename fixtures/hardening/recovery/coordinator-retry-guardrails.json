@@ -1,0 +1,60 @@
+{
+  "retryAllowed": {
+    "bodyText": "Service overloaded, please try again later.",
+    "headers": {
+      "retry-after": "5"
+    },
+    "repeatedFailures": 0,
+    "statusCode": 503,
+    "expected": {
+      "action": "retry_same_session",
+      "note": "Observed retry-after evidence.",
+      "reason": "retry_allowed",
+      "retryAfterSeconds": 5
+    }
+  },
+  "retryStorm": {
+    "bodyText": "Service overloaded, please try again later.",
+    "headers": {
+      "retry-after": "5"
+    },
+    "repeatedFailures": 3,
+    "statusCode": 503,
+    "expected": {
+      "action": "route_new_work_elsewhere",
+      "reason": "retry_storm_guardrail",
+      "retryAfterSeconds": 5
+    }
+  },
+  "cooldownPause": {
+    "classification": {
+      "schema": "limit_classification.v0.1",
+      "type": "unknown_limit",
+      "scope": "provider_family",
+      "confidence": 0.3,
+      "provider": "openai",
+      "harness": "codex",
+      "retryAfterSeconds": 120,
+      "resetAt": "2026-06-30T10:35:00.000Z",
+      "rawSignal": {
+        "statusCode": 429,
+        "stderrExcerpt": "unknown throttling signal"
+      },
+      "routingAction": {
+        "retrySameSession": false,
+        "reduceConcurrency": true,
+        "routeNewWorkElsewhere": false,
+        "migrateExistingPortableWork": false,
+        "requireManualReview": true,
+        "sameProviderAccountSwitch": "manual_confirmation_required"
+      }
+    },
+    "observedAt": "2026-06-30T10:33:00.000Z",
+    "repeatedFailures": 1,
+    "expected": {
+      "action": "pause_provider_family",
+      "reason": "wait_for_reset",
+      "resetAt": "2026-06-30T10:35:00.000Z"
+    }
+  }
+}

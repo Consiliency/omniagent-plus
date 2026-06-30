@@ -1,0 +1,77 @@
+{
+  "forbiddenPatterns": [
+    "\\bproduction-ready\\b",
+    "\\bready for production\\b",
+    "\\bpublic beta launch\\b",
+    "\\bmulti-user SaaS ready\\b",
+    "\\bquota bypass\\b"
+  ],
+  "negatedMentions": [
+    {
+      "file": "README.md",
+      "phrase": "public beta",
+      "requiredLineFragment": "not public beta"
+    },
+    {
+      "file": "README.md",
+      "phrase": "multi-user saas",
+      "requiredLineFragment": "not multi-user saas"
+    },
+    {
+      "file": "docs/commercialization-checklist.md",
+      "phrase": "public beta",
+      "requiredLineFragment": "not public beta"
+    },
+    {
+      "file": "docs/commercialization-checklist.md",
+      "phrase": "multi-user saas",
+      "requiredLineFragment": "not multi-user saas"
+    }
+  ],
+  "requiredPhrasesByFile": {
+    "README.md": [
+      "alpha",
+      "local operator",
+      "not production",
+      "not public beta",
+      "not multi-user SaaS",
+      "retry storm",
+      "crash recovery",
+      "live Omnigent"
+    ],
+    "docs/commercialization-checklist.md": [
+      "alpha",
+      "not production",
+      "not public beta",
+      "not multi-user SaaS",
+      "commercialization",
+      "provider terms",
+      "subscription",
+      "account use"
+    ],
+    "docs/hardening-readiness.md": [
+      "IF-0-HARDEN-13",
+      "metadata_only",
+      "retry storm",
+      "crash recovery",
+      "worktree locks",
+      "live Omnigent"
+    ],
+    "docs/omnigent-live-smoke.md": [
+      "skip by default",
+      "metadata_only",
+      "no credentials required"
+    ],
+    "docs/security-and-secrets.md": [
+      "secrets",
+      "identity isolation",
+      "prompt injection",
+      "tool approvals",
+      "data retention",
+      "provider terms",
+      "subscription",
+      "account use",
+      "metadata_only"
+    ]
+  }
+}

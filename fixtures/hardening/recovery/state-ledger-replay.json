@@ -1,0 +1,11 @@
+{
+  "secretProbe": "secret-value",
+  "session": {
+    "createdAt": "2026-06-30T00:00:00.000Z",
+    "id": "session-hardening",
+    "title": "Hardening replay",
+    "updatedAt": "2026-06-30T00:00:00.000Z"
+  },
+  "truncatedTail": "{\"schema\":\"state_ledger_record.v0.1\",\"kind\":\"evidence_ref\",\"payload\":{\"kind\":\"log\",\"label\":\"partial\",\"excerpt\":\"HOME=/tmp/secret-value\"",
+  "unsafeExcerpt": "HOME=/tmp/secret-value"
+}

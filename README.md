@@ -15,6 +15,9 @@ and deterministic human output. The existing CLI commands still support
 missing records, validation failures, policy blocks, cleanup blocks, route
 blocks, and unexpected internal failures.
 
+The current release remains alpha and local-operator focused. It is not production,
+not public beta, and not multi-user SaaS.
+
 ## Workspace Surface
 
 - `packages/core-contracts` exports the runtime-neutral contracts, schemas,
@@ -47,23 +50,20 @@ blocks, and unexpected internal failures.
 
 ## Verification
 
-Run the UI phase gate from the repo root:
+Run the HARDEN gate from the repo root:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm --filter @omniagent-plus/cli cli -- control snapshot --json
-pnpm --filter @omniagent-plus/core-contracts test -- --run packages/core-contracts/src/ui-read-model.test.ts
-pnpm --filter @omniagent-plus/state-ledger test -- --run packages/state-ledger/src/replay.test.ts
-pnpm --filter @omniagent-plus/cli test -- --run packages/cli/src/control.test.ts packages/cli/src/cli.test.ts packages/cli/src/phase-verification.test.ts
+pnpm test -- --run packages/coordinator/src/hardening-recovery.test.ts packages/omnigent-transport/src/hardening-recovery.test.ts packages/worktree-leasing/src/hardening-recovery.test.ts packages/state-ledger/src/hardening-replay.test.ts packages/omnigent-transport/src/live-omnigent-smoke.test.ts packages/cli/src/hardening-readiness.test.ts
 pnpm build
 pnpm lint
 pnpm typecheck
-find fixtures/ui fixtures/cli/control -name '*.json' -print | sort | xargs -r -n1 python3 -m json.tool >/dev/null
+pnpm test
+find fixtures/hardening -name '*.json' -print | sort | xargs -r -n1 python3 -m json.tool >/dev/null
 phase-loop validate-roadmap specs/phase-plans-v1.md
 ```
 
-The verification gate also checks that the full workspace still builds and
-typechecks, that the CLI command registry exposes the `control snapshot`
-surface, that the read-model contracts reject unsafe metadata/evidence, and
-that the docs continue to describe `--json`, `state-root`, `metadata_only`,
-read-only replay behavior, and the non-dispatch `no_spec_delta` posture.
+The verification gate now also checks retry storm handling, crash recovery,
+worktree locks, interrupted state-ledger replay, the skip-by-default live
+Omnigent smoke contract, and the alpha/local operator readiness language across
+README and docs.

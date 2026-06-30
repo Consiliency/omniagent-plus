@@ -1,0 +1,19 @@
+{
+  "metadataOnlyKeys": [
+    "backend",
+    "liveEnvVar",
+    "notesCount",
+    "sessionId",
+    "state"
+  ],
+  "requiredDocPhrases": [
+    "skip by default",
+    "metadata_only",
+    "no credentials required"
+  ],
+  "requiredEnv": [
+    "OMNIAGENT_PLUS_LIVE_OMNIGENT",
+    "OMNIAGENT_PLUS_LIVE_OMNIGENT_BASE_URL",
+    "OMNIAGENT_PLUS_LIVE_OMNIGENT_BEARER_TOKEN"
+  ]
+}
