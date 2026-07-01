@@ -11,9 +11,10 @@ It freezes the Omnigent surface that downstream phases may rely on for v0.1.
 - Python requirement at the freeze target: `>=3.12`
 - Authoritative downstream gate: `IF-0-CONTRACT-1`
 
-The upstream `main` branch was ahead of the release during this phase
-(`03d893181da5c1a267c74fd8761a510f6a82dcd1` observed on `2026-06-30`), so
-`main` is not authoritative for this freeze.
+The upstream `main` branch remains ahead of the latest release
+(`f46a256df68f1c7f4a577f9b53f7902b14371c53` observed on `2026-07-01`), so
+`main` is not authoritative for this freeze. Unreleased-main readiness is
+tracked separately in `docs/omnigent-upstream-readiness.md`.
 
 ## Source Provenance
 

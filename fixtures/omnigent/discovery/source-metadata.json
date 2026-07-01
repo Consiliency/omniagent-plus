@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.source_metadata.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-06-30T09:00:01Z",
+  "captured_at": "2026-07-01T22:23:57Z",
   "repo": "omnigent-ai/omnigent",
   "freeze_target": {
     "tag": "v0.3.0",
@@ -12,8 +12,8 @@
   },
   "head_probe": {
     "branch": "main",
-    "commit": "03d893181da5c1a267c74fd8761a510f6a82dcd1",
-    "observed_at": "2026-06-30T09:00:01Z",
+    "commit": "f46a256df68f1c7f4a577f9b53f7902b14371c53",
+    "observed_at": "2026-07-01T22:23:57Z",
     "authority": "latest remote head probe only; not part of IF-0-CONTRACT-1"
   },
   "local_cli_probe": {
@@ -34,7 +34,7 @@
     {
       "kind": "remote_head_probe",
       "path": "refs/heads/main",
-      "ref": "03d893181da5c1a267c74fd8761a510f6a82dcd1"
+      "ref": "f46a256df68f1c7f4a577f9b53f7902b14371c53"
     }
   ]
 }
