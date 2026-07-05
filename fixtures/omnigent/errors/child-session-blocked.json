@@ -8,22 +8,22 @@
     "create_child_session_under_parent": false
   },
   "provider_status": "blocked",
-  "note": "v0.3.0 exposes child-session observation and forking, but not a stable public spawn-under-parent create primitive.",
+  "note": "v0.4.0 exposes child-session observation and forking, but not a stable public spawn-under-parent create primitive.",
   "provenance": [
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
     },
     {
       "kind": "tagged_source",
       "path": "openapi.json",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/tools/builtins/spawn.py",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
     }
   ]
 }

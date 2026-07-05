@@ -44,10 +44,41 @@ export const omnigentStreamEventTypes = [
   "session.input.consumed",
   "session.interrupted",
   "session.child_session.updated",
+  "session.usage",
+  "session.model",
+  "session.model_options",
+  "session.reasoning_effort",
+  "session.collaboration_mode",
+  "session.agent_changed",
+  "session.todos",
+  "session.terminal_pending",
+  "session.sandbox_status",
+  "session.skills",
+  "session.superseded",
+  "session.presence",
+  "session.resource.created",
+  "session.resource.deleted",
+  "session.changed_files.invalidated",
+  "session.terminal.activity",
+  "session.heartbeat",
   "response.created",
   "response.queued",
   "response.in_progress",
   "response.output_text.delta",
+  "response.output_item.done",
+  "response.output_file.done",
+  "response.reasoning.started",
+  "response.reasoning_text.delta",
+  "response.reasoning_summary_text.delta",
+  "response.retry",
+  "response.error",
+  "response.compaction.in_progress",
+  "response.compaction.completed",
+  "response.compaction.failed",
+  "response.client_task.cancel",
+  "response.heartbeat",
+  "response.elicitation_request",
+  "response.elicitation_resolved",
   "response.completed",
   "response.failed",
   "response.incomplete",
@@ -95,6 +126,8 @@ export interface OmnigentSessionSnapshot {
   readonly backend: `omnigent-${OmnigentProviderMode}`;
   readonly items: OmnigentHistoryItem[];
   readonly activeTurnId?: string;
+  readonly activeResponseId?: string | null;
+  readonly active_response_id?: string | null;
   readonly backgroundTaskCount?: number | null;
   readonly background_task_count?: number | null;
   readonly metadata?: Record<string, unknown>;
@@ -120,6 +153,9 @@ export interface OmnigentRawEvent {
   readonly occurredAt: string;
   readonly backgroundTaskCount?: number | null;
   readonly background_task_count?: number | null;
+  readonly sequence_number?: number | null;
+  readonly conversation_id?: string;
+  readonly response_id?: string;
   readonly itemId?: string;
   readonly terminal?: boolean;
   readonly status?: OmnigentSessionStatus | OmnigentResponseStatus;
@@ -128,12 +164,30 @@ export interface OmnigentRawEvent {
   readonly delta?: string;
   readonly outputText?: string;
   readonly failure?: OmnigentEventFailure;
+  readonly model?: string | null;
+  readonly reasoning_effort?: string | null;
+  readonly mode?: string | null;
+  readonly total_cost_usd?: number | null;
+  readonly usage_by_model?: Record<string, unknown> | null;
+  readonly error?: unknown;
+  readonly attempt?: number;
+  readonly delay_seconds?: number;
+  readonly tool_name?: string;
+  readonly source?: string;
+  readonly elicitation_id?: string;
+  readonly params?: Record<string, unknown>;
 }
 
 export interface OmnigentReadStateInput {
   readonly lastSeen: number;
   readonly unread: boolean;
 }
+
+export type OmnigentHarnessCatalogEntry = Readonly<Record<string, unknown>>;
+
+export type OmnigentHarnessCatalogResponse = Readonly<
+  Record<string, readonly OmnigentHarnessCatalogEntry[]>
+>;
 
 export interface OmnigentHistoryItem {
   readonly id: string;

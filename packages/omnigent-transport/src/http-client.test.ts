@@ -12,7 +12,7 @@ async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
 }
 
 describe("http client", () => {
-  it("uses only documented endpoints for session, history, and stream access", async () => {
+  it("uses only documented v0.4 endpoints for session, catalog, history, and stream access", async () => {
     const server = await FakeOmnigentServer.start();
 
     try {
@@ -31,6 +31,7 @@ describe("http client", () => {
         sessionId: session.id,
       });
       await client.getSession(session.id);
+      const harnesses = await client.listHarnesses();
       await client.getHistory(session.id);
       await client.listChildSessions(session.id);
       await client.setReadState(session.id, {
@@ -46,6 +47,7 @@ describe("http client", () => {
           "POST /v1/sessions",
           `POST /v1/sessions/${session.id}/events`,
           `GET /v1/sessions/${session.id}`,
+          "GET /v1/harnesses",
           `GET /v1/sessions/${session.id}/items`,
           `GET /v1/sessions/${session.id}/child_sessions`,
           `PUT /v1/sessions/${session.id}/read-state`,
@@ -62,6 +64,12 @@ describe("http client", () => {
         last_seen: 1_780_000_000,
         unread: true,
       });
+      expect(harnesses.local?.[0]).toEqual(
+        expect.objectContaining({
+          name: "codex",
+          public_session_override: false,
+        }),
+      );
     } finally {
       await server.stop();
     }

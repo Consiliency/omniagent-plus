@@ -13,6 +13,11 @@ export interface OmnigentSourceMetadataFixture {
 }
 
 export interface OmnigentHttpSurfaceFixture {
+  readonly harness_endpoints?: Array<{
+    readonly method: string;
+    readonly path: string;
+    readonly purpose: string;
+  }>;
   readonly session_endpoints: Array<{
     readonly method: string;
     readonly path: string;
@@ -23,6 +28,8 @@ export interface OmnigentHttpSurfaceFixture {
     readonly mode: string;
     readonly reconnect_steps: string[];
     readonly replay: boolean;
+    readonly event_families?: string[];
+    readonly official_v0_4_event_count?: number;
   };
 }
 

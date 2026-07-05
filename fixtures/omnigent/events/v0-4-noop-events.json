@@ -1,0 +1,54 @@
+{
+  "schema": "omnigent.event_fixture.v1",
+  "redaction": "metadata_only",
+  "fixture": "v0_4_noop_events",
+  "events": [
+    {
+      "type": "session.usage",
+      "terminal": false
+    },
+    {
+      "type": "response.reasoning.started",
+      "terminal": false
+    },
+    {
+      "type": "response.reasoning_text.delta",
+      "terminal": false
+    },
+    {
+      "type": "response.retry",
+      "terminal": false,
+      "reason": "metadata_only_retry"
+    },
+    {
+      "type": "response.error",
+      "terminal": false,
+      "reason": "metadata_only_error"
+    },
+    {
+      "type": "response.heartbeat",
+      "terminal": false
+    },
+    {
+      "type": "session.reasoning_effort",
+      "terminal": false
+    },
+    {
+      "type": "response.elicitation_request",
+      "terminal": false
+    }
+  ],
+  "expected_provider_behavior": "parse as known v0.4 events and no-op unless explicitly mapped to provider state",
+  "provenance": [
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.4.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/schemas.py",
+      "ref": "v0.4.0"
+    }
+  ]
+}

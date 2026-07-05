@@ -6,53 +6,29 @@ contract in `docs/omnigent-contract.md`. It is not a replacement for the
 
 ## Current Decision
 
-- Latest published GitHub release: `v0.3.0`
-- Latest published release commit: `4edb4d95b95fd2748f3f119628936d75511918e9`
-- Latest release published: `2026-06-27T05:21:16Z`
-- Current upstream `main` probe: `3f4d1c8e0b3742579c5c96742086db9e0bd36def`
-- Probe time: `2026-07-02T07:15:35Z`
-- Pushed pre-release tag: `v0.4.0dev0`
-- Pre-release tag commit: `3f4d1c8e0b3742579c5c96742086db9e0bd36def`
-- Pre-release GitHub release: none observed
-- Pre-release PyPI package: none observed
-- Upstream `main` package version: `0.3.0.dev0`
+- Latest published GitHub release: `v0.4.0`
+- Latest published release commit: `31669e1b413216c865d0ed7dfb469fb142c889f5`
+- Latest release published: `2026-07-03T01:36:56Z`
+- Latest PyPI package: `omnigent 0.4.0`
+- Python requirement: `>=3.12`
+- Current upstream `main` probe: `b9332cc655b2ad7dbe70d2ad5b9cd78214dd3e17`
+- Probe time: `2026-07-05T01:00:26Z`
 
-`omniagent-plus` is current with the latest published release. Do not change
-runtime behavior to require upstream `main` until Omnigent publishes a new
-release or this repo explicitly opts into a main-SHA compatibility lane.
+`omniagent-plus` is adapting to the latest published release. Previous
+`v0.4.0dev0` compatibility is now historical context; the stable freeze target
+is the official GitHub/PyPI `v0.4.0` release.
 
-This repo does include additive forward compatibility for the pushed
-`v0.4.0dev0` tag where the behavior is optional and does not weaken the
-`v0.3.0` freeze:
+Stable `v0.4.0` transport-relevant surface now includes:
 
-- `launching` is accepted in raw session-status events and maps to the neutral
-  `starting` state.
-- `PUT /v1/sessions/{session_id}/read-state` is available on the HTTP client
-  and fake server.
+- `GET /v1/harnesses` as a read-only harness catalog.
+- `PUT /v1/sessions/{session_id}/read-state`.
+- `active_response_id` on session snapshots for reconnect state.
 - Optional `background_task_count`, `viewer_last_seen`, and `viewer_unread`
-  fields are accepted on transport snapshot/event types.
-- `OMNIGENT_*` provider credential aliases are treated as secret-shaped in
-  redaction and durable-evidence guards.
-
-## Unreleased Main Delta
-
-Contract-relevant deltas observed between `v0.3.0` and upstream `main`:
-
-- OpenAPI adds `PUT /v1/sessions/{session_id}/read-state`.
-- `SessionResponse` adds optional `background_task_count`.
-- `SessionStatusEvent` adds optional `background_task_count`.
-- `SessionListItem` adds `viewer_last_seen` and `viewer_unread`.
-- `Usage` adds optional `cost_usd`.
-- `CompactionData` adds optional `window_id`.
-- `UpdateSessionRequest` adds `silent`.
-- OpenAPI now includes `waiting` in session status enums, resolving the
-  `v0.3.0` release drift already tolerated by this repo.
-- Provider credential resolution adds `OMNIGENT_`-prefixed environment aliases,
-  for example `OMNIGENT_ANTHROPIC_API_KEY`.
-- `sys_session_send` adds per-subagent `cost_budget` metadata.
-- Several native harness, routing, tracing, and web UI changes landed after the
-  release, but those should not be treated as stable provider-contract inputs
-  until a new release or explicit SHA pin.
+  fields on session/read-state surfaces.
+- `waiting` in the release OpenAPI session status enum.
+- Expanded `ServerStreamEvent` discriminators for session UI metadata,
+  resources, reasoning, usage, compaction, heartbeat, retry, error, and
+  elicitation events.
 
 Still not upgraded to public transport capability:
 
@@ -60,7 +36,17 @@ Still not upgraded to public transport capability:
 - Child-session spawn-under-parent remains internal; public transport can
   observe children and fork sessions but should not claim stable child spawn.
 
-## Bring-Up Plan
+## Unreleased Main Delta
+
+Current `main` is ahead of the official `v0.4.0` tag. The observed movement is
+non-authoritative for this repo until a release or explicit SHA pin lands.
+
+The current notable non-freeze movement is terminal transport work, including
+tmux control-mode web-terminal transport. The provider-bound OpenAPI path set
+checked for this adaptation did not require additional stable paths beyond the
+official `v0.4.0` freeze.
+
+## Maintenance Plan
 
 Use a detailed-plan lane, not a full new roadmap, when the next Omnigent release
 lands. The change is contract-maintenance scoped unless upstream publishes a
@@ -89,7 +75,7 @@ breaking transport contract.
    - promote compatible optional fields only when downstream consumers need
      them beyond transport-level acceptance;
    - keep additive upstream fields optional unless acceptance needs them;
-   - leave `read-state` optional unless a consumer needs it in the neutral
+   - keep `read-state` metadata-only unless a consumer needs it in the neutral
      provider boundary.
 
 5. Update credential handling:

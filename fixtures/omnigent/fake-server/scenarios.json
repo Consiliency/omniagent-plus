@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.fake_server_scenarios.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-06-30T09:00:01Z",
+  "captured_at": "2026-07-05T01:00:26Z",
   "scenarios": [
     {
       "name": "create_send_stream_success",
@@ -87,6 +87,18 @@
       ],
       "fixtures": [
         "fixtures/omnigent/events/dual-terminal-markers.json"
+      ]
+    },
+    {
+      "name": "v0_4_harness_catalog_and_read_state",
+      "capabilities": [
+        "harness_catalog",
+        "reconnect",
+        "stream_events"
+      ],
+      "fixtures": [
+        "fixtures/omnigent/discovery/http-surface.json",
+        "fixtures/omnigent/events/v0-4-noop-events.json"
       ]
     }
   ],

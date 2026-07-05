@@ -3,6 +3,7 @@ import type { CreateSessionRequest, SendTurnRequest } from "@omniagent-plus/core
 import { parseOmnigentSseStream, type OmnigentSseSkip } from "./sse-stream.js";
 import type {
   OmnigentEventAck,
+  OmnigentHarnessCatalogResponse,
   OmnigentHistoryItem,
   OmnigentHttpClientOptions,
   OmnigentRawEvent,
@@ -62,6 +63,10 @@ export class OmnigentHttpClient {
 
   async listSessions(): Promise<OmnigentSessionSnapshot[]> {
     return this.requestJson("GET", "/v1/sessions");
+  }
+
+  async listHarnesses(): Promise<OmnigentHarnessCatalogResponse> {
+    return this.requestJson("GET", "/v1/harnesses");
   }
 
   async getSession(sessionId: string): Promise<OmnigentSessionSnapshot> {

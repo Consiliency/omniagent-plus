@@ -58,10 +58,9 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-CONTRACT froze release drift where Omnigent documents `waiting` in `API.md` and
-`session.status` SSE payloads even though the release `openapi.json` omits it
-from the session enum. BOOTCORE records that drift as fixture semantics rather
-than pretending the release schema is exhaustive. Upstream `main` now includes
-`waiting` in OpenAPI, but this repo keeps the drift note until a published
-release supersedes `v0.3.0`. The `session.status` SSE enum also includes
-`launching`; the transport treats it as the neutral `starting` session state.
+The official Omnigent `v0.4.0` freeze includes `waiting` in the release
+OpenAPI session snapshot enum, so the previous waiting drift is resolved.
+The `session.status` SSE family still includes `launching`; the transport
+treats it as the neutral `starting` session state. Additional `v0.4.0`
+metadata/UI event families are accepted by the parser and no-op mapped unless
+they affect provider state.

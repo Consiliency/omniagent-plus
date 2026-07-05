@@ -54,7 +54,11 @@ function toSessionInfo(
   previous?: AgentSessionInfo,
 ): AgentSessionInfo {
   return {
-    activeTurnId: snapshot.activeTurnId,
+    activeTurnId:
+      snapshot.activeTurnId ??
+      snapshot.activeResponseId ??
+      snapshot.active_response_id ??
+      undefined,
     correlationId: request.correlationId,
     createdAt: snapshot.createdAt,
     eventCursor: previous?.eventCursor ?? 0,
@@ -245,9 +249,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         "public harness override stays blocked",
       ],
       runtime: "omnigent",
-      sessionStateDrift: sessions.some((session) => session.status === "waiting")
-        ? ["waiting status is documented in API.md and SSE but omitted from release OpenAPI"]
-        : [],
+      sessionStateDrift: [],
     };
   }
 }

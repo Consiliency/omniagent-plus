@@ -14,7 +14,7 @@ and scenario boundaries instead of raw provider payload dumps.
 ## provenance
 
 - Every fixture points back to the tagged upstream source that justified it.
-- The freeze target is `omnigent` `v0.3.0`.
+- The freeze target is `omnigent` `v0.4.0`.
 - `main` observations are metadata only and are not authoritative for the fake
   server unless a later contract freeze re-pins them.
 
@@ -30,3 +30,6 @@ and scenario boundaries instead of raw provider payload dumps.
   minimum fixtures needed to simulate or normalize that case.
 - Downstream transport tests should treat `blocked` capabilities as typed
   blocked or unavailable results, not as missing fixture bugs.
+- The `v0_4_harness_catalog_and_read_state` scenario covers the official
+  read-only harness catalog, read-state metadata, `active_response_id`, and
+  representative v0.4 event parsing.

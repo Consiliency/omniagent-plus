@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseOmnigentSseStream } from "./sse-stream.js";
+import { loadOmnigentEventFixture } from "./contract-fixtures.js";
 
 async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
   const result: T[] = [];
@@ -51,5 +52,34 @@ describe("sse stream parser", () => {
     ]);
     expect(events).toHaveLength(1);
     expect(events[0]?.delta).toBe("hi");
+  });
+
+  it("parses official v0.4 event families without unknown-event skips", async () => {
+    const fixture = loadOmnigentEventFixture("v0-4-noop-events");
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          (fixture.events ?? [])
+            .map((event, index) =>
+              `data: ${JSON.stringify({
+                id: `v04-${index + 1}`,
+                occurredAt: "2026-06-30T00:00:00.000Z",
+                sessionId: "session-1",
+                type: event.type,
+              })}`,
+            )
+            .join("\n\n"),
+        ),
+        (skip) => {
+          skipped.push(skip.reason);
+        },
+      ),
+    );
+
+    expect(skipped).toEqual([]);
+    expect(events.map((event) => event.type)).toEqual(
+      (fixture.events ?? []).map((event) => event.type),
+    );
   });
 });

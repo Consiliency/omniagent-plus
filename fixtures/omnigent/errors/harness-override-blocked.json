@@ -7,12 +7,12 @@
     "internal_allowlisted_spawn_override": true
   },
   "provider_status": "blocked",
-  "note": "The only observed harness override path is allowlist-gated internal spawn-tool behavior, not a stable public session API.",
+  "note": "v0.4.0 adds a read-only harness catalog, but the only observed harness override path remains allowlist-gated internal spawn-tool behavior, not a stable public session API.",
   "provenance": [
     {
       "kind": "tagged_source",
       "path": "omnigent/tools/builtins/spawn.py",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
     }
   ]
 }

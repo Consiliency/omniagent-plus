@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.capability_probe_matrix.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-06-30T09:00:01Z",
+  "captured_at": "2026-07-05T01:00:26Z",
   "capabilities": [
     {
       "name": "create_session",
@@ -59,6 +59,14 @@
       ]
     },
     {
+      "name": "harness_catalog",
+      "status": "supported",
+      "evidence": [
+        "GET /v1/harnesses in openapi.json",
+        "omnigent/server/routes/harnesses.py exposes read-only catalog"
+      ]
+    },
+    {
       "name": "child_session",
       "status": "blocked",
       "evidence": [
@@ -71,6 +79,7 @@
       "name": "harness_override",
       "status": "blocked",
       "evidence": [
+        "GET /v1/harnesses is read-only catalog metadata",
         "spawn.py allowlist-gates args.harness for internal sub-agents only"
       ]
     },
@@ -79,7 +88,7 @@
       "status": "emulated",
       "evidence": [
         "invalid POST /events payloads fail 400",
-        "official client skips malformed or unknown SSE frames"
+        "official v0.4 client skips malformed or unknown SSE frames"
       ]
     },
     {
@@ -87,7 +96,7 @@
       "status": "supported",
       "evidence": [
         "API.md reconnect contract",
-        "official client stream plus get snapshot posture"
+        "official v0.4 client stream plus get snapshot posture"
       ]
     },
     {
@@ -104,17 +113,27 @@
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.4.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/routes/harnesses.py",
+      "ref": "v0.4.0"
     },
     {
       "kind": "tagged_source",
       "path": "sdks/python-client/omnigent_client/_sessions.py",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/tools/builtins/spawn.py",
-      "ref": "v0.3.0"
+      "ref": "v0.4.0"
     }
   ]
 }

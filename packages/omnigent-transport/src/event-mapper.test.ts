@@ -94,4 +94,13 @@ describe("event mapper", () => {
       1,
     );
   });
+
+  it("accepts v0.4 UI and metadata events as safe no-ops", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      fixtureToRawEvents("v0-4-noop-events"),
+    );
+
+    expect(runtimeEvents).toEqual([]);
+  });
 });

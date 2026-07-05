@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { loadOmnigentFakeServerScenarios } from "./contract-fixtures.js";
+import {
+  loadOmnigentCapabilityMatrix,
+  loadOmnigentFakeServerScenarios,
+  loadOmnigentHttpSurface,
+  loadOmnigentSourceMetadata,
+} from "./contract-fixtures.js";
 import { mapOmnigentEventSequence } from "./event-mapper.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import { mapOmnigentHistory } from "./history-mapper.js";
-import type { OmnigentHistoryItem, OmnigentRawEvent, OmnigentSessionSnapshot } from "./types.js";
+import { omnigentStreamEventTypes, type OmnigentHistoryItem, type OmnigentRawEvent, type OmnigentSessionSnapshot } from "./types.js";
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -22,6 +27,9 @@ async function readRawEvents(response: Response): Promise<OmnigentRawEvent[]> {
 describe("fake omnigent conformance", () => {
   it("covers the frozen scenario catalog and session lifecycle flows", async () => {
     const scenarios = loadOmnigentFakeServerScenarios();
+    const sourceMetadata = loadOmnigentSourceMetadata();
+    const capabilityMatrix = loadOmnigentCapabilityMatrix();
+    const httpSurface = loadOmnigentHttpSurface();
     const server = await FakeOmnigentServer.start();
 
     try {
@@ -61,6 +69,30 @@ describe("fake omnigent conformance", () => {
           "reconnect_snapshot_dedupe",
           "malformed_sse_skip",
           "terminal_marker_deduplication",
+          "v0_4_harness_catalog_and_read_state",
+        ]),
+      );
+      expect(sourceMetadata.freeze_target.tag).toBe("v0.4.0");
+      expect(sourceMetadata.freeze_target.commit).toBe(
+        "31669e1b413216c865d0ed7dfb469fb142c889f5",
+      );
+      expect(httpSurface.stream_contract.official_v0_4_event_count).toBe(
+        omnigentStreamEventTypes.length,
+      );
+      expect(capabilityMatrix.capabilities).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: "harness_catalog",
+            status: "supported",
+          }),
+          expect.objectContaining({
+            name: "harness_override",
+            status: "blocked",
+          }),
+          expect.objectContaining({
+            name: "child_session",
+            status: "blocked",
+          }),
         ]),
       );
 

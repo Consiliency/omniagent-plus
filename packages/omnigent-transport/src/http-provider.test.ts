@@ -70,6 +70,31 @@ describe("http provider", () => {
       expect(info.state).toBe("closed");
       expect(health.backend).toBe("omnigent-http");
       expect(health.notes?.[0]).toContain("logical close");
+      expect(health.sessionStateDrift).toEqual([]);
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it("maps active_response_id snapshots into active turn identity", async () => {
+    const server = await FakeOmnigentServer.start({
+      activeResponseId: "turn-active-response",
+    });
+
+    try {
+      const provider = createHttpProvider({
+        baseUrl: server.baseUrl,
+      });
+      const session = await provider.createSession({
+        idempotencyKey: "http-provider-active-response",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "HTTP active response",
+      });
+      const info = await provider.getSessionInfo(session.id);
+
+      expect(info.activeTurnId).toBe("turn-active-response");
+      expect(info.state).toBe("turn_active");
     } finally {
       await server.stop();
     }
