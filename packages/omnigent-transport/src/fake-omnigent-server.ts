@@ -15,6 +15,7 @@ import type {
 } from "./types.js";
 
 export interface FakeOmnigentServerOptions {
+  readonly activeResponseId?: string;
   readonly malformedFrameBeforeValid?: boolean;
   readonly rejectNextTurnWith?: "auth" | "billing" | "policy" | "rate_limit";
   readonly streamDisconnect?: boolean;
@@ -258,6 +259,7 @@ export class FakeOmnigentServer {
       const title = String(payload.title ?? "Omnigent session");
       const created = buildSessionCreatedEvent(sessionId, title);
       const snapshot: OmnigentSessionSnapshot = {
+        active_response_id: this.options.activeResponseId,
         backend: "omnigent-http",
         createdAt: created.occurredAt,
         id: sessionId,
@@ -266,7 +268,7 @@ export class FakeOmnigentServer {
           commands: loadOmnigentCliSurface().documented_commands.slice(0, 4),
           targetHarness: payload.targetHarness,
         },
-        status: "idle",
+        status: this.options.activeResponseId ? "running" : "idle",
         title,
         updatedAt: created.occurredAt,
       };
@@ -397,7 +399,7 @@ export class FakeOmnigentServer {
           record.snapshot = {
             ...record.snapshot,
             activeTurnId: undefined,
-            active_response_id: turnId,
+            active_response_id: undefined,
             items: [
               ...record.snapshot.items,
               ...rawEvents

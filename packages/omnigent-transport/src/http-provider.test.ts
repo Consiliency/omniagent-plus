@@ -77,7 +77,9 @@ describe("http provider", () => {
   });
 
   it("maps active_response_id snapshots into active turn identity", async () => {
-    const server = await FakeOmnigentServer.start();
+    const server = await FakeOmnigentServer.start({
+      activeResponseId: "turn-active-response",
+    });
 
     try {
       const provider = createHttpProvider({
@@ -89,14 +91,10 @@ describe("http provider", () => {
         targetHarness: "codex",
         title: "HTTP active response",
       });
-      await provider.sendTurn({
-        idempotencyKey: "http-provider-active-response-turn",
-        message: "hello active response",
-        sessionId: session.id,
-      });
       const info = await provider.getSessionInfo(session.id);
 
-      expect(info.activeTurnId).toMatch(/^turn-/);
+      expect(info.activeTurnId).toBe("turn-active-response");
+      expect(info.state).toBe("turn_active");
     } finally {
       await server.stop();
     }
