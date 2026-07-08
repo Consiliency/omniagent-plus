@@ -76,9 +76,9 @@ begin
         return true;
       end if;
       if left_kind = 'path-set' and (
-        left_value = right_value
-        or left_value like right_value || '/%'
-        or right_value like left_value || '/%'
+        rtrim(left_value, '/') = rtrim(right_value, '/')
+        or rtrim(left_value, '/') like rtrim(right_value, '/') || '/%'
+        or rtrim(right_value, '/') like rtrim(left_value, '/') || '/%'
       ) then
         return true;
       end if;

@@ -202,10 +202,11 @@ describe("Supabase lease store RPC mapping", () => {
       },
     };
     const store = new SupabaseLeaseStore(client);
-    const result = await store.acquire(request(holderA, ["packages"]));
+    const result = await store.acquire(request(holderA, ["packages/", "packages"]));
 
     expect(result.granted).toBe(true);
     expect(calls[0]).toContain("coordination_acquire_lease");
+    expect(calls[0]).toContain('"selector":["packages"]');
   });
 
   it("passes explicit expiry time with the Supabase RPC parameter name", async () => {
@@ -239,5 +240,6 @@ describe("Supabase lease store RPC mapping", () => {
     expect(migration).toContain("grant execute on function public.coordination_acquire_lease(jsonb) to service_role");
     expect(migration).toContain("alter table public.coordination_current_leases enable row level security");
     expect(migration).toContain("coalesce((request->>'now')::timestamptz, now()) < heartbeat_at");
+    expect(migration).toContain("rtrim(left_value, '/') = rtrim(right_value, '/')");
   });
 });
