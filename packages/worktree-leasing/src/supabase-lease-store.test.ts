@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,6 +28,68 @@ function request(holder: string, selector: string[], mode: "soft" | "hard" = "ha
     },
     phase: "CS-2.2",
     now: "2026-07-08T21:00:00Z",
+  };
+}
+
+function writeLocalLeaseAcquireChildScript(rootDir: string): string {
+  const scriptPath = join(rootDir, "local-lease-acquire-child.ts");
+  writeFileSync(
+    scriptPath,
+    `
+    import { LocalLeaseStore } from ${JSON.stringify(new URL("./lease-store.ts", import.meta.url).href)};
+
+    const store = new LocalLeaseStore({ rootDir: process.env.STATE_ROOT });
+    const result = await store.acquire({
+      holder: process.env.HOLDER,
+      ttlSeconds: 60,
+      mode: "hard",
+      scope: {
+        granularity: "path-set",
+        selector: JSON.parse(process.env.SELECTOR),
+      },
+      phase: "CS-2.2",
+      now: "2026-07-08T21:00:00Z",
+    });
+    console.log(JSON.stringify(result));
+  `,
+    "utf8",
+  );
+  return scriptPath;
+}
+
+async function acquireFromChild(
+  scriptPath: string,
+  stateRoot: string,
+  holder: string,
+  selector: readonly string[],
+) {
+  const child = spawn("pnpm", ["exec", "vite-node", "--script", scriptPath], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      STATE_ROOT: stateRoot,
+      HOLDER: holder,
+      SELECTOR: JSON.stringify(selector),
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "";
+  let stderr = "";
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk: string) => {
+    stdout += chunk;
+  });
+  child.stderr.on("data", (chunk: string) => {
+    stderr += chunk;
+  });
+  const [code] = (await once(child, "exit")) as [number | null];
+  if (code !== 0) {
+    throw new Error(`local lease child exited ${code}: ${stderr}`);
+  }
+  return JSON.parse(stdout.trim()) as {
+    readonly granted: boolean;
+    readonly failure?: string;
   };
 }
 
@@ -89,6 +153,26 @@ describe("local lease store conformance", () => {
     expect(rejectedRelease).toMatchObject({ released: false, failure: "not-holder" });
     expect(expired).toBe(1);
     expect(reacquired.granted).toBe(true);
+  });
+
+  it("serializes cross-process hard acquire attempts", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "lease-store-race-"));
+    const stateRoot = join(rootDir, "state");
+    const scriptPath = writeLocalLeaseAcquireChildScript(rootDir);
+    const results = await Promise.all([
+      acquireFromChild(scriptPath, stateRoot, holderA, ["packages"]),
+      acquireFromChild(scriptPath, stateRoot, holderB, ["packages/cli"]),
+    ]);
+
+    expect(results.filter((result) => result.granted)).toHaveLength(1);
+    expect(results.filter((result) => result.failure === "conflict")).toHaveLength(1);
+  });
+
+  it("keeps local read-check-write mutations behind the filesystem lock", () => {
+    const source = readFileSync(new URL("./lease-store.ts", import.meta.url), "utf8");
+
+    expect(source).toContain("withFilesystemLock(this.lockPath");
+    expect(source).toContain('join(paths.locksDir, "coordination.lock")');
   });
 });
 

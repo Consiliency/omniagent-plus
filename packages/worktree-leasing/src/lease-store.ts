@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import {
   consiliencyLeaseSchema,
   isLeaseExpired,
@@ -10,6 +11,7 @@ import {
   getStateLedgerPaths,
   nowIsoString,
   readJsonFile,
+  withFilesystemLock,
   writeJsonAtomic,
 } from "@omniagent-plus/state-ledger";
 
@@ -162,45 +164,51 @@ export function createLeaseFromAcquireRequest(
 export class LocalLeaseStore implements LeaseStore {
   private readonly statePath: string;
 
+  private readonly lockPath: string;
+
   constructor(options: { readonly rootDir: string }) {
-    this.statePath = `${getStateLedgerPaths(options.rootDir).coordinationDir}/consiliency-leases.json`;
+    const paths = getStateLedgerPaths(options.rootDir);
+    this.statePath = `${paths.coordinationDir}/consiliency-leases.json`;
+    this.lockPath = join(paths.locksDir, "coordination.lock");
   }
 
   async acquire(request: LeaseAcquireRequest): Promise<LeaseAcquireResult> {
-    const now = toContractTimestamp(request.now ?? nowIsoString());
-    const state = await this.readState(now);
-    this.expireState(state, now);
-    const lease = createLeaseFromAcquireRequest({ ...request, now });
-    const conflict = Object.values(state.leases).find(
-      (existing) =>
-        existing.mode === "hard"
-        && lease.mode === "hard"
-        && leaseScopesOverlap(existing.scope, lease.scope),
-    );
+    return this.withLeaseLock(async () => {
+      const now = toContractTimestamp(request.now ?? nowIsoString());
+      const state = await this.readState(now);
+      this.expireState(state, now);
+      const lease = createLeaseFromAcquireRequest({ ...request, now });
+      const conflict = Object.values(state.leases).find(
+        (existing) =>
+          existing.mode === "hard"
+          && lease.mode === "hard"
+          && leaseScopesOverlap(existing.scope, lease.scope),
+      );
 
-    if (conflict !== undefined) {
+      if (conflict !== undefined) {
+        await this.writeState(state, now);
+        return {
+          granted: false,
+          conflict,
+          failure: "conflict",
+        };
+      }
+
+      state.leases[lease.lease_id] = lease;
+      state.events.push({
+        eventId: randomUUID(),
+        eventType: "acquire",
+        leaseId: lease.lease_id,
+        holder: lease.holder,
+        lease,
+        recordedAt: now,
+      });
       await this.writeState(state, now);
       return {
-        granted: false,
-        conflict,
-        failure: "conflict",
+        granted: true,
+        lease,
       };
-    }
-
-    state.leases[lease.lease_id] = lease;
-    state.events.push({
-      eventId: randomUUID(),
-      eventType: "acquire",
-      leaseId: lease.lease_id,
-      holder: lease.holder,
-      lease,
-      recordedAt: now,
     });
-    await this.writeState(state, now);
-    return {
-      granted: true,
-      lease,
-    };
   }
 
   async renew(
@@ -208,40 +216,42 @@ export class LocalLeaseStore implements LeaseStore {
     holder: string,
     options: { readonly ttlSeconds?: number; readonly now?: string } = {},
   ): Promise<LeaseRenewResult> {
-    const now = toContractTimestamp(options.now ?? nowIsoString());
-    const state = await this.readState(now);
-    this.expireState(state, now);
-    const existing = state.leases[leaseId];
+    return this.withLeaseLock(async () => {
+      const now = toContractTimestamp(options.now ?? nowIsoString());
+      const state = await this.readState(now);
+      this.expireState(state, now);
+      const existing = state.leases[leaseId];
 
-    if (existing === undefined) {
-      await this.writeState(state, now);
-      return { renewed: false, failure: "not-found" };
-    }
-    if (existing.holder !== holder) {
-      return { renewed: false, failure: "not-holder" };
-    }
-    if (isLeaseExpired(existing, now)) {
-      delete state.leases[leaseId];
-      await this.writeState(state, now);
-      return { renewed: false, failure: "expired" };
-    }
+      if (existing === undefined) {
+        await this.writeState(state, now);
+        return { renewed: false, failure: "not-found" };
+      }
+      if (existing.holder !== holder) {
+        return { renewed: false, failure: "not-holder" };
+      }
+      if (isLeaseExpired(existing, now)) {
+        delete state.leases[leaseId];
+        await this.writeState(state, now);
+        return { renewed: false, failure: "expired" };
+      }
 
-    const lease = consiliencyLeaseSchema.parse({
-      ...existing,
-      ttl_seconds: options.ttlSeconds ?? existing.ttl_seconds,
-      heartbeat_at: now,
+      const lease = consiliencyLeaseSchema.parse({
+        ...existing,
+        ttl_seconds: options.ttlSeconds ?? existing.ttl_seconds,
+        heartbeat_at: now,
+      });
+      state.leases[leaseId] = lease;
+      state.events.push({
+        eventId: randomUUID(),
+        eventType: "renew",
+        leaseId,
+        holder,
+        lease,
+        recordedAt: now,
+      });
+      await this.writeState(state, now);
+      return { renewed: true, lease };
     });
-    state.leases[leaseId] = lease;
-    state.events.push({
-      eventId: randomUUID(),
-      eventType: "renew",
-      leaseId,
-      holder,
-      lease,
-      recordedAt: now,
-    });
-    await this.writeState(state, now);
-    return { renewed: true, lease };
   }
 
   async release(
@@ -249,51 +259,61 @@ export class LocalLeaseStore implements LeaseStore {
     holder: string,
     options: { readonly now?: string } = {},
   ): Promise<LeaseReleaseResult> {
-    const now = toContractTimestamp(options.now ?? nowIsoString());
-    const state = await this.readState(now);
-    this.expireState(state, now);
-    const existing = state.leases[leaseId];
+    return this.withLeaseLock(async () => {
+      const now = toContractTimestamp(options.now ?? nowIsoString());
+      const state = await this.readState(now);
+      this.expireState(state, now);
+      const existing = state.leases[leaseId];
 
-    if (existing === undefined) {
+      if (existing === undefined) {
+        await this.writeState(state, now);
+        return { released: true, failure: "not-found" };
+      }
+      if (existing.holder !== holder) {
+        return { released: false, failure: "not-holder" };
+      }
+
+      delete state.leases[leaseId];
+      state.events.push({
+        eventId: randomUUID(),
+        eventType: "release",
+        leaseId,
+        holder,
+        lease: existing,
+        recordedAt: now,
+      });
       await this.writeState(state, now);
-      return { released: true, failure: "not-found" };
-    }
-    if (existing.holder !== holder) {
-      return { released: false, failure: "not-holder" };
-    }
-
-    delete state.leases[leaseId];
-    state.events.push({
-      eventId: randomUUID(),
-      eventType: "release",
-      leaseId,
-      holder,
-      lease: existing,
-      recordedAt: now,
+      return { released: true };
     });
-    await this.writeState(state, now);
-    return { released: true };
   }
 
   async query(query: LeaseQuery = {}): Promise<LeaseSnapshot> {
-    const now = toContractTimestamp(query.now ?? nowIsoString());
-    const state = await this.readState(now);
-    this.expireState(state, now);
-    await this.writeState(state, now);
-    const leases = Object.values(state.leases)
-      .filter((lease) => query.includeExpired === true || !isLeaseExpired(lease, now))
-      .filter((lease) => query.leaseId === undefined || lease.lease_id === query.leaseId)
-      .filter((lease) => query.scope === undefined || leaseScopesOverlap(lease.scope, query.scope))
-      .sort((left, right) => left.lease_id.localeCompare(right.lease_id));
-    return { leases };
+    return this.withLeaseLock(async () => {
+      const now = toContractTimestamp(query.now ?? nowIsoString());
+      const state = await this.readState(now);
+      this.expireState(state, now);
+      await this.writeState(state, now);
+      const leases = Object.values(state.leases)
+        .filter((lease) => query.includeExpired === true || !isLeaseExpired(lease, now))
+        .filter((lease) => query.leaseId === undefined || lease.lease_id === query.leaseId)
+        .filter((lease) => query.scope === undefined || leaseScopesOverlap(lease.scope, query.scope))
+        .sort((left, right) => left.lease_id.localeCompare(right.lease_id));
+      return { leases };
+    });
   }
 
   async expire(nowValue = nowIsoString()): Promise<number> {
-    const now = toContractTimestamp(nowValue);
-    const state = await this.readState(now);
-    const expired = this.expireState(state, now);
-    await this.writeState(state, now);
-    return expired;
+    return this.withLeaseLock(async () => {
+      const now = toContractTimestamp(nowValue);
+      const state = await this.readState(now);
+      const expired = this.expireState(state, now);
+      await this.writeState(state, now);
+      return expired;
+    });
+  }
+
+  private async withLeaseLock<T>(callback: () => Promise<T>): Promise<T> {
+    return withFilesystemLock(this.lockPath, callback);
   }
 
   private async readState(now: string): Promise<LocalLeaseStoreState> {
