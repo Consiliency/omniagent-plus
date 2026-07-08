@@ -10,7 +10,7 @@ import type {
   LeaseSnapshot,
   LeaseStore,
 } from "./lease-store.js";
-import { normalizeLeaseScope } from "./lease-store.js";
+import { createLeaseFromAcquireRequest, normalizeLeaseScope } from "./lease-store.js";
 
 type RpcResult<T> = {
   readonly data: T | null;
@@ -44,14 +44,23 @@ export class SupabaseLeaseStore implements LeaseStore {
   }
 
   async acquire(request: LeaseAcquireRequest): Promise<LeaseAcquireResult> {
+    const lease = createLeaseFromAcquireRequest({
+      ...request,
+      scope: normalizeLeaseScope(request.scope),
+    });
     try {
       return await rpcOrUnavailable<LeaseAcquireResult>(
         this.client,
         "coordination_acquire_lease",
         {
           request: {
-            ...request,
-            scope: normalizeLeaseScope(request.scope),
+            leaseId: lease.lease_id,
+            holder: lease.holder,
+            ttlSeconds: lease.ttl_seconds,
+            mode: lease.mode,
+            scope: lease.scope,
+            phase: lease.phase,
+            now: lease.acquired_at,
           },
         },
       );

@@ -229,6 +229,26 @@ describe("Supabase lease store RPC mapping", () => {
     expect(calls[0]).toContain('"selector":["packages"]');
   });
 
+  it("validates Supabase acquire requests before calling RPC", async () => {
+    const calls: string[] = [];
+    const client: SupabaseLeaseRpcClient = {
+      async rpc(fn, args) {
+        calls.push(`${fn}:${JSON.stringify(args)}`);
+        return {
+          data: null,
+          error: null,
+        };
+      },
+    };
+    const store = new SupabaseLeaseStore(client);
+
+    await expect(store.acquire({
+      ...request(holderA, ["packages"]),
+      leaseId: "Lease:INVALID",
+    })).rejects.toThrow();
+    expect(calls).toHaveLength(0);
+  });
+
   it("passes explicit expiry time with the Supabase RPC parameter name", async () => {
     const calls: string[] = [];
     const client: SupabaseLeaseRpcClient = {
@@ -256,6 +276,7 @@ describe("Supabase lease store RPC mapping", () => {
 
     expect(migration).toContain("pg_advisory_xact_lock(hashtext('coordination_acquire_lease:v1'))");
     expect(migration.split("pg_advisory_xact_lock(hashtext('coordination_acquire_lease:v1'))")).toHaveLength(5);
+    expect(migration).toContain("lease_id text primary key check (lease_id ~ '^[a-z0-9][a-z0-9_.:-]*$')");
     expect(migration).toContain("set search_path = public, pg_temp");
     expect(migration).toContain("revoke all on function public.coordination_acquire_lease(jsonb)");
     expect(migration).toContain("grant execute on function public.coordination_acquire_lease(jsonb) to service_role");
