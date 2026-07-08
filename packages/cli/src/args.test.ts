@@ -64,6 +64,38 @@ describe("argument parsing", () => {
     expect(route.coordinationMode).toBe("hard");
   });
 
+  it("uses OMNIAGENT_COORDINATION_BACKEND when backend flags are omitted", () => {
+    const previous = process.env.OMNIAGENT_COORDINATION_BACKEND;
+    process.env.OMNIAGENT_COORDINATION_BACKEND = "supabase";
+    try {
+      const coordination = parseCliArgs([
+        "coordination",
+        "leases",
+        "list",
+      ]);
+      const route = parseCliArgs([
+        "route-task",
+        "--task-id",
+        "task-1",
+      ]);
+
+      if (coordination.command !== "coordination leases list") {
+        throw new Error("Expected a coordination list request.");
+      }
+      if (route.command !== "route-task") {
+        throw new Error("Expected a route-task request.");
+      }
+      expect(coordination.backend).toBe("supabase");
+      expect(route.coordinationBackend).toBe("supabase");
+    } finally {
+      if (previous === undefined) {
+        delete process.env.OMNIAGENT_COORDINATION_BACKEND;
+      } else {
+        process.env.OMNIAGENT_COORDINATION_BACKEND = previous;
+      }
+    }
+  });
+
   it("rejects malformed commandlines with typed argument errors", () => {
     expect(() => parseCliArgs(["route-task"])).toThrow(CliError);
   });

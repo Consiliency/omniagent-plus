@@ -101,4 +101,39 @@ describe("route planner", () => {
     expect(planned.decision.contextPortability).toBe("low");
     expect(planned.decision.launchGate?.action).toBe("wait_for_reset");
   });
+
+  it("blocks unavailable hard coordination but allows unavailable soft coordination", () => {
+    const fixture = readRoutingFixture();
+    const identityPool = buildIdentityPool(fixture.poolInput);
+    const scope = {
+      granularity: "path-set" as const,
+      selector: ["packages/coordinator"],
+    };
+
+    const hard = planRoute({
+      taskId: "task-hard-coordination",
+      identityPool,
+      preferredIdentityProfileId: "profile-google-primary",
+      leaseArbitration: {
+        status: "coordination_unavailable",
+        mode: "hard",
+        holder: "holder-a",
+        scope,
+      },
+    });
+    const soft = planRoute({
+      taskId: "task-soft-coordination",
+      identityPool,
+      preferredIdentityProfileId: "profile-google-primary",
+      leaseArbitration: {
+        status: "coordination_unavailable",
+        mode: "soft",
+        holder: "holder-a",
+        scope,
+      },
+    });
+
+    expect(hard.decision.launchGate?.action).toBe("blocked");
+    expect(soft.decision.launchGate?.action).toBe("allowed");
+  });
 });

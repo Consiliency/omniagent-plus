@@ -207,10 +207,11 @@ function parseInteger(
 }
 
 function parseCoordinationBackend(value: string | undefined): CoordinationBackend {
-  if (value === undefined || value === "local") {
+  const resolved = value ?? process.env.OMNIAGENT_COORDINATION_BACKEND;
+  if (resolved === undefined || resolved === "local") {
     return "local";
   }
-  if (value === "supabase") {
+  if (resolved === "supabase") {
     return "supabase";
   }
   throw createCliError("argument_error", "backend must be local or supabase.");

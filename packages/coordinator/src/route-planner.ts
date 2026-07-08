@@ -139,7 +139,10 @@ function determineLaunchGate(
           : `hard coordination lease conflict ${input.leaseArbitration.conflictLeaseId} blocks launch`,
     };
   }
-  if (input.leaseArbitration?.status === "coordination_unavailable") {
+  if (
+    input.leaseArbitration?.status === "coordination_unavailable"
+    && input.leaseArbitration.mode === "hard"
+  ) {
     return {
       action: "blocked",
       reason: "hard coordination lease backend is unavailable",
