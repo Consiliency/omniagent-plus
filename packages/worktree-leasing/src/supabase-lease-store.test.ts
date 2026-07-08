@@ -285,5 +285,7 @@ describe("Supabase lease store RPC mapping", () => {
     expect(migration).toContain("alter table public.coordination_current_leases enable row level security");
     expect(migration).toContain("coalesce((request->>'now')::timestamptz, now()) < heartbeat_at");
     expect(migration).toContain("rtrim(left_value, '/') = rtrim(right_value, '/')");
+    expect(migration).toContain("starts_with(rtrim(left_value, '/'), rtrim(right_value, '/') || '/')");
+    expect(migration).not.toContain(" like rtrim");
   });
 });
