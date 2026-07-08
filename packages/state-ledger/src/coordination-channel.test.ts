@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -62,6 +63,13 @@ describe("coordination channel", () => {
     });
 
     expect(messages).toHaveLength(1);
+  });
+
+  it("keeps local inbox writes behind the coordination filesystem lock", () => {
+    const source = readFileSync(new URL("./coordination-channel.ts", import.meta.url), "utf8");
+
+    expect(source).toContain("withFilesystemLock(this.lockPath");
+    expect(source).toContain('join(paths.locksDir, "coordination.lock")');
   });
 
   it("maps send/list to Supabase RPC calls", async () => {

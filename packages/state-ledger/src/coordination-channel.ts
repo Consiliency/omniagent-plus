@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import {
   coordinationMessageSchema,
   toContractTimestamp,
@@ -8,6 +9,7 @@ import {
 } from "@omniagent-plus/core-contracts";
 
 import { getStateLedgerPaths, nowIsoString, readJsonFile, writeJsonAtomic } from "./schema.js";
+import { withFilesystemLock } from "./append-only-store.js";
 
 export interface CoordinationMessageInput {
   readonly type: CoordinationMessageType;
@@ -105,19 +107,25 @@ function buildMessage(input: CoordinationMessageInput): CoordinationMessage {
 export class LocalCoordinationChannel implements CoordinationChannel {
   private readonly inboxPath: string;
 
+  private readonly lockPath: string;
+
   constructor(options: { readonly rootDir: string }) {
-    this.inboxPath = `${getStateLedgerPaths(options.rootDir).coordinationDir}/coordination-inbox.json`;
+    const paths = getStateLedgerPaths(options.rootDir);
+    this.inboxPath = `${paths.coordinationDir}/coordination-inbox.json`;
+    this.lockPath = join(paths.locksDir, "coordination.lock");
   }
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
-    const built = buildMessage(message);
-    const state = await this.readState(built.created_at);
-    state.messages.push(built);
-    await this.writeState(state, built.created_at);
-    return {
-      messageId: built.message_id,
-      createdAt: built.created_at,
-    };
+    return withFilesystemLock(this.lockPath, async () => {
+      const built = buildMessage(message);
+      const state = await this.readState(built.created_at);
+      state.messages.push(built);
+      await this.writeState(state, built.created_at);
+      return {
+        messageId: built.message_id,
+        createdAt: built.created_at,
+      };
+    });
   }
 
   async list(query: CoordinationMessageQuery = {}): Promise<readonly CoordinationMessage[]> {
