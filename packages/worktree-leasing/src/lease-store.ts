@@ -300,8 +300,6 @@ export class LocalLeaseStore implements LeaseStore {
     return this.withLeaseLock(async () => {
       const now = toContractTimestamp(query.now ?? nowIsoString());
       const state = await this.readState(now);
-      this.expireState(state, now);
-      await this.writeState(state, now);
       const leases = Object.values(state.leases)
         .filter((lease) => query.includeExpired === true || !isLeaseExpired(lease, now))
         .filter((lease) => query.leaseId === undefined || lease.lease_id === query.leaseId)

@@ -175,6 +175,26 @@ describe("local lease store conformance", () => {
     expect(reacquired.granted).toBe(true);
   });
 
+  it("filters expired leases in query without mutating local state", async () => {
+    const store = new LocalLeaseStore({
+      rootDir: await mkdtemp(join(tmpdir(), "lease-store-")),
+    });
+    await store.acquire({
+      ...request(holderA, ["packages"]),
+      ttlSeconds: 1,
+    });
+
+    const active = await store.query({ now: "2026-07-08T21:00:02Z" });
+    const withExpired = await store.query({
+      includeExpired: true,
+      now: "2026-07-08T21:00:02Z",
+    });
+
+    expect(active.leases).toHaveLength(0);
+    expect(withExpired.leases).toHaveLength(1);
+    expect(withExpired.leases[0]?.holder).toBe(holderA);
+  });
+
   it("serializes cross-process hard acquire attempts", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "lease-store-race-"));
     const stateRoot = join(rootDir, "state");
