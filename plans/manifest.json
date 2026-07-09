@@ -1,6 +1,65 @@
 {
   "plans": [
     {
+      "acceptance_criteria_count": 10,
+      "created_at": "2026-07-08T20:55:13Z",
+      "file": "plans/detailed-cs-2-2-off-device-lease-coordinator-20260708-205513.md",
+      "handoff_path": ".dev-skills/handoffs/codex-plan-detailed/20260708-205513-cs-2-2-off-device-lease-coordinator.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260708-205513-cs-2-2-off-device-lease-coordinator.md",
+      "lifecycle": [
+        {
+          "at": "2026-07-08T20:55:13Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-cs-2-2-off-device-lease-coordinator-20260708-205513.md",
+            "plan_hub": "/home/viperjuice/code/consiliency-portal/plans/unification",
+            "upstream_omnigent_release": "v0.4.0"
+          },
+          "transition": "planned"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee94a74/detached-head/20260708-205513-cs-2-2-off-device-lease-coordinator.md",
+      "slug": "detailed-cs-2-2-off-device-lease-coordinator-20260708-205513",
+      "status": "planned",
+      "task_summary": "Plan CS-2.2 off-device Supabase lease backend and omniagent-plus coordinator arbitration.",
+      "type": "detailed",
+      "updated_at": "2026-07-08T20:55:13Z"
+    },
+    {
+      "acceptance_criteria_count": 11,
+      "created_at": "2026-07-05T00:20:32Z",
+      "file": "plans/detailed-omnigent-v0-4-adaptation-20260705-002032.md",
+      "handoff_path": ".dev-skills/handoffs/codex-plan-detailed/20260705-002032-omnigent-v0-4-adaptation.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260705-002032-omnigent-v0-4-adaptation.md",
+      "lifecycle": [
+        {
+          "at": "2026-07-05T00:20:32Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-4-adaptation-20260705-002032.md"
+          },
+          "transition": "planned"
+        },
+        {
+          "at": "2026-07-05T01:00:26Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-4-adaptation-20260705-002032.md",
+            "reason": "three-agent panel amendment"
+          },
+          "transition": "amended"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee94a74/main/20260705-002032-omnigent-v0-4-adaptation.md",
+      "slug": "detailed-omnigent-v0-4-adaptation-20260705-002032",
+      "status": "committed",
+      "task_summary": "Plan official Omnigent v0.4.0 transport contract adaptation.",
+      "type": "detailed",
+      "updated_at": "2026-07-05T01:00:26Z"
+    },
+    {
       "acceptance_criteria_count": 7,
       "created_at": "2026-06-30T20:45:23Z",
       "file": "plans/phase-plan-v1-ADAPTERS.md",
