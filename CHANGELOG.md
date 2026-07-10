@@ -38,16 +38,16 @@ phase / IF-0-PUBHARDEN-1). Packaging + distribution only — no provider interfa
 governance behavior change.
 
 ### Changed
-- `@consiliency/runtime-provider`, `@consiliency/pipeline-provider-adapter`,
-  `@consiliency/omnigent-transport`: removed `"private": true`; bumped to `0.2.0`;
+- `@omniagent-plus/core-contracts`, `@omniagent-plus/governed-pipeline-adapter`,
+  `@omniagent-plus/omnigent-transport`: removed `"private": true`; bumped to `0.2.0`;
   each now builds to `dist/` via a per-package `tsconfig.build.json` (`tsc`, emit on,
   `*.test.ts` excluded) and its `exports` map points at `./dist/*.js` + `./dist/*.d.ts`
   (was `./src/*.ts`). `files` is `["dist"]` (plus `conformance.v0.1.json` on the adapter).
-- `@consiliency/pipeline-provider-adapter`: **preserves the `./conformance` export
+- `@omniagent-plus/governed-pipeline-adapter`: **preserves the `./conformance` export
   subpath** (IF-0-CONFORM-1) through the `dist` rewrite (single-writer note honored).
 
 ### Added
-- `@consiliency/runtime-provider`: export the failure-vocabulary arrays
+- `@omniagent-plus/core-contracts`: export the failure-vocabulary arrays
   (`runtimeFailureCategories`, `runtimeFailureActors`, `runtimeFailureScopes`) from the
   package index. Additive — exposes existing constants so a consumer (and the TS-vs-golden
   gate) can validate against the contract's error vocabulary. No symbol renamed or removed.
@@ -57,7 +57,7 @@ governance behavior change.
   zod discriminated union; terminal states from the transition tables; error categories from
   the exported array). A one-string golden mutation and an undeclared method spelling both fail.
 - `scripts/smoke-fake-provider.mjs` (P0a): a standalone consumer importing ONLY
-  `@consiliency/runtime-provider` that drives one `createSession → sendTurn → closeSession`
+  `@omniagent-plus/core-contracts` that drives one `createSession → sendTurn → closeSession`
   `FakeAgentRuntimeProvider` turn and exits 0 (proven from a scratch `npm install`).
 
 ### Notes
