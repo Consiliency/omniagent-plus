@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /mnt/HC_Volume_105438154/worktrees/agent-harness-conform/phase-loop-runtime
+configfile: pyproject.toml
+collecting ... collected 12 items / 7 deselected / 5 selected
+
+tests/test_conformance_golden.py::MutationBitesTest::test_mutation_bites_real_event_drift PASSED [ 20%]
+tests/test_conformance_golden.py::MutationBitesTest::test_mutation_bites_real_method_drift PASSED [ 40%]
+tests/test_conformance_golden.py::MutationBitesTest::test_mutation_bites_terminal_state_drift PASSED [ 60%]
+tests/test_conformance_golden.py::MutationBitesTest::test_naming_convention_delta_does_not_bite PASSED [ 80%]
+tests/test_conformance_golden.py::MutationBitesTest::test_undeclared_spelling_bites PASSED [100%]
+
+======================= 5 passed, 7 deselected in 0.06s ========================

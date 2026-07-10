@@ -7,9 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./conformance": "./conformance.v0.1.json"
   },
-  "files": ["src"],
+  "files": ["src", "conformance.v0.1.json"],
   "scripts": {
     "build": "tsc -p tsconfig.json --pretty false",
     "typecheck": "tsc -p tsconfig.json --pretty false",

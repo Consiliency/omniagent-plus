@@ -1,0 +1,21 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-9.0.3, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /mnt/HC_Volume_105438154/worktrees/agent-harness-conform/phase-loop-runtime
+configfile: pyproject.toml
+collecting ... collected 12 items
+
+tests/test_conformance_golden.py::ChecksumGuardTest::test_vendored_golden_matches_committed_checksum PASSED [  8%]
+tests/test_conformance_golden.py::ConformanceGoldenTest::test_error_categories_conform PASSED [ 16%]
+tests/test_conformance_golden.py::ConformanceGoldenTest::test_event_types_conform PASSED [ 25%]
+tests/test_conformance_golden.py::ConformanceGoldenTest::test_homebrew_satisfies_protocol PASSED [ 33%]
+tests/test_conformance_golden.py::ConformanceGoldenTest::test_method_names_conform PASSED [ 41%]
+tests/test_conformance_golden.py::ConformanceGoldenTest::test_schema_and_shape PASSED [ 50%]
+tests/test_conformance_golden.py::ConformanceGoldenTest::test_terminal_states_conform PASSED [ 58%]
+tests/test_conformance_golden.py::MutationBitesTest::test_mutation_bites_real_event_drift PASSED [ 66%]
+tests/test_conformance_golden.py::MutationBitesTest::test_mutation_bites_real_method_drift PASSED [ 75%]
+tests/test_conformance_golden.py::MutationBitesTest::test_mutation_bites_terminal_state_drift PASSED [ 83%]
+tests/test_conformance_golden.py::MutationBitesTest::test_naming_convention_delta_does_not_bite PASSED [ 91%]
+tests/test_conformance_golden.py::MutationBitesTest::test_undeclared_spelling_bites PASSED [100%]
+
+============================== 12 passed in 0.07s ==============================
