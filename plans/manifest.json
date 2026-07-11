@@ -60,6 +60,63 @@
       "updated_at": "2026-07-05T01:00:26Z"
     },
     {
+      "acceptance_criteria_count": 11,
+      "created_at": "2026-07-10T22:36:58.458261Z",
+      "file": "plans/detailed-omnigent-v0-5-contract-maintenance-20260710-2236.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260711T022831Z-2ec5.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-07-10T22:36:58.458261Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-5-contract-maintenance-20260710-2236.md",
+            "upstream_omnigent_release": "v0.5.0",
+            "upstream_tag_commit": "1d1b3a8605c48df10618ce481e974f565771326b"
+          },
+          "transition": "committed"
+        },
+        {
+          "at": "2026-07-11T02:14:30.612672Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-5-contract-maintenance-20260710-2236.md",
+            "reason": "multi-round three-agent panel findings and latest release refresh",
+            "upstream_omnigent_release": "v0.5.1",
+            "upstream_tag_commit": "08285468e098244ac0b0bf98cb470d5c1a1a7070"
+          },
+          "transition": "amended"
+        },
+        {
+          "at": "2026-07-11T02:28:31.489298Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-5-contract-maintenance-20260710-2236.md",
+            "panel_seats": [
+              "gpt-5.6-sol",
+              "grok-4.5",
+              "Gemini 3.1 Pro (High)"
+            ],
+            "panel_verdict": "AGREE",
+            "plan_sha256": "dc85e7e13cf3c927d7d6b2a8507fe2f0b0d8ffab75bc53bfc71f74e172144ad8",
+            "upstream_omnigent_release": "v0.5.1",
+            "upstream_tag_commit": "08285468e098244ac0b0bf98cb470d5c1a1a7070"
+          },
+          "transition": "committed"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/ad6c6653/codex-omnigent-v0-5-detailed-plan/20260711T022831Z-2ec5.md",
+      "roadmap_ref": null,
+      "slug": "detailed-omnigent-v0-5-contract-maintenance-20260710-2236",
+      "status": "committed",
+      "task_summary": "Plan official Omnigent v0.5.1 transport contract maintenance.",
+      "type": "detailed",
+      "updated_at": "2026-07-11T02:28:31.489298Z"
+    },
+    {
       "acceptance_criteria_count": 7,
       "created_at": "2026-06-30T20:45:23Z",
       "file": "plans/phase-plan-v1-ADAPTERS.md",
