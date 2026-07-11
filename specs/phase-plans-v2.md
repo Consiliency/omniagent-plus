@@ -317,12 +317,16 @@ Prove the goal end-to-end with the smallest load-bearing vertical: an external N
 - [ ] `demo-vertical.test.mjs::no_auth_material_in_ledger_or_logs` — the sentinel key/header does not appear in the ledger or logs for the governed run.
 - [ ] `demo-vertical.test.mjs::correlated_session_id_end_to_end` — a correlated session id is visible end-to-end (caller → provider → gp result).
 
+**Known scope boundary (first-class — a demonstrated reachability limit, NOT a bug)**
+gp consumes the seam at the **`invokeAgenticHarness` tick boundary** — reachable today and demonstrated by this DEMO: an external caller drives `harness:"provider"`, and gp derives the executor-adapter status from the provider's emitted facts (status flips success→failed on the failing facts, independent of the provider's "completed" claim). What the DEMO does **not** exercise is the **full pipeline governed-RUN path** `execute-phase → runNode`: that path is **text-consuming** (it gates on `result.text` at `runNode` ~`:921` and parses BAML at ~`:1030`), so a **facts-only** provider result produces no text and cannot flow through it today. Reconciling that is a **deferred design follow-on**, not in DEMO scope — either `invoke-provider` surfaces the agent response text, or `execute-phase` grows a facts-native execution path. This is a known scope boundary of the seam's current reach, not a defect. The DEMO therefore proves the *governed tick* is consumable end-to-end; it does not claim the *whole run loop* consumes a facts-only provider yet.
+
 **Scope notes**
 - Decompose into 2 lanes:
   - **L-CALLER** — `governed-pipeline/examples/provider-demo/` external caller entrypoint driving one governed phase via the provider branch.
   - **L-ASSERT** — `demo-vertical.test.mjs` with the five named assertions. Owns test files; disjoint from the caller entrypoint.
 - Terminal phase — no downstream freeze; IF-0-DEMO-1 documents the reference vertical for future consumers.
 - Uses only `FakeAgentRuntimeProvider` (from PUBHARDEN) — no live transport.
+- **Primary proof is un-fabricated**; the runtime-enforcement gate is a *secondary* illustration fed FIXTURE cage/ledger evidence (`enforcement-evidence.mjs`) — the fixture is clearly labeled and never presented as how a real governed caller produces evidence, so the DEMO does not re-introduce the rejected runtime-ledger Option B.
 
 **Non-goals**
 - Any real agent/backend; live `OmnigentHttpProvider`; multi-turn; new gp governed phases (reuse an existing one).
