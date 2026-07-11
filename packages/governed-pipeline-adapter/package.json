@@ -1,6 +1,11 @@
 {
   "name": "@consiliency/pipeline-provider-adapter",
   "version": "0.2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViperJuice/omniagent-plus.git",
+    "directory": "packages/governed-pipeline-adapter"
+  },
   "type": "module",
   "exports": {
     ".": {
