@@ -132,6 +132,23 @@
             "verification_status": "partial"
           },
           "transition": "failed"
+        },
+        {
+          "at": "2026-07-11T03:52:27Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "acceptance_criteria": "11/11",
+            "continuation_of": "20260711T032417Z-omnigent-v051",
+            "diagnostic": "resumed_after_lint_and_publication_blockers_resolved",
+            "dirty_path_classification": "clean",
+            "doc_delta_decision": "docs_updated",
+            "head_sha": "4ed56f589d3c6e2d9525df882c45c6607f7451a1",
+            "review_blocker_addressed": "manifest current state contradicted successful continuation",
+            "run_id": "20260711T-roadmap-closeout",
+            "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260711T032417Z-omnigent-v051-verification.md",
+            "verification_status": "passed"
+          },
+          "transition": "completed"
         }
       ],
       "owner_skill": "codex-plan-detailed",
@@ -139,10 +156,10 @@
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/ad6c6653/codex-omnigent-v0-5-detailed-plan/20260711T022831Z-2ec5.md",
       "roadmap_ref": null,
       "slug": "detailed-omnigent-v0-5-contract-maintenance-20260710-2236",
-      "status": "failed",
+      "status": "completed",
       "task_summary": "Plan official Omnigent v0.5.1 transport contract maintenance.",
       "type": "detailed",
-      "updated_at": "2026-07-11T03:25:15Z"
+      "updated_at": "2026-07-11T03:52:27Z"
     },
     {
       "acceptance_criteria_count": 7,
