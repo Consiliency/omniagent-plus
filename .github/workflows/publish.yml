@@ -42,7 +42,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build
       - run: pnpm --filter @consiliency/omnigent-transport test:pack
-      - run: pnpm -r test
+      # Every workspace test script delegates to the root Vitest config. Run it
+      # once instead of launching one complete suite per package concurrently.
+      - run: pnpm test
 
   publish-npm:
     needs: verify
