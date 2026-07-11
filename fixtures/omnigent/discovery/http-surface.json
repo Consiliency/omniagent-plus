@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-05T01:00:26Z",
+  "captured_at": "2026-07-11T03:10:00Z",
   "session_endpoints": [
     {
       "method": "POST",
@@ -75,7 +75,11 @@
     "active_response_id": "optional reconnect hint for active in-flight response",
     "background_task_count": "optional native terminal shell count",
     "viewer_last_seen": "session list read-state marker",
-    "viewer_unread": "session list read-state marker"
+    "viewer_unread": "session list read-state marker",
+    "mcp_startup": "optional per-server MCP startup status metadata"
+  },
+  "session_list_item_fields": {
+    "search_snippet": "optional server-generated search result excerpt"
   },
   "session_status_contract": {
     "api_md": [
@@ -100,7 +104,7 @@
     "tolerated_raw_edge": [
       "launching"
     ],
-    "note": "v0.4.0 resolves the previous waiting OpenAPI drift; launching remains tolerated from session.status edges and maps to starting."
+    "note": "v0.5.1 retains the resolved waiting status; launching remains tolerated from session.status edges and maps to starting."
   },
   "response_status_contract": [
     "queued",
@@ -124,7 +128,50 @@
       "response",
       "turn"
     ],
-    "official_v0_4_event_count": 48
+    "official_release_event_count": 50,
+    "release_event_types": [
+      "session.mcp_startup",
+      "response.policy_denied"
+    ]
+  },
+  "optional_release_surfaces": [
+    {
+      "method": "GET",
+      "path": "/v1/hosts/{host_id}/worktrees",
+      "status": "observed_not_provider_required",
+      "reason": "host worktree inventory is not part of the transport provider contract"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{session_id}/resources/files:copy",
+      "status": "observed_not_provider_required",
+      "reason": "resource copying is not required by the transport provider"
+    },
+    {
+      "methods": [
+        "GET",
+        "PUT"
+      ],
+      "path": "/v1/sharing",
+      "status": "observed_not_provider_required",
+      "reason": "sharing settings are not coordination leases"
+    },
+    {
+      "field": "SessionGitOptions.existing_worktree",
+      "status": "observed_not_provider_required",
+      "reason": "existing worktree selection is an upstream launch option"
+    }
+  ],
+  "fork_request": {
+    "allowed_fields": [
+      "agent_id",
+      "title",
+      "up_to_response_id"
+    ],
+    "removed_fields": [
+      "model_override"
+    ],
+    "provider_sends_removed_fields": false
   },
   "child_session_public_surface": {
     "observe": [
@@ -139,22 +186,22 @@
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "openapi.json",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/schemas.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     }
   ]
 }

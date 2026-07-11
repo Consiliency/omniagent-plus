@@ -5,9 +5,22 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["node_modules/**", ".phase-loop/**", "coverage/**"],
+    ignores: [
+      "node_modules/**",
+      ".phase-loop/**",
+      "coverage/**",
+      "**/dist/**",
+    ],
   },
   js.configs.recommended,
+  {
+    files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
   {
     files: ["**/*.ts"],
     languageOptions: {

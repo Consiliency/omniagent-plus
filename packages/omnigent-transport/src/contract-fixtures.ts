@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 
-import type { OmnigentCapabilityStatus } from "./types.js";
+import type {
+  OmnigentCapabilityStatus,
+  OmnigentMcpServerStartup,
+  OmnigentRawEvent,
+} from "./types.js";
 
 export interface OmnigentSourceMetadataFixture {
   readonly freeze_target: {
@@ -23,18 +27,35 @@ export interface OmnigentHttpSurfaceFixture {
     readonly path: string;
     readonly purpose: string;
   }>;
+  readonly session_list_item_fields?: Readonly<Record<string, string>>;
+  readonly session_snapshot_fields?: Readonly<Record<string, string>>;
+  readonly optional_release_surfaces?: Array<{
+    readonly field?: string;
+    readonly method?: string;
+    readonly methods?: string[];
+    readonly path?: string;
+    readonly reason: string;
+    readonly status: string;
+  }>;
+  readonly fork_request?: {
+    readonly allowed_fields: string[];
+    readonly removed_fields: string[];
+    readonly provider_sends_removed_fields: boolean;
+  };
   readonly stream_contract: {
     readonly done_sentinel: string;
     readonly mode: string;
     readonly reconnect_steps: string[];
     readonly replay: boolean;
     readonly event_families?: string[];
-    readonly official_v0_4_event_count?: number;
+    readonly official_release_event_count?: number;
+    readonly release_event_types?: string[];
   };
 }
 
 export interface OmnigentCliSurfaceFixture {
   readonly documented_commands: string[];
+  readonly non_provider_required_commands?: string[];
   readonly entrypoints: Array<{
     readonly name: string;
     readonly target: string;
@@ -58,11 +79,13 @@ export interface OmnigentEventFixture {
     readonly queued: boolean;
   };
   readonly events?: Array<{
+    readonly phase?: string;
     readonly reason?: string;
+    readonly servers?: Readonly<Record<string, OmnigentMcpServerStartup>>;
     readonly semantic_terminal?: boolean;
     readonly status?: string;
     readonly terminal?: boolean;
-    readonly type: string;
+    readonly type: OmnigentRawEvent["type"];
   }>;
   readonly expected_provider_behavior?: string;
   readonly fixture: string;

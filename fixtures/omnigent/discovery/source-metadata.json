@@ -1,92 +1,108 @@
 {
   "schema": "omnigent.source_metadata.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-05T01:00:26Z",
+  "captured_at": "2026-07-11T03:10:00Z",
   "repo": "omnigent-ai/omnigent",
   "freeze_target": {
-    "tag": "v0.4.0",
-    "commit": "31669e1b413216c865d0ed7dfb469fb142c889f5",
-    "published_at": "2026-07-03T01:36:56Z",
-    "package_version": "0.4.0",
+    "tag": "v0.5.1",
+    "commit": "08285468e098244ac0b0bf98cb470d5c1a1a7070",
+    "published_at": "2026-07-10T23:26:54Z",
+    "package_version": "0.5.1",
     "requires_python": ">=3.12"
   },
   "head_probe": {
     "branch": "main",
-    "commit": "b9332cc655b2ad7dbe70d2ad5b9cd78214dd3e17",
-    "observed_at": "2026-07-05T01:00:26Z",
+    "commit": "f55e16f84e1b2c757deb3ee56229feace309cb6c",
+    "observed_at": "2026-07-11T03:10:00Z",
     "authority": "latest remote head probe only; not part of IF-0-CONTRACT-1"
   },
   "previous_probe": {
-    "tag": "v0.4.0dev0",
-    "commit": "3f4d1c8e0b3742579c5c96742086db9e0bd36def",
-    "observed_at": "2026-07-02T07:15:35Z",
-    "authority": "historical prerelease probe only; superseded by official v0.4.0 freeze target"
+    "tag": "v0.5.0",
+    "commit": "1d1b3a8605c48df10618ce481e974f565771326b",
+    "observed_at": "2026-07-10T21:20:38Z",
+    "authority": "historical prior release probe only; superseded by official v0.5.1 freeze target"
   },
   "local_cli_probe": {
     "omnigent_on_path": false,
     "omni_on_path": false
   },
   "preflight_confirmation": {
-    "observed_at": "2026-07-05T01:00:26Z",
+    "observed_at": "2026-07-11T03:10:00Z",
     "openapi_has_harnesses": true,
     "openapi_has_read_state": true,
-    "session_response_has_active_response_id": true
+    "session_response_has_active_response_id": true,
+    "session_response_has_mcp_startup": true,
+    "session_list_item_has_search_snippet": true,
+    "session_git_options_has_existing_worktree": true,
+    "session_fork_request_removed_fields": [
+      "model_override"
+    ],
+    "added_paths": [
+      "/v1/hosts/{host_id}/worktrees",
+      "/v1/sessions/{session_id}/resources/files:copy",
+      "/v1/sharing"
+    ],
+    "added_stream_events": [
+      "session.mcp_startup",
+      "response.policy_denied"
+    ],
+    "v0_5_0_openapi_matches_v0_5_1": true
   },
   "provenance": [
     {
       "kind": "release_metadata",
       "source": "github release metadata",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "package_metadata",
-      "source": "PyPI omnigent 0.4.0 metadata",
-      "ref": "v0.4.0"
+      "source": "PyPI omnigent 0.5.1 metadata",
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "pyproject.toml",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "openapi.json",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/harness_plugins.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/schemas.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "sdks/python-client/omnigent_client/_sessions.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "sdks/python-client/omnigent_client/_events.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "remote_head_probe",
       "path": "refs/heads/main",
-      "ref": "b9332cc655b2ad7dbe70d2ad5b9cd78214dd3e17"
+      "ref": "f55e16f84e1b2c757deb3ee56229feace309cb6c"
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.capability_probe_matrix.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-05T01:00:26Z",
+  "captured_at": "2026-07-11T03:10:00Z",
   "capabilities": [
     {
       "name": "create_session",
@@ -23,7 +23,8 @@
       "status": "supported",
       "evidence": [
         "GET /v1/sessions/{session_id}/stream",
-        "official client stream() implementation"
+        "official v0.5.1 client stream() implementation",
+        "session.mcp_startup and response.policy_denied are parsed as known metadata-only no-op events"
       ]
     },
     {
@@ -72,7 +73,8 @@
       "evidence": [
         "GET /v1/sessions/{session_id}/child_sessions is observe-only",
         "POST /v1/sessions/{source_id}/fork is not spawn-under-parent",
-        "internal sys_session_create/sys_session_send are not public REST surface"
+        "internal sys_session_create/sys_session_send are not public REST surface",
+        "v0.5.1 worktree inventory and file-copy routes do not create a child session"
       ]
     },
     {
@@ -80,7 +82,8 @@
       "status": "blocked",
       "evidence": [
         "GET /v1/harnesses is read-only catalog metadata",
-        "spawn.py allowlist-gates args.harness for internal sub-agents only"
+        "spawn.py allowlist-gates args.harness for internal sub-agents only",
+        "generic ACP harness selection does not promote public harness override"
       ]
     },
     {
@@ -88,7 +91,7 @@
       "status": "emulated",
       "evidence": [
         "invalid POST /events payloads fail 400",
-        "official v0.4 client skips malformed or unknown SSE frames"
+        "official v0.5.1 client skips malformed or unknown SSE frames"
       ]
     },
     {
@@ -96,7 +99,7 @@
       "status": "supported",
       "evidence": [
         "API.md reconnect contract",
-        "official v0.4 client stream plus get snapshot posture"
+        "official v0.5.1 client stream plus get snapshot posture"
       ]
     },
     {
@@ -113,27 +116,27 @@
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "openapi.json",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "sdks/python-client/omnigent_client/_sessions.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/tools/builtins/spawn.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.cli_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-05T01:00:26Z",
+  "captured_at": "2026-07-11T03:10:00Z",
   "entrypoints": [
     {
       "name": "omnigent",
@@ -30,7 +30,15 @@
     "omnigent cursor",
     "omnigent opencode",
     "omnigent hermes",
-    "omnigent pi"
+    "omnigent pi",
+    "omni session export --id",
+    "omnigent debug logs",
+    "omnigent run --harness acp:<slug>"
+  ],
+  "non_provider_required_commands": [
+    "omni session export --id",
+    "omnigent debug logs",
+    "omnigent run --harness acp:<slug>"
   ],
   "platform_notes": [
     {
@@ -42,7 +50,7 @@
   "exit_code_contract": {
     "success_code": 0,
     "nonzero_codes_are_stable_abi": false,
-    "note": "v0.4.0 does not publish a stable non-zero exit-code table; classify failures from stderr or response semantics."
+    "note": "v0.5.1 does not publish a stable non-zero exit-code table; classify failures from stderr or response semantics."
   },
   "local_probe": {
     "omnigent_on_path": false,
@@ -52,17 +60,17 @@
     {
       "kind": "tagged_source",
       "path": "pyproject.toml",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "README.md",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/cli.py",
-      "ref": "v0.4.0"
+      "ref": "v0.5.1"
     }
   ]
 }
