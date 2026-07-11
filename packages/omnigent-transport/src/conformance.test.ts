@@ -9,7 +9,12 @@ import {
 import { mapOmnigentEventSequence } from "./event-mapper.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import { mapOmnigentHistory } from "./history-mapper.js";
-import { omnigentStreamEventTypes, type OmnigentHistoryItem, type OmnigentRawEvent, type OmnigentSessionSnapshot } from "./types.js";
+import {
+  omnigentStreamEventTypes,
+  type OmnigentHistoryItem,
+  type OmnigentRawEvent,
+  type OmnigentSessionSnapshot,
+} from "./types.js";
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -72,12 +77,41 @@ describe("fake omnigent conformance", () => {
           "v0_4_harness_catalog_and_read_state",
         ]),
       );
-      expect(sourceMetadata.freeze_target.tag).toBe("v0.4.0");
+      expect(sourceMetadata.freeze_target.tag).toBe("v0.5.1");
       expect(sourceMetadata.freeze_target.commit).toBe(
-        "31669e1b413216c865d0ed7dfb469fb142c889f5",
+        "08285468e098244ac0b0bf98cb470d5c1a1a7070",
       );
-      expect(httpSurface.stream_contract.official_v0_4_event_count).toBe(
+      expect(sourceMetadata.freeze_target.package_version).toBe("0.5.1");
+      expect(httpSurface.stream_contract.official_release_event_count).toBe(
         omnigentStreamEventTypes.length,
+      );
+      expect(httpSurface.stream_contract.release_event_types).toEqual([
+        "session.mcp_startup",
+        "response.policy_denied",
+      ]);
+      expect(httpSurface.session_snapshot_fields?.mcp_startup).toBeTruthy();
+      expect(httpSurface.session_list_item_fields?.search_snippet).toBeTruthy();
+      expect(httpSurface.optional_release_surfaces).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: "/v1/hosts/{host_id}/worktrees",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/sessions/{session_id}/resources/files:copy",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/sharing",
+            status: "observed_not_provider_required",
+          }),
+        ]),
+      );
+      expect(httpSurface.fork_request).toEqual(
+        expect.objectContaining({
+          provider_sends_removed_fields: false,
+          removed_fields: ["model_override"],
+        }),
       );
       expect(capabilityMatrix.capabilities).toEqual(
         expect.arrayContaining([

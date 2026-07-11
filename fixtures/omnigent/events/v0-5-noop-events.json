@@ -1,0 +1,40 @@
+{
+  "schema": "omnigent.event_fixture.v1",
+  "redaction": "metadata_only",
+  "fixture": "v0_5_noop_events",
+  "events": [
+    {
+      "type": "session.mcp_startup",
+      "terminal": false,
+      "servers": {
+        "safe-server": {
+          "status": "starting",
+          "error": null
+        },
+        "failed-server": {
+          "status": "failed",
+          "error": "metadata_only_startup_failure"
+        }
+      }
+    },
+    {
+      "type": "response.policy_denied",
+      "terminal": false,
+      "phase": "tool_call",
+      "reason": "metadata_only_policy_denied"
+    }
+  ],
+  "expected_provider_behavior": "parse as known v0.5 events and no-op while preserving metadata",
+  "provenance": [
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.5.1"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/schemas.py",
+      "ref": "v0.5.1"
+    }
+  ]
+}

@@ -82,4 +82,44 @@ describe("sse stream parser", () => {
       (fixture.events ?? []).map((event) => event.type),
     );
   });
+
+  it("parses official v0.5 metadata events without unknown-event skips", async () => {
+    const fixture = loadOmnigentEventFixture("v0-5-noop-events");
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          (fixture.events ?? [])
+            .map((event, index) =>
+              `data: ${JSON.stringify({
+                ...event,
+                id: `v05-${index + 1}`,
+                occurredAt: "2026-06-30T00:00:00.000Z",
+                sessionId: "session-1",
+              })}`,
+            )
+            .join("\n\n"),
+        ),
+        (skip) => {
+          skipped.push(skip.reason);
+        },
+      ),
+    );
+
+    expect(skipped).toEqual([]);
+    expect(events.map((event) => event.type)).toEqual([
+      "session.mcp_startup",
+      "response.policy_denied",
+    ]);
+    expect(events[0]?.servers?.["failed-server"]?.status).toBe("failed");
+    expect(events[0]?.servers?.["failed-server"]?.error).toBe(
+      "metadata_only_startup_failure",
+    );
+    expect(events[1]).toEqual(
+      expect.objectContaining({
+        phase: "tool_call",
+        reason: "metadata_only_policy_denied",
+      }),
+    );
+  });
 });

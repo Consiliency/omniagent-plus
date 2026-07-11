@@ -1,99 +1,80 @@
 # Omnigent Upstream Readiness
 
 This document tracks upstream Omnigent movement beyond the frozen release
-contract in `docs/omnigent-contract.md`. It is not a replacement for the
+contract in `docs/omnigent-contract.md`. It does not replace the
 `IF-0-CONTRACT-1` freeze.
 
 ## Current Decision
 
-- Latest published GitHub release: `v0.4.0`
-- Latest published release commit: `31669e1b413216c865d0ed7dfb469fb142c889f5`
-- Latest release published: `2026-07-03T01:36:56Z`
-- Latest PyPI package: `omnigent 0.4.0`
+- Latest published GitHub release: `v0.5.1`
+- Release commit: `08285468e098244ac0b0bf98cb470d5c1a1a7070`
+- Release published: `2026-07-10T23:26:54Z`
+- Latest PyPI package: `omnigent 0.5.1`
 - Python requirement: `>=3.12`
-- Current upstream `main` probe: `b9332cc655b2ad7dbe70d2ad5b9cd78214dd3e17`
-- Probe time: `2026-07-05T01:00:26Z`
+- Current upstream `main` probe: `f55e16f84e1b2c757deb3ee56229feace309cb6c`
+- Probe time: `2026-07-11T03:10:00Z`
 
-`omniagent-plus` is adapting to the latest published release. Previous
-`v0.4.0dev0` compatibility is now historical context; the stable freeze target
-is the official GitHub/PyPI `v0.4.0` release.
+`omniagent-plus` is adapted to the latest published release. The `v0.5.1`
+OpenAPI document is structurally identical to `v0.5.0`; `v0.5.1` is
+the authoritative freeze because it is the current GitHub and PyPI release.
 
-Stable `v0.4.0` transport-relevant surface now includes:
+## Stable Release Delta
 
-- `GET /v1/harnesses` as a read-only harness catalog.
-- `PUT /v1/sessions/{session_id}/read-state`.
-- `active_response_id` on session snapshots for reconnect state.
-- Optional `background_task_count`, `viewer_last_seen`, and `viewer_unread`
-  fields on session/read-state surfaces.
-- `waiting` in the release OpenAPI session status enum.
-- Expanded `ServerStreamEvent` discriminators for session UI metadata,
-  resources, reasoning, usage, compaction, heartbeat, retry, error, and
-  elicitation events.
+Relative to the previous `v0.4.0` freeze, v0.5.1 adds:
+
+- `GET /v1/hosts/{host_id}/worktrees`
+- `POST /v1/sessions/{session_id}/resources/files:copy`
+- `GET /v1/sharing` and `PUT /v1/sharing`
+- optional `SessionResponse.mcp_startup` metadata
+- optional `SessionListItem.search_snippet` metadata
+- optional `SessionGitOptions.existing_worktree`
+- `session.mcp_startup` and `response.policy_denied` stream events
+- `omni session export --id`, `omnigent debug logs`, and ACP harness launch
+  command documentation
+
+`SessionForkRequest.model_override` was removed. The provider does not send
+that field.
+
+The adapter preserves `mcp_startup` session metadata and recognizes the two
+new events as metadata-only no-ops. The optional routes, git option, sharing
+surface, and newly documented CLI commands are not provider requirements.
 
 Still not upgraded to public transport capability:
 
-- `harness_override` remains internal and allowlist-gated.
-- Child-session spawn-under-parent remains internal; public transport can
-  observe children and fork sessions but should not claim stable child spawn.
+- Public harness override remains blocked; `GET /v1/harnesses` is catalog-only.
+- Stable public spawn-under-parent child-session creation remains blocked.
+- Worktree, file-copy, and sharing APIs do not provide lease, lock,
+  coordination, or inbox semantics.
 
 ## Unreleased Main Delta
 
-Current `main` is ahead of the official `v0.4.0` tag. The observed movement is
-non-authoritative for this repo until a release or explicit SHA pin lands.
-
-The current notable non-freeze movement is terminal transport work, including
-tmux control-mode web-terminal transport. The provider-bound OpenAPI path set
-checked for this adaptation did not require additional stable paths beyond the
-official `v0.4.0` freeze.
+Current `main` is ahead of the official v0.5.1 tag. It is a non-authoritative
+probe only and does not change the provider contract until a later release or
+explicit SHA freeze. No current main observation is promoted into CS-2.2 lease
+semantics.
 
 ## Maintenance Plan
 
-Use a detailed-plan lane, not a full new roadmap, when the next Omnigent release
-lands. The change is contract-maintenance scoped unless upstream publishes a
-breaking transport contract.
+Use a detailed-plan lane, not a new roadmap, when the next Omnigent release
+lands unless it introduces a breaking transport contract.
 
-1. Refresh upstream release evidence:
-   - GitHub release metadata.
-   - tag SHA and package version.
-   - PyPI package metadata when available.
-   - local safe CLI probe (`command -v omnigent`, `command -v omni`).
-
-2. Regenerate contract fixtures:
-   - `fixtures/omnigent/discovery/source-metadata.json`
-   - `fixtures/omnigent/discovery/http-surface.json`
-   - `fixtures/omnigent/discovery/capability-probes.json`
-   - fake-server scenarios for any non-additive release changes.
-
-3. Update contract docs:
-   - `docs/omnigent-contract.md`
-   - `docs/lifecycle-and-events.md`
-   - `docs/omnigent-transport.md`
-   - `docs/identity-isolation.md`
-   - `docs/security-and-secrets.md`
-
-4. Update TypeScript contracts only for public, stable release fields:
-   - promote compatible optional fields only when downstream consumers need
-     them beyond transport-level acceptance;
-   - keep additive upstream fields optional unless acceptance needs them;
-   - keep `read-state` metadata-only unless a consumer needs it in the neutral
-     provider boundary.
-
-5. Update credential handling:
-   - keep prefixed provider variables covered by allowlist and redaction tests;
-   - never print the corresponding values in CLI output or live-smoke evidence.
-
-6. Verify:
-   - `pnpm build`
-   - `pnpm lint`
-   - `pnpm typecheck`
-   - `pnpm test`
-   - `find fixtures/omnigent -name '*.json' -print | sort | xargs -r -n1 python3 -m json.tool >/dev/null`
-   - optional live smoke only when explicitly enabled.
+1. Refresh GitHub release, tag SHA, PyPI, Python, OpenAPI, and safe local CLI
+   probe evidence.
+2. Regenerate discovery fixtures and add focused event fixtures for changed
+   discriminators.
+3. Update TypeScript contracts only for public stable fields used or safely
+   accepted at the provider boundary.
+4. Keep provider capability statuses unchanged unless a release exposes the
+   full required semantic contract.
+5. Run format, lint, typecheck, fixture tests, transport tests, and the full
+   workspace test suite.
 
 ## Non-Goals
 
 - Do not pin this repo to unreleased upstream `main` by default.
-- Do not treat upstream web UI-only changes as provider-contract requirements.
-- Do not mark `harness_override` or child-session spawn as supported unless the
-  public API explicitly exposes and documents them.
-- Do not expand environment-variable allowlists by copying the full host env.
+- Do not treat upstream UI, worktree, file-copy, or sharing features as lease
+  authority.
+- Do not mark harness override or child-session spawn supported without a
+  stable public API and conformance proof.
+- Do not expose credential values in fixtures, CLI output, or live-smoke
+  evidence.

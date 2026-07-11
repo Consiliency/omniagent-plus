@@ -91,7 +91,8 @@ pnpm exec vite-node scripts/coordination-smoke-test.ts
 
 ## Upstream Omnigent State
 
-Official Omnigent `v0.4.0` remains the supported release target. Upstream
-`main` has added worktree/file-copy API paths, but neither `v0.4.0` nor `main`
-exposes lease, lock, coordination, or inbox APIs. CS-2.2 therefore owns this
-control-plane layer in `omniagent-plus`.
+Official Omnigent `v0.5.1` is the supported release target. Its read-only
+worktree inventory, resource file-copy, and sharing APIs are optional transport
+surfaces; they do not expose lease, lock, coordination, or inbox semantics.
+CS-2.2 therefore continues to own this control-plane layer in
+`omniagent-plus`.

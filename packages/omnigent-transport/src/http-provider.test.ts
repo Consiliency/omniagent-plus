@@ -12,6 +12,64 @@ async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
 }
 
 describe("http provider", () => {
+  it("preserves v0.5 MCP startup metadata without synthesizing empty metadata", async () => {
+    const snapshot = {
+      backend: "omnigent-http",
+      createdAt: "2026-06-30T00:00:00.000Z",
+      id: "session-mcp-startup",
+      items: [],
+      mcp_startup: {
+        "failed-server": {
+          error: "metadata_only_startup_failure",
+          status: "failed",
+        },
+      },
+      metadata: { existing: "value" },
+      status: "idle",
+      title: "MCP startup",
+      updatedAt: "2026-06-30T00:00:00.000Z",
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(JSON.stringify(snapshot), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        }),
+    });
+    const session = await provider.createSession({
+      idempotencyKey: "http-provider-mcp-startup",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: "MCP startup",
+    });
+
+    expect(session.metadata).toEqual({
+      existing: "value",
+      mcp_startup: snapshot.mcp_startup,
+    });
+
+    const providerWithoutMetadata = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(
+          JSON.stringify({ ...snapshot, mcp_startup: null, metadata: undefined }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          },
+        ),
+    });
+    const sessionWithoutMetadata = await providerWithoutMetadata.createSession({
+      idempotencyKey: "http-provider-no-mcp-startup",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: "No MCP startup",
+    });
+
+    expect(sessionWithoutMetadata.metadata).toBeUndefined();
+  });
+
   it("maps session history and stream events into the neutral provider contract", async () => {
     const server = await FakeOmnigentServer.start({
       malformedFrameBeforeValid: true,

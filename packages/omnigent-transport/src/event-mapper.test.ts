@@ -18,7 +18,9 @@ function fixtureToRawEvents(
     occurredAt: new Date(Date.parse("2026-06-30T00:00:00.000Z") + index * 1000).toISOString(),
     outputText:
       event.type === "response.completed" ? "hello world" : undefined,
+    phase: event.phase,
     reason: event.reason,
+    servers: event.servers,
     sessionId: "session-1",
     status:
       event.status === undefined
@@ -26,7 +28,9 @@ function fixtureToRawEvents(
         : (event.status as OmnigentRawEvent["status"]),
     terminal: event.terminal ?? event.semantic_terminal,
     turnId:
-      event.type.startsWith("response.") || event.type.startsWith("turn.")
+      (event.type.startsWith("response.") &&
+        event.type !== "response.policy_denied") ||
+      event.type.startsWith("turn.")
         ? turnId
         : undefined,
     type: event.type as OmnigentRawEvent["type"],
@@ -102,5 +106,20 @@ describe("event mapper", () => {
     );
 
     expect(runtimeEvents).toEqual([]);
+  });
+
+  it("accepts v0.5 MCP startup and policy events as safe no-ops", () => {
+    const rawEvents = fixtureToRawEvents("v0-5-noop-events");
+    const runtimeEvents = mapOmnigentEventSequence("session-1", rawEvents);
+
+    expect(runtimeEvents).toEqual([]);
+    expect(rawEvents[0]?.servers?.["failed-server"]?.status).toBe("failed");
+    expect(rawEvents[1]).toEqual(
+      expect.objectContaining({
+        phase: "tool_call",
+        reason: "metadata_only_policy_denied",
+        turnId: undefined,
+      }),
+    );
   });
 });

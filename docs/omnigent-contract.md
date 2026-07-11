@@ -5,24 +5,22 @@ It freezes the Omnigent surface that downstream phases may rely on for v0.1.
 
 ## Supported Version
 
-- Freeze target: `omnigent` release `v0.4.0`
-- Release commit: `31669e1b413216c865d0ed7dfb469fb142c889f5`
-- Release published: `2026-07-03T01:36:56Z`
+- Freeze target: `omnigent` release `v0.5.1`
+- Release commit: `08285468e098244ac0b0bf98cb470d5c1a1a7070`
+- Release published: `2026-07-10T23:26:54Z`
 - Python requirement at the freeze target: `>=3.12`
 - Authoritative downstream gate: `IF-0-CONTRACT-1`
 
 The upstream `main` branch remains ahead of the freeze
-(`b9332cc655b2ad7dbe70d2ad5b9cd78214dd3e17` observed on
-`2026-07-05`), so `main` is not authoritative for this contract. Current main
+(`f55e16f84e1b2c757deb3ee56229feace309cb6c` observed on
+`2026-07-11`), so `main` is not authoritative for this contract. Current main
 movement is tracked separately in `docs/omnigent-upstream-readiness.md`.
 
-CS-2.2 rechecked upstream on `2026-07-08`: release `v0.4.0` remains the
-supported target, upstream `main` was at
-`f1226aaa51068ace55f7d31a4b379b138ae7e221`, and `main` added
-`/v1/hosts/{host_id}/worktrees` plus
-`/v1/sessions/{session_id}/resources/files:copy`. Neither release nor `main`
-exposes lease, lock, coordination, or inbox APIs, so the CS-2.2 lease layer is
-owned by `omniagent-plus`.
+CS-2.2 rechecked upstream on `2026-07-11`: release `v0.5.1` adds
+`/v1/hosts/{host_id}/worktrees`,
+`/v1/sessions/{session_id}/resources/files:copy`, and `/v1/sharing`. These are
+optional upstream transport surfaces, not lease, lock, coordination, or inbox
+APIs. The CS-2.2 lease layer remains owned by `omniagent-plus`.
 
 ## Source Provenance
 
@@ -30,7 +28,7 @@ This phase used metadata-only source inspection and safe command probes. No
 credentials, live provider accounts, or secret-bearing environment dumps were
 required.
 
-Primary sources inspected at `v0.4.0`:
+Primary sources inspected at `v0.5.1`:
 
 - `pyproject.toml`
 - `README.md`
@@ -54,7 +52,7 @@ live local installation.
 
 ## HTTP API Surface
 
-Pinned public provider surface at `v0.4.0`:
+Pinned public provider surface at `v0.5.1`:
 
 | Method | Path | Provider use |
 | --- | --- | --- |
@@ -71,6 +69,11 @@ Pinned public provider surface at `v0.4.0`:
 | `POST` | `/v1/sessions/{source_id}/fork` | fork an existing session |
 | `POST` | `/v1/sessions/{session_id}/switch-agent` | switch bound agent in place |
 | `PUT` | `/v1/sessions/{session_id}/read-state` | update viewer read state |
+
+Release `v0.5.1` also exposes host worktree inventory, session resource file
+copy, sharing settings, and `SessionGitOptions.existing_worktree`. They are
+stable upstream surfaces but are not required or invoked by this provider.
+`SessionForkRequest.model_override` was removed; the provider does not send it.
 
 Session event input types explicitly documented in `API.md` include:
 
@@ -89,6 +92,8 @@ Session status and snapshot fields that downstream code must handle:
   response
 - `background_task_count`, `viewer_last_seen`, and `viewer_unread` are optional
   metadata fields
+- `mcp_startup` is optional session snapshot metadata keyed by MCP server
+- `search_snippet` is optional session list metadata
 
 Downstream implication: `waiting` is no longer release OpenAPI drift, but
 `launching` remains a tolerated raw stream edge that maps to the neutral
@@ -96,7 +101,7 @@ Downstream implication: `waiting` is no longer release OpenAPI drift, but
 
 ## CLI Surface
 
-Entry points pinned at `v0.4.0`:
+Entry points pinned at `v0.5.1`:
 
 - `omnigent = omnigent.cli:main`
 - `omni = omnigent.cli:main`
@@ -118,6 +123,10 @@ Documented runtime commands relevant to the provider boundary:
 | `omni upgrade` / `omni upgrade --check` | upgrade or check for update |
 | `omnigent claude` / `codex` / `cursor` / `opencode` / `hermes` / `pi` | native harness wrappers |
 
+Release `v0.5.1` also documents `omni session export --id`, `omnigent debug
+logs`, and `omnigent run --harness acp:<slug>`. They are not provider-required
+commands.
+
 Platform note from the tagged README:
 
 - Windows supports `omnigent server`, the web UI, and SDK-based harnesses
@@ -127,7 +136,7 @@ Exit-code freeze for v0.1:
 
 - successful command completion or help output: treat `0` as stable
 - non-zero codes: upstream does not publish a stable numeric exit-code table at
-  `v0.4.0`, so classify failures from stderr/body semantics instead of numeric
+  `v0.5.1`, so classify failures from stderr/body semantics instead of numeric
   codes alone
 
 ## Event Stream
@@ -168,6 +177,7 @@ Relevant event families for v0.1 mapping:
   - `session.changed_files.invalidated`
   - `session.terminal.activity`
   - `session.heartbeat`
+  - `session.mcp_startup`
 - response lifecycle and metadata events:
   - `response.created`
   - `response.queued`
@@ -187,6 +197,7 @@ Relevant event families for v0.1 mapping:
   - `response.heartbeat`
   - `response.elicitation_request`
   - `response.elicitation_resolved`
+  - `response.policy_denied`
   - `response.completed`
   - `response.failed`
   - `response.incomplete`
@@ -201,6 +212,10 @@ Malformed stream handling is not a server replay feature. The official Python
 client logs and skips malformed JSON, non-object payloads, and unknown event
 types so one bad frame does not poison the stream.
 
+`session.mcp_startup` preserves per-server startup status metadata and
+`response.policy_denied` preserves policy phase/reason metadata. Both are
+known, non-terminal no-ops at the neutral runtime-event boundary.
+
 ## Error Taxonomy
 
 Pinned error classes that downstream code may normalize:
@@ -212,7 +227,7 @@ Pinned error classes that downstream code may normalize:
 | HTTP route | `404 not_found` | missing session, source session, or child-session parent |
 | HTTP route | `422 validation_error` | request validation error from route schema |
 | SSE transport | `malformed_frame` | client must skip/log malformed or unknown frames |
-| Capability gap | `blocked_capability` | child-session creation and harness override are not public v0.4.0 guarantees |
+| Capability gap | `blocked_capability` | child-session creation and harness override are not public v0.5.1 guarantees |
 | Capability gap | `emulated_capability` | logical close and terminal uniqueness need provider-side normalization |
 
 ## Capability Matrix
@@ -269,6 +284,7 @@ Pinned lifecycle rules for downstream phases:
 | `fixtures/omnigent/events/malformed-sse-skip.json` | malformed-frame skip behavior |
 | `fixtures/omnigent/events/dual-terminal-markers.json` | duplicate terminal-edge normalization case |
 | `fixtures/omnigent/events/v0-4-noop-events.json` | representative v0.4 metadata/UI events that parse and no-op |
+| `fixtures/omnigent/events/v0-5-noop-events.json` | v0.5 MCP startup and policy-denied events that parse, preserve metadata, and no-op |
 | `fixtures/omnigent/errors/invalid-event-400.json` | malformed or unsupported event POST failure |
 | `fixtures/omnigent/errors/close-session-gap.json` | public close gap requiring emulation |
 | `fixtures/omnigent/errors/child-session-blocked.json` | blocked public child-session creation |
@@ -298,5 +314,5 @@ Pinned lifecycle rules for downstream phases:
 - `child_session` and `harness_override` must return typed blocked or
   unavailable behavior at public provider boundaries.
 - Session-state normalization must account for `launching` stream status edges
-  even though the official `v0.4.0` snapshot status enum is now aligned on
+  even though the official `v0.5.1` snapshot status enum is aligned on
   `waiting`.

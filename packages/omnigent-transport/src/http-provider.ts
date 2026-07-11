@@ -66,7 +66,10 @@ function toSessionInfo(
     id: snapshot.id,
     identityProfileId: request.identityProfileId,
     lastError: previous?.lastError,
-    metadata: snapshot.metadata,
+    metadata:
+      snapshot.mcp_startup == null
+        ? snapshot.metadata
+        : { ...snapshot.metadata, mcp_startup: snapshot.mcp_startup },
     repoRoot: request.repoRoot,
     rootSessionId: snapshot.id,
     runtime: "omnigent",

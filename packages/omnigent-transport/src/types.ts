@@ -38,6 +38,20 @@ export const omnigentResponseStatuses = [
 export type OmnigentResponseStatus =
   (typeof omnigentResponseStatuses)[number];
 
+export const omnigentMcpServerStartupStatuses = [
+  "starting",
+  "ready",
+  "failed",
+  "cancelled",
+] as const;
+export type OmnigentMcpServerStartupStatus =
+  (typeof omnigentMcpServerStartupStatuses)[number];
+
+export interface OmnigentMcpServerStartup {
+  readonly status: OmnigentMcpServerStartupStatus;
+  readonly error?: string | null;
+}
+
 export const omnigentStreamEventTypes = [
   "session.created",
   "session.status",
@@ -61,6 +75,7 @@ export const omnigentStreamEventTypes = [
   "session.changed_files.invalidated",
   "session.terminal.activity",
   "session.heartbeat",
+  "session.mcp_startup",
   "response.created",
   "response.queued",
   "response.in_progress",
@@ -79,6 +94,7 @@ export const omnigentStreamEventTypes = [
   "response.heartbeat",
   "response.elicitation_request",
   "response.elicitation_resolved",
+  "response.policy_denied",
   "response.completed",
   "response.failed",
   "response.incomplete",
@@ -131,6 +147,9 @@ export interface OmnigentSessionSnapshot {
   readonly backgroundTaskCount?: number | null;
   readonly background_task_count?: number | null;
   readonly metadata?: Record<string, unknown>;
+  readonly mcp_startup?:
+    | Readonly<Record<string, OmnigentMcpServerStartup>>
+    | null;
   readonly viewerLastSeen?: number | null;
   readonly viewerUnread?: boolean;
   readonly viewer_last_seen?: number | null;
@@ -160,6 +179,8 @@ export interface OmnigentRawEvent {
   readonly terminal?: boolean;
   readonly status?: OmnigentSessionStatus | OmnigentResponseStatus;
   readonly reason?: string;
+  readonly phase?: string;
+  readonly servers?: Readonly<Record<string, OmnigentMcpServerStartup>>;
   readonly message?: string;
   readonly delta?: string;
   readonly outputText?: string;
