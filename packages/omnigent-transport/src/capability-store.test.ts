@@ -1,19 +1,26 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-import { AuditLedger } from "@omniagent-plus/state-ledger";
-
-import { OmnigentCapabilityStore } from "./capability-store.js";
+import {
+  OmnigentCapabilityStore,
+  type OmnigentCapabilityLedger,
+} from "./capability-store.js";
 import { snapshotFromHealth } from "./capability-probe.js";
 
 describe("capability store", () => {
-  it("persists capability snapshots through AuditLedger.appendCapabilitySnapshot", async () => {
-    const ledger = await AuditLedger.open({
-      rootDir: await mkdtemp(join(tmpdir(), "omnigent-capability-store-")),
-    });
+  it("persists capability snapshots through a structural ledger contract", async () => {
+    const ledger: OmnigentCapabilityLedger = {
+      async appendCapabilitySnapshot(snapshot) {
+        return {
+          kind: "capability_snapshot",
+          payload: snapshot,
+          recordedAt: "2026-06-30T00:00:00.000Z",
+          recordId: "capability-1",
+          schema: "state_ledger_record.v0.1",
+          schemaVersion: 1,
+          sequence: 1,
+        };
+      },
+    };
     const store = new OmnigentCapabilityStore(ledger);
     const snapshot = snapshotFromHealth({
       activeSessions: 0,

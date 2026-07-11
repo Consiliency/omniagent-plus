@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import type {
   OmnigentCapabilityStatus,
@@ -114,12 +114,19 @@ export interface OmnigentFakeServerScenarioCatalog {
   }>;
 }
 
-const omnigentFixtureRoot = new URL("../../../fixtures/omnigent/", import.meta.url);
+const omnigentFixtureRoots = [
+  new URL("./fixtures/", import.meta.url),
+  new URL("../../../fixtures/omnigent/", import.meta.url),
+];
 
 export function readOmnigentFixture<T>(relativePath: string): T {
-  return JSON.parse(
-    readFileSync(new URL(relativePath, omnigentFixtureRoot), "utf8"),
-  ) as T;
+  const fixtureUrl = omnigentFixtureRoots
+    .map((root) => new URL(relativePath, root))
+    .find((candidate) => existsSync(candidate));
+  if (fixtureUrl === undefined) {
+    throw new Error(`Omnigent fixture not found: ${relativePath}`);
+  }
+  return JSON.parse(readFileSync(fixtureUrl, "utf8")) as T;
 }
 
 export function loadOmnigentSourceMetadata(): OmnigentSourceMetadataFixture {

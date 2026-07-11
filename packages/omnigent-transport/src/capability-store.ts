@@ -1,12 +1,25 @@
-import type { OmnigentCapabilitySnapshot } from "@consiliency/runtime-provider";
-import type { AuditLedger } from "@omniagent-plus/state-ledger";
+import type {
+  OmnigentCapabilitySnapshot,
+  StateLedgerEntry,
+} from "@consiliency/runtime-provider";
+
+export type OmnigentCapabilityRecord = Extract<
+  StateLedgerEntry,
+  { kind: "capability_snapshot" }
+>;
+
+export interface OmnigentCapabilityLedger {
+  appendCapabilitySnapshot(
+    snapshot: OmnigentCapabilitySnapshot,
+  ): Promise<OmnigentCapabilityRecord>;
+}
 
 export class OmnigentCapabilityStore {
-  constructor(private readonly ledger: AuditLedger) {}
+  constructor(private readonly ledger: OmnigentCapabilityLedger) {}
 
   async append(
     snapshot: OmnigentCapabilitySnapshot,
-  ): Promise<Extract<Awaited<ReturnType<AuditLedger["appendCapabilitySnapshot"]>>, { kind: "capability_snapshot" }>> {
+  ): Promise<OmnigentCapabilityRecord> {
     return this.ledger.appendCapabilitySnapshot(snapshot);
   }
 }

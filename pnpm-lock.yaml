@@ -116,9 +116,6 @@ importers:
       '@consiliency/runtime-provider':
         specifier: workspace:*
         version: link:../core-contracts
-      '@omniagent-plus/state-ledger':
-        specifier: workspace:*
-        version: link:../state-ledger
 
   packages/rate-limit-catalog:
     dependencies:

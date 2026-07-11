@@ -29,6 +29,10 @@ export {
 export { OmnigentProcessManager } from "./process-manager.js";
 
 export type { OmnigentCapabilityProbeOptions } from "./capability-probe.js";
+export type {
+  OmnigentCapabilityLedger,
+  OmnigentCapabilityRecord,
+} from "./capability-store.js";
 export type { OmnigentCliProviderOptions } from "./cli-client.js";
 export type { FailureMappingResult } from "./failure-mapper.js";
 export type { OmnigentHybridProviderOptions } from "./hybrid-provider.js";

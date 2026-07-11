@@ -41,6 +41,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build
+      - run: pnpm --filter @consiliency/omnigent-transport test:pack
       - run: pnpm -r test
 
   publish-npm:
@@ -62,17 +63,8 @@ jobs:
       - run: pnpm -r build
       # Topological order: runtime-provider first (the adapter + transport depend on it).
       - name: Publish @consiliency/runtime-provider
-        working-directory: packages/core-contracts
-        run: |
-          tarball=$(pnpm pack | tail -n1)
-          npm publish "$tarball" --access public
+        run: bash scripts/publish-package-if-needed.sh packages/core-contracts
       - name: Publish @consiliency/pipeline-provider-adapter
-        working-directory: packages/governed-pipeline-adapter
-        run: |
-          tarball=$(pnpm pack | tail -n1)
-          npm publish "$tarball" --access public
+        run: bash scripts/publish-package-if-needed.sh packages/governed-pipeline-adapter
       - name: Publish @consiliency/omnigent-transport
-        working-directory: packages/omnigent-transport
-        run: |
-          tarball=$(pnpm pack | tail -n1)
-          npm publish "$tarball" --access public
+        run: bash scripts/publish-package-if-needed.sh packages/omnigent-transport

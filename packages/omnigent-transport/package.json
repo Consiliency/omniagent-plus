@@ -10,12 +10,12 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json --pretty false",
+    "build": "tsc -p tsconfig.build.json --pretty false && node ../../scripts/copy-omnigent-fixtures.mjs",
+    "test:pack": "node ../../scripts/smoke-packed-omnigent-transport.mjs",
     "typecheck": "tsc -p tsconfig.json --pretty false",
     "test": "pnpm --dir ../.. exec vitest --config vitest.config.ts"
   },
   "dependencies": {
-    "@consiliency/runtime-provider": "workspace:*",
-    "@omniagent-plus/state-ledger": "workspace:*"
+    "@consiliency/runtime-provider": "workspace:*"
   }
 }
