@@ -69,6 +69,7 @@ governance behavior change.
 
 ### Notes
 - The live `OmnigentHttpProvider` HTTP transport is NOT wired into any consumer (non-goal);
-  `omnigent-transport` is publish-hardened for consumability only and still depends on the
-  (unpublished) `@omniagent-plus/state-ledger` — publishing it is out of the GPBRANCH path,
-  which needs only `core-contracts` + `governed-pipeline-adapter`.
+  `omnigent-transport` is publish-hardened for consumability and accepts a structural
+  capability-ledger interface backed by `@consiliency/runtime-provider` record types. It
+  does not depend on the private `@omniagent-plus/state-ledger` package; a real
+  `AuditLedger` remains structurally compatible when used inside this workspace.

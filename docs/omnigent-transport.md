@@ -44,7 +44,8 @@ Capability probe and storage stay durable:
 - `probeOmnigentCapabilities` builds frozen `OmnigentCapabilitySnapshot` records
   from provider health plus the pinned contract metadata
 - `OmnigentCapabilityStore` persists those capability snapshot records through
-  `AuditLedger.appendCapabilitySnapshot`
+  the structural `OmnigentCapabilityLedger` contract;
+  `AuditLedger.appendCapabilitySnapshot` remains the workspace implementation
 
 CLI and hybrid process ownership are explicit:
 
