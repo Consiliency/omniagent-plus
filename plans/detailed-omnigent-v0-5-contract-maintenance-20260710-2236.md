@@ -51,6 +51,14 @@ events in its default branch and the parser already derives known types from
 concern: no such type or `model_override` field exists in current transport
 source.
 
+Execution blocker addendum (2026-07-11): the prescribed `pnpm build` followed
+by `pnpm lint` exposed a repository lint configuration defect. ESLint scanned
+generated `**/dist/**` output and did not apply Node globals to the unchanged
+Node `.mjs` smoke script. Completing the plan therefore also owns the minimal
+`eslint.config.mjs` correction: ignore generated `dist` trees and apply
+`globals.node` to JavaScript module/config files. No production behavior or
+package surface changes.
+
 Later review rounds found and corrected two further plan defects: the typed
 event fixture must include `servers` / `phase`, and its event `type` must be
 `OmnigentRawEvent["type"]` so existing `[DONE]` fixtures remain valid. Live
@@ -285,6 +293,13 @@ invent a new neutral runtime event, lease state, or capability status.
 - `Upstream Omnigent State` - modify - replace the stale v0.4/current-main
   statement with v0.5 and explicitly reconfirm that the upstream worktree API
   is read-only discovery, not a lease/lock/coordination/inbox backend.
+
+### `eslint.config.mjs` (modify)
+
+- generated output - modify - ignore `**/dist/**` so `pnpm build` cannot make
+  the subsequent lint gate fail on compiler output.
+- Node scripts - modify - apply Node globals to `.js`, `.mjs`, and `.cjs`
+  repository scripts while retaining the existing TypeScript rules.
 
 ## Documentation impact
 

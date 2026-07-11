@@ -1,6 +1,6 @@
 # Omnigent v0.5.1 Execution Verification
 
-Summary: implementation behavior passes all targeted and full-suite checks; repository-wide lint remains blocked by unchanged baseline lint errors.
+Summary: implementation and repository-wide verification pass after correcting the lint gate configuration exposed during execution.
 
 ## Run Context
 
@@ -25,24 +25,37 @@ Summary: implementation behavior passes all targeted and full-suite checks; repo
 - `git diff --check`: passed.
 - `phase-loop validate-roadmap specs/phase-plans-v1.md`: passed for 13 phases.
 
-## Blocked Gate
+## Resolved Gate
 
-`pnpm lint` fails on unchanged repository baseline files. After excluding
-generated `dist/` output, the remaining four errors are `no-undef` findings for
-`console` and `process` in `scripts/smoke-fake-provider.mjs`. That file is
-unchanged from `origin/main`. The changed transport source passes ESLint.
+The first `pnpm lint` run scanned generated `dist/` output and lacked Node
+globals for `scripts/smoke-fake-provider.mjs`. `eslint.config.mjs` now ignores
+compiler output and applies Node globals to JavaScript module/config files.
+The full repository lint command passes.
 
 ## Acceptance Reduction
 
 - Functional and contract criteria: satisfied.
 - No lease/control-plane capability promotion: satisfied.
 - No removed fork field in production requests: satisfied.
-- Effective automation suite: partial because the unchanged baseline lint gate
-  remains red.
-- Publication intent: draft PR.
+- Effective automation suite: passed.
+- Publication intent: ready PR.
 
 ## Documentation Delta
 
 `doc_delta_decision=docs_updated`: contract, readiness, transport, lifecycle,
 coordination, and fake-server fixture documentation now freeze v0.5.1 and keep
 the optional surfaces outside `AgentRuntimeProvider` and CS-2.2 lease authority.
+
+## Continuation Closeout
+
+The `2026-07-11` continuation resolved the lint and publication preconditions.
+Final verification on the amended tree:
+
+- `pnpm build`: passed.
+- `pnpm lint`: passed after build output was regenerated.
+- `pnpm typecheck`: passed.
+- `pnpm test`: 100 files passed; 203 tests passed; 1 intentionally skipped.
+- JSON, release pin, removed fork-field, diff, and roadmap checks: passed.
+- Acceptance criteria: 11 of 11 satisfied.
+- Publication target: ready PR from
+  `codex/omnigent-v0-5-detailed-plan` to the repository default branch.
