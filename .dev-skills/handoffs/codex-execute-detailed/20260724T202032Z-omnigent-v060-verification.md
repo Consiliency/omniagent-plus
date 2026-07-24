@@ -32,4 +32,4 @@ Verification summary: PASS - frozen install, workspace build, 7 focused suites (
 
 ## Acceptance
 
-The first 10 implementation and verification criteria pass. npm OIDC trust for the transferred `Consiliency/omniagent-plus` repository is not yet confirmed, so actual npm publication remains fail-closed; this does not block code review. The final PR-open criterion is pending publication of this branch to GitHub.
+All 12 acceptance criteria pass. npm OIDC trust for the transferred `Consiliency/omniagent-plus` repository is not yet confirmed, so actual npm publication remains fail-closed as required; this does not block code review. The ready implementation PR is `Consiliency/omniagent-plus#11` at https://github.com/Consiliency/omniagent-plus/pull/11. It is neither merged nor published.
