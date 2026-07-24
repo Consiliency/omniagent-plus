@@ -47,6 +47,16 @@ evidence, and status persistence.
 - Shared or hosted account management is out of scope for the current alpha
   release.
 
+## Omnigent Telemetry
+
+- Omnigent v0.6 enables anonymous telemetry by default. Operators can opt out
+  with `OMNIGENT_ANALYTICS=0`, `DO_NOT_TRACK=1`, or `telemetry: false` in
+  `~/.omnigent/config.yaml`.
+- Telemetry posture is explicit operator configuration. The transport and
+  process manager must not silently inject or override these settings.
+- Do not persist telemetry payloads, raw Omnigent config, or environment values
+  in fixtures, ledgers, handoffs, or diagnostics.
+
 ## Coordination Backend Secrets
 
 - Supabase coordination uses

@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-11T03:10:00Z",
+  "captured_at": "2026-07-24T20:20:32Z",
   "session_endpoints": [
     {
       "method": "POST",
@@ -76,10 +76,12 @@
     "background_task_count": "optional native terminal shell count",
     "viewer_last_seen": "session list read-state marker",
     "viewer_unread": "session list read-state marker",
-    "mcp_startup": "optional per-server MCP startup status metadata"
+    "mcp_startup": "optional per-server MCP startup status metadata",
+    "parent_session_id": "optional lineage metadata already present on full session responses"
   },
   "session_list_item_fields": {
-    "search_snippet": "optional server-generated search result excerpt"
+    "search_snippet": "optional server-generated search result excerpt",
+    "parent_session_id": "optional parent lineage newly included in v0.6.0 list responses"
   },
   "session_status_contract": {
     "api_md": [
@@ -104,7 +106,7 @@
     "tolerated_raw_edge": [
       "launching"
     ],
-    "note": "v0.5.1 retains the resolved waiting status; launching remains tolerated from session.status edges and maps to starting."
+    "note": "v0.6.0 retains the resolved waiting status; launching remains tolerated from session.status edges and maps to starting."
   },
   "response_status_contract": [
     "queued",
@@ -126,12 +128,13 @@
     "event_families": [
       "session",
       "response",
-      "turn"
+      "turn",
+      "browser"
     ],
-    "official_release_event_count": 50,
+    "official_release_event_count": 52,
     "release_event_types": [
-      "session.mcp_startup",
-      "response.policy_denied"
+      "browser.action_request",
+      "response.function_call_output.delta"
     ]
   },
   "optional_release_surfaces": [
@@ -160,6 +163,23 @@
       "field": "SessionGitOptions.existing_worktree",
       "status": "observed_not_provider_required",
       "reason": "existing worktree selection is an upstream launch option"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/imports",
+      "status": "observed_not_provider_required",
+      "reason": "local transcript import is not part of the transport provider contract"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{session_id}/auto-title",
+      "status": "observed_not_provider_required",
+      "reason": "automatic UI title selection is not part of the transport provider contract"
+    },
+    {
+      "field": "GET /v1/info response.single_user",
+      "status": "observed_not_provider_required",
+      "reason": "single-user server capability metadata does not change provider behavior"
     }
   ],
   "fork_request": {
@@ -186,22 +206,22 @@
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     },
     {
       "kind": "tagged_source",
       "path": "openapi.json",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/schemas.py",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     }
   ]
 }

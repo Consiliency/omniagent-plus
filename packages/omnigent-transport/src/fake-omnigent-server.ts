@@ -140,6 +140,23 @@ function buildV04NoopEvents(sessionId: string, turnId: string): OmnigentRawEvent
   }));
 }
 
+function buildV06NoopEvents(sessionId: string, turnId: string): OmnigentRawEvent[] {
+  const fixture = loadOmnigentEventFixture("v0-6-noop-events");
+  return (fixture.events ?? []).map((event, index) => ({
+    action: event.action,
+    action_id: event.action_id,
+    args: event.args,
+    call_id: event.call_id,
+    delta: event.delta,
+    id: `${turnId}-v06-${index + 1}`,
+    itemId: `${turnId}-v06-${index + 1}`,
+    occurredAt: timestamp((index + 60) * 1000),
+    sessionId,
+    terminal: event.terminal,
+    type: event.type as OmnigentRawEvent["type"],
+  }));
+}
+
 function harnessCatalog(): OmnigentHarnessCatalogResponse {
   return {
     local: [
@@ -394,6 +411,7 @@ export class FakeOmnigentServer {
           const rawEvents = [
             ...buildNormalTerminalEvents(sessionId, turnId, message),
             ...buildV04NoopEvents(sessionId, turnId),
+            ...buildV06NoopEvents(sessionId, turnId),
           ];
           record.stream.push(...rawEvents);
           record.snapshot = {

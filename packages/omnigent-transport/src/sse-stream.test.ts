@@ -122,4 +122,47 @@ describe("sse stream parser", () => {
       }),
     );
   });
+
+  it("parses official v0.6 metadata events without unknown-event skips", async () => {
+    const fixture = loadOmnigentEventFixture("v0-6-noop-events");
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          (fixture.events ?? [])
+            .map((event, index) =>
+              `data: ${JSON.stringify({
+                ...event,
+                id: `v06-${index + 1}`,
+                occurredAt: "2026-06-30T00:00:00.000Z",
+                sessionId: "session-1",
+              })}`,
+            )
+            .join("\n\n"),
+        ),
+        (skip) => {
+          skipped.push(skip.reason);
+        },
+      ),
+    );
+
+    expect(skipped).toEqual([]);
+    expect(events.map((event) => event.type)).toEqual([
+      "browser.action_request",
+      "response.function_call_output.delta",
+    ]);
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        action: "snapshot",
+        action_id: "baction_metadata_only",
+        args: {},
+      }),
+    );
+    expect(events[1]).toEqual(
+      expect.objectContaining({
+        call_id: "call_metadata_only",
+        delta: "metadata-only tool output",
+      }),
+    );
+  });
 });

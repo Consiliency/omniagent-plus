@@ -14,7 +14,7 @@ and scenario boundaries instead of raw provider payload dumps.
 ## provenance
 
 - Every fixture points back to the tagged upstream source that justified it.
-- The freeze target is `omnigent` `v0.5.1`.
+- The freeze target is `omnigent` `v0.6.0`.
 - `main` observations are metadata only and are not authoritative for the fake
   server unless a later contract freeze re-pins them.
 
@@ -33,6 +33,6 @@ and scenario boundaries instead of raw provider payload dumps.
 - The `v0_4_harness_catalog_and_read_state` scenario covers the official
   read-only harness catalog, read-state metadata, `active_response_id`, and
   representative v0.4 event parsing.
-- The `v0-5-noop-events.json` fixture separately proves the two new release
-  events remain known metadata-only no-ops; the historical v0.4 scenario stays
-  unchanged.
+- The historical v0.4 and v0.5 fixtures remain compatibility evidence.
+- The `v0_6_metadata_events` scenario drives both v0.6 additions through the
+  fake server's normal SSE path as known metadata-only no-ops.

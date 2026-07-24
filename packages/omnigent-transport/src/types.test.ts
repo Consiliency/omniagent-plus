@@ -38,6 +38,7 @@ describe("transport types", () => {
       mcp_startup: {
         "safe-server": { error: null, status: "ready" },
       },
+      parent_session_id: "session-parent",
       items: [{ id: "item-1", event: rawEvent }],
       viewer_last_seen: 1_780_000_000,
       viewer_unread: false,
@@ -68,6 +69,23 @@ describe("transport types", () => {
       reason: "metadata_only_policy_denied",
       sessionId: "session-1",
       type: "response.policy_denied",
+    };
+    const browserActionEvent: OmnigentRawEvent = {
+      action: "snapshot",
+      action_id: "baction_metadata_only",
+      args: {},
+      id: "browser-action-1",
+      occurredAt: "2026-06-30T00:00:00.000Z",
+      sessionId: "session-1",
+      type: "browser.action_request",
+    };
+    const toolOutputDeltaEvent: OmnigentRawEvent = {
+      call_id: "call_metadata_only",
+      delta: "metadata-only tool output",
+      id: "tool-output-delta-1",
+      occurredAt: "2026-06-30T00:00:00.000Z",
+      sessionId: "session-1",
+      type: "response.function_call_output.delta",
     };
 
     expect(httpOptions.baseUrl).toContain("127.0.0.1");
@@ -101,13 +119,21 @@ describe("transport types", () => {
     expect(omnigentStreamEventTypes).toContain("session.heartbeat");
     expect(omnigentStreamEventTypes).toContain("session.mcp_startup");
     expect(omnigentStreamEventTypes).toContain("response.policy_denied");
+    expect(omnigentStreamEventTypes).toContain("browser.action_request");
+    expect(omnigentStreamEventTypes).toContain(
+      "response.function_call_output.delta",
+    );
+    expect(omnigentStreamEventTypes).toHaveLength(52);
     expect(snapshot.items[0]?.event.delta).toBe("hello");
     expect(snapshot.active_response_id).toBe("response-1");
     expect(snapshot.background_task_count).toBe(1);
     expect(harnessCatalog.local?.[0]?.name).toBe("codex");
     expect(reasoningEvent.reasoning_effort).toBe("medium");
     expect(snapshot.mcp_startup?.["safe-server"]?.status).toBe("ready");
+    expect(snapshot.parent_session_id).toBe("session-parent");
     expect(mcpStartupEvent.servers?.["safe-server"]?.status).toBe("starting");
     expect(policyDeniedEvent.phase).toBe("tool_call");
+    expect(browserActionEvent.action_id).toBe("baction_metadata_only");
+    expect(toolOutputDeltaEvent.call_id).toBe("call_metadata_only");
   });
 });

@@ -79,6 +79,11 @@ export interface OmnigentEventFixture {
     readonly queued: boolean;
   };
   readonly events?: Array<{
+    readonly action?: string;
+    readonly action_id?: string;
+    readonly args?: Readonly<Record<string, unknown>>;
+    readonly call_id?: string;
+    readonly delta?: string;
     readonly phase?: string;
     readonly reason?: string;
     readonly servers?: Readonly<Record<string, OmnigentMcpServerStartup>>;

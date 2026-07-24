@@ -9,7 +9,7 @@ name: publish
 # Requires (per package, one-time, maintainer's gate):
 #   - a Trusted Publisher configured on npmjs.com for
 #     @consiliency/{runtime-provider,pipeline-provider-adapter,omnigent-transport}
-#     pointing at repo ViperJuice/omniagent-plus + workflow `publish.yml`.
+#     pointing at repo Consiliency/omniagent-plus + workflow `publish.yml`.
 #   - a first authenticated `npm publish` for each package to create it (a Trusted
 #     Publisher can only attach to an existing package — same constraint as the gp
 #     packages). After that, releases publish tokenlessly here.
@@ -20,6 +20,9 @@ name: publish
 # OIDC id-token exchange. This sidesteps pnpm#11513 (pnpm 11 `pnpm publish` OIDC
 # 404). Publish order is topological: runtime-provider first (the others depend on
 # it).
+#   - the unchanged runtime-provider and pipeline-provider-adapter package
+#     manifests retain their former-repository metadata until their next package
+#     release; this transport-only release does not republish them.
 on:
   release:
     types: [published]

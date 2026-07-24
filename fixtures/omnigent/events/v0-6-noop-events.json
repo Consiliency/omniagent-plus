@@ -1,0 +1,33 @@
+{
+  "schema": "omnigent.event_fixture.v1",
+  "redaction": "metadata_only",
+  "fixture": "v0_6_noop_events",
+  "events": [
+    {
+      "type": "browser.action_request",
+      "terminal": false,
+      "action_id": "baction_metadata_only",
+      "action": "snapshot",
+      "args": {}
+    },
+    {
+      "type": "response.function_call_output.delta",
+      "terminal": false,
+      "call_id": "call_metadata_only",
+      "delta": "metadata-only tool output"
+    }
+  ],
+  "expected_provider_behavior": "parse as known v0.6 events and no-op while preserving raw metadata",
+  "provenance": [
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.6.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/schemas.py",
+      "ref": "v0.6.0"
+    }
+  ]
+}

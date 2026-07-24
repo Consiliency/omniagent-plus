@@ -103,6 +103,9 @@ describe("http provider", () => {
       expect(streamed.filter((event) => event.type === "runtime.text.delta")).toHaveLength(
         1,
       );
+      expect(
+        streamed.some((event) => event.eventId.includes("-v06-")),
+      ).toBe(false);
     } finally {
       await server.stop();
     }

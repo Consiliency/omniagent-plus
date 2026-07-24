@@ -194,6 +194,19 @@
             "review_record": ".dev-skills/handoffs/codex-plan-detailed/20260724T200709Z-omnigent-v0-6-advisor-board-review.md"
           },
           "transition": "amended"
+        },
+        {
+          "at": "2026-07-24T20:20:32Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-6-contract-maintenance-20260724-1920.md",
+            "base_ref": "origin/main",
+            "base_sha": "9bd2cd7517354d6f3fb5ee180be5479ed78082af",
+            "branch": "codex/plan-omnigent-v0-6-adaptation",
+            "plan_sha256": "ea2cd9210f302f99d920419fe660e5c51112b68be1301191d9d93057fdfc40e6",
+            "run_id": "20260724T202032Z-omnigent-v060"
+          },
+          "transition": "executing"
         }
       ],
       "owner_skill": "codex-plan-detailed",
@@ -201,10 +214,10 @@
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/6faef7ca/codex-plan-omnigent-v0-6-adaptation/20260724T192008Z-omnigent-v0-6-adaptation.md",
       "roadmap_ref": null,
       "slug": "detailed-omnigent-v0-6-contract-maintenance-20260724-1920",
-      "status": "committed",
+      "status": "executing",
       "task_summary": "Plan official Omnigent v0.6.0 transport contract maintenance and the transport-only 0.3.0 release.",
       "type": "detailed",
-      "updated_at": "2026-07-24T20:07:09Z"
+      "updated_at": "2026-07-24T20:20:32Z"
     },
     {
       "acceptance_criteria_count": 7,

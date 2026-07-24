@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.fake_server_scenarios.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-05T01:00:26Z",
+  "captured_at": "2026-07-24T20:20:32Z",
   "scenarios": [
     {
       "name": "create_send_stream_success",
@@ -99,6 +99,15 @@
       "fixtures": [
         "fixtures/omnigent/discovery/http-surface.json",
         "fixtures/omnigent/events/v0-4-noop-events.json"
+      ]
+    },
+    {
+      "name": "v0_6_metadata_events",
+      "capabilities": [
+        "stream_events"
+      ],
+      "fixtures": [
+        "fixtures/omnigent/events/v0-6-noop-events.json"
       ]
     }
   ],
