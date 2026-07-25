@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.cli_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-11T03:10:00Z",
+  "captured_at": "2026-07-24T20:20:32Z",
   "entrypoints": [
     {
       "name": "omnigent",
@@ -33,12 +33,14 @@
     "omnigent pi",
     "omni session export --id",
     "omnigent debug logs",
-    "omnigent run --harness acp:<slug>"
+    "omnigent run --harness acp:<slug>",
+    "omni import --harness <claude|codex> (--session <id>|--last <count>)"
   ],
   "non_provider_required_commands": [
     "omni session export --id",
     "omnigent debug logs",
-    "omnigent run --harness acp:<slug>"
+    "omnigent run --harness acp:<slug>",
+    "omni import --harness <claude|codex> (--session <id>|--last <count>)"
   ],
   "platform_notes": [
     {
@@ -50,8 +52,13 @@
   "exit_code_contract": {
     "success_code": 0,
     "nonzero_codes_are_stable_abi": false,
-    "note": "v0.5.1 does not publish a stable non-zero exit-code table; classify failures from stderr or response semantics."
+    "note": "v0.6.0 does not publish a stable non-zero exit-code table; classify failures from stderr or response semantics."
   },
+  "compatibility_notes": [
+    "optional extra memory was renamed to hindsight; memory remains a compatibility alias",
+    "OMNIGENT_<NAME>_PATH replaces deprecated HARNESS_*_PATH through v0.8",
+    "this repository uses neither deprecated surface"
+  ],
   "local_probe": {
     "omnigent_on_path": false,
     "omni_on_path": false
@@ -60,17 +67,17 @@
     {
       "kind": "tagged_source",
       "path": "pyproject.toml",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     },
     {
       "kind": "tagged_source",
       "path": "README.md",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/cli.py",
-      "ref": "v0.5.1"
+      "ref": "v0.6.0"
     }
   ]
 }

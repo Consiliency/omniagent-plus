@@ -38,7 +38,7 @@ describe("http client", () => {
         lastSeen: 1_780_000_000,
         unread: true,
       });
-      await collectAsync(client.streamSession(session.id));
+      const streamed = await collectAsync(client.streamSession(session.id));
 
       expect(
         server.requestLog.map((entry) => `${entry.method} ${entry.path}`),
@@ -70,6 +70,22 @@ describe("http client", () => {
           public_session_override: false,
         }),
       );
+      expect(streamed).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            action: "snapshot",
+            action_id: "baction_metadata_only",
+            type: "browser.action_request",
+          }),
+          expect.objectContaining({
+            call_id: "call_metadata_only",
+            delta: "metadata-only tool output",
+            type: "response.function_call_output.delta",
+          }),
+        ]),
+      );
+      expect("importSession" in client).toBe(false);
+      expect("autoTitleSession" in client).toBe(false);
     } finally {
       await server.stop();
     }

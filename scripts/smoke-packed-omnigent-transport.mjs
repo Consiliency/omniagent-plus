@@ -38,7 +38,10 @@ const snapshot = snapshotFromHealth({
   runtime: "omnigent",
   sessionStateDrift: [],
 });
-if (snapshot.version !== "0.5.1") throw new Error("unexpected fixture version");`,
+if (snapshot.version !== "0.6.0") throw new Error("unexpected fixture version");
+if (snapshot.gitSha !== "375f540421baf3ad46fae0805b78063682f281de") {
+  throw new Error("unexpected fixture git sha");
+}`,
     ],
     { cwd: consumer, stdio: "pipe" },
   );

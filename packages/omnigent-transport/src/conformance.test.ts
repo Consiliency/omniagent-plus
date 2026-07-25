@@ -75,22 +75,25 @@ describe("fake omnigent conformance", () => {
           "malformed_sse_skip",
           "terminal_marker_deduplication",
           "v0_4_harness_catalog_and_read_state",
+          "v0_6_metadata_events",
         ]),
       );
-      expect(sourceMetadata.freeze_target.tag).toBe("v0.5.1");
+      expect(sourceMetadata.freeze_target.tag).toBe("v0.6.0");
       expect(sourceMetadata.freeze_target.commit).toBe(
-        "08285468e098244ac0b0bf98cb470d5c1a1a7070",
+        "375f540421baf3ad46fae0805b78063682f281de",
       );
-      expect(sourceMetadata.freeze_target.package_version).toBe("0.5.1");
+      expect(sourceMetadata.freeze_target.package_version).toBe("0.6.0");
       expect(httpSurface.stream_contract.official_release_event_count).toBe(
         omnigentStreamEventTypes.length,
       );
       expect(httpSurface.stream_contract.release_event_types).toEqual([
-        "session.mcp_startup",
-        "response.policy_denied",
+        "browser.action_request",
+        "response.function_call_output.delta",
       ]);
+      expect(httpSurface.stream_contract.event_families).toContain("browser");
       expect(httpSurface.session_snapshot_fields?.mcp_startup).toBeTruthy();
       expect(httpSurface.session_list_item_fields?.search_snippet).toBeTruthy();
+      expect(httpSurface.session_list_item_fields?.parent_session_id).toBeTruthy();
       expect(httpSurface.optional_release_surfaces).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -105,6 +108,22 @@ describe("fake omnigent conformance", () => {
             path: "/v1/sharing",
             status: "observed_not_provider_required",
           }),
+          expect.objectContaining({
+            path: "/v1/imports",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/sessions/{session_id}/auto-title",
+            status: "observed_not_provider_required",
+          }),
+        ]),
+      );
+      expect(
+        httpSurface.session_endpoints.map((endpoint) => endpoint.path),
+      ).not.toEqual(
+        expect.arrayContaining([
+          "/v1/imports",
+          "/v1/sessions/{session_id}/auto-title",
         ]),
       );
       expect(httpSurface.fork_request).toEqual(
@@ -129,6 +148,9 @@ describe("fake omnigent conformance", () => {
           }),
         ]),
       );
+      expect(
+        capabilityMatrix.capabilities.map((capability) => capability.name),
+      ).not.toEqual(expect.arrayContaining(["lease", "lock"]));
 
       const historyResponse = await fetch(
         `${server.baseUrl}/v1/sessions/${snapshot.id}/items`,
@@ -141,6 +163,19 @@ describe("fake omnigent conformance", () => {
       const rawEvents = await readRawEvents(streamResponse);
       const runtimeEvents = mapOmnigentEventSequence(snapshot.id, rawEvents);
 
+      expect(rawEvents).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            action_id: "baction_metadata_only",
+            type: "browser.action_request",
+          }),
+          expect.objectContaining({
+            call_id: "call_metadata_only",
+            type: "response.function_call_output.delta",
+          }),
+        ]),
+      );
+
       expect(mappedHistory.history.events.some((event) => event.type === "runtime.turn.started")).toBe(
         true,
       );
@@ -148,6 +183,9 @@ describe("fake omnigent conformance", () => {
         1,
       );
       expect(runtimeEvents.some((event) => event.type === "runtime.text.delta")).toBe(true);
+      expect(
+        runtimeEvents.some((event) => event.eventId.includes("-v06-")),
+      ).toBe(false);
 
       await fetch(`${server.baseUrl}/v1/sessions/${snapshot.id}/events`, {
         body: JSON.stringify({

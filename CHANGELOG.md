@@ -42,6 +42,34 @@ scope wrongly implied ownership of that name. Pre-first-publish rename — the
 - Package directory names under `packages/` are unchanged; only the npm `name`
   fields and importers changed.
 
+## [0.3.0] — 2026-07-24 — Omnigent v0.6.0 contract maintenance
+
+Move `IF-0-CONTRACT-1` from official Omnigent `v0.5.1` to `v0.6.0` at tag
+commit `375f540421baf3ad46fae0805b78063682f281de`.
+
+### Changed
+- `@consiliency/omnigent-transport`: accept
+  `browser.action_request` and `response.function_call_output.delta` as known
+  raw metadata events while preserving the neutral-runtime no-op boundary.
+- Type optional `parent_session_id` lineage on session snapshots without
+  changing provider-owned root-session semantics.
+- Record import and automatic-title routes as optional upstream surfaces, not
+  new `AgentRuntimeProvider` or HTTP-client methods.
+- Refresh source, HTTP, CLI, capability, event, and fake-server fixtures; drive
+  both v0.6 events through parser, mapper, HTTP-client, provider, conformance,
+  and packed-consumer verification.
+- Point transport package metadata and trusted-publisher instructions at
+  `Consiliency/omniagent-plus`.
+
+### Notes
+- `@consiliency/runtime-provider` and
+  `@consiliency/pipeline-provider-adapter` remain at `0.2.0` and are not
+  republished by this transport-only release.
+- Upstream v0.6 telemetry configuration remains an explicit operator choice;
+  the transport does not mutate process environments.
+- No lease/lock, child-creation, reconnect, terminal-event, or neutral event
+  semantics changed.
+
 ## [0.2.0] — 2026-07-10 — PUBHARDEN: consumable seam packages
 
 Make the three seam packages consumable end-to-end (GP-adapter roadmap, PUBHARDEN

@@ -58,10 +58,10 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-The official Omnigent `v0.5.1` freeze includes `waiting` in the release
+The official Omnigent `v0.6.0` freeze includes `waiting` in the release
 OpenAPI session snapshot enum, so the previous waiting drift is resolved.
 The `session.status` SSE family still includes `launching`; the transport
-treats it as the neutral `starting` session state. Additional `v0.5.1`
+treats it as the neutral `starting` session state. Additional `v0.6.0`
 metadata/UI event families are accepted by the parser and no-op mapped unless
 they affect provider state.
 
@@ -69,3 +69,8 @@ The v0.5.1 `session.mcp_startup` and `response.policy_denied` events preserve
 their metadata through parsing and intentionally emit no normalized runtime
 event. MCP startup metadata present on a session snapshot is retained in the
 session metadata object.
+
+The v0.6.0 `browser.action_request` and
+`response.function_call_output.delta` events follow the same observational
+rule: they preserve raw transport metadata, emit no normalized runtime event,
+and cannot create or terminate a turn.

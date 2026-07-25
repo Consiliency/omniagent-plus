@@ -53,6 +53,7 @@ export interface OmnigentMcpServerStartup {
 }
 
 export const omnigentStreamEventTypes = [
+  "browser.action_request",
   "session.created",
   "session.status",
   "session.input.consumed",
@@ -95,6 +96,7 @@ export const omnigentStreamEventTypes = [
   "response.elicitation_request",
   "response.elicitation_resolved",
   "response.policy_denied",
+  "response.function_call_output.delta",
   "response.completed",
   "response.failed",
   "response.incomplete",
@@ -150,6 +152,8 @@ export interface OmnigentSessionSnapshot {
   readonly mcp_startup?:
     | Readonly<Record<string, OmnigentMcpServerStartup>>
     | null;
+  readonly parentSessionId?: string | null;
+  readonly parent_session_id?: string | null;
   readonly viewerLastSeen?: number | null;
   readonly viewerUnread?: boolean;
   readonly viewer_last_seen?: number | null;
@@ -181,6 +185,12 @@ export interface OmnigentRawEvent {
   readonly reason?: string;
   readonly phase?: string;
   readonly servers?: Readonly<Record<string, OmnigentMcpServerStartup>>;
+  readonly actionId?: string;
+  readonly action_id?: string;
+  readonly action?: string;
+  readonly args?: Readonly<Record<string, unknown>>;
+  readonly callId?: string;
+  readonly call_id?: string;
   readonly message?: string;
   readonly delta?: string;
   readonly outputText?: string;

@@ -10,8 +10,12 @@ function fixtureToRawEvents(
 ): OmnigentRawEvent[] {
   const fixture = loadOmnigentEventFixture(fixtureName);
   return (fixture.events ?? []).map((event, index) => ({
+    action: event.action,
+    action_id: event.action_id,
+    args: event.args,
+    call_id: event.call_id,
     delta:
-      event.type === "response.output_text.delta" ? "hello world" : undefined,
+      event.type === "response.output_text.delta" ? "hello world" : event.delta,
     id: `${fixtureName}-${index + 1}`,
     itemId: `${fixtureName}-${index + 1}`,
     message: event.type === "response.created" ? "hello world" : undefined,
@@ -29,7 +33,8 @@ function fixtureToRawEvents(
     terminal: event.terminal ?? event.semantic_terminal,
     turnId:
       (event.type.startsWith("response.") &&
-        event.type !== "response.policy_denied") ||
+        event.type !== "response.policy_denied" &&
+        event.type !== "response.function_call_output.delta") ||
       event.type.startsWith("turn.")
         ? turnId
         : undefined,
@@ -118,6 +123,28 @@ describe("event mapper", () => {
       expect.objectContaining({
         phase: "tool_call",
         reason: "metadata_only_policy_denied",
+        turnId: undefined,
+      }),
+    );
+  });
+
+  it("accepts v0.6 browser and tool-output events as safe no-ops", () => {
+    const rawEvents = fixtureToRawEvents("v0-6-noop-events");
+    const runtimeEvents = mapOmnigentEventSequence("session-1", rawEvents);
+
+    expect(runtimeEvents).toEqual([]);
+    expect(rawEvents[0]).toEqual(
+      expect.objectContaining({
+        action: "snapshot",
+        action_id: "baction_metadata_only",
+        args: {},
+        turnId: undefined,
+      }),
+    );
+    expect(rawEvents[1]).toEqual(
+      expect.objectContaining({
+        call_id: "call_metadata_only",
+        delta: "metadata-only tool output",
         turnId: undefined,
       }),
     );
