@@ -4,7 +4,7 @@ timestamp: 2026-07-30T04:05:24Z
 repo: Consiliency/omniagent-plus
 repo_root: /mnt/HC_Volume_105438154/worktrees/omniagent-plus-plan-omnigent-v0-7-adaptation
 branch: codex/plan-omnigent-v0-7-adaptation
-commit: cd430ba9c0e91fdbe23a0126f0e6abba1bcc2bb3
+commit: 901eda15ea5e9f7a6a263f81aae4825678d99e74
 run_id: 20260730T035308Z-omnigent-v070
 artifact: plans/detailed-omnigent-v0-7-contract-maintenance-20260730-0256.md
 verification_status: passed
@@ -103,7 +103,9 @@ or included.
 ## Publication State
 
 - Local implementation: verified.
-- Commit/push/PR: pending publication primitive.
+- Implementation commit: `901eda15ea5e9f7a6a263f81aae4825678d99e74`.
+- Push: broker-confirmed at the exact implementation commit.
+- PR: ready [Consiliency/omniagent-plus#12](https://github.com/Consiliency/omniagent-plus/pull/12).
 - Merge: not performed.
 - GitHub release: not created.
 - npm publication: not performed; only dry-run passed.
