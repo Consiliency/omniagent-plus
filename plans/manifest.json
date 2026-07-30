@@ -49,6 +49,16 @@
             "reason": "three-agent panel amendment"
           },
           "transition": "amended"
+        },
+        {
+          "at": "2026-07-30T03:52:06Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "final_plan_sha256": "ff25e20e67446b260a8e730f7cbe20584d47ee9b8cb67cdbd3702e1ef9e7a31a",
+            "reason": "operator-approved reconciliation of stale v0.6 coordination and security documentation targets",
+            "review_record": ".dev-skills/handoffs/codex-plan-detailed/20260730T033311Z-omnigent-v0-7-advisor-board-review.md"
+          },
+          "transition": "amended"
         }
       ],
       "owner_skill": "codex-plan-detailed",
@@ -237,6 +247,54 @@
       "task_summary": "Plan official Omnigent v0.6.0 transport contract maintenance and the transport-only 0.3.0 release.",
       "type": "detailed",
       "updated_at": "2026-07-24T20:44:00Z"
+    },
+    {
+      "acceptance_criteria_count": 12,
+      "created_at": "2026-07-30T02:56:14Z",
+      "file": "plans/detailed-omnigent-v0-7-contract-maintenance-20260730-0256.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260730T025614Z-omnigent-v070.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-07-30T02:56:14Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-7-contract-maintenance-20260730-0256.md",
+            "upstream_omnigent_release": "v0.7.0",
+            "upstream_tag_commit": "35519fb04743f66b30cac8a40695d5d72fa163ea"
+          },
+          "transition": "committed"
+        },
+        {
+          "at": "2026-07-30T03:33:11Z",
+          "by": "codex-advisor-board",
+          "metadata": {
+            "final_plan_sha256": "de5b05d2ab877a7079d2167078960dd1678936db70d5c017d64977ef1795fdf8",
+            "first_round_plan_sha256": "d92ec9c1373f3bba8a00b4dee899b4ebb94b8e25a819ddb7097ed1d95cc17f0b",
+            "panel_delivered_seats": 3,
+            "panel_requested_seats": 4,
+            "panel_verdicts": [
+              "grok:PARTIALLY AGREE",
+              "claude-fable:AGREE",
+              "codex-sol:DISAGREE_SCOPE_MISMATCH",
+              "gemini:EMPTY"
+            ],
+            "resubmitted_plan_sha256": "bf595256f98d82bba9ede4d41b7fcaf351f50c6b694d087c23da0d9bf186f4a9",
+            "review_record": ".dev-skills/handoffs/codex-plan-detailed/20260730T033311Z-omnigent-v0-7-advisor-board-review.md"
+          },
+          "transition": "amended"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/d54d7ca7/codex-plan-omnigent-v0-7-adaptation/20260730T025614Z-omnigent-v070.md",
+      "roadmap_ref": null,
+      "slug": "detailed-omnigent-v0-7-contract-maintenance-20260730-0256",
+      "status": "committed",
+      "task_summary": "Plan official Omnigent v0.7.0 transport contract maintenance and the transport-only 0.4.0 release.",
+      "type": "detailed",
+      "updated_at": "2026-07-30T03:52:06Z"
     },
     {
       "acceptance_criteria_count": 7,
