@@ -59,7 +59,7 @@ still own the reusable metadata-only operator primitives:
 - HTTP session creation, history reads, event posts, stream parsing, reconnect
   snapshot dedupe, and duplicate terminal normalization
 - CLI fallback around documented `run`, `resume`, `attach`, and
-  `server start/status/stop` commands
+  `server --background`, `server status --json`, and `server stop` commands
 - hybrid local-server process ownership, heartbeat probes, parent-death
   cleanup, and timeout cleanup
 - failure normalization into `RuntimeFailure` plus bounded limit-classification

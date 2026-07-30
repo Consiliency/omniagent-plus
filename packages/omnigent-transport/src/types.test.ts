@@ -9,6 +9,7 @@ import {
   omnigentStreamEventTypes,
   type OmnigentHarnessCatalogResponse,
   type OmnigentHttpClientOptions,
+  type OmnigentNativeModelOption,
   type OmnigentRawEvent,
   type OmnigentSessionSnapshot,
 } from "./types.js";
@@ -39,6 +40,22 @@ describe("transport types", () => {
         "safe-server": { error: null, status: "ready" },
       },
       parent_session_id: "session-parent",
+      project_id: "project-1",
+      model_options: [
+        {
+          defaultReasoningEffort: "medium",
+          displayName: "Codex",
+          id: "gpt-5.6-codex",
+          isDefault: true,
+          model: "gpt-5.6-codex",
+          supportedReasoningEfforts: [
+            {
+              description: "Balanced reasoning",
+              reasoningEffort: "medium",
+            },
+          ],
+        },
+      ],
       items: [{ id: "item-1", event: rawEvent }],
       viewer_last_seen: 1_780_000_000,
       viewer_unread: false,
@@ -46,6 +63,8 @@ describe("transport types", () => {
     const harnessCatalog: OmnigentHarnessCatalogResponse = {
       local: [{ name: "codex", public_session_override: false }],
     };
+    const modelOption: OmnigentNativeModelOption | undefined =
+      snapshot.model_options?.[0];
     const reasoningEvent: OmnigentRawEvent = {
       id: "reasoning-1",
       occurredAt: "2026-06-30T00:00:00.000Z",
@@ -131,6 +150,10 @@ describe("transport types", () => {
     expect(reasoningEvent.reasoning_effort).toBe("medium");
     expect(snapshot.mcp_startup?.["safe-server"]?.status).toBe("ready");
     expect(snapshot.parent_session_id).toBe("session-parent");
+    expect(snapshot.project_id).toBe("project-1");
+    expect(modelOption?.supportedReasoningEfforts?.[0]?.reasoningEffort).toBe(
+      "medium",
+    );
     expect(mcpStartupEvent.servers?.["safe-server"]?.status).toBe("starting");
     expect(policyDeniedEvent.phase).toBe("tool_call");
     expect(browserActionEvent.action_id).toBe("baction_metadata_only");

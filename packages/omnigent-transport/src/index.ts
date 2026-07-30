@@ -45,5 +45,8 @@ export type {
   OmnigentCliCommandResult,
   OmnigentCliCommandRunner,
   OmnigentHttpClientOptions,
+  OmnigentNativeModelOption,
+  OmnigentNativeReasoningEffortOption,
   OmnigentServerStatus,
+  OmnigentSessionSnapshot,
 } from "./types.js";

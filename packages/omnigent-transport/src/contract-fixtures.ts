@@ -17,6 +17,20 @@ export interface OmnigentSourceMetadataFixture {
 }
 
 export interface OmnigentHttpSurfaceFixture {
+  readonly openapi_delta?: {
+    readonly operation_count: number;
+    readonly added_paths: string[];
+    readonly removed_paths: string[];
+    readonly added_schemas: string[];
+    readonly removed_schemas: string[];
+  };
+  readonly endpoint_provenance?: Array<{
+    readonly method: string;
+    readonly path: string;
+    readonly source: string;
+    readonly ref: string;
+    readonly note?: string;
+  }>;
   readonly harness_endpoints?: Array<{
     readonly method: string;
     readonly path: string;

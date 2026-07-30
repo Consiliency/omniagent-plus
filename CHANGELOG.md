@@ -42,6 +42,32 @@ scope wrongly implied ownership of that name. Pre-first-publish rename — the
 - Package directory names under `packages/` are unchanged; only the npm `name`
   fields and importers changed.
 
+## [0.4.0] — 2026-07-30 — Omnigent v0.7.0 contract maintenance
+
+Move `IF-0-CONTRACT-1` from official Omnigent `v0.6.0` to `v0.7.0` at tag
+commit `35519fb04743f66b30cac8a40695d5d72fa163ea`.
+
+### Changed
+- `@consiliency/omnigent-transport`: replace the removed local-server start
+  subcommand with `omnigent server --background`, accept its human-readable
+  output, and read direct machine status through `omnigent server status --json`.
+- Type optional session project identity and native model-picker options and
+  export the additive response types from the package root.
+- Record project, usage, credential, installation, model-option, MCP-header,
+  and expanded import surfaces as optional upstream administration metadata,
+  not new neutral runtime-provider capabilities.
+- Refresh source, HTTP, CLI, capability, and fake-server authority fixtures
+  while preserving the exact 52-event vocabulary and event mapping behavior.
+
+### Notes
+- `@consiliency/runtime-provider` and
+  `@consiliency/pipeline-provider-adapter` remain at `0.2.0` and are not
+  republished by this transport-only release.
+- Upstream v0.7 telemetry configuration remains an explicit operator choice;
+  the transport does not mutate process environments.
+- No lease/lock, child-creation, reconnect, terminal-event, or neutral event
+  semantics changed.
+
 ## [0.3.0] — 2026-07-24 — Omnigent v0.6.0 contract maintenance
 
 Move `IF-0-CONTRACT-1` from official Omnigent `v0.5.1` to `v0.6.0` at tag

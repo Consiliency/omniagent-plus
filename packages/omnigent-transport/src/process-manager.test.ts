@@ -21,7 +21,7 @@ describe("process manager", () => {
       },
     });
 
-    await manager.ensureRunning(["omnigent", "server", "start"]);
+    await manager.ensureRunning(["omnigent", "server", "--background"]);
     manager.heartbeat();
     now += 10_000;
     const cleaned = await manager.enforceTimeoutCleanup();
@@ -45,7 +45,7 @@ describe("process manager", () => {
       },
     });
 
-    await manager.ensureRunning(["omnigent", "server", "start"]);
+    await manager.ensureRunning(["omnigent", "server", "--background"]);
     const cleaned = await manager.enforceParentDeathCleanup();
 
     expect(cleaned).toBe(true);

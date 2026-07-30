@@ -36,6 +36,16 @@ interface CliSessionEnvelope {
   readonly state?: AgentSessionState;
 }
 
+interface CliServerStatusOutput {
+  readonly daemon_attached?: boolean;
+  readonly live_sessions?: number | null;
+  readonly log_path?: string | null;
+  readonly pid?: number | null;
+  readonly port?: number | null;
+  readonly running: boolean;
+  readonly url?: string | null;
+}
+
 export interface OmnigentCliProviderOptions {
   readonly commandRunner?: OmnigentCliCommandRunner;
   readonly transport?: OmnigentCliSessionTransport;
@@ -116,6 +126,21 @@ function toSessionInfo(
 export function createCommandBackedCliTransport(
   commandRunner: OmnigentCliCommandRunner,
 ): OmnigentCliSessionTransport {
+  const readServerStatus = async (): Promise<OmnigentServerStatus> => {
+    const result = await commandRunner([
+      "omnigent",
+      "server",
+      "status",
+      "--json",
+    ]);
+    const status = parseJsonResult<CliServerStatusOutput>(result);
+    return {
+      baseUrl: status.url ?? undefined,
+      pid: status.pid ?? undefined,
+      running: status.running,
+    };
+  };
+
   return {
     async createSession(request) {
       const agentArg =
@@ -195,29 +220,25 @@ export function createCommandBackedCliTransport(
       };
     },
     async health() {
-      const result = await commandRunner(["omnigent", "server", "status"]);
-      const envelope = parseJsonResult<CliSessionEnvelope>(result);
-      const running = envelope.server?.running ?? false;
+      const server = await readServerStatus();
       return {
         activeSessions: 0,
-        available: running,
+        available: server.running,
         backend: "omnigent-cli",
-        notes: envelope.server?.notes,
+        notes: server.notes,
         runtime: "omnigent",
         sessionStateDrift: [],
       };
     },
     async serverStatus() {
-      const result = await commandRunner(["omnigent", "server", "status"]);
-      return parseJsonResult<CliSessionEnvelope>(result).server ?? {
-        running: false,
-      };
+      return readServerStatus();
     },
     async serverStart() {
-      const result = await commandRunner(["omnigent", "server", "start"]);
-      return parseJsonResult<CliSessionEnvelope>(result).server ?? {
-        running: true,
-      };
+      const result = await commandRunner(["omnigent", "server", "--background"]);
+      if (result.exitCode !== 0) {
+        commandFailure(result);
+      }
+      return readServerStatus();
     },
     async serverStop() {
       await commandRunner(["omnigent", "server", "stop"]);

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createCliProvider } from "./cli-client.js";
+import {
+  createCliProvider,
+  createCommandBackedCliTransport,
+} from "./cli-client.js";
 import type { OmnigentCliCommandRunner } from "./types.js";
 
 async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
@@ -126,11 +129,7 @@ describe("cli provider", () => {
         command,
         exitCode: 0,
         stderr: "",
-        stdout: JSON.stringify({
-          server: {
-            running: true,
-          },
-        }),
+        stdout: JSON.stringify({ running: true }),
       };
     };
 
@@ -161,7 +160,7 @@ describe("cli provider", () => {
         "omnigent run demo-agent",
         "omnigent attach session-cli",
         "omnigent resume session-cli",
-        "omnigent server status",
+        "omnigent server status --json",
       ]),
     );
     expect(history.events.some((event) => event.type === "runtime.turn.started")).toBe(
@@ -171,6 +170,60 @@ describe("cli provider", () => {
       true,
     );
     expect(health.backend).toBe("omnigent-cli");
+  });
+
+  it("uses the tagged background start and direct JSON status contract", async () => {
+    const commands: string[] = [];
+    let running = false;
+    const transport = createCommandBackedCliTransport(async (command) => {
+      commands.push(command.join(" "));
+      if (command.join(" ") === "omnigent server --background") {
+        running = true;
+        return {
+          command,
+          exitCode: 0,
+          stderr: "",
+          stdout: "Started background server at http://127.0.0.1:6767\n",
+        };
+      }
+      return {
+        command,
+        exitCode: 0,
+        stderr: "",
+        stdout: JSON.stringify({
+          daemon_attached: false,
+          live_sessions: running ? 1 : null,
+          log_path: running ? "/tmp/omnigent.log" : null,
+          pid: running ? 4242 : null,
+          port: running ? 6767 : null,
+          running,
+          url: running ? "http://127.0.0.1:6767" : null,
+        }),
+      };
+    });
+
+    await expect(transport.serverStatus?.()).resolves.toEqual({
+      baseUrl: undefined,
+      pid: undefined,
+      running: false,
+    });
+    await expect(transport.serverStart?.()).resolves.toEqual({
+      baseUrl: "http://127.0.0.1:6767",
+      pid: 4242,
+      running: true,
+    });
+    await expect(transport.health()).resolves.toEqual(
+      expect.objectContaining({
+        available: true,
+        backend: "omnigent-cli",
+      }),
+    );
+    expect(commands).toEqual([
+      "omnigent server status --json",
+      "omnigent server --background",
+      "omnigent server status --json",
+      "omnigent server status --json",
+    ]);
   });
 
   it("reports backend_capability_missing for cancel in CLI fallback mode", async () => {
