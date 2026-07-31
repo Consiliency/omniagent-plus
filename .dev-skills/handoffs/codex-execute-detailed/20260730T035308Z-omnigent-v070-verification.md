@@ -20,9 +20,10 @@ Summary: Omnigent v0.7.0 transport adaptation passed all 12 acceptance criteria,
 - Release tag commit: `35519fb04743f66b30cac8a40695d5d72fa163ea`.
 - PyPI: `omnigent==0.7.0`, Python `>=3.12`.
 - Informational upstream `main` probe:
-  `48a1cb33a9a7507fc61e47ede43d2d869d826cab`.
+  `0ba64ba906f85006fac47afc319fbe84824a545a`.
 - Current-main OpenAPI has no path, schema, or event-set changes relative to
-  v0.7; optional `can_approve` and `kind` fields remain non-authoritative.
+  v0.7; optional `can_approve`, `kind`, and import `force` fields remain
+  non-authoritative.
 - Tagged telemetry source retains default-on posture and documented environment
   and config opt-outs.
 
@@ -65,6 +66,27 @@ Summary: Omnigent v0.7.0 transport adaptation passed all 12 acceptance criteria,
 - Registry preflight: `@consiliency/omnigent-transport@0.4.0` is available and
   not currently published.
 
+## Review Reconciliation
+
+The exact-head implementation review at `9f971f91a64e495cc467ab9b850ca9c9f7f050ea`
+found two acceptance defects and two follow-ups. The repaired tree:
+
+- derives all 12 path-valued optional-surface exclusions from the authority
+  fixture and independently rejects lease and lock path fragments;
+- records the absent workflow run explicitly in Publication State;
+- distinguishes internal raw event/history payloads from the deliberately
+  exported read-only response types;
+- exercises snake-case aliases in unit tests and camel-case aliases in both
+  unit and packed-consumer type checks; and
+- refreshes the non-authoritative upstream-main probe to
+  `0ba64ba906f85006fac47afc319fbe84824a545a`, retaining
+  `ImportSessionRequest.force` as readiness-only administration evidence.
+
+After those repairs, the frozen install, build, lint, typecheck, focused tests
+(6 files, 9 tests), full suite (100 files, 206 passed, 1 skipped), packed smoke,
+npm dry-run, stale-reference, version-scope, documentation, fixture, and diff
+gates all passed again.
+
 ## Acceptance Reduction
 
 All 12 acceptance criteria in the detailed plan are satisfied locally.
@@ -77,13 +99,14 @@ All 12 acceptance criteria in the detailed plan are satisfied locally.
 6. Administration surfaces remain outside provider methods/capabilities:
    satisfied.
 7. Main-only optional fields remain unfrozen: satisfied.
-8. Independent negative conformance checks: satisfied.
+8. Fixture-derived negative checks cover all 12 optional paths, with independent
+   lease and lock path-fragment checks: satisfied.
 9. Transport-only `0.4.0` version scope: satisfied.
 10. Focused and full repository gates: satisfied.
 11. Packed consumer, dry-run publish, and diff checks: satisfied.
-12. State-separated closeout evidence: satisfied locally; PR, merge, release,
-    workflow, npm, and exact registry-pin states must continue to be reported
-    separately.
+12. State-separated closeout evidence explicitly records the absent workflow
+    run and keeps PR, merge, release, npm, and exact registry-pin states
+    separate: satisfied locally.
 
 ## Documentation Delta
 
@@ -108,5 +131,6 @@ or included.
 - PR: ready [Consiliency/omniagent-plus#12](https://github.com/Consiliency/omniagent-plus/pull/12).
 - Merge: not performed.
 - GitHub release: not created.
+- Publish workflow: not run; no run ID or conclusion.
 - npm publication: not performed; only dry-run passed.
 - Exact registry-pin consumer: pending actual publication.

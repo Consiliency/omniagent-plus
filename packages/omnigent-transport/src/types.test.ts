@@ -65,6 +65,17 @@ describe("transport types", () => {
     };
     const modelOption: OmnigentNativeModelOption | undefined =
       snapshot.model_options?.[0];
+    const camelSnapshot: OmnigentSessionSnapshot = {
+      backend: "omnigent-http",
+      createdAt: "2026-06-30T00:00:00.000Z",
+      id: "session-camel",
+      items: [],
+      modelOptions: snapshot.model_options,
+      projectId: "project-camel",
+      status: "idle",
+      title: "camel aliases",
+      updatedAt: "2026-06-30T00:00:00.000Z",
+    };
     const reasoningEvent: OmnigentRawEvent = {
       id: "reasoning-1",
       occurredAt: "2026-06-30T00:00:00.000Z",
@@ -146,6 +157,8 @@ describe("transport types", () => {
     expect(snapshot.items[0]?.event.delta).toBe("hello");
     expect(snapshot.active_response_id).toBe("response-1");
     expect(snapshot.background_task_count).toBe(1);
+    expect(camelSnapshot.modelOptions?.[0]?.id).toBe("gpt-5.6-codex");
+    expect(camelSnapshot.projectId).toBe("project-camel");
     expect(harnessCatalog.local?.[0]?.name).toBe("codex");
     expect(reasoningEvent.reasoning_effort).toBe("medium");
     expect(snapshot.mcp_startup?.["safe-server"]?.status).toBe("ready");

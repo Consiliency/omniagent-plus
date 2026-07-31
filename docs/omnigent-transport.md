@@ -21,8 +21,9 @@ contract, the runtime-neutral core contracts, and the durable state ledger.
 ## Event And Failure Mapping
 
 The package maps Omnigent session/history/stream traffic into
-`AgentRuntimeProvider` sessions, turn handles, and runtime events without
-exporting raw Omnigent payload types from the public package boundary.
+`AgentRuntimeProvider` sessions, turn handles, and runtime events. Raw event and
+history payload types remain internal; the read-only session snapshot and native
+model-option response types are deliberate public exports.
 
 - reconnect opens the stream, reads the snapshot, uses `active_response_id` as
   active turn identity when present, and dedupes by `item.id`

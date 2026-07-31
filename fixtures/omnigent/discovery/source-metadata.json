@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.source_metadata.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-30T03:53:08Z",
+  "captured_at": "2026-07-31T22:12:29Z",
   "repo": "omnigent-ai/omnigent",
   "freeze_target": {
     "tag": "v0.7.0",
@@ -12,9 +12,26 @@
   },
   "head_probe": {
     "branch": "main",
-    "commit": "48a1cb33a9a7507fc61e47ede43d2d869d826cab",
-    "observed_at": "2026-07-30T03:53:08Z",
-    "authority": "latest remote head probe only; not part of IF-0-CONTRACT-1"
+    "commit": "0ba64ba906f85006fac47afc319fbe84824a545a",
+    "observed_at": "2026-07-31T22:12:29Z",
+    "authority": "latest remote head probe only; not part of IF-0-CONTRACT-1",
+    "openapi_delta_from_freeze": {
+      "operation_count": 97,
+      "added_paths": [],
+      "removed_paths": [],
+      "added_schemas": [],
+      "removed_schemas": [],
+      "changed_schemas": [
+        "GrantPermissionRequest",
+        "ImportSessionRequest",
+        "PermissionObject",
+        "SessionListItem",
+        "SessionResponse"
+      ],
+      "added_stream_events": [],
+      "removed_stream_events": [],
+      "import_session_request_has_force": true
+    }
   },
   "previous_probe": {
     "tag": "v0.6.0",
@@ -27,7 +44,7 @@
     "omni_on_path": false
   },
   "preflight_confirmation": {
-    "observed_at": "2026-07-30T03:53:08Z",
+    "observed_at": "2026-07-31T22:12:29Z",
     "openapi_has_harnesses": true,
     "openapi_has_read_state": true,
     "session_response_has_active_response_id": true,
@@ -145,7 +162,7 @@
     {
       "kind": "remote_head_probe",
       "path": "refs/heads/main",
-      "ref": "48a1cb33a9a7507fc61e47ede43d2d869d826cab"
+      "ref": "0ba64ba906f85006fac47afc319fbe84824a545a"
     }
   ]
 }

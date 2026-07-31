@@ -166,18 +166,20 @@ describe("fake omnigent conformance", () => {
       const requiredSessionPaths = httpSurface.session_endpoints.map(
         (endpoint) => endpoint.path,
       );
-      for (const optionalPath of [
-          "/v1/imports",
-          "/v1/sessions/{session_id}/auto-title",
-          "/v1/projects",
-          "/v1/projects/{project_id}",
-          "/v1/usage",
-          "/v1/hosts/{host_id}/credentials/detected",
-          "/v1/hosts/{host_id}/harnesses/{harness}/credential",
-          "/v1/hosts/{host_id}/harnesses/{harness}/install",
-          "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
-        ]) {
+      const optionalPaths =
+        httpSurface.optional_release_surfaces?.flatMap((surface) =>
+          surface.path === undefined ? [] : [surface.path],
+        ) ?? [];
+      expect(optionalPaths).toHaveLength(12);
+      for (const optionalPath of optionalPaths) {
         expect(requiredSessionPaths).not.toContain(optionalPath);
+      }
+      for (const coordinationPathFragment of ["lease", "lock"]) {
+        expect(
+          requiredSessionPaths.some((path) =>
+            path.toLowerCase().includes(coordinationPathFragment),
+          ),
+        ).toBe(false);
       }
       expect(cliSurface.documented_commands).toEqual(
         expect.arrayContaining([

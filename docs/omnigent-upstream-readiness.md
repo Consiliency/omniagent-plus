@@ -11,8 +11,8 @@ contract in `docs/omnigent-contract.md`. It does not replace the
 - Release published: `2026-07-27T22:40:00Z`
 - Latest PyPI package: `omnigent 0.7.0`
 - Python requirement: `>=3.12`
-- Current upstream `main` probe: `48a1cb33a9a7507fc61e47ede43d2d869d826cab`
-- Probe time: `2026-07-30T03:53:08Z`
+- Current upstream `main` probe: `0ba64ba906f85006fac47afc319fbe84824a545a`
+- Probe time: `2026-07-31T22:12:29Z`
 
 `omniagent-plus` is adapted to the latest published release. `v0.7.0` is the
 authoritative freeze because it is the current GitHub and PyPI release.
@@ -47,10 +47,12 @@ Still not upgraded to public transport capability:
 ## Unreleased Main Delta
 
 Current `main` is ahead of the official v0.7.0 tag. Its OpenAPI path, schema,
-and event sets are unchanged from the tag; optional `can_approve` and `kind`
-fields are a non-authoritative probe only. They do not change the provider
-contract until a later release or explicit SHA freeze, and no current-main
-observation is promoted into CS-2.2 lease semantics.
+and event sets are unchanged from the tag. Optional `can_approve` and `kind`
+fields plus `ImportSessionRequest.force` are non-authoritative probes only. The
+import override remains an administration surface and is not a provider method
+or capability. These fields do not change the provider contract until a later
+release or explicit SHA freeze, and no current-main observation is promoted
+into CS-2.2 lease semantics.
 
 ## Maintenance Plan
 
