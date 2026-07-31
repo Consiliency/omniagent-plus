@@ -1,10 +1,10 @@
 ---
 from: codex-execute-detailed
-timestamp: 2026-07-30T04:05:24Z
+timestamp: 2026-07-31T22:26:56Z
 repo: Consiliency/omniagent-plus
 repo_root: /mnt/HC_Volume_105438154/worktrees/omniagent-plus-plan-omnigent-v0-7-adaptation
 branch: codex/plan-omnigent-v0-7-adaptation
-commit: 901eda15ea5e9f7a6a263f81aae4825678d99e74
+commit: 774d171a9dda48b3335aa2ed6038f1653bfb948e
 run_id: 20260730T035308Z-omnigent-v070
 artifact: plans/detailed-omnigent-v0-7-contract-maintenance-20260730-0256.md
 verification_status: passed
@@ -85,7 +85,9 @@ found two acceptance defects and two follow-ups. The repaired tree:
 After those repairs, the frozen install, build, lint, typecheck, focused tests
 (6 files, 9 tests), full suite (100 files, 206 passed, 1 skipped), packed smoke,
 npm dry-run, stale-reference, version-scope, documentation, fixture, and diff
-gates all passed again.
+gates all passed again. The executable verification is bound to commit
+`774d171a9dda48b3335aa2ed6038f1653bfb948e`; the immediately following
+handoff-only commit changes this evidence record and no executable surface.
 
 ## Acceptance Reduction
 
@@ -126,8 +128,10 @@ or included.
 ## Publication State
 
 - Local implementation: verified.
-- Implementation commit: `901eda15ea5e9f7a6a263f81aae4825678d99e74`.
-- Push: broker-confirmed at the exact implementation commit.
+- Original implementation commit: `901eda15ea5e9f7a6a263f81aae4825678d99e74`.
+- Final verified repair commit: `774d171a9dda48b3335aa2ed6038f1653bfb948e`.
+- Push: the PR branch contains the final verified repair commit; its live head
+  may include the immediately following handoff-only evidence commit.
 - PR: ready [Consiliency/omniagent-plus#12](https://github.com/Consiliency/omniagent-plus/pull/12).
 - Merge: not performed.
 - GitHub release: not created.
