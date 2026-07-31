@@ -6,51 +6,53 @@ contract in `docs/omnigent-contract.md`. It does not replace the
 
 ## Current Decision
 
-- Latest published GitHub release: `v0.6.0`
-- Release commit: `375f540421baf3ad46fae0805b78063682f281de`
-- Release published: `2026-07-21T08:25:31Z`
-- Latest PyPI package: `omnigent 0.6.0`
+- Latest published GitHub release: `v0.7.0`
+- Release commit: `35519fb04743f66b30cac8a40695d5d72fa163ea`
+- Release published: `2026-07-27T22:40:00Z`
+- Latest PyPI package: `omnigent 0.7.0`
 - Python requirement: `>=3.12`
-- Current upstream `main` probe: `76281b9438578e472810879e18fc60acc64d3d6c`
-- Probe time: `2026-07-24T20:20:32Z`
+- Current upstream `main` probe: `0ba64ba906f85006fac47afc319fbe84824a545a`
+- Probe time: `2026-07-31T22:12:29Z`
 
-`omniagent-plus` is adapted to the latest published release. `v0.6.0` is the
+`omniagent-plus` is adapted to the latest published release. `v0.7.0` is the
 authoritative freeze because it is the current GitHub and PyPI release.
 
 ## Stable Release Delta
 
-Relative to the previous `v0.5.1` freeze, v0.6.0 adds:
+Relative to the previous `v0.6.0` freeze, v0.7.0 adds:
 
-- `POST /v1/imports`
-- `POST /v1/sessions/{session_id}/auto-title`
-- optional `SessionListItem.parent_session_id` metadata
-- `browser.action_request` and `response.function_call_output.delta` stream
-  events, bringing the tagged event count from 50 to 52
-- the `omni import --harness <claude|codex>` operator command
-- anonymous telemetry enabled by default, with documented environment/config
-  opt-outs
-- the optional extra rename `memory` to `hindsight`, with a compatibility alias
-- standardized `OMNIGENT_<NAME>_PATH` harness path variables, with legacy
-  `HARNESS_*_PATH` support through v0.8
+- projects and usage administration routes
+- detected-credential, credential-store, harness-install, and harness
+  model-option routes
+- optional `project_id` on session list/detail/update surfaces
+- typed native `model_options` on full session responses
+- optional MCP server headers and import sources for Claude, Codex, Kimi, Kiro,
+  OpenCode, Pi, and Qwen
+- `omnigent server --background` in place of the removed start subcommand, plus
+  direct machine status from `omnigent server status --json`
 
-The adapter recognizes both new events as metadata-only no-ops. Import,
-automatic title selection, and the newly documented CLI command are not
-provider requirements. No local dependency or environment path uses the two
-deprecated v0.6 names.
+The tagged event vocabulary remains exactly 52 entries. Existing v0.6 browser
+action and tool-output-delta events remain metadata-only no-ops. Project, usage,
+credential, installation, model lookup, import, and automatic title surfaces
+are not provider requirements.
 
 Still not upgraded to public transport capability:
 
 - Public harness override remains blocked; `GET /v1/harnesses` is catalog-only.
 - Stable public spawn-under-parent child-session creation remains blocked.
-- Parent lineage, import, and automatic title APIs do not provide lease, lock,
-  coordination, or inbox semantics.
+- Parent lineage, projects, usage, credentials, installation, model options,
+  import, and automatic title APIs do not provide lease, lock, coordination, or
+  inbox semantics.
 
 ## Unreleased Main Delta
 
-Current `main` is ahead of the official v0.6.0 tag. It is a non-authoritative
-probe only and does not change the provider contract until a later release or
-explicit SHA freeze. No current main observation is promoted into CS-2.2 lease
-semantics.
+Current `main` is ahead of the official v0.7.0 tag. Its OpenAPI path, schema,
+and event sets are unchanged from the tag. Optional `can_approve` and `kind`
+fields plus `ImportSessionRequest.force` are non-authoritative probes only. The
+import override remains an administration surface and is not a provider method
+or capability. These fields do not change the provider contract until a later
+release or explicit SHA freeze, and no current-main observation is promoted
+into CS-2.2 lease semantics.
 
 ## Maintenance Plan
 

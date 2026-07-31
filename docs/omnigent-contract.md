@@ -5,22 +5,22 @@ It freezes the Omnigent surface that downstream phases may rely on for v0.1.
 
 ## Supported Version
 
-- Freeze target: `omnigent` release `v0.6.0`
-- Release commit: `375f540421baf3ad46fae0805b78063682f281de`
-- Release published: `2026-07-21T08:25:31Z`
+- Freeze target: `omnigent` release `v0.7.0`
+- Release commit: `35519fb04743f66b30cac8a40695d5d72fa163ea`
+- Release published: `2026-07-27T22:40:00Z`
 - Python requirement at the freeze target: `>=3.12`
 - Authoritative downstream gate: `IF-0-CONTRACT-1`
 
 The upstream `main` branch remains ahead of the freeze
-(`76281b9438578e472810879e18fc60acc64d3d6c` observed on
-`2026-07-24`), so `main` is not authoritative for this contract. Current main
+(`0ba64ba906f85006fac47afc319fbe84824a545a` observed on
+`2026-07-31`), so `main` is not authoritative for this contract. Current main
 movement is tracked separately in `docs/omnigent-upstream-readiness.md`.
 
-CS-2.2 rechecked upstream on `2026-07-24`: release `v0.6.0` adds import,
-automatic-title, session-list parent lineage, and browser/tool-output stream
-metadata. These are optional upstream transport surfaces, not lease, lock,
-coordination, or inbox APIs. The CS-2.2 lease layer remains owned by
-`omniagent-plus`.
+CS-2.2 rechecked upstream on `2026-07-30`: release `v0.7.0` adds project,
+usage, credential, installation, model-option, MCP-header, expanded-import, and
+session project metadata. These are optional upstream transport or
+administration surfaces, not lease, lock, coordination, or inbox APIs. The
+CS-2.2 lease layer remains owned by `omniagent-plus`.
 
 ## Source Provenance
 
@@ -28,7 +28,7 @@ This phase used metadata-only source inspection and safe command probes. No
 credentials, live provider accounts, or secret-bearing environment dumps were
 required.
 
-Primary sources inspected at `v0.6.0`:
+Primary sources inspected at `v0.7.0`:
 
 - `pyproject.toml`
 - `README.md`
@@ -38,6 +38,7 @@ Primary sources inspected at `v0.6.0`:
 - `omnigent/harness_plugins.py`
 - `omnigent/server/schemas.py`
 - `omnigent/cli.py`
+- `omnigent/telemetry/client.py`
 - `sdks/python-client/omnigent_client/_sessions.py`
 - `sdks/python-client/omnigent_client/_events.py`
 - `omnigent/tools/builtins/spawn.py`
@@ -52,7 +53,7 @@ live local installation.
 
 ## HTTP API Surface
 
-Pinned public provider surface at `v0.6.0`:
+Pinned public provider surface at `v0.7.0`:
 
 | Method | Path | Provider use |
 | --- | --- | --- |
@@ -70,11 +71,17 @@ Pinned public provider surface at `v0.6.0`:
 | `POST` | `/v1/sessions/{session_id}/switch-agent` | switch bound agent in place |
 | `PUT` | `/v1/sessions/{session_id}/read-state` | update viewer read state |
 
-Release `v0.6.0` retains the v0.5 host-worktree, file-copy, sharing, and
-`existing_worktree` surfaces and adds `POST /v1/imports` and
-`POST /v1/sessions/{session_id}/auto-title`. They are stable upstream surfaces
-but are not required or invoked by this provider. `SessionForkRequest` remains
-without the removed `model_override`; the provider does not send it.
+Tagged v0.7 OpenAPI contains 97 operations with no operation, path, or schema
+removals relative to v0.6. The required `POST
+/v1/sessions/{session_id}/events` route remains documented in tagged `API.md`
+and route source but omitted from generated OpenAPI; that evidence split is
+explicit rather than misreported as OpenAPI coverage.
+
+Release `v0.7.0` retains the earlier import, auto-title, host-worktree,
+file-copy, sharing, and `existing_worktree` surfaces and adds project, usage,
+credential, installation, and model-option routes. They are stable upstream
+surfaces but are not required or invoked by this provider. `SessionForkRequest`
+remains without the removed `model_override`; the provider does not send it.
 
 Session event input types explicitly documented in `API.md` include:
 
@@ -96,8 +103,11 @@ Session status and snapshot fields that downstream code must handle:
 - `mcp_startup` is optional session snapshot metadata keyed by MCP server
 - `search_snippet` is optional session list metadata
 - `parent_session_id` is optional lineage metadata and is newly included in
-  `SessionListItem` at v0.6.0; it does not replace provider-owned root-session
-  semantics
+  `SessionListItem`; it does not replace provider-owned root-session semantics
+- `project_id` is optional project association metadata on list and full
+  session responses
+- `model_options` is a typed native model-picker catalog on full session
+  responses; its nested wire fields use the tagged camelCase schema
 
 Downstream implication: `waiting` is no longer release OpenAPI drift, but
 `launching` remains a tolerated raw stream edge that maps to the neutral
@@ -105,7 +115,7 @@ Downstream implication: `waiting` is no longer release OpenAPI drift, but
 
 ## CLI Surface
 
-Entry points pinned at `v0.6.0`:
+Entry points pinned at `v0.7.0`:
 
 - `omnigent = omnigent.cli:main`
 - `omni = omnigent.cli:main`
@@ -117,8 +127,8 @@ Documented runtime commands relevant to the provider boundary:
 | `omnigent run <agent>` | launch agent from bundle/spec |
 | `omnigent resume [conversation]` | resume a session |
 | `omnigent attach <session_id>` | co-attach to a running session |
-| `omnigent server start` | start managed local server |
-| `omnigent server status` | show managed local server status |
+| `omnigent server --background` | start or reuse the managed local server; emits human-readable output |
+| `omnigent server status --json` | show direct machine-readable managed-server status |
 | `omnigent server stop` | stop managed local server |
 | `omnigent stop` | stop Omnigent services on the machine |
 | `omnigent host [server]` | register local machine as a host |
@@ -127,9 +137,10 @@ Documented runtime commands relevant to the provider boundary:
 | `omni upgrade` / `omni upgrade --check` | upgrade or check for update |
 | `omnigent claude` / `codex` / `cursor` / `opencode` / `hermes` / `pi` | native harness wrappers |
 
-Release `v0.6.0` also documents `omni session export --id`, `omnigent debug
+Release `v0.7.0` also documents `omni session export --id`, `omnigent debug
 logs`, `omnigent run --harness acp:<slug>`, and
-`omni import --harness <claude|codex>`. They are not provider-required commands.
+`omni import --harness <claude|codex|kimi|kiro|opencode|pi|qwen>`. They are not
+provider-required commands.
 
 Platform note from the tagged README:
 
@@ -140,7 +151,7 @@ Exit-code freeze for v0.1:
 
 - successful command completion or help output: treat `0` as stable
 - non-zero codes: upstream does not publish a stable numeric exit-code table at
-  `v0.6.0`, so classify failures from stderr/body semantics instead of numeric
+  `v0.7.0`, so classify failures from stderr/body semantics instead of numeric
   codes alone
 
 ## Event Stream
@@ -240,7 +251,7 @@ Pinned error classes that downstream code may normalize:
 | HTTP route | `404 not_found` | missing session, source session, or child-session parent |
 | HTTP route | `422 validation_error` | request validation error from route schema |
 | SSE transport | `malformed_frame` | client must skip/log malformed or unknown frames |
-| Capability gap | `blocked_capability` | child-session creation and harness override are not public v0.6.0 guarantees |
+| Capability gap | `blocked_capability` | child-session creation and harness override are not public v0.7.0 guarantees |
 | Capability gap | `emulated_capability` | logical close and terminal uniqueness need provider-side normalization |
 
 ## Capability Matrix
@@ -328,5 +339,5 @@ Pinned lifecycle rules for downstream phases:
 - `child_session` and `harness_override` must return typed blocked or
   unavailable behavior at public provider boundaries.
 - Session-state normalization must account for `launching` stream status edges
-  even though the official `v0.6.0` snapshot status enum is aligned on
+  even though the official `v0.7.0` snapshot status enum is aligned on
   `waiting`.

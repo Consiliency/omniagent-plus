@@ -33,7 +33,7 @@ export class OmnigentHybridProvider implements AgentRuntimeProvider {
 
   constructor(private readonly options: OmnigentHybridProviderOptions) {
     this.httpProvider = new OmnigentHttpProvider(options);
-    this.startCommand = options.startCommand ?? ["omnigent", "server", "start"];
+    this.startCommand = options.startCommand ?? ["omnigent", "server", "--background"];
   }
 
   async createSession(request: CreateSessionRequest): Promise<AgentSession> {

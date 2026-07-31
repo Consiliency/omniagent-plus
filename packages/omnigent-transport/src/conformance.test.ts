@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadOmnigentCapabilityMatrix,
+  loadOmnigentCliSurface,
   loadOmnigentFakeServerScenarios,
   loadOmnigentHttpSurface,
   loadOmnigentSourceMetadata,
@@ -34,6 +35,7 @@ describe("fake omnigent conformance", () => {
     const scenarios = loadOmnigentFakeServerScenarios();
     const sourceMetadata = loadOmnigentSourceMetadata();
     const capabilityMatrix = loadOmnigentCapabilityMatrix();
+    const cliSurface = loadOmnigentCliSurface();
     const httpSurface = loadOmnigentHttpSurface();
     const server = await FakeOmnigentServer.start();
 
@@ -78,22 +80,37 @@ describe("fake omnigent conformance", () => {
           "v0_6_metadata_events",
         ]),
       );
-      expect(sourceMetadata.freeze_target.tag).toBe("v0.6.0");
+      expect(sourceMetadata.freeze_target.tag).toBe("v0.7.0");
       expect(sourceMetadata.freeze_target.commit).toBe(
-        "375f540421baf3ad46fae0805b78063682f281de",
+        "35519fb04743f66b30cac8a40695d5d72fa163ea",
       );
-      expect(sourceMetadata.freeze_target.package_version).toBe("0.6.0");
+      expect(sourceMetadata.freeze_target.package_version).toBe("0.7.0");
       expect(httpSurface.stream_contract.official_release_event_count).toBe(
         omnigentStreamEventTypes.length,
       );
-      expect(httpSurface.stream_contract.release_event_types).toEqual([
-        "browser.action_request",
-        "response.function_call_output.delta",
-      ]);
+      expect(httpSurface.stream_contract.release_event_types).toEqual([]);
+      expect(httpSurface.openapi_delta).toEqual(
+        expect.objectContaining({
+          operation_count: 97,
+          removed_paths: [],
+          removed_schemas: [],
+        }),
+      );
+      expect(httpSurface.openapi_delta?.added_paths).toHaveLength(7);
+      expect(httpSurface.openapi_delta?.added_schemas).toHaveLength(8);
       expect(httpSurface.stream_contract.event_families).toContain("browser");
       expect(httpSurface.session_snapshot_fields?.mcp_startup).toBeTruthy();
       expect(httpSurface.session_list_item_fields?.search_snippet).toBeTruthy();
       expect(httpSurface.session_list_item_fields?.parent_session_id).toBeTruthy();
+      expect(httpSurface.session_list_item_fields?.project_id).toBeTruthy();
+      expect(httpSurface.session_snapshot_fields?.model_options).toBeTruthy();
+      expect(httpSurface.session_snapshot_fields?.project_id).toBeTruthy();
+      expect(httpSurface.endpoint_provenance).toContainEqual(
+        expect.objectContaining({
+          path: "/v1/sessions/{session_id}/events",
+          ref: "v0.7.0",
+        }),
+      );
       expect(httpSurface.optional_release_surfaces).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -116,15 +133,63 @@ describe("fake omnigent conformance", () => {
             path: "/v1/sessions/{session_id}/auto-title",
             status: "observed_not_provider_required",
           }),
+          expect.objectContaining({
+            path: "/v1/projects",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/projects/{project_id}",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/usage",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/hosts/{host_id}/credentials/detected",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/hosts/{host_id}/harnesses/{harness}/credential",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/hosts/{host_id}/harnesses/{harness}/install",
+            status: "observed_not_provider_required",
+          }),
+          expect.objectContaining({
+            path: "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
+            status: "observed_not_provider_required",
+          }),
         ]),
       );
-      expect(
-        httpSurface.session_endpoints.map((endpoint) => endpoint.path),
-      ).not.toEqual(
+      const requiredSessionPaths = httpSurface.session_endpoints.map(
+        (endpoint) => endpoint.path,
+      );
+      const optionalPaths =
+        httpSurface.optional_release_surfaces?.flatMap((surface) =>
+          surface.path === undefined ? [] : [surface.path],
+        ) ?? [];
+      expect(optionalPaths).toHaveLength(12);
+      for (const optionalPath of optionalPaths) {
+        expect(requiredSessionPaths).not.toContain(optionalPath);
+      }
+      for (const coordinationPathFragment of ["lease", "lock"]) {
+        expect(
+          requiredSessionPaths.some((path) =>
+            path.toLowerCase().includes(coordinationPathFragment),
+          ),
+        ).toBe(false);
+      }
+      expect(cliSurface.documented_commands).toEqual(
         expect.arrayContaining([
-          "/v1/imports",
-          "/v1/sessions/{session_id}/auto-title",
+          "omnigent server --background",
+          "omnigent server status --json",
+          "omnigent server stop",
         ]),
+      );
+      expect(cliSurface.documented_commands).not.toContain(
+        ["omnigent", "server", "start"].join(" "),
       );
       expect(httpSurface.fork_request).toEqual(
         expect.objectContaining({
@@ -148,9 +213,12 @@ describe("fake omnigent conformance", () => {
           }),
         ]),
       );
-      expect(
-        capabilityMatrix.capabilities.map((capability) => capability.name),
-      ).not.toEqual(expect.arrayContaining(["lease", "lock"]));
+      const capabilityNames = capabilityMatrix.capabilities.map(
+        (capability) => capability.name,
+      );
+      for (const coordinationCapability of ["lease", "lock"]) {
+        expect(capabilityNames).not.toContain(coordinationCapability);
+      }
 
       const historyResponse = await fetch(
         `${server.baseUrl}/v1/sessions/${snapshot.id}/items`,

@@ -1,7 +1,31 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-24T20:20:32Z",
+  "captured_at": "2026-07-30T03:53:08Z",
+  "openapi_delta": {
+    "operation_count": 97,
+    "added_paths": [
+      "/v1/hosts/{host_id}/credentials/detected",
+      "/v1/hosts/{host_id}/harnesses/{harness}/credential",
+      "/v1/hosts/{host_id}/harnesses/{harness}/install",
+      "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
+      "/v1/projects",
+      "/v1/projects/{project_id}",
+      "/v1/usage"
+    ],
+    "removed_paths": [],
+    "added_schemas": [
+      "CreateProjectRequest",
+      "NativeModelOption",
+      "NativeReasoningEffortOption",
+      "SessionProjectSummary",
+      "SessionUsage",
+      "StoreHarnessCredentialRequest",
+      "UpdateProjectRequest",
+      "UsageReport"
+    ],
+    "removed_schemas": []
+  },
   "session_endpoints": [
     {
       "method": "POST",
@@ -77,11 +101,14 @@
     "viewer_last_seen": "session list read-state marker",
     "viewer_unread": "session list read-state marker",
     "mcp_startup": "optional per-server MCP startup status metadata",
-    "parent_session_id": "optional lineage metadata already present on full session responses"
+    "parent_session_id": "optional lineage metadata already present on full session responses",
+    "project_id": "optional project association added to full session responses in v0.7.0",
+    "model_options": "runner-owned native model-picker options using NativeModelOption rows"
   },
   "session_list_item_fields": {
     "search_snippet": "optional server-generated search result excerpt",
-    "parent_session_id": "optional parent lineage newly included in v0.6.0 list responses"
+    "parent_session_id": "optional parent lineage included in list responses",
+    "project_id": "optional project association added to list responses in v0.7.0"
   },
   "session_status_contract": {
     "api_md": [
@@ -106,7 +133,7 @@
     "tolerated_raw_edge": [
       "launching"
     ],
-    "note": "v0.6.0 retains the resolved waiting status; launching remains tolerated from session.status edges and maps to starting."
+    "note": "v0.7.0 retains the resolved waiting status; launching remains tolerated from session.status edges and maps to starting."
   },
   "response_status_contract": [
     "queued",
@@ -132,10 +159,7 @@
       "browser"
     ],
     "official_release_event_count": 52,
-    "release_event_types": [
-      "browser.action_request",
-      "response.function_call_output.delta"
-    ]
+    "release_event_types": []
   },
   "optional_release_surfaces": [
     {
@@ -177,6 +201,70 @@
       "reason": "automatic UI title selection is not part of the transport provider contract"
     },
     {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "path": "/v1/projects",
+      "status": "observed_not_provider_required",
+      "reason": "project administration is not part of the neutral runtime provider contract"
+    },
+    {
+      "methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "path": "/v1/projects/{project_id}",
+      "status": "observed_not_provider_required",
+      "reason": "project administration is not part of the neutral runtime provider contract"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/usage",
+      "status": "observed_not_provider_required",
+      "reason": "usage reporting does not change runtime-provider capability"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/hosts/{host_id}/credentials/detected",
+      "status": "observed_not_provider_required",
+      "reason": "host credential discovery remains an operator administration surface"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/hosts/{host_id}/harnesses/{harness}/credential",
+      "status": "observed_not_provider_required",
+      "reason": "credential storage remains an operator administration surface"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/hosts/{host_id}/harnesses/{harness}/install",
+      "status": "observed_not_provider_required",
+      "reason": "harness installation remains an operator administration surface"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
+      "status": "observed_not_provider_required",
+      "reason": "model-option lookup does not add a neutral provider method"
+    },
+    {
+      "field": "ImportSessionRequest.source",
+      "status": "observed_not_provider_required",
+      "reason": "v0.7.0 expands import sources to claude, codex, kimi, kiro, opencode, pi, and qwen"
+    },
+    {
+      "field": "MCPServerSummary.headers",
+      "status": "observed_not_provider_required",
+      "reason": "optional MCP headers are preserved upstream administration metadata"
+    },
+    {
+      "field": "UpsertMCPServerRequest.headers",
+      "status": "observed_not_provider_required",
+      "reason": "optional MCP headers are preserved upstream administration metadata"
+    },
+    {
       "field": "GET /v1/info response.single_user",
       "status": "observed_not_provider_required",
       "reason": "single-user server capability metadata does not change provider behavior"
@@ -202,26 +290,35 @@
     "create_under_parent": false,
     "fork_available": true
   },
+  "endpoint_provenance": [
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{session_id}/events",
+      "source": "omnigent/server/API.md and tagged route source",
+      "ref": "v0.7.0",
+      "note": "required send-turn/interrupt route is documented and implemented but omitted from generated OpenAPI"
+    }
+  ],
   "provenance": [
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",
-      "ref": "v0.6.0"
+      "ref": "v0.7.0"
     },
     {
       "kind": "tagged_source",
       "path": "openapi.json",
-      "ref": "v0.6.0"
+      "ref": "v0.7.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.6.0"
+      "ref": "v0.7.0"
     },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/schemas.py",
-      "ref": "v0.6.0"
+      "ref": "v0.7.0"
     }
   ]
 }

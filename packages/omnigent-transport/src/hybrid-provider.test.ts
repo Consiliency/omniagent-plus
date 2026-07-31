@@ -95,7 +95,7 @@ describe("hybrid provider", () => {
       });
       await provider.closeSession(session.id);
 
-      expect(commandStarts).toEqual(["omnigent server start"]);
+      expect(commandStarts).toEqual(["omnigent server --background"]);
       expect(serverTransitions).toEqual(["status", "start", "stop"]);
       expect(processManager.status().running).toBe(false);
     } finally {

@@ -58,10 +58,10 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-The official Omnigent `v0.6.0` freeze includes `waiting` in the release
+The official Omnigent `v0.7.0` freeze includes `waiting` in the release
 OpenAPI session snapshot enum, so the previous waiting drift is resolved.
 The `session.status` SSE family still includes `launching`; the transport
-treats it as the neutral `starting` session state. Additional `v0.6.0`
+treats it as the neutral `starting` session state. Additional release
 metadata/UI event families are accepted by the parser and no-op mapped unless
 they affect provider state.
 

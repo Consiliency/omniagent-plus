@@ -135,6 +135,22 @@ export type OmnigentCliCommandRunner = (
   options?: OmnigentCommandOptions,
 ) => Promise<OmnigentCliCommandResult>;
 
+export interface OmnigentNativeReasoningEffortOption {
+  readonly [key: string]: unknown;
+  readonly description?: string | null;
+  readonly reasoningEffort: string;
+}
+
+export interface OmnigentNativeModelOption {
+  readonly [key: string]: unknown;
+  readonly defaultReasoningEffort?: string | null;
+  readonly displayName?: string | null;
+  readonly id: string;
+  readonly isDefault?: boolean | null;
+  readonly model?: string | null;
+  readonly supportedReasoningEfforts?: readonly OmnigentNativeReasoningEffortOption[];
+}
+
 export interface OmnigentSessionSnapshot {
   readonly id: string;
   readonly title: string;
@@ -154,6 +170,10 @@ export interface OmnigentSessionSnapshot {
     | null;
   readonly parentSessionId?: string | null;
   readonly parent_session_id?: string | null;
+  readonly projectId?: string | null;
+  readonly project_id?: string | null;
+  readonly modelOptions?: readonly OmnigentNativeModelOption[];
+  readonly model_options?: readonly OmnigentNativeModelOption[];
   readonly viewerLastSeen?: number | null;
   readonly viewerUnread?: boolean;
   readonly viewer_last_seen?: number | null;

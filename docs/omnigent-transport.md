@@ -9,9 +9,11 @@ contract, the runtime-neutral core contracts, and the durable state ledger.
 - `HTTP` mode uses only the pinned harness catalog, session, items, stream,
   event, child-session, fork, patch, switch-agent, and read-state endpoints from
   `docs/omnigent-contract.md`. `read-state` and `GET /v1/harnesses` are official
-  `v0.6.0` public surface and remain metadata-only at this provider boundary.
+  `v0.7.0` public surface and remain metadata-only at this provider boundary.
 - `CLI` mode uses only documented `omnigent run`, `resume`, `attach`, and
-  `server start/status/stop` commands. It keeps `cancel` as a typed blocked
+  `server --background`, `server status --json`, and `server stop` commands.
+  Background-start prose is treated as command output; machine status is read
+  from the direct JSON status object. `cancel` remains a typed blocked
   capability because the freeze does not publish a stable cancel command.
 - `hybrid` mode starts or probes the local Omnigent server through the CLI
   surface, then delegates session traffic through the HTTP provider.
@@ -19,15 +21,16 @@ contract, the runtime-neutral core contracts, and the durable state ledger.
 ## Event And Failure Mapping
 
 The package maps Omnigent session/history/stream traffic into
-`AgentRuntimeProvider` sessions, turn handles, and runtime events without
-exporting raw Omnigent payload types from the public package boundary.
+`AgentRuntimeProvider` sessions, turn handles, and runtime events. Raw event and
+history payload types remain internal; the read-only session snapshot and native
+model-option response types are deliberate public exports.
 
 - reconnect opens the stream, reads the snapshot, uses `active_response_id` as
   active turn identity when present, and dedupes by `item.id`
 - malformed SSE frames are skipped instead of poisoning the stream
 - duplicate upstream terminal markers collapse into one normalized terminal turn
 - upstream `launching` session status maps to the neutral `starting` state
-- official `v0.6.0` UI/admin/resource/reasoning/usage/heartbeat events are
+- official `v0.7.0` UI/admin/resource/reasoning/usage/heartbeat events are
   accepted and no-op mapped unless they affect provider state
 - `session.mcp_startup` metadata is preserved on the session metadata object;
   `session.mcp_startup` and `response.policy_denied` stream events remain
@@ -60,12 +63,13 @@ CLI and hybrid process ownership are explicit:
 
 ## Release Surface
 
-The v0.6.0 import and auto-title routes, parent list metadata, and earlier
-host-worktree, resource-copy, sharing, and `existing_worktree` surfaces are not
-provider requirements. Export, import, debug-log, and ACP harness CLI commands
-are likewise outside the adapter command contract. No import or auto-title
-method is added to `OmnigentHttpClient`, and none of these surfaces substitute
-for the CS-2.2 lease store.
+The v0.7.0 project, usage, credential, installation, model-option, MCP-header,
+expanded import, auto-title, lineage, host-worktree, resource-copy, sharing, and
+`existing_worktree` surfaces are not provider requirements. Session project and
+native model options are accepted as additive response metadata only. Export,
+import, debug-log, and ACP harness CLI commands are likewise outside the adapter
+command contract. No administration method is added to `OmnigentHttpClient`,
+and none of these surfaces substitute for the CS-2.2 lease store.
 
 TRANSPORT is a non-dispatch phase. The docs were updated for HTTP, CLI, hybrid,
 process ownership, capability snapshot persistence, and no live Omnigent CI
