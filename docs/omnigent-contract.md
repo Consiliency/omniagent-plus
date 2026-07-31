@@ -12,8 +12,8 @@ It freezes the Omnigent surface that downstream phases may rely on for v0.1.
 - Authoritative downstream gate: `IF-0-CONTRACT-1`
 
 The upstream `main` branch remains ahead of the freeze
-(`48a1cb33a9a7507fc61e47ede43d2d869d826cab` observed on
-`2026-07-30`), so `main` is not authoritative for this contract. Current main
+(`0ba64ba906f85006fac47afc319fbe84824a545a` observed on
+`2026-07-31`), so `main` is not authoritative for this contract. Current main
 movement is tracked separately in `docs/omnigent-upstream-readiness.md`.
 
 CS-2.2 rechecked upstream on `2026-07-30`: release `v0.7.0` adds project,

@@ -82,7 +82,19 @@ const snapshot = {
   title: "packed type smoke",
   updatedAt: "2026-07-30T00:00:00.000Z",
 } satisfies OmnigentSessionSnapshot;
+const snakeSnapshot = {
+  backend: "omnigent-http",
+  createdAt: "2026-07-30T00:00:00.000Z",
+  id: "session-snake",
+  items: [],
+  model_options: [model],
+  project_id: "project-snake",
+  status: "idle",
+  title: "packed snake-case type smoke",
+  updatedAt: "2026-07-30T00:00:00.000Z",
+} satisfies OmnigentSessionSnapshot;
 void snapshot;
+void snakeSnapshot;
 `,
   );
   execFileSync(
