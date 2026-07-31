@@ -31,10 +31,12 @@ reproduced `TS2503: Cannot find namespace 'NodeJS'` in
 ## Corrective Change
 
 - Bump only `@consiliency/omnigent-transport` from `0.4.0` to `0.4.1`.
-- Declare `@types/node@^24.0.13` as a transport dependency and update the
-  workspace lockfile importer.
+- Declare `@types/node@^24.0.13` as a transport dependency, reference the signal
+  type through an explicit `node:child_process` import and emitted Node type
+  reference, and update the workspace lockfile importer.
 - Install TypeScript 5.9.3 inside the packed smoke's scratch consumer and invoke
-  that consumer-local executable with strict NodeNext settings.
+  that consumer-local executable with strict NodeNext settings,
+  `skipLibCheck: false`, and automatic ambient types disabled.
 - Preserve the `0.4.0` publication record as a superseded finding and record
   the corrective release in the changelog.
 
@@ -56,7 +58,8 @@ reproduced `TS2503: Cannot find namespace 'NodeJS'` in
 ## Acceptance Reduction
 
 1. Published Node ambient types are now declared transitively: satisfied.
-2. Packed declarations compile in a genuinely isolated consumer: satisfied.
+2. Packed declarations compile in a genuinely isolated consumer with a
+   restricted `types` list: satisfied.
 3. Only the transport package is versioned; both siblings remain `0.2.0`:
    satisfied.
 4. Runtime authority and behavior are unchanged: satisfied.

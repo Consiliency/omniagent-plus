@@ -46,9 +46,11 @@ scope wrongly implied ownership of that name. Pre-first-publish rename — the
 
 ### Fixed
 - Declare `@types/node` as a transport dependency because the public
-  declarations expose `NodeJS.Signals`.
+  declarations expose Node process signals, and reference that type through an
+  explicit `node:child_process` type import plus an emitted Node type reference.
 - Run the packed declaration smoke with TypeScript installed and invoked inside
-  the isolated consumer so workspace-only type packages cannot mask a missing
+  the isolated consumer with automatic ambient types disabled so
+  workspace-only or implicitly discovered type packages cannot mask a missing
   published dependency.
 
 ### Notes

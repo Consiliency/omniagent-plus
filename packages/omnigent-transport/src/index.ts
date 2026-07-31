@@ -47,6 +47,7 @@ export type {
   OmnigentHttpClientOptions,
   OmnigentNativeModelOption,
   OmnigentNativeReasoningEffortOption,
+  OmnigentProcessSignal,
   OmnigentServerStatus,
   OmnigentSessionSnapshot,
 } from "./types.js";

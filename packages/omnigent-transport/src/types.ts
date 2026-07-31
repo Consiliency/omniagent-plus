@@ -1,3 +1,5 @@
+/// <reference types="node" preserve="true" />
+
 import type {
   AgentSessionState,
   CreateSessionRequest,
@@ -6,6 +8,7 @@ import type {
   SendTurnRequest,
   TurnHandle,
 } from "@consiliency/runtime-provider";
+import type { ChildProcess } from "node:child_process";
 
 export const omnigentProviderModes = ["http", "cli", "hybrid"] as const;
 export type OmnigentProviderMode = (typeof omnigentProviderModes)[number];
@@ -122,12 +125,14 @@ export interface OmnigentCommandOptions {
   readonly timeoutMs?: number;
 }
 
+export type OmnigentProcessSignal = NonNullable<ChildProcess["signalCode"]>;
+
 export interface OmnigentCliCommandResult {
   readonly command: readonly string[];
   readonly exitCode: number;
   readonly stdout: string;
   readonly stderr: string;
-  readonly signal?: NodeJS.Signals | null;
+  readonly signal?: OmnigentProcessSignal | null;
 }
 
 export type OmnigentCliCommandRunner = (
