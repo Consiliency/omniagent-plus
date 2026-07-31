@@ -1,10 +1,10 @@
 ---
 from: codex-execute-detailed
-timestamp: 2026-07-31T23:02:12Z
+timestamp: 2026-07-31T23:34:53Z
 repo: Consiliency/omniagent-plus
 repo_root: /mnt/workspace/worktrees/omniagent-plus-record-v0-4-release
 branch: codex/record-omnigent-v0-4-release
-commit: e52cf8bfb387ec46fd6ed3d794683ed4d0e34c3f
+commit: d3af79345444d461b911153538cefa5652be4f01
 run_id: 20260731T230212Z-omnigent-v041-verification
 artifact: packages/omnigent-transport/package.json
 verification_status: passed
@@ -66,10 +66,24 @@ reproduced `TS2503: Cannot find namespace 'NodeJS'` in
 5. Frozen install, build, pack, typecheck, lint, full tests, dry-run, diff, and
    secret gates pass: satisfied.
 
+## Review Reconciliation
+
+The first corrective review at PR head
+`9bcf52d1592358c86155ea858422f25a9cd2c9db` found that installing
+`@types/node` alone still relied on automatic ambient discovery. A consumer
+with a restricted `compilerOptions.types` list could therefore fail the public
+`NodeJS.Signals` references.
+
+The repaired declaration graph exports `OmnigentProcessSignal` through an
+explicit `node:child_process` type import and preserves an emitted Node type
+reference. The packed consumer now sets `types: []` and `skipLibCheck: false`;
+that restricted consumer passes. The complete verification suite above was
+rerun after this repair.
+
 ## Publication State
 
 - Local corrective implementation: verified at
-  `e52cf8bfb387ec46fd6ed3d794683ed4d0e34c3f`.
+  `d3af79345444d461b911153538cefa5652be4f01`.
 - PR: [Consiliency/omniagent-plus#13](https://github.com/Consiliency/omniagent-plus/pull/13)
   contains that verified implementation; its immediately following commit is
   evidence-only and changes no executable or package surface.
