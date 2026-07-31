@@ -37,6 +37,18 @@ try {
     { stdio: "pipe" },
   );
   execFileSync(
+    "npm",
+    [
+      "install",
+      "--prefix",
+      consumer,
+      "--save-dev",
+      "--ignore-scripts",
+      "typescript@5.9.3",
+    ],
+    { stdio: "pipe" },
+  );
+  execFileSync(
     process.execPath,
     [
       "--input-type=module",
@@ -98,12 +110,13 @@ void snakeSnapshot;
 `,
   );
   execFileSync(
-    "pnpm",
+    join(
+      consumer,
+      "node_modules",
+      ".bin",
+      process.platform === "win32" ? "tsc.cmd" : "tsc",
+    ),
     [
-      "--dir",
-      repoRoot,
-      "exec",
-      "tsc",
       "--noEmit",
       "--strict",
       "--module",
@@ -112,7 +125,7 @@ void snakeSnapshot;
       "NodeNext",
       join(consumer, "type-smoke.ts"),
     ],
-    { stdio: "pipe" },
+    { cwd: consumer, stdio: "pipe" },
   );
   console.log("packed Omnigent transport smoke: OK");
 } finally {

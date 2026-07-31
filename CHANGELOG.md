@@ -42,6 +42,21 @@ scope wrongly implied ownership of that name. Pre-first-publish rename — the
 - Package directory names under `packages/` are unchanged; only the npm `name`
   fields and importers changed.
 
+## [0.4.1] — 2026-07-31 — isolated declaration consumer fix
+
+### Fixed
+- Declare `@types/node` as a transport dependency because the public
+  declarations expose `NodeJS.Signals`.
+- Run the packed declaration smoke with TypeScript installed and invoked inside
+  the isolated consumer so workspace-only type packages cannot mask a missing
+  published dependency.
+
+### Notes
+- `0.4.1` supersedes `0.4.0`, whose runtime surface is usable but whose public
+  declarations do not compile in a consumer without an independently installed
+  `@types/node`.
+- The Omnigent v0.7 authority and all runtime behavior remain unchanged.
+
 ## [0.4.0] — 2026-07-30 — Omnigent v0.7.0 contract maintenance
 
 Move `IF-0-CONTRACT-1` from official Omnigent `v0.6.0` to `v0.7.0` at tag
