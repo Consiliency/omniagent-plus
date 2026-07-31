@@ -12,9 +12,10 @@ verification_status: superseded
 
 # Omnigent Transport 0.4.0 Release Finding
 
-This post-merge handoff supersedes only the publication-state section of
+This post-merge handoff supersedes the publication-state section and the
+packed-consumer declaration claim in
 `20260730T035308Z-omnigent-v070-verification.md`. That earlier handoff remains
-the exact pre-release implementation record.
+the exact pre-release implementation record for its other gates.
 
 ## State Reduction
 
@@ -76,5 +77,6 @@ by `0.4.0`.
 The adaptation is merged and `0.4.0` is published with valid runtime authority,
 but its standalone declaration surface is defective. It must be superseded by
 `0.4.1` with the missing type dependency and a genuinely isolated packed
-declaration smoke. No runtime-provider or pipeline-provider-adapter version was
-changed by this release.
+declaration smoke. After `0.4.1` is independently verified on npm, deprecate
+`0.4.0` with a pointer to the corrected exact version. No runtime-provider or
+pipeline-provider-adapter version was changed by this release.
