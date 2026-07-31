@@ -116,6 +116,9 @@ importers:
       '@consiliency/runtime-provider':
         specifier: workspace:*
         version: link:../core-contracts
+      '@types/node':
+        specifier: ^24.0.13
+        version: 24.13.2
 
   packages/rate-limit-catalog:
     dependencies:

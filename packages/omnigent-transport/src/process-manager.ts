@@ -1,3 +1,5 @@
+import type { OmnigentProcessSignal } from "./types.js";
+
 export interface ManagedOmnigentProcess {
   readonly command: readonly string[];
   readonly pid: number;
@@ -9,7 +11,7 @@ export interface OmnigentProcessManagerOptions {
   readonly isParentAlive?: (pid: number) => boolean;
   readonly kill?: (
     processGroupId: number,
-    signal: NodeJS.Signals,
+    signal: OmnigentProcessSignal,
   ) => Promise<void> | void;
   readonly now?: () => number;
   readonly parentPid?: number;
@@ -43,7 +45,7 @@ export class OmnigentProcessManager {
   private readonly isParentAlive: (pid: number) => boolean;
   private readonly kill: (
     processGroupId: number,
-    signal: NodeJS.Signals,
+    signal: OmnigentProcessSignal,
   ) => Promise<void> | void;
   private readonly now: () => number;
   private readonly parentPid?: number;
@@ -106,7 +108,7 @@ export class OmnigentProcessManager {
     };
   }
 
-  async stop(signal: NodeJS.Signals = "SIGTERM"): Promise<void> {
+  async stop(signal: OmnigentProcessSignal = "SIGTERM"): Promise<void> {
     if (!this.current) {
       return;
     }

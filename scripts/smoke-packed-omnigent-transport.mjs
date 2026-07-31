@@ -37,6 +37,18 @@ try {
     { stdio: "pipe" },
   );
   execFileSync(
+    "npm",
+    [
+      "install",
+      "--prefix",
+      consumer,
+      "--save-dev",
+      "--ignore-scripts",
+      "typescript@5.9.3",
+    ],
+    { stdio: "pipe" },
+  );
+  execFileSync(
     process.execPath,
     [
       "--input-type=module",
@@ -61,9 +73,11 @@ if (snapshot.gitSha !== "35519fb04743f66b30cac8a40695d5d72fa163ea") {
     `import type {
   OmnigentNativeModelOption,
   OmnigentNativeReasoningEffortOption,
+  OmnigentProcessSignal,
   OmnigentSessionSnapshot,
 } from "@consiliency/omnigent-transport";
 
+const signal: OmnigentProcessSignal = "SIGTERM";
 const reasoning: OmnigentNativeReasoningEffortOption = {
   reasoningEffort: "medium",
 };
@@ -95,24 +109,31 @@ const snakeSnapshot = {
 } satisfies OmnigentSessionSnapshot;
 void snapshot;
 void snakeSnapshot;
+void signal;
 `,
   );
+  writeFileSync(
+    join(consumer, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: {
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        skipLibCheck: false,
+        strict: true,
+        types: [],
+      },
+      files: ["type-smoke.ts"],
+    }),
+  );
   execFileSync(
-    "pnpm",
-    [
-      "--dir",
-      repoRoot,
-      "exec",
-      "tsc",
-      "--noEmit",
-      "--strict",
-      "--module",
-      "NodeNext",
-      "--moduleResolution",
-      "NodeNext",
-      join(consumer, "type-smoke.ts"),
-    ],
-    { stdio: "pipe" },
+    join(
+      consumer,
+      "node_modules",
+      ".bin",
+      process.platform === "win32" ? "tsc.cmd" : "tsc",
+    ),
+    ["--noEmit", "--project", join(consumer, "tsconfig.json")],
+    { cwd: consumer, stdio: "pipe" },
   );
   console.log("packed Omnigent transport smoke: OK");
 } finally {

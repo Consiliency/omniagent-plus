@@ -1,7 +1,7 @@
 {
   "name": "@consiliency/omnigent-transport",
   "author": "ViperJuice <viperjuice@users.noreply.github.com>",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Consiliency/omniagent-plus.git",
@@ -22,6 +22,7 @@
     "test": "pnpm --dir ../.. exec vitest --config vitest.config.ts"
   },
   "dependencies": {
-    "@consiliency/runtime-provider": "workspace:*"
+    "@consiliency/runtime-provider": "workspace:*",
+    "@types/node": "^24.0.13"
   }
 }
