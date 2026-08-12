@@ -227,13 +227,25 @@ export interface OmnigentSessionListItem {
 export interface OmnigentChildSessionSummary {
   readonly [key: string]: unknown;
   readonly agent_id?: string | null;
+  readonly agent_name?: string | null;
+  readonly busy?: boolean;
   readonly created_at: number;
+  readonly current_task_id?: string | null;
+  readonly current_task_status?: string | null;
   readonly id: string;
+  readonly kind?: string;
+  readonly labels?: Readonly<Record<string, string>>;
+  readonly last_message_preview?: string | null;
+  readonly last_task_error?: Readonly<Record<string, string>> | null;
+  readonly object?: string;
+  readonly parent_session_id: string;
+  readonly pending_elicitations_count?: number;
   readonly routed_model?: string | null;
   readonly routing_decision_id?: string | null;
-  readonly status: OmnigentSessionStatus;
-  readonly title: string | null;
-  readonly updated_at?: number | null;
+  readonly session_name?: string | null;
+  readonly title?: string | null;
+  readonly tool?: string | null;
+  readonly updated_at: number;
 }
 
 export interface OmnigentMessageData {
@@ -322,7 +334,10 @@ export interface OmnigentRawEvent {
   readonly background_task_count?: number | null;
   readonly blocked_on?: string | null;
   readonly sequence_number?: number | null;
+  readonly agent_id?: string | null;
   readonly conversation_id?: string;
+  readonly child_session_id?: string;
+  readonly parent_session_id?: string | null;
   readonly response_id?: string;
   readonly itemId?: string;
   readonly terminal?: boolean;

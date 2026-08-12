@@ -58,14 +58,16 @@
   "child_page": {
     "data": [
       {
-        "id": "child-1",
-        "title": "Child",
-        "status": "running",
-        "created_at": 1780272010,
-        "updated_at": 1780272011,
         "agent_id": "agent-child",
+        "busy": true,
+        "created_at": 1780272010,
+        "current_task_status": "in_progress",
+        "id": "child-1",
+        "parent_session_id": "session-123",
         "routed_model": "model-routed",
-        "routing_decision_id": "route-1"
+        "routing_decision_id": "route-1",
+        "title": "Child",
+        "updated_at": 1780272011
       }
     ],
     "first_id": "child-1",
@@ -100,7 +102,7 @@
     { "type": "response.created", "response": { "id": "response-1", "status": "in_progress", "created_at": 1780272050 } },
     { "type": "response.output_text.delta", "delta": "answer" },
     { "type": "response.output_item.done", "item": { "id": "call-item", "type": "function_call", "call_id": "call-1", "name": "lookup", "arguments": "{}" } },
-    { "type": "session.created", "session_id": "child-1", "parent_session_id": "session-123" },
+    { "type": "session.created", "conversation_id": "session-123", "child_session_id": "child-1", "agent_id": "agent-child", "parent_session_id": "session-123", "sequence_number": null },
     { "type": "turn.started", "session_id": "session-123" },
     { "type": "response.completed", "response": { "id": "response-1", "status": "completed", "completed_at": 1780272051 } }
   ]

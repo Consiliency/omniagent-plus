@@ -16,8 +16,9 @@ here. These packages were never published under any other scope.
   overlap by persisted item identity or an identity-free persisted text prefix,
   dedupe tool overlap by call identity, prevent metadata-only history rows from
   creating lifecycle, retain bare turn frames as metadata-only, validate
-  external session/page rows, and enforce the named-agent-only resolver
-  boundary.
+  external session/page rows against distinct parent/child schemas, preserve
+  parent and child IDs on `session.created`, and enforce the named-agent-only
+  resolver boundary.
 - Add process-local create/send idempotency and provisional accepted turn
   identity without inventing upstream response fields.
 - Classify `omnigent server start` as a hidden deprecated alias while retaining

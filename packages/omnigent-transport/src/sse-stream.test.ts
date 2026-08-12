@@ -220,6 +220,15 @@ describe("sse stream parser", () => {
       }),
     );
     expect(events.find((event) => event.type === "turn.started")?.turnId).toBeUndefined();
+    expect(events.find((event) => event.type === "session.created")).toEqual(
+      expect.objectContaining({
+        agent_id: "agent-child",
+        child_session_id: "child-1",
+        conversation_id: "session-123",
+        parent_session_id: "session-123",
+        sessionId: "session-123",
+      }),
+    );
     const runtimeEvents = mapOmnigentEventSequence("session-route", events);
     expect(
       runtimeEvents.filter((event) => event.type === "runtime.session.created"),

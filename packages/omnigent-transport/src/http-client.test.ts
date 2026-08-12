@@ -247,12 +247,17 @@ describe("http client", () => {
         updatedAt: "2026-06-01T00:00:01.000Z",
       }),
     );
-    expect(await client.listChildSessions("session-123")).toEqual([
+    const children = await client.listChildSessions("session-123");
+    expect(children).toEqual([
       expect.objectContaining({
+        busy: true,
+        current_task_status: "in_progress",
+        parent_session_id: "session-123",
         routed_model: "model-routed",
         routing_decision_id: "route-1",
       }),
     ]);
+    expect(children[0]).not.toHaveProperty("status");
   });
 
   it("rejects malformed session and child page rows", async () => {
@@ -271,8 +276,9 @@ describe("http client", () => {
         {
           created_at: "not-an-epoch",
           id: "child-invalid-epoch",
-          status: "running",
+          parent_session_id: "session-parent",
           title: "Invalid epoch",
+          updated_at: 1_780_272_000,
         },
       ],
     ] as const) {

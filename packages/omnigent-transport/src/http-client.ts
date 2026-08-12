@@ -108,7 +108,38 @@ function normalizeSessionListItem(value: unknown): OmnigentSessionListItem {
 }
 
 function normalizeChildSessionSummary(value: unknown): OmnigentChildSessionSummary {
-  return normalizeSessionSummary(value, "child session") as OmnigentChildSessionSummary;
+  if (!isRecord(value)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent child session page row must be an object.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  requiredString(value, "id");
+  requiredString(value, "parent_session_id");
+  epochToIso(value.created_at, "created_at");
+  epochToIso(value.updated_at, "updated_at");
+  if (value.title != null && typeof value.title !== "string") {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent child session page row field title must be a string or null.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  if (value.busy !== undefined && typeof value.busy !== "boolean") {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent child session page row field busy must be a boolean.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return value as unknown as OmnigentChildSessionSummary;
 }
 
 function normalizeSessionSummary(

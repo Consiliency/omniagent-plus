@@ -159,6 +159,7 @@ export class OmnigentSseNormalizer {
     const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
       action_id: stringValue(raw.action_id),
+      agent_id: raw.agent_id === null ? null : stringValue(raw.agent_id),
       args: isRecord(raw.args) ? raw.args : undefined,
       attempt: numberValue(raw.attempt),
       background_task_count:
@@ -166,6 +167,7 @@ export class OmnigentSseNormalizer {
       blocked_on:
         raw.blocked_on === null ? null : stringValue(raw.blocked_on),
       call_id: stringValue(raw.call_id) ?? stringValue(item?.call_id),
+      child_session_id: stringValue(raw.child_session_id),
       conversation_id: stringValue(raw.conversation_id),
       delay_seconds: numberValue(raw.delay_seconds),
       delta: stringValue(raw.delta),
@@ -185,6 +187,10 @@ export class OmnigentSseNormalizer {
       model: stringValue(raw.model),
       occurredAt,
       outputText: undefined,
+      parent_session_id:
+        raw.parent_session_id === null
+          ? null
+          : stringValue(raw.parent_session_id),
       params: isRecord(raw.params) ? raw.params : undefined,
       phase: stringValue(raw.phase),
       reason:

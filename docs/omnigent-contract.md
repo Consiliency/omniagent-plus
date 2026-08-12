@@ -32,6 +32,9 @@ The session, history, and child-list surfaces use official wire shapes:
 - session timestamps are Unix epochs and normalize to required ISO strings
 - nullable titles receive a deterministic local fallback
 - session and child lists are cursor page envelopes
+- child summaries require `parent_session_id` and epoch timestamps; their
+  lifecycle is represented by optional busy/task fields rather than session
+  `status`
 - `/items` returns cursor-paginated `ConversationItem` rows
 - every page is requested ascending at limit 1000 and a non-advancing cursor
   is rejected as malformed
@@ -63,9 +66,9 @@ Reconnect opens the SSE response first, then reads the snapshot and every
 history page before consuming buffered frames. The stream is always closed on
 exit. Tagged response lifecycle objects, snake-case session fields, missing
 timestamps, and identifier-free deltas normalize before the neutral mapper.
-`session.created` denotes a child spawned on the parent stream; it does not
-synthesize neutral root-session creation. Bare uncorrelated `turn.*` frames are
-metadata-only.
+`session.created` carries the parent `conversation_id` and a distinct
+`child_session_id`; it does not synthesize neutral root-session creation. Bare
+uncorrelated `turn.*` frames are metadata-only.
 
 ## CLI And Capabilities
 
