@@ -13,7 +13,6 @@ import type {
 
 export interface MappedOmnigentHistory {
   readonly history: SessionHistory;
-  readonly historicalTextTurnIds: Set<string>;
   readonly runtimeEvents: RuntimeEvent[];
   readonly seenItemIds: Set<string>;
   readonly startedTurnIds: Set<string>;
@@ -43,13 +42,6 @@ export function mapOmnigentHistory(
       nextCursor: filteredEvents.at(-1)?.sequence ?? afterSequence ?? 0,
       sessionId,
     },
-    historicalTextTurnIds: new Set(
-      runtimeEvents.flatMap((event) =>
-        event.type === "runtime.text.delta" && event.turnId
-          ? [event.turnId]
-          : [],
-      ),
-    ),
     runtimeEvents,
     seenItemIds: new Set(mapper.seenItemIds),
     startedTurnIds: new Set(
@@ -97,7 +89,6 @@ export function mapOmnigentConversationHistory(
   const seenItemIds = new Set<string>();
   const startedTurnIds = new Set<string>();
   const terminalTurnIds = new Set<string>();
-  const historicalTextTurnIds = new Set<string>();
   let sequence = 1;
 
   const append = (
@@ -140,9 +131,6 @@ export function mapOmnigentConversationHistory(
     }
 
     if (item.type === "message" && data.role === "assistant") {
-      if (text.length > 0) {
-        historicalTextTurnIds.add(turnId);
-      }
       text.forEach((delta, index) => {
         append({
           eventId: `${item.id}:text:${index}`,
@@ -247,7 +235,6 @@ export function mapOmnigentConversationHistory(
         filteredEvents.at(-1)?.sequence ?? options.afterSequence ?? 0,
       sessionId,
     },
-    historicalTextTurnIds,
     runtimeEvents,
     seenItemIds,
     startedTurnIds,

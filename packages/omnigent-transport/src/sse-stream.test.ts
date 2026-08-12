@@ -280,7 +280,7 @@ describe("sse stream parser", () => {
     ]);
   });
 
-  it("seeds mid-turn deltas and clears response context after a terminal", () => {
+  it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-12T19:00:00.000Z",
       sessionId: "session-seed",
@@ -290,6 +290,15 @@ describe("sse stream parser", () => {
     expect(
       normalizer.normalize({
         delta: "mid-turn",
+        type: "response.output_text.delta",
+      }).turnId,
+    ).toBe("response-active");
+    const bareTerminal = normalizer.normalize({ type: "turn.completed" });
+    expect(bareTerminal.terminal).toBe(false);
+    expect(bareTerminal.turnId).toBeUndefined();
+    expect(
+      normalizer.normalize({
+        delta: "after bare terminal",
         type: "response.output_text.delta",
       }).turnId,
     ).toBe("response-active");

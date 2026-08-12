@@ -11,7 +11,6 @@ function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
 }
 
 export interface OmnigentEventMapperOptions {
-  readonly historicalTextTurnIds?: Iterable<string>;
   readonly seenItemIds?: Iterable<string>;
   readonly startingSequence?: number;
   readonly startedTurnIds?: Iterable<string>;
@@ -23,7 +22,7 @@ export class OmnigentEventMapper {
 
   private readonly emittedStartedTurnIds: Set<string>;
   private readonly emittedTerminalTurnIds: Set<string>;
-  private readonly historicalTextTurnIds: Set<string>;
+  private readonly historicalItemIds: Set<string>;
   private nextSequence: number;
 
   constructor(
@@ -32,12 +31,21 @@ export class OmnigentEventMapper {
   ) {
     this.emittedStartedTurnIds = new Set(options.startedTurnIds ?? []);
     this.emittedTerminalTurnIds = new Set(options.terminalTurnIds ?? []);
-    this.historicalTextTurnIds = new Set(options.historicalTextTurnIds ?? []);
+    this.historicalItemIds = new Set(options.seenItemIds ?? []);
     this.seenItemIds = new Set(options.seenItemIds ?? []);
     this.nextSequence = options.startingSequence ?? 1;
   }
 
   map(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
+    const historicalItemKey =
+      rawEvent.itemId ??
+      (rawEvent.type === "response.output_text.delta"
+        ? rawEvent.message_id
+        : undefined);
+    if (historicalItemKey && this.historicalItemIds.has(historicalItemKey)) {
+      return [];
+    }
+
     const itemKey = rawEvent.itemId ?? rawEvent.id;
     if (itemKey && this.seenItemIds.has(itemKey)) {
       return [];
@@ -70,12 +78,6 @@ export class OmnigentEventMapper {
           }),
         ];
       case "response.output_text.delta":
-        if (
-          rawEvent.turnId &&
-          this.historicalTextTurnIds.has(rawEvent.turnId)
-        ) {
-          return [];
-        }
         return [
           this.createEvent({
             eventId: rawEvent.id,

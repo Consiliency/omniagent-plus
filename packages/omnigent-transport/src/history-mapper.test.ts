@@ -94,7 +94,6 @@ describe("history mapper", () => {
     );
 
     const liveMapper = new OmnigentEventMapper("session-v09", {
-      historicalTextTurnIds: mapped.historicalTextTurnIds,
       seenItemIds: mapped.seenItemIds,
       startedTurnIds: mapped.startedTurnIds,
       terminalTurnIds: mapped.terminalTurnIds,
@@ -102,13 +101,30 @@ describe("history mapper", () => {
     expect(
       liveMapper.map({
         delta: "answer",
-        id: "buffered-delta",
+        id: "message-assistant:0",
+        message_id: "message-assistant",
         occurredAt: "2026-08-12T19:00:00.000Z",
         sessionId: "session-v09",
         turnId: "response-1",
         type: "response.output_text.delta",
       }),
     ).toEqual([]);
+    expect(
+      liveMapper.map({
+        delta: "new answer",
+        id: "message-new:0",
+        message_id: "message-new",
+        occurredAt: "2026-08-12T19:00:00.000Z",
+        sessionId: "session-v09",
+        turnId: "response-1",
+        type: "response.output_text.delta",
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        payload: { delta: "new answer" },
+        type: "runtime.text.delta",
+      }),
+    ]);
     expect(
       liveMapper.map({
         id: "buffered-cancel",

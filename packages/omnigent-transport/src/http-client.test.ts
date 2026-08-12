@@ -255,6 +255,49 @@ describe("http client", () => {
     ]);
   });
 
+  it("rejects malformed session and child page rows", async () => {
+    for (const [path, row] of [
+      [
+        "/v1/sessions",
+        {
+          created_at: 1_780_272_000,
+          id: "session-unknown-status",
+          status: "surprising",
+          title: "Unknown",
+        },
+      ],
+      [
+        "/child_sessions",
+        {
+          created_at: "not-an-epoch",
+          id: "child-invalid-epoch",
+          status: "running",
+          title: "Invalid epoch",
+        },
+      ],
+    ] as const) {
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              data: [row],
+              first_id: row.id,
+              has_more: false,
+              last_id: row.id,
+            }),
+          ),
+      });
+
+      const request = path === "/v1/sessions"
+        ? client.listSessions()
+        : client.listChildSessions("session-parent");
+      await expect(request).rejects.toEqual(
+        expect.objectContaining({ category: "malformed_response" }),
+      );
+    }
+  });
+
   it("raises structured HTTP errors for invalid event requests", async () => {
     const server = await FakeOmnigentServer.start();
 

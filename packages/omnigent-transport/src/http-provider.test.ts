@@ -426,4 +426,33 @@ describe("http provider", () => {
       await server.stop();
     }
   });
+
+  it("starts reconnect events strictly after a cursor beyond persisted history", async () => {
+    const server = await FakeOmnigentServer.start();
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-reconnect-cursor" },
+        idempotencyKey: "reconnect-cursor-create",
+        initialMessage: "persisted input",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Reconnect cursor",
+      });
+      await provider.sendTurn({
+        idempotencyKey: "reconnect-cursor-turn",
+        message: "live output",
+        sessionId: session.id,
+      });
+      const events = await collectAsync(
+        provider.streamEvents(session.id, { afterSequence: 50 }),
+      );
+
+      expect(events.length).toBeGreaterThan(0);
+      expect(events.every((event) => event.sequence > 50)).toBe(true);
+      expect(events[0]?.sequence).toBe(51);
+    } finally {
+      await server.stop();
+    }
+  });
 });

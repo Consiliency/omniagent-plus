@@ -87,6 +87,88 @@ function epochToIso(value: unknown, field: string): string {
   return new Date(value * 1000).toISOString();
 }
 
+function sessionStatus(value: unknown): OmnigentSessionStatus {
+  if (
+    typeof value !== "string" ||
+    !(omnigentSessionStatuses as readonly string[]).includes(value)
+  ) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: `Omnigent response field status has unsupported value ${String(value)}.`,
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return value as OmnigentSessionStatus;
+}
+
+function normalizeSessionListItem(value: unknown): OmnigentSessionListItem {
+  return normalizeSessionSummary(value, "session") as OmnigentSessionListItem;
+}
+
+function normalizeChildSessionSummary(value: unknown): OmnigentChildSessionSummary {
+  return normalizeSessionSummary(value, "child session") as OmnigentChildSessionSummary;
+}
+
+function normalizeSessionSummary(
+  value: unknown,
+  label: string,
+): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: `Omnigent ${label} page row must be an object.`,
+      retryable: false,
+      scope: "session",
+    });
+  }
+  requiredString(value, "id");
+  sessionStatus(value.status);
+  epochToIso(value.created_at, "created_at");
+  if (value.updated_at != null) {
+    epochToIso(value.updated_at, "updated_at");
+  }
+  if (value.title !== null && typeof value.title !== "string") {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: `Omnigent ${label} page row field title must be a string or null.`,
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return value;
+}
+
+function normalizeConversationItem(value: unknown): OmnigentConversationItem {
+  if (!isRecord(value)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent conversation item must be an object.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  requiredString(value, "id");
+  requiredString(value, "response_id");
+  requiredString(value, "status");
+  requiredString(value, "type");
+  epochToIso(value.created_at, "created_at");
+  if (!isRecord(value.data)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent conversation item field data must be an object.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return value as unknown as OmnigentConversationItem;
+}
+
 function normalizeSession(
   value: unknown,
   fallbackTitle?: string,
@@ -102,17 +184,7 @@ function normalizeSession(
   }
   const wire = value as unknown as OmnigentWireSessionResponse;
   const id = requiredString(value, "id");
-  const rawStatus = requiredString(value, "status");
-  if (!(omnigentSessionStatuses as readonly string[]).includes(rawStatus)) {
-    throw createRuntimeFailure({
-      actor: "provider",
-      category: "malformed_response",
-      message: `Omnigent response field status has unsupported value ${rawStatus}.`,
-      retryable: false,
-      scope: "session",
-    });
-  }
-  const status = rawStatus as OmnigentSessionStatus;
+  const status = sessionStatus(value.status);
   const createdAt = epochToIso(value.created_at, "created_at");
   const updatedAt = epochToIso(
     value.updated_at ?? value.created_at,
@@ -212,7 +284,7 @@ export class OmnigentHttpClient {
   }
 
   async listSessions(): Promise<OmnigentSessionListItem[]> {
-    return this.requestAllPages<OmnigentSessionListItem>("/v1/sessions");
+    return this.requestAllPages("/v1/sessions", normalizeSessionListItem);
   }
 
   async listHarnesses(): Promise<OmnigentHarnessCatalogResponse> {
@@ -249,16 +321,18 @@ export class OmnigentHttpClient {
   }
 
   async getHistory(sessionId: string): Promise<OmnigentConversationItem[]> {
-    return this.requestAllPages<OmnigentConversationItem>(
+    return this.requestAllPages(
       `/v1/sessions/${encodeURIComponent(sessionId)}/items`,
+      normalizeConversationItem,
     );
   }
 
   async listChildSessions(
     sessionId: string,
   ): Promise<OmnigentChildSessionSummary[]> {
-    return this.requestAllPages<OmnigentChildSessionSummary>(
+    return this.requestAllPages(
       `/v1/sessions/${encodeURIComponent(sessionId)}/child_sessions`,
+      normalizeChildSessionSummary,
     );
   }
 
@@ -385,7 +459,10 @@ export class OmnigentHttpClient {
     return resolved;
   }
 
-  private async requestAllPages<T>(path: string): Promise<T[]> {
+  private async requestAllPages<T>(
+    path: string,
+    normalizeRow: (value: unknown) => T,
+  ): Promise<T[]> {
     const result: T[] = [];
     let after: string | undefined;
     const seenCursors = new Set<string>();
@@ -395,7 +472,7 @@ export class OmnigentHttpClient {
         order: "asc",
         ...(after === undefined ? {} : { after }),
       });
-      const page = await this.requestJson<OmnigentWirePage<T>>(
+      const page = await this.requestJson<OmnigentWirePage<unknown>>(
         "GET",
         `${path}?${query.toString()}`,
       );
@@ -408,7 +485,7 @@ export class OmnigentHttpClient {
           scope: "session",
         });
       }
-      result.push(...page.data);
+      result.push(...page.data.map(normalizeRow));
       if (!page.has_more) {
         return result;
       }

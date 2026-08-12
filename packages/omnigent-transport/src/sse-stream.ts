@@ -206,9 +206,10 @@ export class OmnigentSseNormalizer {
         tagged.type === "response.failed" ||
         tagged.type === "response.incomplete" ||
         tagged.type === "response.cancelled" ||
-        tagged.type === "turn.completed" ||
-        tagged.type === "turn.failed" ||
-        tagged.type === "turn.cancelled",
+        (explicitResponseId !== undefined &&
+          (tagged.type === "turn.completed" ||
+            tagged.type === "turn.failed" ||
+            tagged.type === "turn.cancelled")),
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
       turnId,
