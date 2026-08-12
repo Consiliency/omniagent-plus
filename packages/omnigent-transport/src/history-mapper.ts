@@ -14,6 +14,8 @@ import type {
 export interface MappedOmnigentHistory {
   readonly history: SessionHistory;
   readonly historicalTextByTurnId: Map<string, string>;
+  readonly historicalToolCallIds: Set<string>;
+  readonly historicalToolResultIds: Set<string>;
   readonly runtimeEvents: RuntimeEvent[];
   readonly seenItemIds: Set<string>;
   readonly startedTurnIds: Set<string>;
@@ -37,12 +39,20 @@ export function mapOmnigentHistory(
       ? runtimeEvents
       : runtimeEvents.filter((event) => event.sequence > afterSequence);
   const historicalTextByTurnId = new Map<string, string>();
+  const historicalToolCallIds = new Set<string>();
+  const historicalToolResultIds = new Set<string>();
   for (const event of runtimeEvents) {
     if (event.type === "runtime.text.delta" && event.turnId) {
       historicalTextByTurnId.set(
         event.turnId,
         `${historicalTextByTurnId.get(event.turnId) ?? ""}${event.payload.delta}`,
       );
+    }
+    if (event.type === "runtime.tool.call") {
+      historicalToolCallIds.add(event.payload.toolCall.toolCallId);
+    }
+    if (event.type === "runtime.tool.result") {
+      historicalToolResultIds.add(event.payload.toolCallId);
     }
   }
 
@@ -53,6 +63,8 @@ export function mapOmnigentHistory(
       sessionId,
     },
     historicalTextByTurnId,
+    historicalToolCallIds,
+    historicalToolResultIds,
     runtimeEvents,
     seenItemIds: new Set(mapper.seenItemIds),
     startedTurnIds: new Set(
@@ -101,6 +113,8 @@ export function mapOmnigentConversationHistory(
   const startedTurnIds = new Set<string>();
   const terminalTurnIds = new Set<string>();
   const historicalTextByTurnId = new Map<string, string>();
+  const historicalToolCallIds = new Set<string>();
+  const historicalToolResultIds = new Set<string>();
   let sequence = 1;
 
   const append = (
@@ -117,6 +131,32 @@ export function mapOmnigentConversationHistory(
     sequence += 1;
   };
 
+  const ensureStarted = (
+    item: OmnigentConversationItem,
+    data: Readonly<Record<string, unknown>>,
+    text: readonly string[],
+  ): void => {
+    const turnId = item.response_id;
+    if (startedTurnIds.has(turnId)) {
+      return;
+    }
+    startedTurnIds.add(turnId);
+    append({
+      eventId: `${item.id}:turn-started`,
+      occurredAt: itemTimestamp(item),
+      payload: {
+        message:
+          item.type === "message" && data.role === "user"
+            ? (text.join("\n") || `Omnigent turn ${turnId}`)
+            : `Omnigent turn ${turnId}`,
+        state: "running",
+      },
+      terminal: false,
+      turnId,
+      type: "runtime.turn.started",
+    });
+  };
+
   for (const item of items) {
     seenItemIds.add(item.id);
     const data = asRecord(item.data);
@@ -124,25 +164,14 @@ export function mapOmnigentConversationHistory(
     const occurredAt = itemTimestamp(item);
     const text = contentText(item);
 
-    if (!startedTurnIds.has(turnId)) {
-      startedTurnIds.add(turnId);
-      append({
-        eventId: `${item.id}:turn-started`,
-        occurredAt,
-        payload: {
-          message:
-            item.type === "message" && data.role === "user"
-              ? (text.join("\n") || `Omnigent turn ${turnId}`)
-              : `Omnigent turn ${turnId}`,
-          state: "running",
-        },
-        terminal: false,
-        turnId,
-        type: "runtime.turn.started",
-      });
-    }
-
-    if (item.type === "message" && data.role === "assistant") {
+    if (item.type === "message") {
+      if (data.is_meta === true || (data.role !== "user" && data.role !== "assistant")) {
+        continue;
+      }
+      ensureStarted(item, data, text);
+      if (data.role === "user") {
+        continue;
+      }
       historicalTextByTurnId.set(
         turnId,
         `${historicalTextByTurnId.get(turnId) ?? ""}${text.join("")}`,
@@ -175,6 +204,8 @@ export function mapOmnigentConversationHistory(
       const callId = typeof data.call_id === "string" ? data.call_id : undefined;
       const toolName = typeof data.name === "string" ? data.name : undefined;
       if (callId && toolName) {
+        ensureStarted(item, data, text);
+        historicalToolCallIds.add(callId);
         append({
           eventId: item.id,
           occurredAt,
@@ -199,6 +230,8 @@ export function mapOmnigentConversationHistory(
     if (item.type === "function_call_output") {
       const callId = typeof data.call_id === "string" ? data.call_id : undefined;
       if (callId) {
+        ensureStarted(item, data, text);
+        historicalToolResultIds.add(callId);
         append({
           eventId: item.id,
           occurredAt,
@@ -215,6 +248,7 @@ export function mapOmnigentConversationHistory(
     }
 
     if (item.type === "error" && !terminalTurnIds.has(turnId)) {
+      ensureStarted(item, data, text);
       terminalTurnIds.add(turnId);
       append({
         eventId: item.id,
@@ -252,6 +286,8 @@ export function mapOmnigentConversationHistory(
       sessionId,
     },
     historicalTextByTurnId,
+    historicalToolCallIds,
+    historicalToolResultIds,
     runtimeEvents,
     seenItemIds,
     startedTurnIds,

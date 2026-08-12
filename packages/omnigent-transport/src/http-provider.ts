@@ -220,6 +220,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         ) + 1;
       const mapper = new OmnigentEventMapper(sessionId, {
         historicalTextByTurnId: mappedSnapshot.historicalTextByTurnId,
+        historicalToolCallIds: mappedSnapshot.historicalToolCallIds,
+        historicalToolResultIds: mappedSnapshot.historicalToolResultIds,
         seenItemIds: mappedSnapshot.seenItemIds,
         startingSequence,
         startedTurnIds: mappedSnapshot.startedTurnIds,

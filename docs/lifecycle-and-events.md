@@ -65,7 +65,9 @@ persisted-item mapper never manufactures successful completion from an idle
 snapshot; success requires tagged response lifecycle evidence. Stream item IDs
 dedupe overlap with persisted history. When an official buffered text delta has
 no identity, only its matching persisted text prefix is consumed; mismatched or
-continued output remains live.
+continued output remains live. Tool overlap uses call identity even when the
+persisted and streamed item IDs differ. Metadata-only history rows never create
+a neutral turn lifecycle.
 
 `session.created` on a parent stream describes a child session and does not
 create a neutral root-session lifecycle event. The canonical CLI start remains

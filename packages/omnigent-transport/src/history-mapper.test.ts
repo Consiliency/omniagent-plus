@@ -97,6 +97,8 @@ describe("history mapper", () => {
 
     const liveMapper = new OmnigentEventMapper("session-v09", {
       historicalTextByTurnId: mapped.historicalTextByTurnId,
+      historicalToolCallIds: mapped.historicalToolCallIds,
+      historicalToolResultIds: mapped.historicalToolResultIds,
       seenItemIds: mapped.seenItemIds,
       startedTurnIds: mapped.startedTurnIds,
       terminalTurnIds: mapped.terminalTurnIds,
@@ -152,6 +154,8 @@ describe("history mapper", () => {
     });
     const liveMapper = new OmnigentEventMapper("session-123", {
       historicalTextByTurnId: history.historicalTextByTurnId,
+      historicalToolCallIds: history.historicalToolCallIds,
+      historicalToolResultIds: history.historicalToolResultIds,
       seenItemIds: history.seenItemIds,
       startedTurnIds: history.startedTurnIds,
       terminalTurnIds: history.terminalTurnIds,
@@ -166,6 +170,12 @@ describe("history mapper", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["answer"]);
+    expect(
+      history.runtimeEvents
+        .concat(liveEvents)
+        .filter((event) => event.type === "runtime.tool.call")
+        .map((event) => event.payload.toolCall.toolCallId),
+    ).toEqual(["call-1"]);
 
     const continuationMapper = new OmnigentEventMapper("session-123", {
       historicalTextByTurnId: history.historicalTextByTurnId,
@@ -185,5 +195,32 @@ describe("history mapper", () => {
         type: "runtime.text.delta",
       }),
     ]);
+  });
+
+  it("keeps metadata-only history rows from creating neutral lifecycle", () => {
+    for (const item of [
+      {
+        created_at: 1_780_272_000,
+        data: { routed_model: "model-routed" },
+        id: "routing-only",
+        response_id: "response-routing-only",
+        status: "completed",
+        type: "routing_decision",
+      },
+      {
+        created_at: 1_780_272_001,
+        data: {
+          content: [{ text: "hidden", type: "output_text" }],
+          is_meta: true,
+          role: "assistant",
+        },
+        id: "meta-only",
+        response_id: "response-meta-only",
+        status: "completed",
+        type: "message",
+      },
+    ] as OmnigentConversationItem[]) {
+      expect(mapOmnigentConversationHistory("session-metadata", [item]).runtimeEvents).toEqual([]);
+    }
   });
 });

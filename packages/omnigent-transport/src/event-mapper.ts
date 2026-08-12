@@ -12,6 +12,8 @@ function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
 
 export interface OmnigentEventMapperOptions {
   readonly historicalTextByTurnId?: Iterable<readonly [string, string]>;
+  readonly historicalToolCallIds?: Iterable<string>;
+  readonly historicalToolResultIds?: Iterable<string>;
   readonly seenItemIds?: Iterable<string>;
   readonly startingSequence?: number;
   readonly startedTurnIds?: Iterable<string>;
@@ -25,6 +27,8 @@ export class OmnigentEventMapper {
   private readonly emittedTerminalTurnIds: Set<string>;
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextRemainders: Map<string, string>;
+  private readonly emittedToolCallIds: Set<string>;
+  private readonly emittedToolResultIds: Set<string>;
   private nextSequence: number;
 
   constructor(
@@ -37,6 +41,8 @@ export class OmnigentEventMapper {
     this.historicalTextRemainders = new Map(
       options.historicalTextByTurnId ?? [],
     );
+    this.emittedToolCallIds = new Set(options.historicalToolCallIds ?? []);
+    this.emittedToolResultIds = new Set(options.historicalToolResultIds ?? []);
     this.seenItemIds = new Set(options.seenItemIds ?? []);
     this.nextSequence = options.startingSequence ?? 1;
   }
@@ -167,6 +173,10 @@ export class OmnigentEventMapper {
       if (!callId || !toolName) {
         return [];
       }
+      if (this.emittedToolCallIds.has(callId)) {
+        return [];
+      }
+      this.emittedToolCallIds.add(callId);
       return [
         this.createEvent({
           eventId: rawEvent.id,
@@ -193,6 +203,10 @@ export class OmnigentEventMapper {
       if (!callId) {
         return [];
       }
+      if (this.emittedToolResultIds.has(callId)) {
+        return [];
+      }
+      this.emittedToolResultIds.add(callId);
       return [
         this.createEvent({
           eventId: rawEvent.id,
