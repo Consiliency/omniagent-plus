@@ -664,7 +664,7 @@ describe("http provider", () => {
     expect(info.state).toBe("failed");
   });
 
-  it("ignores a late prior-turn terminal after accepting a new turn", async () => {
+  it("reconciles a new turn before ignoring a late prior-turn terminal", async () => {
     const snapshot = {
       active_response_id: null,
       agent_id: "agent-late-terminal",
@@ -756,41 +756,109 @@ describe("http provider", () => {
       message: "second",
       sessionId: session.id,
     });
-    for (const frame of [
-      {
-        response: {
-          error: { message: "first turn failed" },
-          id: "response-first",
-          status: "failed",
-        },
-        type: "response.failed",
-      },
-      { delta: "second turn output", type: "response.output_text.delta" },
-    ]) {
-      streamController?.enqueue(
-        new TextEncoder().encode(`data: ${JSON.stringify(frame)}\n\n`),
-      );
-    }
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-second", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    expect(await iterator.next()).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-second",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    expect(secondHandle.turnId).toBe("response-second");
+
+    const nextEvent = iterator.next();
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: {
+            error: { message: "first turn failed" },
+            id: "response-first",
+            status: "failed",
+          },
+          type: "response.failed",
+        })}\n\n`,
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const afterLateTerminal = await provider.getSessionInfo(session.id);
+    expect(afterLateTerminal.activeTurnId).toBe("response-second");
+    expect(afterLateTerminal.state).toBe("turn_active");
+
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          delta: "second turn output",
+          type: "response.output_text.delta",
+        })}\n\n`,
+      ),
+    );
     streamController?.close();
 
     const remaining = [];
+    const next = await nextEvent;
+    if (!next.done) {
+      remaining.push(next.value);
+    }
     for (;;) {
-      const next = await iterator.next();
-      if (next.done) {
+      const following = await iterator.next();
+      if (following.done) {
         break;
       }
-      remaining.push(next.value);
+      remaining.push(following.value);
     }
     expect(remaining).toEqual([
       expect.objectContaining({
         payload: { delta: "second turn output" },
-        turnId: secondHandle.turnId,
+        turnId: "response-second",
         type: "runtime.text.delta",
       }),
     ]);
+    expect(secondHandle.turnId).toBe("response-second");
     const info = await provider.getSessionInfo(session.id);
-    expect(info.activeTurnId).toBe(secondHandle.turnId);
+    expect(info.activeTurnId).toBe("response-second");
     expect(info.state).toBe("turn_active");
+  });
+
+  it("reconciles a provisional handle to the official lifecycle identity", async () => {
+    const server = await FakeOmnigentServer.start();
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-reconcile" },
+        idempotencyKey: "reconcile-create",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Reconcile",
+      });
+      const handle = await provider.sendTurn({
+        idempotencyKey: "reconcile-turn",
+        message: "reconcile me",
+        sessionId: session.id,
+      });
+      expect(handle.turnId).toBe("message-user-1");
+
+      const events = await collectAsync(provider.streamEvents(session.id));
+      const officialTurnId = events.find(
+        (event) => event.type === "runtime.turn.started",
+      )?.turnId;
+      expect(officialTurnId).toBeDefined();
+      expect(handle.turnId).toBe(officialTurnId);
+      expect(
+        events
+          .filter((event) => event.turnId !== undefined)
+          .every((event) => event.turnId === officialTurnId),
+      ).toBe(true);
+    } finally {
+      await server.stop();
+    }
   });
 
   it("starts reconnect events strictly after a cursor beyond persisted history", async () => {

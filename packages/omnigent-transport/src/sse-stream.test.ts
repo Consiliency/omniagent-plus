@@ -351,7 +351,7 @@ describe("sse stream parser", () => {
     ).toBeUndefined();
   });
 
-  it("preserves a new fallback across a late terminal for the prior turn", () => {
+  it("keeps prior terminal identity after a new response becomes official", () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-12T19:00:00.000Z",
       sessionId: "session-late-terminal",
@@ -364,6 +364,17 @@ describe("sse stream parser", () => {
     });
 
     normalizer.setFallbackTurnId("provisional-two");
+    expect(
+      normalizer.normalize({
+        response: { id: "response-two", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "provisional-two",
+        turnId: "response-two",
+      }),
+    );
     expect(
       normalizer.normalize({
         response: {
@@ -384,7 +395,27 @@ describe("sse stream parser", () => {
         delta: "current turn output",
         type: "response.output_text.delta",
       }).turnId,
-    ).toBe("provisional-two");
+    ).toBe("response-two");
+  });
+
+  it("binds snapshot response identity to the provisional fallback", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-snapshot-reconcile",
+    });
+    normalizer.setFallbackTurnId("provisional-snapshot");
+    normalizer.setActiveResponseId("response-snapshot");
+
+    expect(
+      normalizer.normalize({
+        delta: "snapshot-correlated",
+        type: "response.output_text.delta",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "provisional-snapshot",
+        turnId: "response-snapshot",
+      }),
+    );
   });
 
   it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {

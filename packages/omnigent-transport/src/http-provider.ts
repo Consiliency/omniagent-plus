@@ -90,6 +90,10 @@ function toSessionInfo(
   };
 }
 
+type MutableTurnHandle = {
+  -readonly [Key in keyof TurnHandle]: TurnHandle[Key];
+};
+
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly creates = new Map<string, Promise<AgentSession>>();
@@ -255,6 +259,14 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           sessionId,
           rawEvent,
         );
+        if (rawEvent.turnAliasId && rawEvent.turnId) {
+          this.reconcileActiveTurn(
+            sessionId,
+            rawEvent.turnAliasId,
+            rawEvent.turnId,
+            rawEvent.occurredAt,
+          );
+        }
         if (rawEvent.terminal) {
           if (!staleAliasedTerminal && isFailureTerminal(rawEvent)) {
             this.failActiveTurn(
@@ -414,6 +426,37 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       event.turnAliasId !== activeTurnId &&
       event.turnId !== activeTurnId
     );
+  }
+
+  private reconcileActiveTurn(
+    sessionId: string,
+    provisionalTurnId: string,
+    officialTurnId: string,
+    updatedAt: string,
+  ): void {
+    const session = this.sessions.get(sessionId);
+    if (
+      !session ||
+      session.activeTurnId !== provisionalTurnId ||
+      provisionalTurnId === officialTurnId
+    ) {
+      return;
+    }
+
+    const provisionalKey = `${sessionId}:${provisionalTurnId}`;
+    const handle = this.turns.get(provisionalKey);
+    if (handle) {
+      this.turns.delete(provisionalKey);
+      const mutableHandle = handle as MutableTurnHandle;
+      mutableHandle.turnId = officialTurnId;
+      mutableHandle.updatedAt = updatedAt;
+      this.turns.set(`${sessionId}:${officialTurnId}`, handle);
+    }
+    this.sessions.set(sessionId, {
+      ...session,
+      activeTurnId: officialTurnId,
+      updatedAt,
+    });
   }
 
   private clearActiveTurn(sessionId: string, updatedAt: string): void {

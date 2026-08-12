@@ -96,7 +96,8 @@ function parseFramePayload(
 export class OmnigentSseNormalizer {
   private currentResponseId: string | undefined;
   private fallbackTurnId: string | undefined;
-  private terminalAliasTurnId: string | undefined;
+  private readonly pendingTerminalTurnIds = new Set<string>();
+  private readonly responseAliases = new Map<string, string>();
   private frameOrdinal = 0;
   private readonly now: () => string;
 
@@ -106,10 +107,16 @@ export class OmnigentSseNormalizer {
 
   setActiveResponseId(responseId: string | null | undefined): void {
     this.currentResponseId = responseId ?? undefined;
+    if (this.currentResponseId && this.fallbackTurnId) {
+      this.responseAliases.set(this.currentResponseId, this.fallbackTurnId);
+    }
   }
 
   setFallbackTurnId(turnId: string | undefined): void {
     this.fallbackTurnId = turnId;
+    if (turnId !== undefined) {
+      this.currentResponseId = undefined;
+    }
   }
 
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
@@ -121,20 +128,46 @@ export class OmnigentSseNormalizer {
     const nestedResponseId = stringValue(response?.id);
     const explicitResponseId =
       stringValue(raw.response_id) ?? stringValue(data?.response_id);
-
-    if (nestedResponseId) {
-      this.currentResponseId = nestedResponseId;
-    } else if (explicitResponseId) {
-      this.currentResponseId = explicitResponseId;
-    }
-
+    const previousResponseId = this.currentResponseId;
+    const officialTurnId = nestedResponseId ?? explicitResponseId;
+    const status = statusValue(raw.status) ?? statusValue(response?.status);
+    const terminal =
+      tagged.type === "response.completed" ||
+      tagged.type === "response.failed" ||
+      tagged.type === "response.incomplete" ||
+      tagged.type === "response.cancelled" ||
+      (explicitResponseId !== undefined &&
+        (tagged.type === "turn.completed" ||
+          tagged.type === "turn.failed" ||
+          tagged.type === "turn.cancelled")) ||
+      (tagged.type === "session.status" &&
+        (status === "failed" ||
+          (status === "idle" && explicitResponseId !== undefined)));
     const isBareTurn = tagged.type.startsWith("turn.");
     const turnId = isBareTurn
       ? explicitResponseId
-      : nestedResponseId ??
-        explicitResponseId ??
-        this.currentResponseId ??
-        this.fallbackTurnId;
+      : officialTurnId ?? previousResponseId ?? this.fallbackTurnId;
+    let turnAliasId =
+      officialTurnId === undefined
+        ? previousResponseId === undefined
+          ? undefined
+          : this.responseAliases.get(previousResponseId)
+        : this.responseAliases.get(officialTurnId);
+    if (officialTurnId !== undefined && turnAliasId === undefined) {
+      if (!terminal && this.fallbackTurnId !== undefined) {
+        turnAliasId = this.fallbackTurnId;
+      } else if (terminal) {
+        const pendingTerminalTurnId =
+          this.pendingTerminalTurnIds.values().next().value;
+        turnAliasId =
+          officialTurnId === previousResponseId
+            ? this.fallbackTurnId
+            : pendingTerminalTurnId ?? this.fallbackTurnId;
+      }
+      if (turnAliasId !== undefined) {
+        this.responseAliases.set(officialTurnId, turnAliasId);
+      }
+    }
     const sessionId =
       stringValue(raw.conversation_id) ??
       stringValue(raw.session_id) ??
@@ -164,27 +197,6 @@ export class OmnigentSseNormalizer {
     const incompleteDetails = isRecord(response?.incomplete_details)
       ? response.incomplete_details
       : undefined;
-    const status = statusValue(raw.status) ?? statusValue(response?.status);
-    const terminal =
-      tagged.type === "response.completed" ||
-      tagged.type === "response.failed" ||
-      tagged.type === "response.incomplete" ||
-      tagged.type === "response.cancelled" ||
-      (explicitResponseId !== undefined &&
-        (tagged.type === "turn.completed" ||
-          tagged.type === "turn.failed" ||
-          tagged.type === "turn.cancelled")) ||
-      (tagged.type === "session.status" &&
-        (status === "failed" ||
-          (status === "idle" && explicitResponseId !== undefined)));
-    const officialTurnId = nestedResponseId ?? explicitResponseId;
-    const turnAliasId =
-      terminal &&
-      officialTurnId !== undefined &&
-      officialTurnId !== this.terminalAliasTurnId
-        ? this.terminalAliasTurnId
-        : undefined;
-
     const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
       action_id: stringValue(raw.action_id),
@@ -246,18 +258,28 @@ export class OmnigentSseNormalizer {
         : undefined,
     };
     if (normalized.terminal) {
-      if (officialTurnId === undefined && turnId === this.fallbackTurnId) {
-        this.terminalAliasTurnId = turnId;
-        this.fallbackTurnId = undefined;
-      } else {
-        this.terminalAliasTurnId = undefined;
-        if (turnAliasId === undefined) {
-          this.fallbackTurnId = undefined;
-        }
+      if (
+        officialTurnId === undefined &&
+        previousResponseId === undefined &&
+        turnId !== undefined &&
+        turnId === this.fallbackTurnId
+      ) {
+        this.pendingTerminalTurnIds.add(turnId);
       }
-      this.currentResponseId = undefined;
+      if (turnAliasId !== undefined) {
+        this.pendingTerminalTurnIds.delete(turnAliasId);
+      }
+      if (
+        officialTurnId === previousResponseId ||
+        (officialTurnId === undefined && turnId === previousResponseId)
+      ) {
+        this.currentResponseId = undefined;
+      }
+      if (turnId === this.fallbackTurnId || turnAliasId === this.fallbackTurnId) {
+        this.fallbackTurnId = undefined;
+      }
     } else if (officialTurnId !== undefined) {
-      this.terminalAliasTurnId = undefined;
+      this.currentResponseId = officialTurnId;
     }
     return normalized;
   }
