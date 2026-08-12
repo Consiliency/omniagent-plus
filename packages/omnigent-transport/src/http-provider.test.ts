@@ -430,6 +430,107 @@ describe("http provider", () => {
     }
   });
 
+  it("keeps provisional correlation through idle and retains status-only failure", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-idle-failure",
+      created_at: 1_780_272_000,
+      id: "session-idle-failure",
+      items: [],
+      status: "idle",
+      title: "Idle failure",
+      updated_at: 1_780_272_000,
+    };
+    const streamBody = [
+      {
+        conversation_id: snapshot.id,
+        status: "idle",
+        type: "session.status",
+      },
+      {
+        delta: "continued after idle",
+        type: "response.output_text.delta",
+      },
+      {
+        conversation_id: snapshot.id,
+        error: { code: "setup_failed", message: "turn setup failed" },
+        status: "failed",
+        type: "session.status",
+      },
+    ]
+      .map((frame) => `data: ${JSON.stringify(frame)}`)
+      .join("\n\n");
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(streamBody, {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        if (url.includes(`/v1/sessions/${snapshot.id}`)) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        throw new Error(`Unexpected request: ${init?.method ?? "GET"} ${url}`);
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "idle-failure-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "idle-failure-turn",
+      message: "start",
+      sessionId: session.id,
+    });
+    const idleSnapshotInfo = await provider.getSessionInfo(session.id);
+    expect(idleSnapshotInfo.activeTurnId).toBe(handle.turnId);
+    expect(idleSnapshotInfo.state).toBe("turn_active");
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          payload: { delta: "continued after idle" },
+          turnId: handle.turnId,
+          type: "runtime.text.delta",
+        }),
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            failure: expect.objectContaining({ message: "turn setup failed" }),
+            outcome: "failed",
+          }),
+          turnId: handle.turnId,
+          type: "runtime.turn.failed",
+        }),
+      ]),
+    );
+    const info = await provider.getSessionInfo(session.id);
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.lastError?.message).toBe("turn setup failed");
+    expect(info.state).toBe("failed");
+  });
+
   it("starts reconnect events strictly after a cursor beyond persisted history", async () => {
     const server = await FakeOmnigentServer.start();
     try {

@@ -110,6 +110,9 @@ export class OmnigentEventMapper {
       case "turn.failed":
         return this.mapFailedEvent(rawEvent);
       case "session.status":
+        return rawEvent.status === "failed"
+          ? this.mapFailedEvent(rawEvent)
+          : [];
       case "session.input.consumed":
       case "session.interrupted":
       case "session.child_session.updated":

@@ -73,6 +73,12 @@ Reconnect opens the SSE response first, then reads the snapshot and every
 history page before consuming buffered frames. The stream is always closed on
 exit. Tagged response lifecycle objects, snake-case session fields, missing
 timestamps, and identifier-free deltas normalize before the neutral mapper.
+An idle snapshot or id-less idle status does not clear a locally accepted turn:
+native terminals can report idle while paused mid-turn. Correlation clears on
+an authoritative terminal response, a response-correlated idle status, or a
+failed status. A correlated `session.status: failed` maps to one neutral turn
+failure, including setup
+failures that have no `response.failed`, and the tracked session remains failed.
 `session.created` carries the parent `conversation_id` and a distinct
 `child_session_id`; it does not synthesize neutral root-session creation. Bare
 uncorrelated `turn.*` frames are metadata-only.

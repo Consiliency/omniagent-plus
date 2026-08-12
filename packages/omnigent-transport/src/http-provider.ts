@@ -9,6 +9,7 @@ import {
   type HistoryOptions,
   type ProviderHealth,
   type RuntimeEvent,
+  type RuntimeFailure,
   type SendTurnRequest,
   type SessionHistory,
   type StreamOptions,
@@ -51,9 +52,16 @@ function toSessionInfo(
   snapshot: OmnigentSessionSnapshot,
   previous?: AgentSessionInfo,
 ): AgentSessionInfo {
+  const snapshotTurnId =
+    snapshot.activeTurnId ?? snapshot.activeResponseId ?? undefined;
+  const preserveActiveTurn =
+    snapshot.status === "idle" &&
+    snapshotTurnId === undefined &&
+    previous?.state === "turn_active";
+  const preserveFailure =
+    snapshot.status === "idle" && previous?.state === "failed";
   return {
-    activeTurnId:
-      snapshot.activeTurnId ?? snapshot.activeResponseId ?? undefined,
+    activeTurnId: preserveActiveTurn ? previous.activeTurnId : snapshotTurnId,
     correlationId: request.correlationId,
     createdAt: snapshot.createdAt,
     eventCursor: previous?.eventCursor ?? 0,
@@ -68,7 +76,10 @@ function toSessionInfo(
     repoRoot: request.repoRoot,
     rootSessionId: snapshot.id,
     runtime: "omnigent",
-    state: mapSessionState(snapshot.status),
+    state:
+      preserveActiveTurn || preserveFailure
+        ? previous.state
+        : mapSessionState(snapshot.status),
     targetHarness: request.targetHarness,
     targetProvider: request.targetProvider,
     title: snapshot.title,
@@ -200,6 +211,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const stream = await this.client.openSessionStream(sessionId);
     try {
       const snapshot = await this.client.getSession(sessionId);
+      stream.setFallbackTurnId(this.sessions.get(sessionId)?.activeTurnId);
       stream.setActiveResponseId(snapshot.activeResponseId);
       const items = await this.client.getHistory(sessionId);
       const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items, {
@@ -227,16 +239,22 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
 
       for await (const rawEvent of stream.events) {
+        const events = mapper.map(rawEvent);
+        const failure = events.find(
+          (event): event is Extract<RuntimeEvent, { type: "runtime.turn.failed" }> =>
+            event.type === "runtime.turn.failed",
+        )?.payload.failure;
         if (
-          rawEvent.terminal ||
-          (rawEvent.type === "session.status" &&
-            (rawEvent.status === "idle" || rawEvent.status === "failed"))
+          failure !== undefined ||
+          (rawEvent.type === "session.status" && rawEvent.status === "failed")
         ) {
+          this.failActiveTurn(sessionId, rawEvent.occurredAt, failure);
+        } else if (rawEvent.terminal) {
           this.clearActiveTurn(sessionId, rawEvent.occurredAt);
         } else if (rawEvent.turnId) {
           this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
         }
-        for (const event of mapper.map(rawEvent)) {
+        for (const event of events) {
           yield event;
         }
       }
@@ -362,6 +380,23 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         ...session,
         activeTurnId: undefined,
         state: "idle",
+        updatedAt,
+      });
+    }
+  }
+
+  private failActiveTurn(
+    sessionId: string,
+    updatedAt: string,
+    lastError?: RuntimeFailure,
+  ): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      this.sessions.set(sessionId, {
+        ...session,
+        activeTurnId: undefined,
+        lastError: lastError ?? session.lastError,
+        state: "failed",
         updatedAt,
       });
     }

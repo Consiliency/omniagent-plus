@@ -70,6 +70,37 @@ describe("event mapper", () => {
     );
   });
 
+  it("maps a correlated failed session status to one terminal failure", () => {
+    const failedStatus: OmnigentRawEvent = {
+      failure: {
+        category: "backend_unavailable",
+        message: "turn setup failed",
+      },
+      id: "session-failed",
+      occurredAt: "2026-06-30T00:00:00.000Z",
+      sessionId: "session-1",
+      status: "failed",
+      terminal: true,
+      turnId: "turn-setup",
+      type: "session.status",
+    };
+    const runtimeEvents = mapOmnigentEventSequence("session-1", [
+      failedStatus,
+      { ...failedStatus, id: "session-failed-duplicate" },
+    ]);
+
+    expect(runtimeEvents).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          failure: expect.objectContaining({ message: "turn setup failed" }),
+          outcome: "failed",
+        }),
+        turnId: "turn-setup",
+        type: "runtime.turn.failed",
+      }),
+    ]);
+  });
+
   it("treats child session-created frames as metadata-only", () => {
     const runtimeEvents = mapOmnigentEventSequence("session-1", [
       {

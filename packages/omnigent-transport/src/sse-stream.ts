@@ -95,6 +95,7 @@ function parseFramePayload(
 
 export class OmnigentSseNormalizer {
   private currentResponseId: string | undefined;
+  private fallbackTurnId: string | undefined;
   private frameOrdinal = 0;
   private readonly now: () => string;
 
@@ -104,6 +105,10 @@ export class OmnigentSseNormalizer {
 
   setActiveResponseId(responseId: string | null | undefined): void {
     this.currentResponseId = responseId ?? undefined;
+  }
+
+  setFallbackTurnId(turnId: string | undefined): void {
+    this.fallbackTurnId = turnId;
   }
 
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
@@ -125,7 +130,10 @@ export class OmnigentSseNormalizer {
     const isBareTurn = tagged.type.startsWith("turn.");
     const turnId = isBareTurn
       ? explicitResponseId
-      : nestedResponseId ?? explicitResponseId ?? this.currentResponseId;
+      : nestedResponseId ??
+        explicitResponseId ??
+        this.currentResponseId ??
+        this.fallbackTurnId;
     const sessionId =
       stringValue(raw.conversation_id) ??
       stringValue(raw.session_id) ??
@@ -155,6 +163,7 @@ export class OmnigentSseNormalizer {
     const incompleteDetails = isRecord(response?.incomplete_details)
       ? response.incomplete_details
       : undefined;
+    const status = statusValue(raw.status) ?? statusValue(response?.status);
 
     const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
@@ -205,8 +214,7 @@ export class OmnigentSseNormalizer {
         : undefined,
       sessionId,
       source: stringValue(raw.source),
-      status:
-        statusValue(raw.status) ?? statusValue(response?.status),
+      status,
       terminal:
         tagged.type === "response.completed" ||
         tagged.type === "response.failed" ||
@@ -215,7 +223,10 @@ export class OmnigentSseNormalizer {
         (explicitResponseId !== undefined &&
           (tagged.type === "turn.completed" ||
             tagged.type === "turn.failed" ||
-            tagged.type === "turn.cancelled")),
+            tagged.type === "turn.cancelled")) ||
+        (tagged.type === "session.status" &&
+          (status === "failed" ||
+            (status === "idle" && explicitResponseId !== undefined))),
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
       turnId,
@@ -224,12 +235,9 @@ export class OmnigentSseNormalizer {
         ? raw.usage_by_model
         : undefined,
     };
-    if (
-      normalized.terminal ||
-      (normalized.type === "session.status" &&
-        (normalized.status === "idle" || normalized.status === "failed"))
-    ) {
+    if (normalized.terminal) {
       this.currentResponseId = undefined;
+      this.fallbackTurnId = undefined;
     }
     return normalized;
   }

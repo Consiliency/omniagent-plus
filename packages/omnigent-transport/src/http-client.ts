@@ -434,6 +434,9 @@ export class OmnigentHttpClient {
       setActiveResponseId: (responseId) => {
         normalizer.setActiveResponseId(responseId);
       },
+      setFallbackTurnId: (turnId) => {
+        normalizer.setFallbackTurnId(turnId);
+      },
     };
   }
 

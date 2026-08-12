@@ -403,6 +403,7 @@ export interface OmnigentOpenStream {
   readonly events: AsyncIterable<OmnigentRawEvent>;
   close(): Promise<void>;
   setActiveResponseId(responseId: string | null | undefined): void;
+  setFallbackTurnId(turnId: string | undefined): void;
 }
 
 export interface OmnigentReadStateInput {

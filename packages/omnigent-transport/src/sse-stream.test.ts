@@ -289,6 +289,42 @@ describe("sse stream parser", () => {
     ]);
   });
 
+  it("preserves provisional correlation across an id-less idle status", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      now: () => "2026-08-12T19:00:00.000Z",
+      sessionId: "session-idle-flap",
+    });
+    normalizer.setFallbackTurnId("provisional-turn");
+
+    expect(
+      normalizer.normalize({
+        conversation_id: "session-idle-flap",
+        status: "idle",
+        type: "session.status",
+      }).turnId,
+    ).toBe("provisional-turn");
+    expect(
+      normalizer.normalize({
+        delta: "continued after idle",
+        type: "response.output_text.delta",
+      }).turnId,
+    ).toBe("provisional-turn");
+    expect(
+      normalizer.normalize({
+        conversation_id: "session-idle-flap",
+        response_id: "official-turn",
+        status: "idle",
+        type: "session.status",
+      }).terminal,
+    ).toBe(true);
+    expect(
+      normalizer.normalize({
+        delta: "after correlated idle",
+        type: "response.output_text.delta",
+      }).turnId,
+    ).toBeUndefined();
+  });
+
   it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-12T19:00:00.000Z",

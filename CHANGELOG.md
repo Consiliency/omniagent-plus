@@ -20,7 +20,9 @@ here. These packages were never published under any other scope.
   parent and child IDs on `session.created`, require official session/list
   `agent_id` and list `updated_at`, distinguish snapshot status from the
   SSE-only `launching` transition, preserve the official routing-decision
-  fields, and enforce the named-agent-only resolver boundary.
+  fields, preserve provisional turn correlation across ambiguous native idle
+  edges, map status-only setup failures, and enforce the named-agent-only
+  resolver boundary.
 - Add process-local create/send idempotency and provisional accepted turn
   identity without inventing upstream response fields.
 - Classify `omnigent server start` as a hidden deprecated alias while retaining
