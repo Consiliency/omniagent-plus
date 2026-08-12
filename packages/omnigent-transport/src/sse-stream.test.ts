@@ -351,6 +351,42 @@ describe("sse stream parser", () => {
     ).toBeUndefined();
   });
 
+  it("preserves a new fallback across a late terminal for the prior turn", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      now: () => "2026-08-12T19:00:00.000Z",
+      sessionId: "session-late-terminal",
+    });
+    normalizer.setFallbackTurnId("provisional-one");
+    normalizer.normalize({
+      conversation_id: "session-late-terminal",
+      status: "failed",
+      type: "session.status",
+    });
+
+    normalizer.setFallbackTurnId("provisional-two");
+    expect(
+      normalizer.normalize({
+        response: {
+          error: { message: "late failure" },
+          id: "response-one",
+          status: "failed",
+        },
+        type: "response.failed",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "provisional-one",
+        turnId: "response-one",
+      }),
+    );
+    expect(
+      normalizer.normalize({
+        delta: "current turn output",
+        type: "response.output_text.delta",
+      }).turnId,
+    ).toBe("provisional-two");
+  });
+
   it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-12T19:00:00.000Z",

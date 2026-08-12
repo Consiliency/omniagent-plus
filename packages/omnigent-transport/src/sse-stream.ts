@@ -110,9 +110,6 @@ export class OmnigentSseNormalizer {
 
   setFallbackTurnId(turnId: string | undefined): void {
     this.fallbackTurnId = turnId;
-    if (turnId !== undefined) {
-      this.terminalAliasTurnId = undefined;
-    }
   }
 
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
@@ -251,11 +248,14 @@ export class OmnigentSseNormalizer {
     if (normalized.terminal) {
       if (officialTurnId === undefined && turnId === this.fallbackTurnId) {
         this.terminalAliasTurnId = turnId;
+        this.fallbackTurnId = undefined;
       } else {
         this.terminalAliasTurnId = undefined;
+        if (turnAliasId === undefined) {
+          this.fallbackTurnId = undefined;
+        }
       }
       this.currentResponseId = undefined;
-      this.fallbackTurnId = undefined;
     } else if (officialTurnId !== undefined) {
       this.terminalAliasTurnId = undefined;
     }

@@ -251,14 +251,20 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (event): event is Extract<RuntimeEvent, { type: "runtime.turn.failed" }> =>
             event.type === "runtime.turn.failed",
         )?.payload.failure;
-        if (isFailureTerminal(rawEvent)) {
-          this.failActiveTurn(
-            sessionId,
-            rawEvent.occurredAt,
-            mappedFailure ?? failureFromRawEvent(rawEvent),
-          );
-        } else if (rawEvent.terminal) {
-          this.clearActiveTurn(sessionId, rawEvent.occurredAt);
+        const staleAliasedTerminal = this.isStaleAliasedTerminal(
+          sessionId,
+          rawEvent,
+        );
+        if (rawEvent.terminal) {
+          if (!staleAliasedTerminal && isFailureTerminal(rawEvent)) {
+            this.failActiveTurn(
+              sessionId,
+              rawEvent.occurredAt,
+              mappedFailure ?? failureFromRawEvent(rawEvent),
+            );
+          } else if (!staleAliasedTerminal) {
+            this.clearActiveTurn(sessionId, rawEvent.occurredAt);
+          }
         } else if (rawEvent.turnId) {
           this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
         }
@@ -394,6 +400,20 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (streams?.size === 0) {
       this.openStreams.delete(sessionId);
     }
+  }
+
+  private isStaleAliasedTerminal(
+    sessionId: string,
+    event: OmnigentRawEvent,
+  ): boolean {
+    const activeTurnId = this.sessions.get(sessionId)?.activeTurnId;
+    return (
+      event.terminal === true &&
+      event.turnAliasId !== undefined &&
+      activeTurnId !== undefined &&
+      event.turnAliasId !== activeTurnId &&
+      event.turnId !== activeTurnId
+    );
   }
 
   private clearActiveTurn(sessionId: string, updatedAt: string): void {

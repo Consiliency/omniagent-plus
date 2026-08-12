@@ -254,6 +254,32 @@ describe("http client", () => {
     }
   });
 
+  it("rejects empty continuing pages for every paginated endpoint", async () => {
+    for (const request of [
+      (client: OmnigentHttpClient) => client.listSessions(),
+      (client: OmnigentHttpClient) => client.getHistory("session-empty-page"),
+      (client: OmnigentHttpClient) =>
+        client.listChildSessions("session-empty-page"),
+    ]) {
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: true,
+              last_id: "cursor-after-empty-page",
+            }),
+          ),
+      });
+
+      await expect(request(client)).rejects.toEqual(
+        expect.objectContaining({ category: "malformed_response" }),
+      );
+    }
+  });
+
   it("normalizes nullable session wire and preserves child routing metadata", async () => {
     const wire = loadOmnigentV09WireContract();
     const client = new OmnigentHttpClient({

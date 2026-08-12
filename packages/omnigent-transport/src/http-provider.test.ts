@@ -664,6 +664,135 @@ describe("http provider", () => {
     expect(info.state).toBe("failed");
   });
 
+  it("ignores a late prior-turn terminal after accepting a new turn", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-late-terminal",
+      created_at: 1_780_272_000,
+      id: "session-late-terminal",
+      items: [],
+      status: "idle",
+      title: "Late terminal",
+      updated_at: 1_780_272_000,
+    };
+    let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+    let resolveHistoryReady: (() => void) | undefined;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady?.();
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        if (url.includes(`/v1/sessions/${snapshot.id}`)) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        throw new Error(`Unexpected request: ${init?.method ?? "GET"} ${url}`);
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "late-terminal-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const firstHandle = await provider.sendTurn({
+      idempotencyKey: "late-terminal-first",
+      message: "first",
+      sessionId: session.id,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          conversation_id: snapshot.id,
+          error: { message: "first turn failed" },
+          status: "failed",
+          type: "session.status",
+        })}\n\n`,
+      ),
+    );
+    expect(await firstEvent).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: firstHandle.turnId,
+          type: "runtime.turn.failed",
+        }),
+      }),
+    );
+
+    const secondHandle = await provider.sendTurn({
+      idempotencyKey: "late-terminal-second",
+      message: "second",
+      sessionId: session.id,
+    });
+    for (const frame of [
+      {
+        response: {
+          error: { message: "first turn failed" },
+          id: "response-first",
+          status: "failed",
+        },
+        type: "response.failed",
+      },
+      { delta: "second turn output", type: "response.output_text.delta" },
+    ]) {
+      streamController?.enqueue(
+        new TextEncoder().encode(`data: ${JSON.stringify(frame)}\n\n`),
+      );
+    }
+    streamController?.close();
+
+    const remaining = [];
+    for (;;) {
+      const next = await iterator.next();
+      if (next.done) {
+        break;
+      }
+      remaining.push(next.value);
+    }
+    expect(remaining).toEqual([
+      expect.objectContaining({
+        payload: { delta: "second turn output" },
+        turnId: secondHandle.turnId,
+        type: "runtime.text.delta",
+      }),
+    ]);
+    const info = await provider.getSessionInfo(session.id);
+    expect(info.activeTurnId).toBe(secondHandle.turnId);
+    expect(info.state).toBe("turn_active");
+  });
+
   it("starts reconnect events strictly after a cursor beyond persisted history", async () => {
     const server = await FakeOmnigentServer.start();
     try {

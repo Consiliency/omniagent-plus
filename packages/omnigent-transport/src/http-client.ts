@@ -529,6 +529,7 @@ export class OmnigentHttpClient {
         return result;
       }
       if (
+        page.data.length === 0 ||
         typeof page.last_id !== "string" ||
         page.last_id.length === 0 ||
         seenCursors.has(page.last_id)
