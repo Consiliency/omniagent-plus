@@ -201,7 +201,13 @@ describe("history mapper", () => {
     for (const item of [
       {
         created_at: 1_780_272_000,
-        data: { routed_model: "model-routed" },
+        data: {
+          applied: true,
+          decision_id: "route-metadata-only",
+          model: "model-routed",
+          rationale: "Selected for the task.",
+          scope: "turn",
+        },
         id: "routing-only",
         response_id: "response-routing-only",
         status: "completed",

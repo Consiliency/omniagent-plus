@@ -50,6 +50,20 @@ describe("official Omnigent v0.9 conformance", () => {
       "SessionStatusEvent",
       "UpdateSessionRequest",
     ]);
+    const routingDecision = wire.conversation_items.find(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        item.type === "routing_decision",
+    ) as { data: unknown };
+    expect(routingDecision.data).toEqual({
+      applied: true,
+      decision_id: "route-1",
+      model: "model-routed",
+      rationale: "Selected for the task.",
+      scope: "turn",
+    });
     expect(omnigentStreamEventTypes).toHaveLength(52);
     expect(cli.documented_commands).toContain("omnigent server --background");
     expect(cli.documented_commands).not.toContain("omnigent server start");
@@ -89,6 +103,7 @@ describe("official Omnigent v0.9 conformance", () => {
       expect(snapshot).toEqual(
         expect.objectContaining({
           active_response_id: null,
+          agent_id: "agent-conformance",
           created_at: expect.any(Number),
           id: expect.any(String),
           items: [],
@@ -105,6 +120,12 @@ describe("official Omnigent v0.9 conformance", () => {
       expect(list).toEqual(
         expect.objectContaining({ data: expect.any(Array), has_more: false }),
       );
+      expect(list.data).toEqual([
+        expect.objectContaining({
+          agent_id: "agent-conformance",
+          updated_at: expect.any(Number),
+        }),
+      ]);
 
       const sessionId = String(snapshot.id);
       const turn = await fetch(`${server.baseUrl}/v1/sessions/${sessionId}/events`, {

@@ -25,8 +25,6 @@ import type {
 
 function mapSessionState(status: OmnigentSessionSnapshot["status"]): AgentSessionState {
   switch (status) {
-    case "launching":
-      return "starting";
     case "running":
     case "waiting":
       return "turn_active";

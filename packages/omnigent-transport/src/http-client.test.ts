@@ -162,6 +162,7 @@ describe("http client", () => {
       fetch: async () =>
         new Response(
           JSON.stringify({
+            agent_id: "agent-malformed-status",
             created_at: 1_780_272_000,
             id: "session-malformed-status",
             items: [],
@@ -241,6 +242,7 @@ describe("http client", () => {
     expect(session).toEqual(
       expect.objectContaining({
         activeResponseId: null,
+        agentId: "agent-session-123",
         createdAt: "2026-06-01T00:00:00.000Z",
         subagentRoutingOverride: "smart",
         title: "Omnigent session session-123",
@@ -260,15 +262,62 @@ describe("http client", () => {
     expect(children[0]).not.toHaveProperty("status");
   });
 
+  it("accepts an official session response without optional items", async () => {
+    const wire = loadOmnigentV09WireContract();
+    const sessionResponse = wire.session_response as Record<string, unknown>;
+    const { items: _items, ...withoutItems } = sessionResponse;
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () => new Response(JSON.stringify(withoutItems)),
+    });
+
+    await expect(client.getSession("session-123")).resolves.toEqual(
+      expect.objectContaining({
+        agentId: "agent-session-123",
+        items: [],
+      }),
+    );
+  });
+
   it("rejects malformed session and child page rows", async () => {
     for (const [path, row] of [
       [
         "/v1/sessions",
         {
+          agent_id: "agent-unknown-status",
           created_at: 1_780_272_000,
           id: "session-unknown-status",
           status: "surprising",
           title: "Unknown",
+          updated_at: 1_780_272_000,
+        },
+      ],
+      [
+        "/v1/sessions",
+        {
+          created_at: 1_780_272_000,
+          id: "session-missing-agent",
+          status: "idle",
+          updated_at: 1_780_272_000,
+        },
+      ],
+      [
+        "/v1/sessions",
+        {
+          agent_id: "agent-missing-updated",
+          created_at: 1_780_272_000,
+          id: "session-missing-updated",
+          status: "idle",
+        },
+      ],
+      [
+        "/v1/sessions",
+        {
+          agent_id: "agent-launching",
+          created_at: 1_780_272_000,
+          id: "session-launching",
+          status: "launching",
+          updated_at: 1_780_272_000,
         },
       ],
       [

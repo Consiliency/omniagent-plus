@@ -30,6 +30,11 @@ user message item; workspace uses `worktree.path ?? repoRoot`.
 The session, history, and child-list surfaces use official wire shapes:
 
 - session timestamps are Unix epochs and normalize to required ISO strings
+- session responses and list rows require `agent_id`; list rows also require
+  `updated_at`
+- snapshot and list status is `idle`, `running`, `waiting`, or `failed`, while
+  the SSE-only `SessionStatusEvent` additionally permits transitional
+  `launching`
 - nullable titles receive a deterministic local fallback
 - session and child lists are cursor page envelopes
 - child summaries require `parent_session_id` and epoch timestamps; their
@@ -38,8 +43,10 @@ The session, history, and child-list surfaces use official wire shapes:
 - `/items` returns cursor-paginated `ConversationItem` rows
 - every page is requested ascending at limit 1000 and a non-advancing cursor
   is rejected as malformed
-- `routed_model`, `routing_decision_id`, routing overrides, and `blocked_on`
-  remain read-only metadata
+- routing decisions require `model`, `applied`, and `rationale`, with optional
+  `decision_id`, source, scope, agent, harness, and override fields; routing
+  decisions, child `routed_model`/`routing_decision_id`, routing overrides, and
+  `blocked_on` remain read-only metadata
 
 Send-turn uses exactly:
 

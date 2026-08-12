@@ -107,6 +107,7 @@ function textFromMessage(event: OmnigentSendEventInput): string {
 
 function listItem(snapshot: OmnigentWireSessionResponse): OmnigentSessionListItem {
   return {
+    agent_id: snapshot.agent_id,
     created_at: snapshot.created_at,
     id: snapshot.id,
     kind: snapshot.kind,
@@ -114,7 +115,7 @@ function listItem(snapshot: OmnigentWireSessionResponse): OmnigentSessionListIte
     project_id: snapshot.project_id,
     status: snapshot.status,
     title: snapshot.title,
-    updated_at: snapshot.updated_at,
+    updated_at: snapshot.updated_at ?? snapshot.created_at,
   };
 }
 
@@ -220,6 +221,7 @@ export class FakeOmnigentServer {
       );
       const snapshot: OmnigentWireSessionResponse = {
         active_response_id: this.options.activeResponseId ?? null,
+        agent_id: payload.agent_id,
         background_task_count: 0,
         created_at: timestamp(),
         id: sessionId,

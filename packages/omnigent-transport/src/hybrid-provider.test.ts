@@ -45,6 +45,7 @@ describe("hybrid provider", () => {
       async getSessionInfo() {
         return {
           session: {
+            agentId: "agent-hybrid",
             backend: "omnigent-http",
             createdAt: "2026-06-30T00:00:00.000Z",
             id: "unused",

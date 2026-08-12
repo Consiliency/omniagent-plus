@@ -1,6 +1,6 @@
 import {
   omnigentResponseStatuses,
-  omnigentSessionStatuses,
+  omnigentSessionEventStatuses,
   omnigentStreamEventTypes,
   type OmnigentRawEvent,
   type OmnigentTaggedSseEvent,
@@ -45,7 +45,7 @@ function numberValue(value: unknown): number | undefined {
 function statusValue(value: unknown): OmnigentRawEvent["status"] {
   return typeof value === "string" &&
     [
-      ...omnigentSessionStatuses,
+      ...omnigentSessionEventStatuses,
       ...omnigentResponseStatuses,
     ].includes(value as never)
     ? (value as OmnigentRawEvent["status"])

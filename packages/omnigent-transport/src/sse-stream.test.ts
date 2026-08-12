@@ -320,9 +320,9 @@ describe("sse stream parser", () => {
     expect(
       normalizer.normalize({
         conversation_id: "session-seed",
-        status: "idle",
+        status: "launching",
         type: "session.status",
-      }).turnId,
-    ).toBeUndefined();
+      }),
+    ).toEqual(expect.objectContaining({ status: "launching", turnId: undefined }));
   });
 });

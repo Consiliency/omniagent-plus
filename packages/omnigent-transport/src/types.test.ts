@@ -5,6 +5,7 @@ import {
   omnigentMcpServerStartupStatuses,
   omnigentProviderModes,
   omnigentResponseStatuses,
+  omnigentSessionEventStatuses,
   omnigentSessionStatuses,
   omnigentStreamEventTypes,
   type OmnigentHarnessCatalogResponse,
@@ -20,6 +21,7 @@ describe("transport types", () => {
       baseUrl: "http://127.0.0.1:4010",
     };
     const snapshot: OmnigentSessionSnapshot = {
+      agentId: "agent-session-1",
       id: "session-1",
       title: "transport test",
       status: "idle",
@@ -70,6 +72,7 @@ describe("transport types", () => {
     const modelOption: OmnigentNativeModelOption | undefined =
       snapshot.modelOptions?.[0];
     const camelSnapshot: OmnigentSessionSnapshot = {
+      agentId: "agent-session-camel",
       backend: "omnigent-http",
       createdAt: "2026-06-30T00:00:00.000Z",
       id: "session-camel",
@@ -126,6 +129,12 @@ describe("transport types", () => {
     expect(omnigentProviderModes).toEqual(["http", "cli", "hybrid"]);
     expect(omnigentCapabilityStatuses).toContain("emulated");
     expect(omnigentSessionStatuses).toEqual([
+      "idle",
+      "running",
+      "waiting",
+      "failed",
+    ]);
+    expect(omnigentSessionEventStatuses).toEqual([
       "idle",
       "launching",
       "running",

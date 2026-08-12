@@ -24,12 +24,21 @@ export type OmnigentCapabilityStatus =
 
 export const omnigentSessionStatuses = [
   "idle",
-  "launching",
   "running",
   "waiting",
   "failed",
 ] as const;
 export type OmnigentSessionStatus = (typeof omnigentSessionStatuses)[number];
+
+export const omnigentSessionEventStatuses = [
+  "idle",
+  "launching",
+  "running",
+  "waiting",
+  "failed",
+] as const;
+export type OmnigentSessionEventStatus =
+  (typeof omnigentSessionEventStatuses)[number];
 
 export const omnigentResponseStatuses = [
   "queued",
@@ -162,6 +171,7 @@ export interface OmnigentNativeModelOption {
 }
 
 export interface OmnigentSessionSnapshot {
+  readonly agentId: string;
   readonly id: string;
   readonly title: string;
   readonly status: OmnigentSessionStatus;
@@ -195,10 +205,11 @@ export interface OmnigentWirePage<T> {
 export interface OmnigentWireSessionResponse {
   readonly [key: string]: unknown;
   readonly active_response_id?: string | null;
+  readonly agent_id: string;
   readonly background_task_count?: number | null;
   readonly created_at: number;
   readonly id: string;
-  readonly items: OmnigentConversationItem[];
+  readonly items?: OmnigentConversationItem[];
   readonly kind?: string;
   readonly mcp_startup?: Readonly<Record<string, OmnigentMcpServerStartup>> | null;
   readonly model_options?: readonly OmnigentNativeModelOption[];
@@ -214,14 +225,15 @@ export interface OmnigentWireSessionResponse {
 
 export interface OmnigentSessionListItem {
   readonly [key: string]: unknown;
+  readonly agent_id: string;
   readonly created_at: number;
   readonly id: string;
   readonly kind?: string;
   readonly parent_session_id?: string | null;
   readonly project_id?: string | null;
   readonly status: OmnigentSessionStatus;
-  readonly title: string | null;
-  readonly updated_at?: number | null;
+  readonly title?: string | null;
+  readonly updated_at: number;
 }
 
 export interface OmnigentChildSessionSummary {
@@ -280,8 +292,16 @@ export interface OmnigentNativeToolData {
 
 export interface OmnigentRoutingDecisionData {
   readonly [key: string]: unknown;
-  readonly requested_model?: string | null;
-  readonly routed_model?: string | null;
+  readonly agent?: string | null;
+  readonly applied: boolean;
+  readonly attempted_override?: string | null;
+  readonly decision_id?: string | null;
+  readonly harness?: string | null;
+  readonly model: string;
+  readonly rationale: string;
+  readonly raw_model?: string | null;
+  readonly router_source?: string | null;
+  readonly scope?: "session" | "turn" | "child_session" | "native_subagent";
 }
 
 export type OmnigentConversationItemType =
@@ -341,7 +361,7 @@ export interface OmnigentRawEvent {
   readonly response_id?: string;
   readonly itemId?: string;
   readonly terminal?: boolean;
-  readonly status?: OmnigentSessionStatus | OmnigentResponseStatus;
+  readonly status?: OmnigentSessionEventStatus | OmnigentResponseStatus;
   readonly reason?: string;
   readonly phase?: string;
   readonly servers?: Readonly<Record<string, OmnigentMcpServerStartup>>;

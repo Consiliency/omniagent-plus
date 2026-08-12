@@ -15,6 +15,7 @@ describe("http provider", () => {
   it("preserves v0.5 MCP startup metadata without synthesizing empty metadata", async () => {
     const snapshot = {
       active_response_id: null,
+      agent_id: "agent-mcp-startup",
       created_at: 1_780_272_000,
       id: "session-mcp-startup",
       items: [],
@@ -282,6 +283,7 @@ describe("http provider", () => {
             return new Response(
               JSON.stringify({
                 active_response_id: null,
+                agent_id: "agent-ack",
                 created_at: 1_780_272_000,
                 id: "session-ack",
                 items: [],
@@ -356,6 +358,7 @@ describe("http provider", () => {
           return new Response(
             JSON.stringify({
               active_response_id: null,
+              agent_id: "agent-close",
               created_at: 1_780_272_000,
               id: "session-close",
               items: [],

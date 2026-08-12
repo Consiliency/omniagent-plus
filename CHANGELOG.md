@@ -17,8 +17,10 @@ here. These packages were never published under any other scope.
   dedupe tool overlap by call identity, prevent metadata-only history rows from
   creating lifecycle, retain bare turn frames as metadata-only, validate
   external session/page rows against distinct parent/child schemas, preserve
-  parent and child IDs on `session.created`, and enforce the named-agent-only
-  resolver boundary.
+  parent and child IDs on `session.created`, require official session/list
+  `agent_id` and list `updated_at`, distinguish snapshot status from the
+  SSE-only `launching` transition, preserve the official routing-decision
+  fields, and enforce the named-agent-only resolver boundary.
 - Add process-local create/send idempotency and provisional accepted turn
   identity without inventing upstream response fields.
 - Classify `omnigent server start` as a hidden deprecated alias while retaining

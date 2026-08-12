@@ -247,6 +247,7 @@ export function createCommandBackedCliTransport(
 }
 
 export class OmnigentCliProvider implements AgentRuntimeProvider {
+  private readonly sessionAgentIds = new Map<string, string>();
   private readonly sessions = new Map<string, AgentSessionInfo>();
 
   constructor(private readonly transport: OmnigentCliSessionTransport) {}
@@ -254,6 +255,7 @@ export class OmnigentCliProvider implements AgentRuntimeProvider {
   async createSession(request: CreateSessionRequest): Promise<AgentSession> {
     const snapshot = await this.transport.createSession(request);
     const session = toSessionInfo(request, snapshot);
+    this.sessionAgentIds.set(session.id, snapshot.agentId);
     this.sessions.set(session.id, session);
     return session;
   }
@@ -272,6 +274,7 @@ export class OmnigentCliProvider implements AgentRuntimeProvider {
 
     const result = await this.transport.sendTurn(request, {
       activeTurnId: session.activeTurnId,
+      agentId: this.sessionAgentIds.get(session.id)!,
       backend: "omnigent-cli",
       createdAt: session.createdAt,
       id: session.id,

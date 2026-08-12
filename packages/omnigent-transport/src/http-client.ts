@@ -104,7 +104,30 @@ function sessionStatus(value: unknown): OmnigentSessionStatus {
 }
 
 function normalizeSessionListItem(value: unknown): OmnigentSessionListItem {
-  return normalizeSessionSummary(value, "session") as OmnigentSessionListItem;
+  if (!isRecord(value)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session page row must be an object.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  requiredString(value, "id");
+  requiredString(value, "agent_id");
+  sessionStatus(value.status);
+  epochToIso(value.created_at, "created_at");
+  epochToIso(value.updated_at, "updated_at");
+  if (value.title != null && typeof value.title !== "string") {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session page row field title must be a string or null.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return value as unknown as OmnigentSessionListItem;
 }
 
 function normalizeChildSessionSummary(value: unknown): OmnigentChildSessionSummary {
@@ -140,37 +163,6 @@ function normalizeChildSessionSummary(value: unknown): OmnigentChildSessionSumma
     });
   }
   return value as unknown as OmnigentChildSessionSummary;
-}
-
-function normalizeSessionSummary(
-  value: unknown,
-  label: string,
-): Record<string, unknown> {
-  if (!isRecord(value)) {
-    throw createRuntimeFailure({
-      actor: "provider",
-      category: "malformed_response",
-      message: `Omnigent ${label} page row must be an object.`,
-      retryable: false,
-      scope: "session",
-    });
-  }
-  requiredString(value, "id");
-  sessionStatus(value.status);
-  epochToIso(value.created_at, "created_at");
-  if (value.updated_at != null) {
-    epochToIso(value.updated_at, "updated_at");
-  }
-  if (value.title !== null && typeof value.title !== "string") {
-    throw createRuntimeFailure({
-      actor: "provider",
-      category: "malformed_response",
-      message: `Omnigent ${label} page row field title must be a string or null.`,
-      retryable: false,
-      scope: "session",
-    });
-  }
-  return value;
 }
 
 function normalizeConversationItem(value: unknown): OmnigentConversationItem {
@@ -215,13 +207,14 @@ function normalizeSession(
   }
   const wire = value as unknown as OmnigentWireSessionResponse;
   const id = requiredString(value, "id");
+  const agentId = requiredString(value, "agent_id");
   const status = sessionStatus(value.status);
   const createdAt = epochToIso(value.created_at, "created_at");
   const updatedAt = epochToIso(
     value.updated_at ?? value.created_at,
     value.updated_at == null ? "created_at" : "updated_at",
   );
-  if (!Array.isArray(value.items)) {
+  if (value.items !== undefined && !Array.isArray(value.items)) {
     throw createRuntimeFailure({
       actor: "provider",
       category: "malformed_response",
@@ -236,6 +229,7 @@ function normalizeSession(
       : fallbackTitle ?? `Omnigent session ${id}`;
 
   return {
+    agentId,
     activeResponseId:
       typeof wire.active_response_id === "string"
         ? wire.active_response_id
@@ -247,7 +241,7 @@ function normalizeSession(
         : null,
     createdAt,
     id,
-    items: wire.items,
+    items: wire.items ?? [],
     kind: typeof wire.kind === "string" ? wire.kind : undefined,
     mcpStartup: wire.mcp_startup,
     metadata: isRecord(value.metadata) ? value.metadata : undefined,
