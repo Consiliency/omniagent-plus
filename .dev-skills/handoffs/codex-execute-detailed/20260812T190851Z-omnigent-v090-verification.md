@@ -1,6 +1,6 @@
 # Omnigent v0.9 execution verification
 
-Summary: PASS - official Omnigent v0.9 tagged-wire adaptation satisfies 17/17 acceptance criteria at the pre-publication worktree state.
+Summary: PRE-PUBLICATION PASS - this receipt records the original worktree verification and is superseded by exact-head PR evidence after review reconciliation.
 
 ## Run
 
@@ -25,12 +25,15 @@ Summary: PASS - official Omnigent v0.9 tagged-wire adaptation satisfies 17/17 ac
 
 ## Acceptance Reduction
 
-All 17 criteria are satisfied: stable authority, six-schema additive delta,
+The original run reduced all 17 criteria as satisfied: stable authority, six-schema additive delta,
 deprecated alias classification, unchanged neutral authority boundaries,
 official create/send/session/page/history/SSE wire handling, process-local
 idempotency, denial caching, pagination guards, reconnect ordering and cleanup,
 history/live dedupe, 52-event allowlist, unreleased security-risk disclosure,
 transport-only `0.5.0`, packed-consumer declarations, and full automation.
+The first exact-head panel subsequently found reconnect, validation,
+documentation, and evidence defects. Those findings require a repaired commit,
+fresh verification, and an exact-head review receipt before merge.
 
 ## Dirty Paths
 
@@ -42,5 +45,5 @@ or included.
 ## Documentation
 
 `doc_delta_decision=docs_updated`: contract, transport, lifecycle,
-coordination, live-smoke, readiness, fake-server, and changelog
+coordination, live-smoke, readiness, fake-server, security, and changelog
 surfaces were updated for v0.9.

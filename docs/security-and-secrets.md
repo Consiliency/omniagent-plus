@@ -58,6 +58,18 @@ evidence, and status persistence.
 - Do not persist telemetry payloads, raw Omnigent config, or environment values
   in fixtures, ledgers, handoffs, or diagnostics.
 
+## Omnigent v0.9 Deployment Posture
+
+- Official v0.9 predates an upstream fix that roots sub-agent skills and tools
+  at each sub-agent's own bundle directory. Do not claim v0.9 security parity
+  with that unreleased development-main fix.
+- v0.8 added explicit `env_passthrough`, harness `extra_args`, and recursive
+  dotfile scanning. This repository does not enable those surfaces. Any future
+  use requires a separate credential, command, and workspace-boundary review.
+- Smart routing, session routing overrides, and child routing metadata do not
+  grant approval, authority, lease, lock, child-create, or harness-override
+  capability in this repository.
+
 ## Coordination Backend Secrets
 
 - Supabase coordination uses

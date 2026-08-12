@@ -11,6 +11,9 @@ here. These packages were never published under any other scope.
   exactly 52 stream events while recording the six additive schema changes.
 - Correct HTTP create, message, epoch/session, cursor-page, persisted-history,
   acknowledgement, policy-denial, and tagged-SSE handling to the official wire.
+- Preserve indexed terminal-observed text chunks, seed and clear reconnect
+  response context, validate external session status, and enforce the
+  named-agent-only resolver boundary.
 - Add process-local create/send idempotency and provisional accepted turn
   identity without inventing upstream response fields.
 - Classify `omnigent server start` as a hidden deprecated alias while retaining

@@ -5,7 +5,10 @@ import {
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
 import { mapOmnigentEventSequence } from "./event-mapper.js";
-import { parseOmnigentSseStream } from "./sse-stream.js";
+import {
+  OmnigentSseNormalizer,
+  parseOmnigentSseStream,
+} from "./sse-stream.js";
 
 async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
   const result: T[] = [];
@@ -224,5 +227,84 @@ describe("sse stream parser", () => {
     expect(
       runtimeEvents.filter((event) => event.type === "runtime.turn.completed"),
     ).toHaveLength(1);
+  });
+
+  it("preserves every indexed chunk that shares a stable message id", async () => {
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          [
+            {
+              response: {
+                created_at: 1_780_272_000,
+                id: "response-chunks",
+                status: "in_progress",
+              },
+              type: "response.created",
+            },
+            {
+              delta: "first",
+              final: false,
+              index: 0,
+              message_id: "message-stable",
+              type: "response.output_text.delta",
+            },
+            {
+              delta: "second",
+              final: true,
+              index: 1,
+              message_id: "message-stable",
+              type: "response.output_text.delta",
+            },
+          ]
+            .map((frame) => `data: ${JSON.stringify(frame)}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-chunks" },
+      ),
+    );
+    const runtime = mapOmnigentEventSequence("session-chunks", events);
+
+    expect(
+      runtime
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["first", "second"]);
+    expect(events.slice(1).map((event) => event.id)).toEqual([
+      "message-stable:0",
+      "message-stable:1",
+    ]);
+    expect(events.slice(1).map((event) => event.itemId)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it("seeds mid-turn deltas and clears response context after a terminal", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      now: () => "2026-08-12T19:00:00.000Z",
+      sessionId: "session-seed",
+    });
+    normalizer.setActiveResponseId("response-active");
+
+    expect(
+      normalizer.normalize({
+        delta: "mid-turn",
+        type: "response.output_text.delta",
+      }).turnId,
+    ).toBe("response-active");
+    expect(
+      normalizer.normalize({
+        response: { id: "response-active", status: "completed" },
+        type: "response.completed",
+      }).terminal,
+    ).toBe(true);
+    expect(
+      normalizer.normalize({
+        conversation_id: "session-seed",
+        status: "idle",
+        type: "session.status",
+      }).turnId,
+    ).toBeUndefined();
   });
 });

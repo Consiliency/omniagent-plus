@@ -438,6 +438,12 @@ export class FakeOmnigentServer {
           },
           type: "response.completed",
         },
+        {
+          conversation_id: sessionId,
+          response_id: null,
+          status: "idle",
+          type: "session.status",
+        },
       );
       record.snapshot = {
         ...record.snapshot,

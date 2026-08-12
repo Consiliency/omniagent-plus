@@ -182,12 +182,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       afterSequence: options?.afterSequence,
     });
 
+    const events =
+      options?.limit === undefined
+        ? mapped.history.events
+        : mapped.history.events.slice(0, options.limit);
+
     return {
-      events:
-        options?.limit === undefined
-          ? mapped.history.events
-          : mapped.history.events.slice(0, options.limit),
-      nextCursor: mapped.history.nextCursor,
+      events,
+      nextCursor:
+        events.at(-1)?.sequence ?? options?.afterSequence ?? 0,
       sessionId,
     };
   }
@@ -199,6 +202,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const stream = await this.client.openSessionStream(sessionId);
     try {
       const snapshot = await this.client.getSession(sessionId);
+      stream.setActiveResponseId(snapshot.activeResponseId);
       const items = await this.client.getHistory(sessionId);
       const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items, {
         afterSequence: options?.afterSequence,
@@ -222,7 +226,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
 
       for await (const rawEvent of stream.events) {
-        if (rawEvent.terminal) {
+        if (
+          rawEvent.terminal ||
+          (rawEvent.type === "session.status" &&
+            (rawEvent.status === "idle" || rawEvent.status === "failed"))
+        ) {
           this.clearActiveTurn(sessionId, rawEvent.occurredAt);
         } else if (rawEvent.turnId) {
           this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);

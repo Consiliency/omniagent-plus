@@ -4,7 +4,12 @@ import {
   type SendTurnRequest,
 } from "@consiliency/runtime-provider";
 
-import { parseOmnigentSseStream, type OmnigentSseSkip } from "./sse-stream.js";
+import {
+  OmnigentSseNormalizer,
+  parseOmnigentSseStream,
+  type OmnigentSseSkip,
+} from "./sse-stream.js";
+import { omnigentSessionStatuses } from "./types.js";
 import type {
   OmnigentChildSessionSummary,
   OmnigentConversationItem,
@@ -97,7 +102,17 @@ function normalizeSession(
   }
   const wire = value as unknown as OmnigentWireSessionResponse;
   const id = requiredString(value, "id");
-  const status = requiredString(value, "status") as OmnigentSessionStatus;
+  const rawStatus = requiredString(value, "status");
+  if (!(omnigentSessionStatuses as readonly string[]).includes(rawStatus)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: `Omnigent response field status has unsupported value ${rawStatus}.`,
+      retryable: false,
+      scope: "session",
+    });
+  }
+  const status = rawStatus as OmnigentSessionStatus;
   const createdAt = epochToIso(value.created_at, "created_at");
   const updatedAt = epochToIso(
     value.updated_at ?? value.created_at,
@@ -300,6 +315,10 @@ export class OmnigentHttpClient {
       throw new Error("Omnigent stream response did not include a body.");
     }
     let closed = false;
+    const normalizer = new OmnigentSseNormalizer({
+      now: this.now,
+      sessionId,
+    });
     return {
       close: async () => {
         if (!closed) {
@@ -311,7 +330,11 @@ export class OmnigentHttpClient {
         response.body,
         { now: this.now, sessionId },
         onSkip,
+        normalizer,
       ),
+      setActiveResponseId: (responseId) => {
+        normalizer.setActiveResponseId(responseId);
+      },
     };
   }
 
@@ -338,12 +361,19 @@ export class OmnigentHttpClient {
         scope: "session",
       });
     }
+    if (agentSpec.kind !== "named_agent") {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message: `Omnigent HTTP create does not support agent spec kind ${agentSpec.kind}.`,
+        retryable: false,
+        scope: "session",
+      });
+    }
     const resolved = this.options.resolveAgentId
       ? await this.options.resolveAgentId(agentSpec)
-      : agentSpec.kind === "named_agent"
-        ? agentSpec.value
-        : "";
-    if (resolved.trim().length === 0) {
+      : agentSpec.value;
+    if (typeof resolved !== "string" || resolved.trim().length === 0) {
       throw createRuntimeFailure({
         actor: "provider",
         category: "backend_capability_missing",

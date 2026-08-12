@@ -1,4 +1,6 @@
 import {
+  omnigentResponseStatuses,
+  omnigentSessionStatuses,
   omnigentStreamEventTypes,
   type OmnigentRawEvent,
   type OmnigentTaggedSseEvent,
@@ -38,6 +40,16 @@ function stringValue(value: unknown): string | undefined {
 
 function numberValue(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function statusValue(value: unknown): OmnigentRawEvent["status"] {
+  return typeof value === "string" &&
+    [
+      ...omnigentSessionStatuses,
+      ...omnigentResponseStatuses,
+    ].includes(value as never)
+    ? (value as OmnigentRawEvent["status"])
+    : undefined;
 }
 
 function epochToIso(value: unknown): string | undefined {
@@ -90,6 +102,10 @@ export class OmnigentSseNormalizer {
     this.now = options.now ?? (() => new Date().toISOString());
   }
 
+  setActiveResponseId(responseId: string | null | undefined): void {
+    this.currentResponseId = responseId ?? undefined;
+  }
+
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
     this.frameOrdinal += 1;
     const raw = tagged as Record<string, unknown>;
@@ -115,15 +131,19 @@ export class OmnigentSseNormalizer {
       stringValue(raw.session_id) ??
       this.options.sessionId;
     const sequence = numberValue(raw.sequence_number);
+    const messageId = stringValue(raw.message_id);
     const itemId =
       stringValue(item?.id) ??
-      stringValue(raw.message_id) ??
       stringValue(raw.call_id) ??
       stringValue(raw.action_id) ??
       stringValue(raw.elicitation_id) ??
       stringValue(raw.file_id);
+    const messageIndex = numberValue(raw.index);
     const eventId =
       itemId ??
+      (messageId
+        ? `${messageId}:${messageIndex ?? this.frameOrdinal}`
+        : undefined) ??
       (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
       `${sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
     const occurredAt =
@@ -136,7 +156,7 @@ export class OmnigentSseNormalizer {
       ? response.incomplete_details
       : undefined;
 
-    return {
+    const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
       action_id: stringValue(raw.action_id),
       args: isRecord(raw.args) ? raw.args : undefined,
@@ -158,6 +178,9 @@ export class OmnigentSseNormalizer {
       id: eventId,
       item,
       itemId,
+      final: typeof raw.final === "boolean" ? raw.final : undefined,
+      index: messageIndex,
+      message_id: messageId,
       message: failureMessage,
       model: stringValue(raw.model),
       occurredAt,
@@ -177,16 +200,15 @@ export class OmnigentSseNormalizer {
       sessionId,
       source: stringValue(raw.source),
       status:
-        typeof raw.status === "string"
-          ? (raw.status as OmnigentRawEvent["status"])
-          : typeof response?.status === "string"
-            ? (response.status as OmnigentRawEvent["status"])
-            : undefined,
+        statusValue(raw.status) ?? statusValue(response?.status),
       terminal:
         tagged.type === "response.completed" ||
         tagged.type === "response.failed" ||
         tagged.type === "response.incomplete" ||
-        tagged.type === "response.cancelled",
+        tagged.type === "response.cancelled" ||
+        tagged.type === "turn.completed" ||
+        tagged.type === "turn.failed" ||
+        tagged.type === "turn.cancelled",
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
       turnId,
@@ -195,6 +217,14 @@ export class OmnigentSseNormalizer {
         ? raw.usage_by_model
         : undefined,
     };
+    if (
+      normalized.terminal ||
+      (normalized.type === "session.status" &&
+        (normalized.status === "idle" || normalized.status === "failed"))
+    ) {
+      this.currentResponseId = undefined;
+    }
+    return normalized;
   }
 }
 
@@ -202,10 +232,10 @@ export async function* parseOmnigentSseStream(
   stream: ReadableStream<Uint8Array>,
   options: OmnigentSseNormalizationOptions,
   onSkip?: (skip: OmnigentSseSkip) => void,
+  normalizer = new OmnigentSseNormalizer(options),
 ): AsyncIterable<OmnigentRawEvent> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
-  const normalizer = new OmnigentSseNormalizer(options);
   let buffer = "";
 
   const parseFrame = (frame: string): OmnigentRawEvent | null => {

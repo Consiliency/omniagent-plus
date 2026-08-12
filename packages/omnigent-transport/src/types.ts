@@ -353,6 +353,9 @@ export interface OmnigentRawEvent {
   readonly elicitation_id?: string;
   readonly params?: Record<string, unknown>;
   readonly item?: Readonly<Record<string, unknown>>;
+  readonly message_id?: string;
+  readonly index?: number;
+  readonly final?: boolean;
 }
 
 export interface OmnigentTaggedSseEvent {
@@ -364,6 +367,7 @@ export interface OmnigentTaggedSseEvent {
 export interface OmnigentOpenStream {
   readonly events: AsyncIterable<OmnigentRawEvent>;
   close(): Promise<void>;
+  setActiveResponseId(responseId: string | null | undefined): void;
 }
 
 export interface OmnigentReadStateInput {

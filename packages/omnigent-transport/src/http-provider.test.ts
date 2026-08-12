@@ -95,6 +95,7 @@ describe("http provider", () => {
       });
       const history = await provider.readHistory(session.id);
       const streamed = await collectAsync(provider.streamEvents(session.id));
+      const info = await provider.getSessionInfo(session.id);
 
       expect(handle.state).toBe("queued");
       expect(history.events.some((event) => event.type === "runtime.turn.started")).toBe(
@@ -109,6 +110,8 @@ describe("http provider", () => {
       expect(
         streamed.some((event) => event.eventId.includes("-v06-")),
       ).toBe(false);
+      expect(info.activeTurnId).toBeUndefined();
+      expect(info.state).toBe("idle");
     } finally {
       await server.stop();
     }
@@ -390,5 +393,37 @@ describe("http provider", () => {
       expect.objectContaining({ statusCode: 500 }),
     );
     expect(streamAborted).toBe(true);
+  });
+
+  it("returns a cursor for the limited history slice", async () => {
+    const server = await FakeOmnigentServer.start();
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-history-limit" },
+        idempotencyKey: "history-limit-create",
+        initialMessage: "first turn",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "History limit",
+      });
+      await provider.sendTurn({
+        idempotencyKey: "history-limit-turn",
+        message: "second turn",
+        sessionId: session.id,
+      });
+
+      const first = await provider.readHistory(session.id, { limit: 1 });
+      const second = await provider.readHistory(session.id, {
+        afterSequence: first.nextCursor,
+        limit: 1,
+      });
+      expect(first.events).toHaveLength(1);
+      expect(first.nextCursor).toBe(first.events[0]?.sequence);
+      expect(second.events).toHaveLength(1);
+      expect(second.events[0]?.sequence).toBeGreaterThan(first.nextCursor ?? 0);
+    } finally {
+      await server.stop();
+    }
   });
 });

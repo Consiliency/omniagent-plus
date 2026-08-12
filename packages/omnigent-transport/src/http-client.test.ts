@@ -128,11 +128,16 @@ describe("http client", () => {
 
   it("fails unsupported create specs before network I/O", async () => {
     let requests = 0;
+    let resolverCalls = 0;
     const client = new OmnigentHttpClient({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async () => {
         requests += 1;
         return new Response();
+      },
+      resolveAgentId: () => {
+        resolverCalls += 1;
+        return "must-not-resolve";
       },
     });
 
@@ -148,6 +153,27 @@ describe("http client", () => {
       expect.objectContaining({ category: "backend_capability_missing" }),
     );
     expect(requests).toBe(0);
+    expect(resolverCalls).toBe(0);
+  });
+
+  it("rejects unknown session status as a malformed external response", async () => {
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            created_at: 1_780_272_000,
+            id: "session-malformed-status",
+            items: [],
+            status: "surprising",
+            title: "Malformed",
+          }),
+        ),
+    });
+
+    await expect(client.getSession("session-malformed-status")).rejects.toEqual(
+      expect.objectContaining({ category: "malformed_response" }),
+    );
   });
 
   it("walks every cursor page and rejects a cursor that does not advance", async () => {
