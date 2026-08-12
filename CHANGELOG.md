@@ -13,9 +13,9 @@ here. These packages were never published under any other scope.
   acknowledgement, policy-denial, and tagged-SSE handling to the official wire.
 - Preserve indexed terminal-observed text chunks, seed and clear reconnect
   response context, keep replay sequence after the caller cursor, dedupe live
-  overlap by persisted item identity, retain bare turn frames as metadata-only,
-  validate external session/page rows, and enforce the named-agent-only
-  resolver boundary.
+  overlap by persisted item identity or an identity-free persisted text prefix,
+  retain bare turn frames as metadata-only, validate external session/page
+  rows, and enforce the named-agent-only resolver boundary.
 - Add process-local create/send idempotency and provisional accepted turn
   identity without inventing upstream response fields.
 - Classify `omnigent server start` as a hidden deprecated alias while retaining

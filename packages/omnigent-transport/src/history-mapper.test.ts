@@ -9,10 +9,12 @@ import {
   mapOmnigentHistory,
 } from "./history-mapper.js";
 import { OmnigentEventMapper } from "./event-mapper.js";
+import { OmnigentSseNormalizer } from "./sse-stream.js";
 import type {
   OmnigentConversationItem,
   OmnigentHistoryItem,
   OmnigentRawEvent,
+  OmnigentTaggedSseEvent,
 } from "./types.js";
 
 function historyFromFixture(fixtureName: string): OmnigentHistoryItem[] {
@@ -94,6 +96,7 @@ describe("history mapper", () => {
     );
 
     const liveMapper = new OmnigentEventMapper("session-v09", {
+      historicalTextByTurnId: mapped.historicalTextByTurnId,
       seenItemIds: mapped.seenItemIds,
       startedTurnIds: mapped.startedTurnIds,
       terminalTurnIds: mapped.terminalTurnIds,
@@ -135,5 +138,52 @@ describe("history mapper", () => {
         type: "response.cancelled",
       }),
     ).toEqual([]);
+  });
+
+  it("dedupes identity-free fixture overlap while preserving continued text", () => {
+    const fixture = loadOmnigentV09WireContract();
+    const history = mapOmnigentConversationHistory(
+      "session-123",
+      fixture.conversation_items as OmnigentConversationItem[],
+    );
+    const normalizer = new OmnigentSseNormalizer({
+      now: () => "2026-08-12T19:00:00.000Z",
+      sessionId: "session-123",
+    });
+    const liveMapper = new OmnigentEventMapper("session-123", {
+      historicalTextByTurnId: history.historicalTextByTurnId,
+      seenItemIds: history.seenItemIds,
+      startedTurnIds: history.startedTurnIds,
+      terminalTurnIds: history.terminalTurnIds,
+    });
+    const liveEvents = (fixture.sse_frames as OmnigentTaggedSseEvent[]).flatMap(
+      (frame) => liveMapper.map(normalizer.normalize(frame)),
+    );
+
+    expect(
+      history.runtimeEvents
+        .concat(liveEvents)
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["answer"]);
+
+    const continuationMapper = new OmnigentEventMapper("session-123", {
+      historicalTextByTurnId: history.historicalTextByTurnId,
+    });
+    expect(
+      continuationMapper.map({
+        delta: "answer continued",
+        id: "identity-free-continuation",
+        occurredAt: "2026-08-12T19:00:00.000Z",
+        sessionId: "session-123",
+        turnId: "response-1",
+        type: "response.output_text.delta",
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        payload: { delta: " continued" },
+        type: "runtime.text.delta",
+      }),
+    ]);
   });
 });

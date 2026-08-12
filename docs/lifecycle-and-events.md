@@ -63,7 +63,9 @@ The official Omnigent `v0.9.0` freeze retains 52 stream event types. Reconnect
 opens SSE before fetching the snapshot and all cursor-paginated history. The
 persisted-item mapper never manufactures successful completion from an idle
 snapshot; success requires tagged response lifecycle evidence. Stream item IDs
-dedupe overlap with persisted history.
+dedupe overlap with persisted history. When an official buffered text delta has
+no identity, only its matching persisted text prefix is consumed; mismatched or
+continued output remains live.
 
 `session.created` on a parent stream describes a child session and does not
 create a neutral root-session lifecycle event. The canonical CLI start remains

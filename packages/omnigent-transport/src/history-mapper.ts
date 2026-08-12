@@ -13,6 +13,7 @@ import type {
 
 export interface MappedOmnigentHistory {
   readonly history: SessionHistory;
+  readonly historicalTextByTurnId: Map<string, string>;
   readonly runtimeEvents: RuntimeEvent[];
   readonly seenItemIds: Set<string>;
   readonly startedTurnIds: Set<string>;
@@ -35,6 +36,15 @@ export function mapOmnigentHistory(
     afterSequence === undefined
       ? runtimeEvents
       : runtimeEvents.filter((event) => event.sequence > afterSequence);
+  const historicalTextByTurnId = new Map<string, string>();
+  for (const event of runtimeEvents) {
+    if (event.type === "runtime.text.delta" && event.turnId) {
+      historicalTextByTurnId.set(
+        event.turnId,
+        `${historicalTextByTurnId.get(event.turnId) ?? ""}${event.payload.delta}`,
+      );
+    }
+  }
 
   return {
     history: {
@@ -42,6 +52,7 @@ export function mapOmnigentHistory(
       nextCursor: filteredEvents.at(-1)?.sequence ?? afterSequence ?? 0,
       sessionId,
     },
+    historicalTextByTurnId,
     runtimeEvents,
     seenItemIds: new Set(mapper.seenItemIds),
     startedTurnIds: new Set(
@@ -89,6 +100,7 @@ export function mapOmnigentConversationHistory(
   const seenItemIds = new Set<string>();
   const startedTurnIds = new Set<string>();
   const terminalTurnIds = new Set<string>();
+  const historicalTextByTurnId = new Map<string, string>();
   let sequence = 1;
 
   const append = (
@@ -131,6 +143,10 @@ export function mapOmnigentConversationHistory(
     }
 
     if (item.type === "message" && data.role === "assistant") {
+      historicalTextByTurnId.set(
+        turnId,
+        `${historicalTextByTurnId.get(turnId) ?? ""}${text.join("")}`,
+      );
       text.forEach((delta, index) => {
         append({
           eventId: `${item.id}:text:${index}`,
@@ -235,6 +251,7 @@ export function mapOmnigentConversationHistory(
         filteredEvents.at(-1)?.sequence ?? options.afterSequence ?? 0,
       sessionId,
     },
+    historicalTextByTurnId,
     runtimeEvents,
     seenItemIds,
     startedTurnIds,

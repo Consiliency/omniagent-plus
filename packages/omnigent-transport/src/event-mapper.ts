@@ -11,6 +11,7 @@ function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
 }
 
 export interface OmnigentEventMapperOptions {
+  readonly historicalTextByTurnId?: Iterable<readonly [string, string]>;
   readonly seenItemIds?: Iterable<string>;
   readonly startingSequence?: number;
   readonly startedTurnIds?: Iterable<string>;
@@ -23,6 +24,7 @@ export class OmnigentEventMapper {
   private readonly emittedStartedTurnIds: Set<string>;
   private readonly emittedTerminalTurnIds: Set<string>;
   private readonly historicalItemIds: Set<string>;
+  private readonly historicalTextRemainders: Map<string, string>;
   private nextSequence: number;
 
   constructor(
@@ -32,6 +34,9 @@ export class OmnigentEventMapper {
     this.emittedStartedTurnIds = new Set(options.startedTurnIds ?? []);
     this.emittedTerminalTurnIds = new Set(options.terminalTurnIds ?? []);
     this.historicalItemIds = new Set(options.seenItemIds ?? []);
+    this.historicalTextRemainders = new Map(
+      options.historicalTextByTurnId ?? [],
+    );
     this.seenItemIds = new Set(options.seenItemIds ?? []);
     this.nextSequence = options.startingSequence ?? 1;
   }
@@ -78,18 +83,7 @@ export class OmnigentEventMapper {
           }),
         ];
       case "response.output_text.delta":
-        return [
-          this.createEvent({
-            eventId: rawEvent.id,
-            occurredAt: rawEvent.occurredAt,
-            payload: {
-              delta: rawEvent.delta ?? "",
-            },
-            terminal: false,
-            turnId: rawEvent.turnId,
-            type: "runtime.text.delta",
-          }),
-        ];
+        return this.mapTextDelta(rawEvent);
       case "response.output_item.done":
         return this.mapOutputItem(rawEvent);
       case "response.completed":
@@ -120,6 +114,44 @@ export class OmnigentEventMapper {
       default:
         return [];
     }
+  }
+
+  private mapTextDelta(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
+    let delta = rawEvent.delta ?? "";
+    if (rawEvent.turnId && rawEvent.message_id === undefined) {
+      const remaining = this.historicalTextRemainders.get(rawEvent.turnId);
+      if (remaining !== undefined) {
+        if (remaining.startsWith(delta)) {
+          const next = remaining.slice(delta.length);
+          if (next.length === 0) {
+            this.historicalTextRemainders.delete(rawEvent.turnId);
+          } else {
+            this.historicalTextRemainders.set(rawEvent.turnId, next);
+          }
+          return [];
+        }
+        this.historicalTextRemainders.delete(rawEvent.turnId);
+        if (delta.startsWith(remaining)) {
+          delta = delta.slice(remaining.length);
+          if (delta.length === 0) {
+            return [];
+          }
+        }
+      }
+    } else if (rawEvent.turnId) {
+      this.historicalTextRemainders.delete(rawEvent.turnId);
+    }
+
+    return [
+      this.createEvent({
+        eventId: rawEvent.id,
+        occurredAt: rawEvent.occurredAt,
+        payload: { delta },
+        terminal: false,
+        turnId: rawEvent.turnId,
+        type: "runtime.text.delta",
+      }),
+    ];
   }
 
   private mapOutputItem(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
