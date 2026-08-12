@@ -79,6 +79,9 @@ an authoritative terminal response, a response-correlated idle status, or a
 failed status. A correlated `session.status: failed` maps to one neutral turn
 failure, including setup
 failures that have no `response.failed`, and the tracked session remains failed.
+Long-lived streams are reseeded whenever a later send is accepted. Raw failure
+semantics keep provider state failed even when duplicate or history-overlap
+terminal evidence is suppressed by neutral-event deduplication.
 `session.created` carries the parent `conversation_id` and a distinct
 `child_session_id`; it does not synthesize neutral root-session creation. Bare
 uncorrelated `turn.*` frames are metadata-only.

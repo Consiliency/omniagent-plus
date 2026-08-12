@@ -21,6 +21,8 @@ import { mapOmnigentConversationHistory } from "./history-mapper.js";
 import { OmnigentHttpClient } from "./http-client.js";
 import type {
   OmnigentHttpClientOptions,
+  OmnigentOpenStream,
+  OmnigentRawEvent,
   OmnigentSessionSnapshot,
 } from "./types.js";
 
@@ -91,6 +93,7 @@ function toSessionInfo(
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly creates = new Map<string, Promise<AgentSession>>();
+  private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
   private readonly sends = new Map<string, Promise<TurnHandle>>();
   private readonly sessions = new Map<string, AgentSessionInfo>();
   private readonly turns = new Map<string, TurnHandle>();
@@ -178,6 +181,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         updatedAt: now,
       });
     }
+    for (const stream of this.openStreams.get(request.sessionId) ?? []) {
+      stream.setFallbackTurnId(turnId);
+    }
 
     return handle;
   }
@@ -209,6 +215,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     options?: StreamOptions,
   ): AsyncIterable<RuntimeEvent> {
     const stream = await this.client.openSessionStream(sessionId);
+    this.addOpenStream(sessionId, stream);
     try {
       const snapshot = await this.client.getSession(sessionId);
       stream.setFallbackTurnId(this.sessions.get(sessionId)?.activeTurnId);
@@ -240,15 +247,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
 
       for await (const rawEvent of stream.events) {
         const events = mapper.map(rawEvent);
-        const failure = events.find(
+        const mappedFailure = events.find(
           (event): event is Extract<RuntimeEvent, { type: "runtime.turn.failed" }> =>
             event.type === "runtime.turn.failed",
         )?.payload.failure;
-        if (
-          failure !== undefined ||
-          (rawEvent.type === "session.status" && rawEvent.status === "failed")
-        ) {
-          this.failActiveTurn(sessionId, rawEvent.occurredAt, failure);
+        if (isFailureTerminal(rawEvent)) {
+          this.failActiveTurn(
+            sessionId,
+            rawEvent.occurredAt,
+            mappedFailure ?? failureFromRawEvent(rawEvent),
+          );
         } else if (rawEvent.terminal) {
           this.clearActiveTurn(sessionId, rawEvent.occurredAt);
         } else if (rawEvent.turnId) {
@@ -259,6 +267,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         }
       }
     } finally {
+      this.removeOpenStream(sessionId, stream);
       await stream.close();
     }
   }
@@ -373,13 +382,27 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
+  private addOpenStream(sessionId: string, stream: OmnigentOpenStream): void {
+    const streams = this.openStreams.get(sessionId) ?? new Set();
+    streams.add(stream);
+    this.openStreams.set(sessionId, streams);
+  }
+
+  private removeOpenStream(sessionId: string, stream: OmnigentOpenStream): void {
+    const streams = this.openStreams.get(sessionId);
+    streams?.delete(stream);
+    if (streams?.size === 0) {
+      this.openStreams.delete(sessionId);
+    }
+  }
+
   private clearActiveTurn(sessionId: string, updatedAt: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
       this.sessions.set(sessionId, {
         ...session,
         activeTurnId: undefined,
-        state: "idle",
+        state: session.state === "failed" ? "failed" : "idle",
         updatedAt,
       });
     }
@@ -401,6 +424,44 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
     }
   }
+}
+
+function isFailureTerminal(event: OmnigentRawEvent): boolean {
+  if (!event.terminal) {
+    return false;
+  }
+  if (
+    event.type === "response.failed" ||
+    event.type === "turn.failed" ||
+    (event.type === "session.status" && event.status === "failed")
+  ) {
+    return true;
+  }
+  return (
+    event.type === "response.incomplete" &&
+    !event.reason?.includes("interrupt") &&
+    !event.reason?.includes("timeout")
+  );
+}
+
+function failureFromRawEvent(event: OmnigentRawEvent): RuntimeFailure {
+  const category = event.failure?.category ?? "backend_unavailable";
+  return createRuntimeFailure({
+    actor: "omnigent",
+    category,
+    message:
+      event.failure?.message ??
+      event.reason ??
+      "Omnigent reported a terminal failure.",
+    resetAt: event.failure?.resetAt,
+    retryAfterSeconds: event.failure?.retryAfterSeconds,
+    retryable: category !== "backend_capability_missing",
+    safeDiagnostics:
+      event.failure?.statusCode === undefined
+        ? undefined
+        : { statusCode: event.failure.statusCode },
+    scope: "turn",
+  });
 }
 
 function isPolicyDenied(value: unknown): boolean {
