@@ -16,7 +16,7 @@ import {
 } from "@consiliency/runtime-provider";
 
 import { OmnigentEventMapper } from "./event-mapper.js";
-import { mapOmnigentHistory } from "./history-mapper.js";
+import { mapOmnigentConversationHistory } from "./history-mapper.js";
 import { OmnigentHttpClient } from "./http-client.js";
 import type {
   OmnigentHttpClientOptions,
@@ -55,10 +55,7 @@ function toSessionInfo(
 ): AgentSessionInfo {
   return {
     activeTurnId:
-      snapshot.activeTurnId ??
-      snapshot.activeResponseId ??
-      snapshot.active_response_id ??
-      undefined,
+      snapshot.activeTurnId ?? snapshot.activeResponseId ?? undefined,
     correlationId: request.correlationId,
     createdAt: snapshot.createdAt,
     eventCursor: previous?.eventCursor ?? 0,
@@ -67,9 +64,9 @@ function toSessionInfo(
     identityProfileId: request.identityProfileId,
     lastError: previous?.lastError,
     metadata:
-      snapshot.mcp_startup == null
+      snapshot.mcpStartup == null
         ? snapshot.metadata
-        : { ...snapshot.metadata, mcp_startup: snapshot.mcp_startup },
+        : { ...snapshot.metadata, mcp_startup: snapshot.mcpStartup },
     repoRoot: request.repoRoot,
     rootSessionId: snapshot.id,
     runtime: "omnigent",
@@ -84,6 +81,8 @@ function toSessionInfo(
 
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
+  private readonly creates = new Map<string, Promise<AgentSession>>();
+  private readonly sends = new Map<string, Promise<TurnHandle>>();
   private readonly sessions = new Map<string, AgentSessionInfo>();
   private readonly turns = new Map<string, TurnHandle>();
 
@@ -92,21 +91,71 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async createSession(request: CreateSessionRequest): Promise<AgentSession> {
+    const existing = this.creates.get(request.idempotencyKey);
+    if (existing) {
+      return existing;
+    }
+
+    const pending = this.createSessionOnce(request);
+    this.creates.set(request.idempotencyKey, pending);
+    try {
+      return await pending;
+    } catch (error) {
+      this.creates.delete(request.idempotencyKey);
+      throw error;
+    }
+  }
+
+  async sendTurn(request: SendTurnRequest): Promise<TurnHandle> {
+    const key = `${request.sessionId}:${request.idempotencyKey}`;
+    const existing = this.sends.get(key);
+    if (existing) {
+      return existing;
+    }
+
+    const pending = this.sendTurnOnce(request);
+    this.sends.set(key, pending);
+    try {
+      return await pending;
+    } catch (error) {
+      if (!isPolicyDenied(error)) {
+        this.sends.delete(key);
+      }
+      throw error;
+    }
+  }
+
+  private async createSessionOnce(
+    request: CreateSessionRequest,
+  ): Promise<AgentSession> {
     const snapshot = await this.client.createSession(request);
     const session = toSessionInfo(request, snapshot);
     this.sessions.set(session.id, session);
     return session;
   }
 
-  async sendTurn(request: SendTurnRequest): Promise<TurnHandle> {
+  private async sendTurnOnce(request: SendTurnRequest): Promise<TurnHandle> {
     const ack = await this.client.sendTurn(request);
+    if ("denied" in ack && ack.denied) {
+      throw createRuntimeFailure({
+        actor: "policy",
+        category: "policy_denied",
+        message: ack.reason,
+        retryable: false,
+        scope: "turn",
+      });
+    }
     const now = new Date().toISOString();
+    const turnId =
+      ack.item_id ??
+      ack.pending_id ??
+      `omnigent:${request.sessionId}:${request.idempotencyKey}`;
     const handle: TurnHandle = {
       createdAt: now,
       idempotencyKey: request.idempotencyKey,
       sessionId: request.sessionId,
       state: ack.queued ? "queued" : "running",
-      turnId: ack.turnId,
+      turnId,
       updatedAt: now,
     };
     this.turns.set(`${handle.sessionId}:${handle.turnId}`, handle);
@@ -115,7 +164,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (session) {
       this.sessions.set(request.sessionId, {
         ...session,
-        activeTurnId: ack.turnId,
+        activeTurnId: turnId,
         state: "turn_active",
         updatedAt: now,
       });
@@ -129,7 +178,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     options?: HistoryOptions,
   ): Promise<SessionHistory> {
     const items = await this.client.getHistory(sessionId);
-    const mapped = mapOmnigentHistory(sessionId, items, {
+    const mapped = mapOmnigentConversationHistory(sessionId, items, {
       afterSequence: options?.afterSequence,
     });
 
@@ -147,28 +196,43 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     options?: StreamOptions,
   ): AsyncIterable<RuntimeEvent> {
-    const stream = this.client.streamSession(sessionId);
-    const snapshot = await this.client.getSession(sessionId);
-    const mappedSnapshot = mapOmnigentHistory(sessionId, snapshot.items, {
-      afterSequence: options?.afterSequence,
-    });
+    const stream = await this.client.openSessionStream(sessionId);
+    try {
+      const snapshot = await this.client.getSession(sessionId);
+      const items = await this.client.getHistory(sessionId);
+      const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items, {
+        afterSequence: options?.afterSequence,
+      });
 
-    for (const event of mappedSnapshot.history.events) {
-      yield event;
-    }
-
-    const startingSequence =
-      (mappedSnapshot.runtimeEvents.at(-1)?.sequence ?? options?.afterSequence ?? 0) +
-      1;
-    const mapper = new OmnigentEventMapper(sessionId, {
-      seenItemIds: mappedSnapshot.seenItemIds,
-      startingSequence,
-    });
-
-    for await (const rawEvent of stream) {
-      for (const event of mapper.map(rawEvent)) {
+      this.refreshTrackedSession(sessionId, snapshot);
+      for (const event of mappedSnapshot.history.events) {
         yield event;
       }
+
+      const startingSequence =
+        (mappedSnapshot.runtimeEvents.at(-1)?.sequence ??
+          options?.afterSequence ??
+          0) + 1;
+      const mapper = new OmnigentEventMapper(sessionId, {
+        historicalTextTurnIds: mappedSnapshot.historicalTextTurnIds,
+        seenItemIds: mappedSnapshot.seenItemIds,
+        startingSequence,
+        startedTurnIds: mappedSnapshot.startedTurnIds,
+        terminalTurnIds: mappedSnapshot.terminalTurnIds,
+      });
+
+      for await (const rawEvent of stream.events) {
+        if (rawEvent.terminal) {
+          this.clearActiveTurn(sessionId, rawEvent.occurredAt);
+        } else if (rawEvent.turnId) {
+          this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
+        }
+        for (const event of mapper.map(rawEvent)) {
+          yield event;
+        }
+      }
+    } finally {
+      await stream.close();
     }
   }
 
@@ -255,6 +319,53 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       sessionStateDrift: [],
     };
   }
+
+  private refreshTrackedSession(
+    sessionId: string,
+    snapshot: OmnigentSessionSnapshot,
+  ): void {
+    const existing = this.sessions.get(sessionId);
+    if (existing) {
+      this.sessions.set(sessionId, toSessionInfo(existing, snapshot, existing));
+    }
+  }
+
+  private setActiveTurn(
+    sessionId: string,
+    turnId: string,
+    updatedAt: string,
+  ): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      this.sessions.set(sessionId, {
+        ...session,
+        activeTurnId: turnId,
+        state: "turn_active",
+        updatedAt,
+      });
+    }
+  }
+
+  private clearActiveTurn(sessionId: string, updatedAt: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      this.sessions.set(sessionId, {
+        ...session,
+        activeTurnId: undefined,
+        state: "idle",
+        updatedAt,
+      });
+    }
+  }
+}
+
+function isPolicyDenied(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "category" in value &&
+    value.category === "policy_denied"
+  );
 }
 
 export function createHttpProvider(

@@ -70,7 +70,7 @@ describe("event mapper", () => {
     );
   });
 
-  it("maps launching session-created status to starting", () => {
+  it("treats child session-created frames as metadata-only", () => {
     const runtimeEvents = mapOmnigentEventSequence("session-1", [
       {
         id: "session-created-launching",
@@ -82,14 +82,7 @@ describe("event mapper", () => {
       },
     ]);
 
-    expect(runtimeEvents[0]).toEqual(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          state: "starting",
-        }),
-        type: "runtime.session.created",
-      }),
-    );
+    expect(runtimeEvents).toEqual([]);
   });
 
   it("skips raw duplicates by item id during reconnect dedupe", () => {

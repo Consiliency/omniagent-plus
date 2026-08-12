@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  loadOmnigentEventFixture,
+  loadOmnigentV09WireContract,
+} from "./contract-fixtures.js";
+import { mapOmnigentEventSequence } from "./event-mapper.js";
 import { parseOmnigentSseStream } from "./sse-stream.js";
-import { loadOmnigentEventFixture } from "./contract-fixtures.js";
 
 async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
   const result: T[] = [];
@@ -39,6 +43,10 @@ describe("sse stream parser", () => {
             "",
           ].join("\n"),
         ),
+        {
+          now: () => "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+        },
         (skip) => {
           skipped.push(skip.reason);
         },
@@ -71,6 +79,10 @@ describe("sse stream parser", () => {
             )
             .join("\n\n"),
         ),
+        {
+          now: () => "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+        },
         (skip) => {
           skipped.push(skip.reason);
         },
@@ -100,6 +112,10 @@ describe("sse stream parser", () => {
             )
             .join("\n\n"),
         ),
+        {
+          now: () => "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+        },
         (skip) => {
           skipped.push(skip.reason);
         },
@@ -140,6 +156,10 @@ describe("sse stream parser", () => {
             )
             .join("\n\n"),
         ),
+        {
+          now: () => "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+        },
         (skip) => {
           skipped.push(skip.reason);
         },
@@ -164,5 +184,45 @@ describe("sse stream parser", () => {
         delta: "metadata-only tool output",
       }),
     );
+  });
+
+  it("normalizes verbatim v0.9 tagged frames deterministically", async () => {
+    const frames = loadOmnigentV09WireContract().sse_frames;
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          frames.map((frame) => `data: ${JSON.stringify(frame)}`).join("\n\n"),
+        ),
+        {
+          now: () => "2026-08-12T19:00:00.000Z",
+          sessionId: "session-route",
+        },
+      ),
+    );
+
+    expect(events.find((event) => event.type === "response.created")).toEqual(
+      expect.objectContaining({
+        occurredAt: "2026-06-01T00:00:50.000Z",
+        sessionId: "session-route",
+        turnId: "response-1",
+      }),
+    );
+    expect(
+      events.find((event) => event.type === "response.output_text.delta"),
+    ).toEqual(
+      expect.objectContaining({
+        delta: "answer",
+        occurredAt: "2026-08-12T19:00:00.000Z",
+        turnId: "response-1",
+      }),
+    );
+    expect(events.find((event) => event.type === "turn.started")?.turnId).toBeUndefined();
+    const runtimeEvents = mapOmnigentEventSequence("session-route", events);
+    expect(
+      runtimeEvents.filter((event) => event.type === "runtime.session.created"),
+    ).toEqual([]);
+    expect(
+      runtimeEvents.filter((event) => event.type === "runtime.turn.completed"),
+    ).toHaveLength(1);
   });
 });

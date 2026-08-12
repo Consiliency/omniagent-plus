@@ -91,9 +91,8 @@ pnpm exec vite-node scripts/coordination-smoke-test.ts
 
 ## Upstream Omnigent State
 
-Official Omnigent `v0.7.0` is the supported release target. Its parent lineage,
-project, usage, credential, installation, model-option, import, automatic-title,
-worktree inventory, resource file-copy, and sharing APIs are optional transport
-surfaces; they do not expose lease, lock, coordination, or inbox semantics.
-CS-2.2 therefore continues to own this control-plane layer in
-`omniagent-plus`.
+Official Omnigent `v0.9.0` is the supported release target. Smart routing,
+child routing metadata, session routing override, imports, projects, hosts,
+credentials, and model discovery are transport or administration surfaces;
+they do not expose lease, lock, coordination, approval, or inbox semantics.
+CS-2.2 continues to own this control-plane layer in `omniagent-plus`.

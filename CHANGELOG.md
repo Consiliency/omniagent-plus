@@ -3,6 +3,26 @@
 All notable changes to the public `@consiliency/*` seam packages are documented
 here. These packages were never published under any other scope.
 
+## [0.5.0] - 2026-08-12 - Omnigent v0.9 tagged-wire correction
+
+### Changed
+- Freeze official Omnigent `v0.9.0` at
+  `cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2`, preserving 97 operations and
+  exactly 52 stream events while recording the six additive schema changes.
+- Correct HTTP create, message, epoch/session, cursor-page, persisted-history,
+  acknowledgement, policy-denial, and tagged-SSE handling to the official wire.
+- Add process-local create/send idempotency and provisional accepted turn
+  identity without inventing upstream response fields.
+- Classify `omnigent server start` as a hidden deprecated alias while retaining
+  `omnigent server --background` as the sole production start command.
+
+### Notes
+- No neutral event, routing, approval, authority, lease, lock, child-create, or
+  harness-override capability is added.
+- Upstream v0.9 does not contain the later bundle-root isolation fix; this
+  release does not claim parity with development main.
+- Only `@consiliency/omnigent-transport` advances to `0.5.0`.
+
 ## [Unreleased] — seam scope rename: `@omniagent-plus/*` → `@consiliency/*`
 
 Rename the three **public** seam packages from the `@omniagent-plus/*` scope to

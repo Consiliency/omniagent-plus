@@ -1,16 +1,28 @@
-import type { CreateSessionRequest, SendTurnRequest } from "@consiliency/runtime-provider";
+import {
+  createRuntimeFailure,
+  type CreateSessionRequest,
+  type SendTurnRequest,
+} from "@consiliency/runtime-provider";
 
 import { parseOmnigentSseStream, type OmnigentSseSkip } from "./sse-stream.js";
 import type {
+  OmnigentChildSessionSummary,
+  OmnigentConversationItem,
   OmnigentEventAck,
   OmnigentHarnessCatalogResponse,
-  OmnigentHistoryItem,
   OmnigentHttpClientOptions,
+  OmnigentOpenStream,
   OmnigentRawEvent,
   OmnigentReadStateInput,
   OmnigentSendEventInput,
+  OmnigentSessionListItem,
   OmnigentSessionSnapshot,
+  OmnigentSessionStatus,
+  OmnigentWirePage,
+  OmnigentWireSessionResponse,
 } from "./types.js";
+
+const PAGE_LIMIT = 1000;
 
 export class OmnigentHttpError extends Error {
   readonly body: unknown;
@@ -36,33 +48,156 @@ export class OmnigentHttpError extends Error {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function requiredString(
+  record: Record<string, unknown>,
+  field: string,
+): string {
+  const value = record[field];
+  if (typeof value !== "string" || value.length === 0) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: `Omnigent response field ${field} must be a non-empty string.`,
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return value;
+}
+
+function epochToIso(value: unknown, field: string): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: `Omnigent response field ${field} must be a Unix epoch.`,
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return new Date(value * 1000).toISOString();
+}
+
+function normalizeSession(
+  value: unknown,
+  fallbackTitle?: string,
+): OmnigentSessionSnapshot {
+  if (!isRecord(value)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session response must be an object.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  const wire = value as unknown as OmnigentWireSessionResponse;
+  const id = requiredString(value, "id");
+  const status = requiredString(value, "status") as OmnigentSessionStatus;
+  const createdAt = epochToIso(value.created_at, "created_at");
+  const updatedAt = epochToIso(
+    value.updated_at ?? value.created_at,
+    value.updated_at == null ? "created_at" : "updated_at",
+  );
+  if (!Array.isArray(value.items)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session response field items must be an array.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  const title =
+    typeof wire.title === "string" && wire.title.length > 0
+      ? wire.title
+      : fallbackTitle ?? `Omnigent session ${id}`;
+
+  return {
+    activeResponseId:
+      typeof wire.active_response_id === "string"
+        ? wire.active_response_id
+        : null,
+    backend: "omnigent-http",
+    backgroundTaskCount:
+      typeof wire.background_task_count === "number"
+        ? wire.background_task_count
+        : null,
+    createdAt,
+    id,
+    items: wire.items,
+    kind: typeof wire.kind === "string" ? wire.kind : undefined,
+    mcpStartup: wire.mcp_startup,
+    metadata: isRecord(value.metadata) ? value.metadata : undefined,
+    modelOptions: wire.model_options,
+    parentSessionId:
+      typeof wire.parent_session_id === "string"
+        ? wire.parent_session_id
+        : null,
+    projectId:
+      typeof wire.project_id === "string" ? wire.project_id : null,
+    status,
+    subagentRoutingOverride:
+      typeof wire.subagent_routing_override === "string"
+        ? wire.subagent_routing_override
+        : null,
+    title,
+    updatedAt,
+    viewerLastSeen:
+      typeof wire.viewer_last_seen === "number"
+        ? wire.viewer_last_seen
+        : null,
+    viewerUnread:
+      typeof wire.viewer_unread === "boolean"
+        ? wire.viewer_unread
+        : undefined,
+  };
+}
+
 export class OmnigentHttpClient {
   private readonly fetchImpl: typeof globalThis.fetch;
   private readonly headers: Record<string, string>;
+  private readonly now: () => string;
 
   constructor(private readonly options: OmnigentHttpClientOptions) {
     this.fetchImpl = options.fetch ?? globalThis.fetch;
     this.headers = options.headers ?? {};
+    this.now = options.now ?? (() => new Date().toISOString());
   }
 
   async createSession(
     request: CreateSessionRequest,
   ): Promise<OmnigentSessionSnapshot> {
-    return this.requestJson("POST", "/v1/sessions", {
-      agentSpec: request.agentSpec,
-      correlationId: request.correlationId,
-      idempotencyKey: request.idempotencyKey,
-      identityProfileId: request.identityProfileId,
-      initialMessage: request.initialMessage,
-      repoRoot: request.repoRoot,
-      targetHarness: request.targetHarness,
-      targetProvider: request.targetProvider,
+    const agentId = await this.resolveAgentId(request);
+    const workspace = request.worktree?.path ?? request.repoRoot;
+    const wire = await this.requestJson<unknown>("POST", "/v1/sessions", {
+      agent_id: agentId,
+      initial_items:
+        request.initialMessage === undefined
+          ? []
+          : [
+              {
+                data: {
+                  content: [
+                    { text: request.initialMessage, type: "input_text" },
+                  ],
+                  role: "user",
+                },
+                type: "message",
+              },
+            ],
       title: request.title,
+      ...(workspace === undefined ? {} : { workspace }),
     });
+    return normalizeSession(wire, request.title);
   }
 
-  async listSessions(): Promise<OmnigentSessionSnapshot[]> {
-    return this.requestJson("GET", "/v1/sessions");
+  async listSessions(): Promise<OmnigentSessionListItem[]> {
+    return this.requestAllPages<OmnigentSessionListItem>("/v1/sessions");
   }
 
   async listHarnesses(): Promise<OmnigentHarnessCatalogResponse> {
@@ -70,17 +205,24 @@ export class OmnigentHttpClient {
   }
 
   async getSession(sessionId: string): Promise<OmnigentSessionSnapshot> {
-    return this.requestJson("GET", `/v1/sessions/${encodeURIComponent(sessionId)}`);
+    return normalizeSession(
+      await this.requestJson(
+        "GET",
+        `/v1/sessions/${encodeURIComponent(sessionId)}?include_items=false`,
+      ),
+    );
   }
 
   async patchSession(
     sessionId: string,
     changes: Record<string, unknown>,
   ): Promise<OmnigentSessionSnapshot> {
-    return this.requestJson(
-      "PATCH",
-      `/v1/sessions/${encodeURIComponent(sessionId)}`,
-      changes,
+    return normalizeSession(
+      await this.requestJson(
+        "PATCH",
+        `/v1/sessions/${encodeURIComponent(sessionId)}`,
+        changes,
+      ),
     );
   }
 
@@ -91,16 +233,16 @@ export class OmnigentHttpClient {
     );
   }
 
-  async getHistory(sessionId: string): Promise<OmnigentHistoryItem[]> {
-    return this.requestJson(
-      "GET",
+  async getHistory(sessionId: string): Promise<OmnigentConversationItem[]> {
+    return this.requestAllPages<OmnigentConversationItem>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/items`,
     );
   }
 
-  async listChildSessions(sessionId: string): Promise<OmnigentSessionSnapshot[]> {
-    return this.requestJson(
-      "GET",
+  async listChildSessions(
+    sessionId: string,
+  ): Promise<OmnigentChildSessionSummary[]> {
+    return this.requestAllPages<OmnigentChildSessionSummary>(
       `/v1/sessions/${encodeURIComponent(sessionId)}/child_sessions`,
     );
   }
@@ -112,19 +254,15 @@ export class OmnigentHttpClient {
     await this.requestJson(
       "PUT",
       `/v1/sessions/${encodeURIComponent(sessionId)}/read-state`,
-      {
-        last_seen: readState.lastSeen,
-        unread: readState.unread,
-      },
+      { last_seen: readState.lastSeen, unread: readState.unread },
     );
   }
 
-  async sendTurn(
-    request: SendTurnRequest,
-  ): Promise<OmnigentEventAck> {
+  async sendTurn(request: SendTurnRequest): Promise<OmnigentEventAck> {
     return this.sendEvent(request.sessionId, {
       data: {
-        message: request.message,
+        content: [{ text: request.message, type: "input_text" }],
+        role: "user",
       },
       type: "message",
     });
@@ -141,27 +279,125 @@ export class OmnigentHttpClient {
     );
   }
 
+  async openSessionStream(
+    sessionId: string,
+    onSkip?: (skip: OmnigentSseSkip) => void,
+  ): Promise<OmnigentOpenStream> {
+    const path = `/v1/sessions/${encodeURIComponent(sessionId)}/stream`;
+    const controller = new AbortController();
+    const response = await this.fetchImpl(this.url(path), {
+      headers: this.headers,
+      method: "GET",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const error = await this.toHttpError(response, "GET", path);
+      controller.abort();
+      throw error;
+    }
+    if (!response.body) {
+      controller.abort();
+      throw new Error("Omnigent stream response did not include a body.");
+    }
+    let closed = false;
+    return {
+      close: async () => {
+        if (!closed) {
+          closed = true;
+          controller.abort();
+        }
+      },
+      events: parseOmnigentSseStream(
+        response.body,
+        { now: this.now, sessionId },
+        onSkip,
+      ),
+    };
+  }
+
   async *streamSession(
     sessionId: string,
     onSkip?: (skip: OmnigentSseSkip) => void,
   ): AsyncIterable<OmnigentRawEvent> {
-    const response = await this.fetchImpl(
-      this.url(`/v1/sessions/${encodeURIComponent(sessionId)}/stream`),
-      {
-        headers: this.headers,
-        method: "GET",
-      },
-    );
-
-    if (!response.ok) {
-      throw await this.toHttpError(response, "GET", `/v1/sessions/${sessionId}/stream`);
+    const stream = await this.openSessionStream(sessionId, onSkip);
+    try {
+      yield* stream.events;
+    } finally {
+      await stream.close();
     }
+  }
 
-    if (!response.body) {
-      throw new Error("Omnigent stream response did not include a body.");
+  private async resolveAgentId(request: CreateSessionRequest): Promise<string> {
+    const agentSpec = request.agentSpec;
+    if (!agentSpec) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message: "Omnigent HTTP create requires an existing named agent.",
+        retryable: false,
+        scope: "session",
+      });
     }
+    const resolved = this.options.resolveAgentId
+      ? await this.options.resolveAgentId(agentSpec)
+      : agentSpec.kind === "named_agent"
+        ? agentSpec.value
+        : "";
+    if (resolved.trim().length === 0) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message: `Omnigent HTTP create does not support agent spec kind ${agentSpec.kind}.`,
+        retryable: false,
+        scope: "session",
+      });
+    }
+    return resolved;
+  }
 
-    yield* parseOmnigentSseStream(response.body, onSkip);
+  private async requestAllPages<T>(path: string): Promise<T[]> {
+    const result: T[] = [];
+    let after: string | undefined;
+    const seenCursors = new Set<string>();
+    while (true) {
+      const query = new URLSearchParams({
+        limit: String(PAGE_LIMIT),
+        order: "asc",
+        ...(after === undefined ? {} : { after }),
+      });
+      const page = await this.requestJson<OmnigentWirePage<T>>(
+        "GET",
+        `${path}?${query.toString()}`,
+      );
+      if (!page || !Array.isArray(page.data) || typeof page.has_more !== "boolean") {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "malformed_response",
+          message: `Omnigent paginated response for ${path} is malformed.`,
+          retryable: false,
+          scope: "session",
+        });
+      }
+      result.push(...page.data);
+      if (!page.has_more) {
+        return result;
+      }
+      if (
+        typeof page.last_id !== "string" ||
+        page.last_id.length === 0 ||
+        seenCursors.has(page.last_id)
+      ) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "malformed_response",
+          message: `Omnigent pagination for ${path} did not advance.`,
+          retryable: false,
+          scope: "session",
+        });
+      }
+      seenCursors.add(page.last_id);
+      after = page.last_id;
+    }
   }
 
   private async requestJson<T>(
@@ -177,15 +413,12 @@ export class OmnigentHttpClient {
       },
       method,
     });
-
     if (!response.ok) {
       throw await this.toHttpError(response, method, path);
     }
-
     if (response.status === 204) {
       return undefined as T;
     }
-
     return (await response.json()) as T;
   }
 
@@ -200,7 +433,6 @@ export class OmnigentHttpClient {
     } catch {
       body = await response.text();
     }
-
     return new OmnigentHttpError({
       body,
       headers: Object.fromEntries(response.headers.entries()),

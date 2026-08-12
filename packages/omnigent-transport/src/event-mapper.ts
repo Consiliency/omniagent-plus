@@ -6,43 +6,33 @@ import {
 
 import type { OmnigentRawEvent } from "./types.js";
 
-function sessionCreatedState(rawEvent: OmnigentRawEvent): "created" | "starting" | "idle" | "failed" {
-  if (rawEvent.status === "failed") {
-    return "failed";
-  }
-
-  if (rawEvent.status === "launching" || rawEvent.status === "running") {
-    return "starting";
-  }
-
-  if (rawEvent.type === "session.created") {
-    return "created";
-  }
-
-  return "idle";
-}
-
 function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
   return rawEvent.message ?? `Omnigent turn ${rawEvent.turnId ?? "unknown"}`;
 }
 
 export interface OmnigentEventMapperOptions {
+  readonly historicalTextTurnIds?: Iterable<string>;
   readonly seenItemIds?: Iterable<string>;
   readonly startingSequence?: number;
+  readonly startedTurnIds?: Iterable<string>;
+  readonly terminalTurnIds?: Iterable<string>;
 }
 
 export class OmnigentEventMapper {
   readonly seenItemIds: Set<string>;
 
-  private emittedSessionCreated = false;
-  private readonly emittedStartedTurnIds = new Set<string>();
-  private readonly emittedTerminalTurnIds = new Set<string>();
+  private readonly emittedStartedTurnIds: Set<string>;
+  private readonly emittedTerminalTurnIds: Set<string>;
+  private readonly historicalTextTurnIds: Set<string>;
   private nextSequence: number;
 
   constructor(
     private readonly sessionId: string,
     options: OmnigentEventMapperOptions = {},
   ) {
+    this.emittedStartedTurnIds = new Set(options.startedTurnIds ?? []);
+    this.emittedTerminalTurnIds = new Set(options.terminalTurnIds ?? []);
+    this.historicalTextTurnIds = new Set(options.historicalTextTurnIds ?? []);
     this.seenItemIds = new Set(options.seenItemIds ?? []);
     this.nextSequence = options.startingSequence ?? 1;
   }
@@ -59,22 +49,7 @@ export class OmnigentEventMapper {
 
     switch (rawEvent.type) {
       case "session.created":
-        if (this.emittedSessionCreated) {
-          return [];
-        }
-        this.emittedSessionCreated = true;
-        return [
-          this.createEvent({
-            eventId: rawEvent.id,
-            occurredAt: rawEvent.occurredAt,
-            payload: {
-              state: sessionCreatedState(rawEvent),
-              title: rawEvent.message ?? "Omnigent session",
-            },
-            terminal: false,
-            type: "runtime.session.created",
-          }),
-        ];
+        return [];
       case "turn.started":
       case "response.created":
         if (!rawEvent.turnId || this.emittedStartedTurnIds.has(rawEvent.turnId)) {
@@ -95,6 +70,12 @@ export class OmnigentEventMapper {
           }),
         ];
       case "response.output_text.delta":
+        if (
+          rawEvent.turnId &&
+          this.historicalTextTurnIds.has(rawEvent.turnId)
+        ) {
+          return [];
+        }
         return [
           this.createEvent({
             eventId: rawEvent.id,
@@ -107,6 +88,8 @@ export class OmnigentEventMapper {
             type: "runtime.text.delta",
           }),
         ];
+      case "response.output_item.done":
+        return this.mapOutputItem(rawEvent);
       case "response.completed":
       case "turn.completed":
         return this.mapTerminalEvent(rawEvent, "runtime.turn.completed");
@@ -135,6 +118,62 @@ export class OmnigentEventMapper {
       default:
         return [];
     }
+  }
+
+  private mapOutputItem(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
+    if (!rawEvent.item || !rawEvent.turnId) {
+      return [];
+    }
+    const item = rawEvent.item;
+    const itemType = typeof item.type === "string" ? item.type : undefined;
+    if (itemType === "function_call") {
+      const callId =
+        typeof item.call_id === "string" ? item.call_id : rawEvent.call_id;
+      const toolName = typeof item.name === "string" ? item.name : undefined;
+      if (!callId || !toolName) {
+        return [];
+      }
+      return [
+        this.createEvent({
+          eventId: rawEvent.id,
+          occurredAt: rawEvent.occurredAt,
+          payload: {
+            toolCall: {
+              approvalRequired: false,
+              argumentsRedacted: item.arguments,
+              sessionId: this.sessionId,
+              toolCallId: callId,
+              toolName,
+              turnId: rawEvent.turnId,
+            },
+          },
+          terminal: false,
+          turnId: rawEvent.turnId,
+          type: "runtime.tool.call",
+        }),
+      ];
+    }
+    if (itemType === "function_call_output") {
+      const callId =
+        typeof item.call_id === "string" ? item.call_id : rawEvent.call_id;
+      if (!callId) {
+        return [];
+      }
+      return [
+        this.createEvent({
+          eventId: rawEvent.id,
+          occurredAt: rawEvent.occurredAt,
+          payload: {
+            outputRedacted: item.output,
+            toolCallId: callId,
+          },
+          terminal: false,
+          turnId: rawEvent.turnId,
+          type: "runtime.tool.result",
+        }),
+      ];
+    }
+    return [];
   }
 
   private mapFailedEvent(rawEvent: OmnigentRawEvent): RuntimeEvent[] {

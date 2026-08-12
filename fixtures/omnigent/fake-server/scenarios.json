@@ -4,6 +4,19 @@
   "captured_at": "2026-07-24T20:20:32Z",
   "scenarios": [
     {
+      "name": "v0_9_official_wire",
+      "capabilities": [
+        "create_session",
+        "send_turn",
+        "read_history",
+        "stream_events",
+        "reconnect"
+      ],
+      "fixtures": [
+        "fixtures/omnigent/http/v0-9-wire-contract.json"
+      ]
+    },
+    {
       "name": "create_send_stream_success",
       "capabilities": [
         "create_session",

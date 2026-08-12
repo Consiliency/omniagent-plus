@@ -1,6 +1,7 @@
 import {
   omnigentStreamEventTypes,
   type OmnigentRawEvent,
+  type OmnigentTaggedSseEvent,
 } from "./types.js";
 
 export type OmnigentSseSkipReason =
@@ -13,18 +14,48 @@ export interface OmnigentSseSkip {
   readonly reason: OmnigentSseSkipReason;
 }
 
-function isKnownOmnigentEventType(value: unknown): value is OmnigentRawEvent["type"] {
+export interface OmnigentSseNormalizationOptions {
+  readonly now?: () => string;
+  readonly sessionId: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isKnownOmnigentEventType(
+  value: unknown,
+): value is OmnigentTaggedSseEvent["type"] {
   return (
-    value === "[DONE]" ||
-    (typeof value === "string" &&
-      (omnigentStreamEventTypes as readonly string[]).includes(value))
+    typeof value === "string" &&
+    (omnigentStreamEventTypes as readonly string[]).includes(value)
   );
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function epochToIso(value: unknown): string | undefined {
+  const epoch = numberValue(value);
+  return epoch === undefined ? undefined : new Date(epoch * 1000).toISOString();
+}
+
+function errorMessage(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value;
+  }
+  return isRecord(value) ? stringValue(value.message) : undefined;
 }
 
 function parseFramePayload(
   payload: string,
   onSkip?: (skip: OmnigentSseSkip) => void,
-): OmnigentRawEvent | null {
+): OmnigentTaggedSseEvent | null {
   if (payload === "[DONE]") {
     return null;
   }
@@ -33,79 +64,188 @@ function parseFramePayload(
   try {
     parsed = JSON.parse(payload);
   } catch {
-    onSkip?.({
-      payload,
-      reason: "invalid_json",
-    });
+    onSkip?.({ payload, reason: "invalid_json" });
     return null;
   }
 
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    onSkip?.({
-      payload,
-      reason: "non_object_payload",
-    });
+  if (!isRecord(parsed)) {
+    onSkip?.({ payload, reason: "non_object_payload" });
     return null;
   }
 
-  const eventType = (parsed as Record<string, unknown>).type;
-  if (!isKnownOmnigentEventType(eventType) || eventType === "[DONE]") {
-    onSkip?.({
-      payload,
-      reason: "unknown_event_type",
-    });
+  if (!isKnownOmnigentEventType(parsed.type)) {
+    onSkip?.({ payload, reason: "unknown_event_type" });
     return null;
   }
 
-  return parsed as OmnigentRawEvent;
+  return parsed as OmnigentTaggedSseEvent;
+}
+
+export class OmnigentSseNormalizer {
+  private currentResponseId: string | undefined;
+  private frameOrdinal = 0;
+  private readonly now: () => string;
+
+  constructor(private readonly options: OmnigentSseNormalizationOptions) {
+    this.now = options.now ?? (() => new Date().toISOString());
+  }
+
+  normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
+    this.frameOrdinal += 1;
+    const raw = tagged as Record<string, unknown>;
+    const response = isRecord(raw.response) ? raw.response : undefined;
+    const data = isRecord(raw.data) ? raw.data : undefined;
+    const item = isRecord(raw.item) ? raw.item : undefined;
+    const nestedResponseId = stringValue(response?.id);
+    const explicitResponseId =
+      stringValue(raw.response_id) ?? stringValue(data?.response_id);
+
+    if (nestedResponseId) {
+      this.currentResponseId = nestedResponseId;
+    } else if (explicitResponseId) {
+      this.currentResponseId = explicitResponseId;
+    }
+
+    const isBareTurn = tagged.type.startsWith("turn.");
+    const turnId = isBareTurn
+      ? explicitResponseId
+      : nestedResponseId ?? explicitResponseId ?? this.currentResponseId;
+    const sessionId =
+      stringValue(raw.conversation_id) ??
+      stringValue(raw.session_id) ??
+      this.options.sessionId;
+    const sequence = numberValue(raw.sequence_number);
+    const itemId =
+      stringValue(item?.id) ??
+      stringValue(raw.message_id) ??
+      stringValue(raw.call_id) ??
+      stringValue(raw.action_id) ??
+      stringValue(raw.elicitation_id) ??
+      stringValue(raw.file_id);
+    const eventId =
+      itemId ??
+      (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
+      `${sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
+    const occurredAt =
+      epochToIso(response?.completed_at) ??
+      epochToIso(response?.created_at) ??
+      epochToIso(data?.requested_at) ??
+      this.now();
+    const failureMessage = errorMessage(response?.error) ?? errorMessage(raw.error);
+    const incompleteDetails = isRecord(response?.incomplete_details)
+      ? response.incomplete_details
+      : undefined;
+
+    return {
+      action: stringValue(raw.action),
+      action_id: stringValue(raw.action_id),
+      args: isRecord(raw.args) ? raw.args : undefined,
+      attempt: numberValue(raw.attempt),
+      background_task_count:
+        numberValue(raw.background_task_count) ?? undefined,
+      blocked_on:
+        raw.blocked_on === null ? null : stringValue(raw.blocked_on),
+      call_id: stringValue(raw.call_id) ?? stringValue(item?.call_id),
+      conversation_id: stringValue(raw.conversation_id),
+      delay_seconds: numberValue(raw.delay_seconds),
+      delta: stringValue(raw.delta),
+      elicitation_id: stringValue(raw.elicitation_id),
+      error: raw.error ?? response?.error,
+      failure:
+        failureMessage === undefined
+          ? undefined
+          : { category: "backend_unavailable", message: failureMessage },
+      id: eventId,
+      item,
+      itemId,
+      message: failureMessage,
+      model: stringValue(raw.model),
+      occurredAt,
+      outputText: undefined,
+      params: isRecord(raw.params) ? raw.params : undefined,
+      phase: stringValue(raw.phase),
+      reason:
+        stringValue(raw.reason) ??
+        stringValue(incompleteDetails?.reason) ??
+        failureMessage,
+      reasoning_effort: stringValue(raw.reasoning_effort),
+      response_id: explicitResponseId,
+      sequence_number: sequence,
+      servers: isRecord(raw.servers)
+        ? (raw.servers as OmnigentRawEvent["servers"])
+        : undefined,
+      sessionId,
+      source: stringValue(raw.source),
+      status:
+        typeof raw.status === "string"
+          ? (raw.status as OmnigentRawEvent["status"])
+          : typeof response?.status === "string"
+            ? (response.status as OmnigentRawEvent["status"])
+            : undefined,
+      terminal:
+        tagged.type === "response.completed" ||
+        tagged.type === "response.failed" ||
+        tagged.type === "response.incomplete" ||
+        tagged.type === "response.cancelled",
+      tool_name: stringValue(raw.tool_name),
+      total_cost_usd: numberValue(raw.total_cost_usd),
+      turnId,
+      type: tagged.type,
+      usage_by_model: isRecord(raw.usage_by_model)
+        ? raw.usage_by_model
+        : undefined,
+    };
+  }
 }
 
 export async function* parseOmnigentSseStream(
   stream: ReadableStream<Uint8Array>,
+  options: OmnigentSseNormalizationOptions,
   onSkip?: (skip: OmnigentSseSkip) => void,
 ): AsyncIterable<OmnigentRawEvent> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
+  const normalizer = new OmnigentSseNormalizer(options);
   let buffer = "";
 
-  while (true) {
-    const { done, value } = await reader.read();
-    buffer += decoder.decode(value, {
-      stream: !done,
-    });
+  const parseFrame = (frame: string): OmnigentRawEvent | null => {
+    const dataLines = frame
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim());
+    if (dataLines.length === 0) {
+      return null;
+    }
+    const tagged = parseFramePayload(dataLines.join("\n"), onSkip);
+    return tagged === null ? null : normalizer.normalize(tagged);
+  };
 
-    const frames = buffer.split("\n\n");
-    buffer = frames.pop() ?? "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const frames = buffer.split("\n\n");
+      buffer = frames.pop() ?? "";
 
-    for (const frame of frames) {
-      const dataLines = frame
-        .split("\n")
-        .filter((line) => line.startsWith("data:"))
-        .map((line) => line.slice(5).trim());
-      if (dataLines.length === 0) {
-        continue;
+      for (const frame of frames) {
+        const event = parseFrame(frame);
+        if (event) {
+          yield event;
+        }
       }
-      const payload = dataLines.join("\n");
-      const event = parseFramePayload(payload, onSkip);
+
+      if (done) {
+        break;
+      }
+    }
+
+    if (buffer.trim().length > 0) {
+      const event = parseFrame(buffer);
       if (event) {
         yield event;
       }
     }
-
-    if (done) {
-      break;
-    }
-  }
-
-  if (buffer.trim().length > 0) {
-    const payload = buffer
-      .split("\n")
-      .filter((line) => line.startsWith("data:"))
-      .map((line) => line.slice(5).trim())
-      .join("\n");
-    const event = parseFramePayload(payload, onSkip);
-    if (event) {
-      yield event;
-    }
+  } finally {
+    reader.releaseLock();
   }
 }

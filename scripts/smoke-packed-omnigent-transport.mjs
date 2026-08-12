@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   readdirSync,
   rmSync,
   writeFileSync,
@@ -36,6 +37,21 @@ try {
     ["install", "--prefix", consumer, join(scratch, tarballName), "--ignore-scripts"],
     { stdio: "pipe" },
   );
+  const installedPackage = JSON.parse(
+    readFileSync(
+      join(
+        consumer,
+        "node_modules",
+        "@consiliency",
+        "omnigent-transport",
+        "package.json",
+      ),
+      "utf8",
+    ),
+  );
+  if (installedPackage.version !== "0.5.0") {
+    throw new Error("unexpected packed package version");
+  }
   execFileSync(
     "npm",
     [
@@ -53,7 +69,10 @@ try {
     [
       "--input-type=module",
       "-e",
-      `import { snapshotFromHealth } from "@consiliency/omnigent-transport";
+      `import {
+  loadOmnigentV09WireContract,
+  snapshotFromHealth,
+} from "@consiliency/omnigent-transport";
 const snapshot = snapshotFromHealth({
   activeSessions: 0,
   available: true,
@@ -61,10 +80,12 @@ const snapshot = snapshotFromHealth({
   runtime: "omnigent",
   sessionStateDrift: [],
 });
-if (snapshot.version !== "0.7.0") throw new Error("unexpected fixture version");
-if (snapshot.gitSha !== "35519fb04743f66b30cac8a40695d5d72fa163ea") {
+const wire = loadOmnigentV09WireContract();
+if (snapshot.version !== "0.9.0") throw new Error("unexpected fixture version");
+if (snapshot.gitSha !== "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2") {
   throw new Error("unexpected fixture git sha");
-}`,
+}
+if (wire.authority.tag !== "v0.9.0") throw new Error("unexpected wire authority");`,
     ],
     { cwd: consumer, stdio: "pipe" },
   );
@@ -75,6 +96,7 @@ if (snapshot.gitSha !== "35519fb04743f66b30cac8a40695d5d72fa163ea") {
   OmnigentNativeReasoningEffortOption,
   OmnigentProcessSignal,
   OmnigentSessionSnapshot,
+  OmnigentConversationItem,
 } from "@consiliency/omnigent-transport";
 
 const signal: OmnigentProcessSignal = "SIGTERM";
@@ -96,19 +118,16 @@ const snapshot = {
   title: "packed type smoke",
   updatedAt: "2026-07-30T00:00:00.000Z",
 } satisfies OmnigentSessionSnapshot;
-const snakeSnapshot = {
-  backend: "omnigent-http",
-  createdAt: "2026-07-30T00:00:00.000Z",
-  id: "session-snake",
-  items: [],
-  model_options: [model],
-  project_id: "project-snake",
-  status: "idle",
-  title: "packed snake-case type smoke",
-  updatedAt: "2026-07-30T00:00:00.000Z",
-} satisfies OmnigentSessionSnapshot;
+const item = {
+  created_at: 1780272000,
+  data: { content: [], role: "assistant" },
+  id: "item-1",
+  response_id: "response-1",
+  status: "completed",
+  type: "message",
+} satisfies OmnigentConversationItem;
 void snapshot;
-void snakeSnapshot;
+void item;
 void signal;
 `,
   );

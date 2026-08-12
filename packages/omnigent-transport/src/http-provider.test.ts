@@ -14,8 +14,8 @@ async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
 describe("http provider", () => {
   it("preserves v0.5 MCP startup metadata without synthesizing empty metadata", async () => {
     const snapshot = {
-      backend: "omnigent-http",
-      createdAt: "2026-06-30T00:00:00.000Z",
+      active_response_id: null,
+      created_at: 1_780_272_000,
       id: "session-mcp-startup",
       items: [],
       mcp_startup: {
@@ -27,7 +27,7 @@ describe("http provider", () => {
       metadata: { existing: "value" },
       status: "idle",
       title: "MCP startup",
-      updatedAt: "2026-06-30T00:00:00.000Z",
+      updated_at: 1_780_272_000,
     };
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
@@ -38,6 +38,7 @@ describe("http provider", () => {
         }),
     });
     const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: "agent-mcp-startup" },
       idempotencyKey: "http-provider-mcp-startup",
       runtime: "omnigent",
       targetHarness: "codex",
@@ -61,6 +62,7 @@ describe("http provider", () => {
         ),
     });
     const sessionWithoutMetadata = await providerWithoutMetadata.createSession({
+      agentSpec: { kind: "named_agent", value: "agent-no-mcp-startup" },
       idempotencyKey: "http-provider-no-mcp-startup",
       runtime: "omnigent",
       targetHarness: "codex",
@@ -80,6 +82,7 @@ describe("http provider", () => {
         baseUrl: server.baseUrl,
       });
       const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-http-provider" },
         idempotencyKey: "http-provider",
         runtime: "omnigent",
         targetHarness: "codex",
@@ -119,6 +122,7 @@ describe("http provider", () => {
         baseUrl: server.baseUrl,
       });
       const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-http-close" },
         idempotencyKey: "http-provider-close",
         runtime: "omnigent",
         targetHarness: "codex",
@@ -147,6 +151,7 @@ describe("http provider", () => {
         baseUrl: server.baseUrl,
       });
       const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-active-response" },
         idempotencyKey: "http-provider-active-response",
         runtime: "omnigent",
         targetHarness: "codex",
@@ -159,5 +164,231 @@ describe("http provider", () => {
     } finally {
       await server.stop();
     }
+  });
+
+  it("suppresses duplicate creates and sends within one provider process", async () => {
+    const server = await FakeOmnigentServer.start();
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const request = {
+        agentSpec: { kind: "named_agent" as const, value: "agent-idempotent" },
+        idempotencyKey: "same-create",
+        runtime: "omnigent" as const,
+        targetHarness: "codex" as const,
+        title: "Idempotent",
+      };
+      const [first, second] = await Promise.all([
+        provider.createSession(request),
+        provider.createSession(request),
+      ]);
+      expect(second.id).toBe(first.id);
+
+      const turn = {
+        idempotencyKey: "same-turn",
+        message: "hello",
+        sessionId: first.id,
+      };
+      const [firstTurn, secondTurn] = await Promise.all([
+        provider.sendTurn(turn),
+        provider.sendTurn(turn),
+      ]);
+      expect(secondTurn.turnId).toBe(firstTurn.turnId);
+      expect(
+        server.requestLog.filter((entry) => entry.path === "/v1/sessions"),
+      ).toHaveLength(1);
+      expect(
+        server.requestLog.filter(
+          (entry) => entry.path === `/v1/sessions/${first.id}/events`,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it("caches synchronous policy denial without posting a second turn", async () => {
+    const server = await FakeOmnigentServer.start({
+      rejectNextTurnWith: "policy",
+    });
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-policy" },
+        idempotencyKey: "policy-create",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Policy",
+      });
+      const request = {
+        idempotencyKey: "policy-turn",
+        message: "denied input",
+        sessionId: session.id,
+      };
+      await expect(provider.sendTurn(request)).rejects.toEqual(
+        expect.objectContaining({
+          category: "policy_denied",
+          retryable: false,
+        }),
+      );
+      await expect(provider.sendTurn(request)).rejects.toEqual(
+        expect.objectContaining({ category: "policy_denied" }),
+      );
+      expect(
+        server.requestLog.filter(
+          (entry) => entry.path === `/v1/sessions/${session.id}/events`,
+        ),
+      ).toHaveLength(1);
+      expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it("opens the tagged stream before snapshot and paginated history", async () => {
+    const server = await FakeOmnigentServer.start();
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-ordering" },
+        idempotencyKey: "ordering-create",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Ordering",
+      });
+      await collectAsync(provider.streamEvents(session.id));
+      const paths = server.requestLog.map((entry) => entry.path);
+      const stream = paths.lastIndexOf(`/v1/sessions/${session.id}/stream`);
+      const snapshot = paths.lastIndexOf(`/v1/sessions/${session.id}`);
+      const items = paths.lastIndexOf(`/v1/sessions/${session.id}/items`);
+      expect(stream).toBeLessThan(snapshot);
+      expect(snapshot).toBeLessThan(items);
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it("consumes queued-only and pending acknowledgements without invented ids", async () => {
+    for (const [ack, expected] of [
+      [{ queued: true }, "omnigent:session-ack:turn-ack"],
+      [{ pending_id: "pending-ack", queued: true }, "pending-ack"],
+    ] as const) {
+      const provider = createHttpProvider({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async (_input, init) => {
+          if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+            return new Response(
+              JSON.stringify({
+                active_response_id: null,
+                created_at: 1_780_272_000,
+                id: "session-ack",
+                items: [],
+                status: "idle",
+                title: "Ack",
+                updated_at: 1_780_272_000,
+              }),
+              { status: 200 },
+            );
+          }
+          return new Response(JSON.stringify(ack), { status: 202 });
+        },
+      });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-ack" },
+        idempotencyKey: `create-${expected}`,
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Ack",
+      });
+      const handle = await provider.sendTurn({
+        idempotencyKey: "turn-ack",
+        message: "hello",
+        sessionId: session.id,
+      });
+      expect(handle.turnId).toBe(expected);
+    }
+  });
+
+  it("evicts transport failures so the same send key can retry", async () => {
+    const server = await FakeOmnigentServer.start({
+      rejectNextTurnWith: "rate_limit",
+    });
+    try {
+      const provider = createHttpProvider({ baseUrl: server.baseUrl });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-retry" },
+        idempotencyKey: "retry-create",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Retry",
+      });
+      const request = {
+        idempotencyKey: "retry-turn",
+        message: "retry me",
+        sessionId: session.id,
+      };
+      await expect(provider.sendTurn(request)).rejects.toEqual(
+        expect.objectContaining({ statusCode: 429 }),
+      );
+      await expect(provider.sendTurn(request)).resolves.toEqual(
+        expect.objectContaining({ state: "queued" }),
+      );
+      expect(
+        server.requestLog.filter(
+          (entry) => entry.path === `/v1/sessions/${session.id}/events`,
+        ),
+      ).toHaveLength(2);
+    } finally {
+      await server.stop();
+    }
+  });
+
+  it("aborts an eagerly opened stream when snapshot acquisition fails", async () => {
+    let streamAborted = false;
+    let request = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (_input, init) => {
+        request += 1;
+        if (request === 1) {
+          return new Response(
+            JSON.stringify({
+              active_response_id: null,
+              created_at: 1_780_272_000,
+              id: "session-close",
+              items: [],
+              status: "idle",
+              title: "Close",
+              updated_at: 1_780_272_000,
+            }),
+          );
+        }
+        if (request === 2) {
+          init?.signal?.addEventListener("abort", () => {
+            streamAborted = true;
+          });
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start() {},
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(JSON.stringify({ error: "snapshot failed" }), {
+          status: 500,
+        });
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: "agent-close" },
+      idempotencyKey: "close-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: "Close",
+    });
+
+    await expect(collectAsync(provider.streamEvents(session.id))).rejects.toEqual(
+      expect.objectContaining({ statusCode: 500 }),
+    );
+    expect(streamAborted).toBe(true);
   });
 });

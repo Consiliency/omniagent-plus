@@ -88,6 +88,7 @@ describe("hybrid provider", () => {
         stopServerOnClose: true,
       });
       const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-hybrid" },
         idempotencyKey: "hybrid-session",
         runtime: "omnigent",
         targetHarness: "codex",

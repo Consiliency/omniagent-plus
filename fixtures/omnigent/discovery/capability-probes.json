@@ -1,143 +1,25 @@
 {
   "schema": "omnigent.capability_probe_matrix.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-30T03:53:08Z",
+  "captured_at": "2026-08-12T19:00:00Z",
   "capabilities": [
-    {
-      "name": "create_session",
-      "status": "supported",
-      "evidence": [
-        "POST /v1/sessions in API.md",
-        "POST /v1/sessions in openapi.json"
-      ]
-    },
-    {
-      "name": "send_turn",
-      "status": "supported",
-      "evidence": [
-        "POST /v1/sessions/{session_id}/events with message input"
-      ]
-    },
-    {
-      "name": "stream_events",
-      "status": "supported",
-      "evidence": [
-        "GET /v1/sessions/{session_id}/stream",
-        "official v0.7.0 client stream() implementation",
-        "browser.action_request and response.function_call_output.delta are parsed as known metadata-only no-op events"
-      ]
-    },
-    {
-      "name": "read_history",
-      "status": "supported",
-      "evidence": [
-        "GET /v1/sessions/{session_id}/items",
-        "GET /v1/sessions/{session_id} snapshot items"
-      ]
-    },
-    {
-      "name": "cancel_turn",
-      "status": "supported",
-      "evidence": [
-        "interrupt event bypasses queue",
-        "response.incomplete plus session.interrupted"
-      ]
-    },
-    {
-      "name": "close_session",
-      "status": "emulated",
-      "evidence": [
-        "stop_session exists on POST /events",
-        "DELETE /v1/sessions/{session_id} is destructive",
-        "sys_session_close is internal only"
-      ]
-    },
-    {
-      "name": "list_sessions",
-      "status": "supported",
-      "evidence": [
-        "GET /v1/sessions"
-      ]
-    },
-    {
-      "name": "harness_catalog",
-      "status": "supported",
-      "evidence": [
-        "GET /v1/harnesses in openapi.json",
-        "omnigent/server/routes/harnesses.py exposes read-only catalog"
-      ]
-    },
-    {
-      "name": "child_session",
-      "status": "blocked",
-      "evidence": [
-        "GET /v1/sessions/{session_id}/child_sessions is observe-only",
-        "POST /v1/sessions/{source_id}/fork is not spawn-under-parent",
-        "internal sys_session_create/sys_session_send are not public REST surface",
-        "v0.7.0 project, usage, credential, installation, model-option, import, and auto-title surfaces do not create a child session or grant lease authority"
-      ]
-    },
-    {
-      "name": "harness_override",
-      "status": "blocked",
-      "evidence": [
-        "GET /v1/harnesses is read-only catalog metadata",
-        "GET /v1/hosts/{host_id}/harnesses/{harness}/model-options is read-only operator metadata",
-        "spawn.py allowlist-gates args.harness for internal sub-agents only",
-        "generic ACP harness selection does not promote public harness override"
-      ]
-    },
-    {
-      "name": "malformed_event",
-      "status": "emulated",
-      "evidence": [
-        "invalid POST /events payloads fail 400",
-        "official v0.7.0 client skips malformed or unknown SSE frames"
-      ]
-    },
-    {
-      "name": "reconnect",
-      "status": "supported",
-      "evidence": [
-        "API.md reconnect contract",
-        "official v0.7.0 client stream plus get snapshot posture"
-      ]
-    },
-    {
-      "name": "terminal_event_uniqueness",
-      "status": "emulated",
-      "evidence": [
-        "response.* terminal events exist",
-        "turn.* terminal events also exist",
-        "provider must collapse duplicates"
-      ]
-    }
+    { "name": "create_session", "status": "supported", "evidence": ["v0.9 POST /v1/sessions requires agent_id and initial_items", "named-agent JSON create is supported", "idempotency is process-local", "bundle and inline specs remain blocked"] },
+    { "name": "send_turn", "status": "supported", "evidence": ["v0.9 tagged message role/content event", "accepted and synchronous policy-denial acknowledgements"] },
+    { "name": "stream_events", "status": "supported", "evidence": ["v0.9 GET /stream", "52-event allowlist", "tagged SSE normalization"] },
+    { "name": "read_history", "status": "supported", "evidence": ["cursor-paginated ConversationItem history"] },
+    { "name": "cancel_turn", "status": "supported", "evidence": ["interrupt event"] },
+    { "name": "close_session", "status": "emulated", "evidence": ["stop_session plus provider-local logical close"] },
+    { "name": "list_sessions", "status": "supported", "evidence": ["cursor-paginated GET /v1/sessions"] },
+    { "name": "harness_catalog", "status": "supported", "evidence": ["read-only GET /v1/harnesses"] },
+    { "name": "child_session", "status": "blocked", "evidence": ["child endpoint is observe-only", "routed_model and routing_decision_id are read-only", "smart routing grants no lease or lock authority"] },
+    { "name": "harness_override", "status": "blocked", "evidence": ["catalog is read-only", "routing override is not public harness authority"] },
+    { "name": "malformed_event", "status": "emulated", "evidence": ["unknown SSE frames are skipped", "invalid event requests fail"] },
+    { "name": "reconnect", "status": "supported", "evidence": ["stream handshake precedes snapshot and paginated history"] },
+    { "name": "terminal_event_uniqueness", "status": "emulated", "evidence": ["provider collapses response and turn terminal markers"] }
   ],
   "provenance": [
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/server/API.md",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "openapi.json",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "sdks/python-client/omnigent_client/_sessions.py",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/tools/builtins/spawn.py",
-      "ref": "v0.7.0"
-    }
+    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.9.0" },
+    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.9.0" },
+    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.9.0" }
   ]
 }
