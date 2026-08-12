@@ -156,6 +156,37 @@ describe("http client", () => {
     expect(resolverCalls).toBe(0);
   });
 
+  it("types resolver rejection before Omnigent network I/O", async () => {
+    let requests = 0;
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () => {
+        requests += 1;
+        return new Response();
+      },
+      resolveAgentId: () => {
+        throw new Error("resolver unavailable");
+      },
+    });
+
+    await expect(
+      client.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-name" },
+        idempotencyKey: "resolver-rejection",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: "Resolver rejection",
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        category: "backend_capability_missing",
+        retryable: false,
+        schema: "runtime_failure.v0.1",
+      }),
+    );
+    expect(requests).toBe(0);
+  });
+
   it("rejects unknown session status as a malformed external response", async () => {
     const client = new OmnigentHttpClient({
       baseUrl: "http://127.0.0.1:4010",

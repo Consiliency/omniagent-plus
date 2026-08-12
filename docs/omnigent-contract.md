@@ -81,7 +81,9 @@ failure, including setup
 failures that have no `response.failed`, and the tracked session remains failed.
 Long-lived streams are reseeded whenever a later send is accepted. Raw failure
 semantics keep provider state failed even when duplicate or history-overlap
-terminal evidence is suppressed by neutral-event deduplication.
+terminal evidence is suppressed by neutral-event deduplication. A one-event
+terminal alias links a provisional status-only failure to a later distinct
+official response ID; new turn or response activity clears that alias.
 `session.created` carries the parent `conversation_id` and a distinct
 `child_session_id`; it does not synthesize neutral root-session creation. Bare
 uncorrelated `turn.*` frames are metadata-only.

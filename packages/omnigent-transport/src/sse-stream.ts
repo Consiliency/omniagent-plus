@@ -96,6 +96,7 @@ function parseFramePayload(
 export class OmnigentSseNormalizer {
   private currentResponseId: string | undefined;
   private fallbackTurnId: string | undefined;
+  private terminalAliasTurnId: string | undefined;
   private frameOrdinal = 0;
   private readonly now: () => string;
 
@@ -109,6 +110,9 @@ export class OmnigentSseNormalizer {
 
   setFallbackTurnId(turnId: string | undefined): void {
     this.fallbackTurnId = turnId;
+    if (turnId !== undefined) {
+      this.terminalAliasTurnId = undefined;
+    }
   }
 
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
@@ -164,6 +168,25 @@ export class OmnigentSseNormalizer {
       ? response.incomplete_details
       : undefined;
     const status = statusValue(raw.status) ?? statusValue(response?.status);
+    const terminal =
+      tagged.type === "response.completed" ||
+      tagged.type === "response.failed" ||
+      tagged.type === "response.incomplete" ||
+      tagged.type === "response.cancelled" ||
+      (explicitResponseId !== undefined &&
+        (tagged.type === "turn.completed" ||
+          tagged.type === "turn.failed" ||
+          tagged.type === "turn.cancelled")) ||
+      (tagged.type === "session.status" &&
+        (status === "failed" ||
+          (status === "idle" && explicitResponseId !== undefined)));
+    const officialTurnId = nestedResponseId ?? explicitResponseId;
+    const turnAliasId =
+      terminal &&
+      officialTurnId !== undefined &&
+      officialTurnId !== this.terminalAliasTurnId
+        ? this.terminalAliasTurnId
+        : undefined;
 
     const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
@@ -215,29 +238,26 @@ export class OmnigentSseNormalizer {
       sessionId,
       source: stringValue(raw.source),
       status,
-      terminal:
-        tagged.type === "response.completed" ||
-        tagged.type === "response.failed" ||
-        tagged.type === "response.incomplete" ||
-        tagged.type === "response.cancelled" ||
-        (explicitResponseId !== undefined &&
-          (tagged.type === "turn.completed" ||
-            tagged.type === "turn.failed" ||
-            tagged.type === "turn.cancelled")) ||
-        (tagged.type === "session.status" &&
-          (status === "failed" ||
-            (status === "idle" && explicitResponseId !== undefined))),
+      terminal,
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
       turnId,
+      turnAliasId,
       type: tagged.type,
       usage_by_model: isRecord(raw.usage_by_model)
         ? raw.usage_by_model
         : undefined,
     };
     if (normalized.terminal) {
+      if (officialTurnId === undefined && turnId === this.fallbackTurnId) {
+        this.terminalAliasTurnId = turnId;
+      } else {
+        this.terminalAliasTurnId = undefined;
+      }
       this.currentResponseId = undefined;
       this.fallbackTurnId = undefined;
+    } else if (officialTurnId !== undefined) {
+      this.terminalAliasTurnId = undefined;
     }
     return normalized;
   }

@@ -86,7 +86,13 @@ describe("event mapper", () => {
     };
     const runtimeEvents = mapOmnigentEventSequence("session-1", [
       failedStatus,
-      { ...failedStatus, id: "session-failed-duplicate" },
+      {
+        ...failedStatus,
+        id: "session-failed-official",
+        turnAliasId: "turn-setup",
+        turnId: "response-official",
+        type: "response.failed",
+      },
     ]);
 
     expect(runtimeEvents).toEqual([

@@ -22,8 +22,9 @@ here. These packages were never published under any other scope.
   SSE-only `launching` transition, preserve the official routing-decision
   fields, preserve provisional turn correlation across ambiguous native idle
   edges and later sends on long-lived streams, map status-only setup failures,
-  retain failed state across deduplicated terminal evidence, and enforce the
-  named-agent-only resolver boundary.
+  reconcile their provisional and official terminal IDs, retain failed state
+  across deduplicated terminal evidence, type resolver rejection before HTTP,
+  and enforce the named-agent-only resolver boundary.
 - Add process-local create/send idempotency and provisional accepted turn
   identity without inventing upstream response fields.
 - Classify `omnigent server start` as a hidden deprecated alias while retaining

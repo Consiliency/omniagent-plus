@@ -309,6 +309,32 @@ describe("sse stream parser", () => {
         type: "response.output_text.delta",
       }).turnId,
     ).toBe("provisional-turn");
+    const failed = normalizer.normalize({
+      conversation_id: "session-idle-flap",
+      error: { code: "setup_failed", message: "setup failed" },
+      status: "failed",
+      type: "session.status",
+    });
+    expect(failed).toEqual(
+      expect.objectContaining({ terminal: true, turnId: "provisional-turn" }),
+    );
+    const officialFailure = normalizer.normalize({
+      response: {
+        error: { code: "setup_failed", message: "setup failed" },
+        id: "response-official",
+        status: "failed",
+      },
+      type: "response.failed",
+    });
+    expect(officialFailure).toEqual(
+      expect.objectContaining({
+        terminal: true,
+        turnAliasId: "provisional-turn",
+        turnId: "response-official",
+      }),
+    );
+
+    normalizer.setFallbackTurnId("next-provisional-turn");
     expect(
       normalizer.normalize({
         conversation_id: "session-idle-flap",

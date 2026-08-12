@@ -361,6 +361,7 @@ export interface OmnigentRawEvent {
   readonly response_id?: string;
   readonly itemId?: string;
   readonly terminal?: boolean;
+  readonly turnAliasId?: string;
   readonly status?: OmnigentSessionEventStatus | OmnigentResponseStatus;
   readonly reason?: string;
   readonly phase?: string;

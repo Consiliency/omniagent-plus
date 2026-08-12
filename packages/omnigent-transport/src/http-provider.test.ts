@@ -460,14 +460,14 @@ describe("http provider", () => {
       {
         response: {
           error: { code: "setup_failed", message: "turn setup failed" },
-          id: "omnigent:session-idle-failure:idle-failure-turn",
+          id: "response-official-failure",
           status: "failed",
         },
         type: "response.failed",
       },
       {
         conversation_id: snapshot.id,
-        response_id: "omnigent:session-idle-failure:idle-failure-turn",
+        response_id: "response-official-failure",
         status: "idle",
         type: "session.status",
       },

@@ -228,7 +228,15 @@ export class OmnigentEventMapper {
   }
 
   private mapFailedEvent(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
-    if (!rawEvent.turnId || this.emittedTerminalTurnIds.has(rawEvent.turnId)) {
+    if (!rawEvent.turnId) {
+      return [];
+    }
+    if (
+      this.emittedTerminalTurnIds.has(rawEvent.turnId) ||
+      (rawEvent.turnAliasId !== undefined &&
+        this.emittedTerminalTurnIds.has(rawEvent.turnAliasId))
+    ) {
+      this.emittedTerminalTurnIds.add(rawEvent.turnId);
       return [];
     }
     this.emittedTerminalTurnIds.add(rawEvent.turnId);
@@ -272,7 +280,15 @@ export class OmnigentEventMapper {
       | "runtime.turn.cancelled"
       | "runtime.turn.timed_out",
   ): RuntimeEvent[] {
-    if (!rawEvent.turnId || this.emittedTerminalTurnIds.has(rawEvent.turnId)) {
+    if (!rawEvent.turnId) {
+      return [];
+    }
+    if (
+      this.emittedTerminalTurnIds.has(rawEvent.turnId) ||
+      (rawEvent.turnAliasId !== undefined &&
+        this.emittedTerminalTurnIds.has(rawEvent.turnAliasId))
+    ) {
+      this.emittedTerminalTurnIds.add(rawEvent.turnId);
       return [];
     }
     this.emittedTerminalTurnIds.add(rawEvent.turnId);

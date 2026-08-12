@@ -472,9 +472,20 @@ export class OmnigentHttpClient {
         scope: "session",
       });
     }
-    const resolved = this.options.resolveAgentId
-      ? await this.options.resolveAgentId(agentSpec)
-      : agentSpec.value;
+    let resolved: string | undefined;
+    try {
+      resolved = this.options.resolveAgentId
+        ? await this.options.resolveAgentId(agentSpec)
+        : agentSpec.value;
+    } catch {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message: "Omnigent HTTP agent resolution failed.",
+        retryable: false,
+        scope: "session",
+      });
+    }
     if (typeof resolved !== "string" || resolved.trim().length === 0) {
       throw createRuntimeFailure({
         actor: "provider",
