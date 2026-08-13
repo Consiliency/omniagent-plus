@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`efa85c2447909497996f88a5e35fb33f4030f78c`, and no source or evidence files
+`f9df1af4186068aa877628d1c16b284ee2d8b4db`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -439,6 +439,16 @@ may change after this receipt is committed without another full run.
   regression sends two bare acknowledgements, exposes two native pending inputs
   plus unrelated active response C, and proves neither local handle is rebound
   to C while C's lifecycle remains independently visible.
+- Cancellation quarantine is now durable across provider processes. The
+  caller-supplied `sessionMutationFenceStore`, protected by the same fleet-wide
+  lease as every session writer, records pending cancellation, rejected response
+  identities, and logical close. A replacement provider cannot post B until
+  correlated lifecycle proves cancelled A's identity; it then seeds A's durable
+  tombstones into a new stream, drops late A lifecycle and identity-free output,
+  and attributes only B's response. Ambiguous malformed or network control
+  outcomes retain the fence conservatively, while explicit policy denial restores
+  the prior state. A replacement-provider close regression also proves the shared
+  terminal marker blocks sends without relying on process-local session state.
 
 ## Boundaries
 
