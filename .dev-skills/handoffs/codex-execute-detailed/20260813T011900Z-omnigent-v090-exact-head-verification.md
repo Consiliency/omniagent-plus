@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `7b5126c`, and no source or evidence
+this file. The final implementation parent is `f7f1c5e`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 104 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 108 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 276 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 280 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -165,6 +165,27 @@ files may change after this receipt is committed without another full run.
   concurrent-stream regression proves the denial, one POST, and cleared active
   identity while the separate lost-connection regression still returns the
   stream-proven accepted handle.
+- A successful acknowledgement whose response body disconnects is now treated
+  as network loss rather than malformed JSON. Stream-proven acceptance keeps
+  the reconciled official handle, active state, and idempotency cache, while an
+  actual JSON syntax error remains a non-retryable malformed response. The
+  response-body termination regression proves one POST and no rollback.
+- Native pending acknowledgements received after a stream is already open are
+  removed from that stream's fallback candidates immediately after provisional
+  identity replacement. They become eligible again only through the existing
+  consumed-input or exact-history joins. A stream-first regression proves an
+  unrelated response cannot capture or terminalize the pending handle.
+- Delivered text is now accumulated once per stable runtime event identity.
+  Re-reading the same persisted message therefore cannot inflate the
+  cursor-recovery prefix ledger and consume a later distinct message with equal
+  bytes. A regression reads one `same` message twice, appends a second `same`
+  message under the same response, and proves the second message remains visible
+  after the prior cursor.
+- An identity-free terminal status is no longer attributed through the scalar
+  fallback when multiple unbound turns are eligible. The ambiguous status stays
+  metadata-only for turn correlation, and the next official response still
+  claims the oldest turn through the authoritative FIFO. A normalizer regression
+  proves the newest pending turn cannot be terminalized without identity.
 - Reconnect message deduplication now aligns a buffered chunk anywhere within
   the remaining persisted message, so a stream that resumes at a suffix chunk
   cannot replay that suffix. Terminal output-item deduplication uses
