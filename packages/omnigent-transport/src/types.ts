@@ -122,6 +122,25 @@ export const omnigentStreamEventTypes = [
 export type OmnigentStreamEventType =
   (typeof omnigentStreamEventTypes)[number];
 
+export interface OmnigentCancellationFence {
+  readonly awaitingIdentity: boolean;
+  readonly turnId: string;
+}
+
+export interface OmnigentSessionMutationFenceState {
+  readonly cancellation?: OmnigentCancellationFence;
+  readonly closed?: true;
+  readonly rejectedTurnIds: readonly string[];
+}
+
+export interface OmnigentSessionMutationFenceStore {
+  read(sessionId: string): Promise<OmnigentSessionMutationFenceState>;
+  write(
+    sessionId: string,
+    state: OmnigentSessionMutationFenceState,
+  ): Promise<void>;
+}
+
 export interface OmnigentHttpClientOptions {
   /** Explicitly opt into Omnigent's server-side pending-input queue. */
   readonly allowQueuedTurns?: boolean;
@@ -132,6 +151,8 @@ export interface OmnigentHttpClientOptions {
   readonly resolveAgentId?: (
     agentSpec: OmnigentAgentSpecRef,
   ) => Promise<string> | string;
+  /** Persist cancellation fences and rejected identities in the lease authority. */
+  readonly sessionMutationFenceStore?: OmnigentSessionMutationFenceStore;
   /**
    * Run every session mutation under a fleet-wide exclusive lease. All clients
    * that can write the same Omnigent session must use the same lease authority.

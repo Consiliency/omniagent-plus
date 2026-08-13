@@ -4,6 +4,10 @@ import {
   createHttpProvider as createUnleasedHttpProvider,
 } from "./http-provider.js";
 import type { OmnigentHttpClientOptions } from "./types.js";
+import type {
+  OmnigentSessionMutationFenceState,
+  OmnigentSessionMutationFenceStore,
+} from "./types.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import type { OmnigentConversationItem } from "./types.js";
 
@@ -20,9 +24,22 @@ const withExclusiveSessionLease = async <T>(
   operation: () => Promise<T>,
 ): Promise<T> => operation();
 
+function createSessionMutationFenceStore(): OmnigentSessionMutationFenceStore {
+  const states = new Map<string, OmnigentSessionMutationFenceState>();
+  return {
+    read: async (sessionId) =>
+      states.get(sessionId) ?? { rejectedTurnIds: [] },
+    write: async (sessionId, state) => {
+      states.set(sessionId, state);
+    },
+  };
+}
+
 function createHttpProvider(options: OmnigentHttpClientOptions) {
   return createUnleasedHttpProvider({
     ...options,
+    sessionMutationFenceStore:
+      options.sessionMutationFenceStore ?? createSessionMutationFenceStore(),
     withExclusiveSessionLease:
       options.withExclusiveSessionLease ?? withExclusiveSessionLease,
   });
@@ -142,8 +159,10 @@ describe("http provider", () => {
     const server = await FakeOmnigentServer.start();
 
     try {
+      const fenceStore = createSessionMutationFenceStore();
       const provider = createHttpProvider({
         baseUrl: server.baseUrl,
+        sessionMutationFenceStore: fenceStore,
       });
       const session = await provider.createSession({
         agentSpec: { kind: "named_agent", value: "agent-http-close" },
@@ -164,10 +183,28 @@ describe("http provider", () => {
       const health = await provider.health();
 
       expect(info.state).toBe("closed");
+      await expect(fenceStore.read(session.id)).resolves.toMatchObject({
+        closed: true,
+      });
       await expect(
         provider.sendTurn({
           idempotencyKey: "http-provider-after-close",
           message: "must remain closed",
+          sessionId: session.id,
+        }),
+      ).rejects.toMatchObject({
+        category: "state_conflict",
+        retryable: false,
+        scope: "session",
+      });
+      const replacementProvider = createHttpProvider({
+        baseUrl: server.baseUrl,
+        sessionMutationFenceStore: fenceStore,
+      });
+      await expect(
+        replacementProvider.sendTurn({
+          idempotencyKey: "http-provider-after-shared-close",
+          message: "must remain closed across providers",
           sessionId: session.id,
         }),
       ).rejects.toMatchObject({
@@ -377,10 +414,10 @@ describe("http provider", () => {
         sessionId: session.id,
       });
 
-      await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
+      await expect(provider.closeSession(session.id)).rejects.toMatchObject({
         category: "malformed_response",
       });
-      await expect(provider.closeSession(session.id)).rejects.toMatchObject({
+      await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
         category: "malformed_response",
       });
       const info = await provider.getSessionInfo(session.id);
@@ -980,7 +1017,7 @@ describe("http provider", () => {
     expect(interruptPosts).toBe(1);
   });
 
-  it("holds a shared session lease across snapshot and interrupt acknowledgement", async () => {
+  it("keeps cancellation fencing and tombstones shared across providers", async () => {
     const snapshot = {
       active_response_id: null as string | null,
       agent_id: "agent-shared-cancel-lease",
@@ -993,6 +1030,22 @@ describe("http provider", () => {
       updated_at: 1_780_272_001,
     };
     const leaseTails = new Map<string, Promise<void>>();
+    const fenceStates = new Map<string, OmnigentSessionMutationFenceState>();
+    let cancellationResolved!: () => void;
+    const cancellationResolution = new Promise<void>((resolve) => {
+      cancellationResolved = resolve;
+    });
+    const sharedFenceStore: OmnigentSessionMutationFenceStore = {
+      read: async (sessionId) =>
+        fenceStates.get(sessionId) ?? { rejectedTurnIds: [] },
+      write: async (sessionId, state) => {
+        const previous = fenceStates.get(sessionId);
+        fenceStates.set(sessionId, state);
+        if (previous?.cancellation && !state.cancellation) {
+          cancellationResolved();
+        }
+      },
+    };
     const withSharedLease = async <T>(
       sessionId: string,
       operation: () => Promise<T>,
@@ -1018,8 +1071,18 @@ describe("http provider", () => {
     const interruptReady = new Promise<void>((resolve) => {
       interruptStarted = resolve;
     });
+    const streamControllers: ReadableStreamDefaultController<Uint8Array>[] = [];
+    let firstStreamStarted!: () => void;
+    let secondStreamStarted!: () => void;
+    const firstStreamReady = new Promise<void>((resolve) => {
+      firstStreamStarted = resolve;
+    });
+    const secondStreamReady = new Promise<void>((resolve) => {
+      secondStreamStarted = resolve;
+    });
     let messagePosts = 0;
-    const fetch: typeof globalThis.fetch = async (_input, init) => {
+    const fetch: typeof globalThis.fetch = async (input, init) => {
+      const url = String(input);
       if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
         return new Response(JSON.stringify(snapshot));
       }
@@ -1045,16 +1108,38 @@ describe("http provider", () => {
           }),
         );
       }
+      if (url.endsWith("/stream")) {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              streamControllers.push(controller);
+              if (streamControllers.length === 1) {
+                firstStreamStarted();
+              } else {
+                secondStreamStarted();
+              }
+            },
+          }),
+          { headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      if (url.includes("/items")) {
+        return new Response(
+          JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+        );
+      }
       return new Response(JSON.stringify(snapshot));
     };
     const firstProvider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch,
+      sessionMutationFenceStore: sharedFenceStore,
       withExclusiveSessionLease: withSharedLease,
     });
     const secondProvider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch,
+      sessionMutationFenceStore: sharedFenceStore,
       withExclusiveSessionLease: withSharedLease,
     });
     const firstSession = await firstProvider.createSession({
@@ -1090,8 +1175,72 @@ describe("http provider", () => {
     snapshot.active_response_id = null;
     resolveInterrupt(new Response(JSON.stringify({ queued: false })));
     await expect(cancelling).resolves.toMatchObject({ state: "cancelled" });
-    await expect(second).resolves.toMatchObject({ turnId: "item-shared-lease-b" });
+    await expect(second).rejects.toMatchObject({ category: "state_conflict" });
+    expect(messagePosts).toBe(1);
+
+    const firstEvents = collectAsync(firstProvider.streamEvents(firstSession.id));
+    await firstStreamReady;
+    streamControllers[0]?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-shared-lease-a", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    await cancellationResolution;
+
+    const accepted = await secondProvider.sendTurn({
+      idempotencyKey: "shared-cancel-lease-b",
+      message: "B",
+      sessionId: secondSession.id,
+    });
+    expect(accepted.turnId).toBe("item-shared-lease-b");
     expect(messagePosts).toBe(2);
+
+    const secondEvents = collectAsync(secondProvider.streamEvents(secondSession.id));
+    await secondStreamReady;
+    for (const event of [
+      {
+        response: { id: "response-shared-lease-a", status: "in_progress" },
+        type: "response.created",
+      },
+      {
+        delta: "late A output",
+        type: "response.output_text.delta",
+      },
+      {
+        response: { id: "response-shared-lease-a", status: "cancelled" },
+        type: "response.cancelled",
+      },
+      {
+        response: { id: "response-shared-lease-b", status: "in_progress" },
+        type: "response.created",
+      },
+      {
+        delta: "B output",
+        type: "response.output_text.delta",
+      },
+      {
+        response: { id: "response-shared-lease-b", status: "completed" },
+        type: "response.completed",
+      },
+    ]) {
+      streamControllers[1]?.enqueue(
+        new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`),
+      );
+    }
+    streamControllers[0]?.close();
+    streamControllers[1]?.close();
+
+    await firstEvents;
+    const events = await secondEvents;
+    expect(accepted.turnId).toBe("response-shared-lease-b");
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["B output"]);
   });
 
   it("retains interruption proof that arrives before the control acknowledgement", async () => {

@@ -20,6 +20,10 @@ describe("transport types", () => {
     const httpOptions: OmnigentHttpClientOptions = {
       allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
+      sessionMutationFenceStore: {
+        read: async () => ({ rejectedTurnIds: [] }),
+        write: async () => undefined,
+      },
       withExclusiveSessionLease: async (_sessionId, operation) => operation(),
     };
     const snapshot: OmnigentSessionSnapshot = {
@@ -127,6 +131,7 @@ describe("transport types", () => {
 
     expect(httpOptions.baseUrl).toContain("127.0.0.1");
     expect(httpOptions.allowQueuedTurns).toBe(true);
+    expect(httpOptions.sessionMutationFenceStore).toBeTypeOf("object");
     expect(httpOptions.withExclusiveSessionLease).toBeTypeOf("function");
     expect(omnigentProviderModes).toEqual(["http", "cli", "hybrid"]);
     expect(omnigentCapabilityStatuses).toContain("emulated");

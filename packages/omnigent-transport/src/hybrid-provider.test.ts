@@ -82,10 +82,20 @@ describe("hybrid provider", () => {
     };
 
     try {
+      let fenceState = { rejectedTurnIds: [] as string[] };
       const provider = createHybridProvider({
         baseUrl: server.baseUrl,
         cliTransport,
         processManager,
+        sessionMutationFenceStore: {
+          read: async () => fenceState,
+          write: async (_sessionId, state) => {
+            fenceState = {
+              ...state,
+              rejectedTurnIds: [...state.rejectedTurnIds],
+            };
+          },
+        },
         stopServerOnClose: true,
         withExclusiveSessionLease: async (_sessionId, operation) => operation(),
       });

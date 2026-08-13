@@ -588,8 +588,19 @@ describe("sse stream parser", () => {
     );
     normalizer.rejectTurnId("request-rejected");
     normalizer.rejectTurnId("response-rejected");
-    normalizer.setActiveResponseId("response-rejected");
     normalizer.setFallbackTurnId("request-accepted");
+
+    expect(
+      normalizer.normalize({
+        response: { id: "response-rejected", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: undefined,
+        turnId: "response-rejected",
+      }),
+    );
 
     expect(
       normalizer.normalize({

@@ -55,6 +55,7 @@ describe("live Omnigent smoke", () => {
 
   liveIt("collects metadata_only live evidence only when explicitly enabled", async () => {
     const fixture = readFixture();
+    let fenceState = { rejectedTurnIds: [] as string[] };
     const provider = createHttpProvider({
       baseUrl: liveBaseUrl!,
       headers:
@@ -63,6 +64,15 @@ describe("live Omnigent smoke", () => {
           : {
               authorization: `Bearer ${bearerToken}`,
             },
+      sessionMutationFenceStore: {
+        read: async () => fenceState,
+        write: async (_sessionId, state) => {
+          fenceState = {
+            ...state,
+            rejectedTurnIds: [...state.rejectedTurnIds],
+          };
+        },
+      },
       withExclusiveSessionLease: async (_sessionId, operation) => operation(),
     });
     let sessionId: string | undefined;

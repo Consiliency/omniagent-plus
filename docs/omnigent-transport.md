@@ -28,11 +28,12 @@ reflected by the returned queued handle.
 
 Omnigent v0.9 interrupt and stop controls are session-scoped and carry no turn
 identity or fencing token. HTTP and hybrid cancellation/close therefore fail
-with `backend_capability_missing` unless `withExclusiveSessionLease` is
-configured. The hook must use one fleet-wide lease authority shared by every
-client that can mutate the session. The provider runs send, cancel, and close
-mutations through that hook, keeping durable lease ownership outside this
-package while preventing an unfenced snapshot-to-interrupt race.
+with `backend_capability_missing` unless `withExclusiveSessionLease` and
+`sessionMutationFenceStore` are configured. Both hooks must use the same
+fleet-wide authority shared by every client that can mutate the session. The
+provider runs send, cancel, and close through the lease; the store keeps pending
+cancellation, rejected response IDs, and logical close visible across clients.
+Durable lease and fence ownership remain outside this package.
 
 ## Event Boundary
 

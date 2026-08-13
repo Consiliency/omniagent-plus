@@ -68,10 +68,13 @@ sends fail with `concurrency_limit`; callers must explicitly set
 
 The tagged interrupt and stop events are session-scoped and expose neither a
 target response ID nor a conditional fencing token. The adapter refuses those
-controls unless the caller supplies `withExclusiveSessionLease`, backed by the
-same fleet-wide lease authority used by every writer of that session. Send,
-cancel, and close operations all enter that lease. The package consumes this
-guard but does not implement or own lease/lock authority.
+controls unless the caller supplies both `withExclusiveSessionLease` and
+`sessionMutationFenceStore`, backed by the same fleet-wide authority used by
+every writer of that session. Send, cancel, and close operations all enter that
+lease and consult the shared state. A pending cancellation blocks every writer
+until correlated lifecycle proof arrives; rejected response IDs and logical
+close remain visible to replacement clients. The package consumes these guards
+but does not implement or own lease, lock, or durable fence authority.
 
 ## History And Stream
 

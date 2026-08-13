@@ -24,6 +24,8 @@ import type {
   OmnigentHttpClientOptions,
   OmnigentOpenStream,
   OmnigentRawEvent,
+  OmnigentSessionMutationFenceState,
+  OmnigentSessionMutationFenceStore,
   OmnigentSessionSnapshot,
 } from "./types.js";
 
@@ -294,6 +296,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly queuedOnlyTurnKeys = new Set<string>();
   private readonly rejectedTurnKeys = new Set<string>();
   private readonly sends = new Map<string, Promise<TurnHandle>>();
+  private readonly sessionMutationFenceStore?: OmnigentSessionMutationFenceStore;
   private readonly sessions = new Map<string, AgentSessionInfo>();
   private readonly turns = new Map<string, TurnHandle>();
   private readonly withExclusiveSessionLease?: OmnigentHttpClientOptions["withExclusiveSessionLease"];
@@ -301,6 +304,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   constructor(options: OmnigentHttpClientOptions) {
     this.allowQueuedTurns = options.allowQueuedTurns ?? false;
     this.client = new OmnigentHttpClient(options);
+    this.sessionMutationFenceStore = options.sessionMutationFenceStore;
     this.withExclusiveSessionLease = options.withExclusiveSessionLease;
   }
 
@@ -346,6 +350,21 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private async sendTurnWithExclusiveLease(
     request: SendTurnRequest,
   ): Promise<TurnHandle> {
+    if (this.withExclusiveSessionLease) {
+      const sharedState = await this.requireSessionMutationFenceStore().read(
+        request.sessionId,
+      );
+      this.installSharedSessionMutationState(request.sessionId, sharedState);
+      if (sharedState.closed) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "state_conflict",
+          message: `Session ${request.sessionId} is closed.`,
+          retryable: false,
+          scope: "session",
+        });
+      }
+    }
     if (this.cancellationReservations.has(request.sessionId)) {
       throw createRuntimeFailure({
         actor: "provider",
@@ -604,6 +623,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     );
     this.addOpenStream(sessionId, stream);
     try {
+      if (this.withExclusiveSessionLease) {
+        const sharedState = await this.withExclusiveSessionLease(
+          sessionId,
+          () => this.requireSessionMutationFenceStore().read(sessionId),
+        );
+        this.installSharedSessionMutationState(sessionId, sharedState, stream);
+      }
       const activeTurnId = this.sessions.get(sessionId)?.activeTurnId;
       const provisionalTurnIds = [
         ...(this.provisionalTurnOrder.get(sessionId) ?? []),
@@ -705,7 +731,17 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
 
       for await (const rawEvent of stream.events) {
         this.recordConsumedPendingItem(sessionId, rawEvent, items, stream);
-        this.consumeCancelledTurnQuarantine(sessionId, rawEvent);
+        const resolvedCancellation = this.consumeCancelledTurnQuarantine(
+          sessionId,
+          rawEvent,
+        );
+        if (resolvedCancellation) {
+          await this.resolveSharedCancellationFence(
+            sessionId,
+            resolvedCancellation.cancelledTurnId,
+            resolvedCancellation.officialTurnId,
+          );
+        }
         if (this.eventIsRejected(sessionId, rawEvent)) {
           continue;
         }
@@ -801,12 +837,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     handle: TurnHandle,
     reason: CancellationReason = "user_request",
   ): Promise<TurnHandle> {
-    if (!this.withExclusiveSessionLease) {
+    if (!this.withExclusiveSessionLease || !this.sessionMutationFenceStore) {
       throw createRuntimeFailure({
         actor: "provider",
         category: "backend_capability_missing",
         message:
-          "Omnigent cancellation requires an exclusive session lease because interrupt is session-scoped.",
+          "Omnigent cancellation requires a shared session lease and mutation fence store because interrupt is session-scoped.",
         retryable: false,
         scope: "turn",
       });
@@ -820,6 +856,18 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     handle: TurnHandle,
     reason: CancellationReason,
   ): Promise<TurnHandle> {
+    const store = this.requireSessionMutationFenceStore();
+    const sharedState = await store.read(handle.sessionId);
+    this.installSharedSessionMutationState(handle.sessionId, sharedState);
+    if (sharedState.cancellation) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${handle.sessionId} is awaiting cancellation reconciliation.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
     if (this.cancellationReservations.has(handle.sessionId)) {
       throw createRuntimeFailure({
         actor: "provider",
@@ -878,36 +926,61 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           scope: "turn",
         });
       }
-      const ack = await this.client.sendEvent(handle.sessionId, {
-        data: { reason },
-        type: "interrupt",
+      const rejectedTurnIds = new Set(sharedState.rejectedTurnIds);
+      rejectedTurnIds.add(handle.turnId);
+      await store.write(handle.sessionId, {
+        ...sharedState,
+        cancellation: {
+          awaitingIdentity: !this.officialResponseTurnKeys.has(turnKey),
+          turnId: handle.turnId,
+        },
+        rejectedTurnIds: [...rejectedTurnIds],
       });
-      assertControlEventAccepted(ack);
-      const cancelled: TurnHandle = {
-        ...handle,
-        state: "cancelled",
-        updatedAt: new Date().toISOString(),
-      };
-      this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
-      this.sends.set(
-        `${handle.sessionId}:${handle.idempotencyKey}`,
-        Promise.resolve(cancelled),
-      );
-      this.retireCancelledTurn(
-        handle.sessionId,
-        handle.turnId,
-        this.earlyCancellationProofKeys.has(turnKey),
-      );
-      const session = this.sessions.get(handle.sessionId);
-      if (session?.activeTurnId === handle.turnId) {
-        this.sessions.set(handle.sessionId, {
-          ...session,
-          activeTurnId: undefined,
-          state: "idle",
-          updatedAt: cancelled.updatedAt,
+      try {
+        const ack = await this.client.sendEvent(handle.sessionId, {
+          data: { reason },
+          type: "interrupt",
         });
+        assertControlEventAccepted(ack);
+        const cancellationProofObserved =
+          this.earlyCancellationProofKeys.has(turnKey);
+        if (cancellationProofObserved) {
+          await store.write(handle.sessionId, {
+            ...(sharedState.closed ? { closed: true as const } : {}),
+            rejectedTurnIds: [...rejectedTurnIds],
+          });
+        }
+        const cancelled: TurnHandle = {
+          ...handle,
+          state: "cancelled",
+          updatedAt: new Date().toISOString(),
+        };
+        this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
+        this.sends.set(
+          `${handle.sessionId}:${handle.idempotencyKey}`,
+          Promise.resolve(cancelled),
+        );
+        this.retireCancelledTurn(
+          handle.sessionId,
+          handle.turnId,
+          cancellationProofObserved,
+        );
+        const session = this.sessions.get(handle.sessionId);
+        if (session?.activeTurnId === handle.turnId) {
+          this.sessions.set(handle.sessionId, {
+            ...session,
+            activeTurnId: undefined,
+            state: "idle",
+            updatedAt: cancelled.updatedAt,
+          });
+        }
+        return cancelled;
+      } catch (error) {
+        if (isPolicyDenied(error)) {
+          await store.write(handle.sessionId, sharedState);
+        }
+        throw error;
       }
-      return cancelled;
     } finally {
       this.cancellationReservations.delete(handle.sessionId);
       this.earlyCancellationProofKeys.delete(turnKey);
@@ -915,22 +988,39 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async closeSession(sessionId: string): Promise<void> {
-    if (!this.withExclusiveSessionLease) {
+    if (!this.withExclusiveSessionLease || !this.sessionMutationFenceStore) {
       throw createRuntimeFailure({
         actor: "provider",
         category: "backend_capability_missing",
         message:
-          "Omnigent close requires an exclusive session lease because stop_session is session-scoped.",
+          "Omnigent close requires a shared session lease and mutation fence store because stop_session is session-scoped.",
         retryable: false,
         scope: "session",
       });
     }
     await this.withExclusiveSessionLease(sessionId, async () => {
+      const sharedState = await this.requireSessionMutationFenceStore().read(
+        sessionId,
+      );
+      this.installSharedSessionMutationState(sessionId, sharedState);
+      if (sharedState.cancellation) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "state_conflict",
+          message: `Session ${sessionId} is awaiting cancellation reconciliation.`,
+          retryable: false,
+          scope: "session",
+        });
+      }
       const ack = await this.client.sendEvent(sessionId, {
         data: {},
         type: "stop_session",
       });
       assertControlEventAccepted(ack);
+      await this.requireSessionMutationFenceStore().write(sessionId, {
+        ...sharedState,
+        closed: true,
+      });
       const session = this.sessions.get(sessionId);
       if (session) {
         this.sessions.set(sessionId, {
@@ -1001,6 +1091,95 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     return this.withExclusiveSessionLease
       ? this.withExclusiveSessionLease(sessionId, operation)
       : operation();
+  }
+
+  private requireSessionMutationFenceStore(): OmnigentSessionMutationFenceStore {
+    if (!this.sessionMutationFenceStore) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message:
+          "Omnigent leased mutations require a fleet-wide session mutation fence store.",
+        retryable: false,
+        scope: "session",
+      });
+    }
+    return this.sessionMutationFenceStore;
+  }
+
+  private installSharedSessionMutationState(
+    sessionId: string,
+    state: OmnigentSessionMutationFenceState,
+    stream?: OmnigentOpenStream,
+  ): void {
+    const streams = new Set(this.openStreams.get(sessionId) ?? []);
+    if (stream) {
+      streams.add(stream);
+    }
+    const cancellationKey = state.cancellation
+      ? `${sessionId}:${state.cancellation.turnId}`
+      : undefined;
+    for (const turnKey of this.cancelledTurnQuarantineKeys) {
+      if (turnKey.startsWith(`${sessionId}:`) && turnKey !== cancellationKey) {
+        this.cancelledTurnQuarantineKeys.delete(turnKey);
+        this.cancelledTurnAwaitingIdentityKeys.delete(turnKey);
+      }
+    }
+    for (const turnId of state.rejectedTurnIds) {
+      this.rejectedTurnKeys.add(`${sessionId}:${turnId}`);
+      for (const target of streams) {
+        target.rejectTurnId(turnId);
+      }
+    }
+    if (state.closed) {
+      const session = this.sessions.get(sessionId);
+      if (session) {
+        this.sessions.set(sessionId, {
+          ...session,
+          activeTurnId: undefined,
+          state: "closed",
+        });
+      }
+    }
+    const cancellation = state.cancellation;
+    if (!cancellation) {
+      return;
+    }
+    const turnKey = `${sessionId}:${cancellation.turnId}`;
+    this.rejectedTurnKeys.add(turnKey);
+    this.cancelledTurnQuarantineKeys.add(turnKey);
+    if (cancellation.awaitingIdentity) {
+      this.cancelledTurnAwaitingIdentityKeys.add(turnKey);
+    }
+    for (const target of streams) {
+      target.quarantineFallbackTurnId(cancellation.turnId);
+    }
+  }
+
+  private async resolveSharedCancellationFence(
+    sessionId: string,
+    cancelledTurnId: string,
+    officialTurnId?: string,
+  ): Promise<void> {
+    if (!this.withExclusiveSessionLease) {
+      return;
+    }
+    await this.withExclusiveSessionLease(sessionId, async () => {
+      const store = this.requireSessionMutationFenceStore();
+      const state = await store.read(sessionId);
+      if (state.cancellation?.turnId !== cancelledTurnId) {
+        return;
+      }
+      const rejectedTurnIds = new Set(state.rejectedTurnIds);
+      rejectedTurnIds.add(cancelledTurnId);
+      if (officialTurnId) {
+        rejectedTurnIds.add(officialTurnId);
+      }
+      await store.write(sessionId, {
+        ...(state.closed ? { closed: true as const } : {}),
+        rejectedTurnIds: [...rejectedTurnIds],
+      });
+    });
   }
 
   private refreshTrackedSession(
@@ -1483,7 +1662,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private consumeCancelledTurnQuarantine(
     sessionId: string,
     event: OmnigentRawEvent,
-  ): void {
+  ):
+    | {
+        readonly cancelledTurnId: string;
+        readonly officialTurnId?: string;
+      }
+    | undefined {
     const keyPrefix = `${sessionId}:`;
     const reservedTurnId = this.cancellationReservations.get(sessionId);
     if (
@@ -1538,6 +1722,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         stream.rejectTurnId(event.turnId);
       }
     }
+    return {
+      cancelledTurnId,
+      officialTurnId: event.turnId,
+    };
   }
 
   private hasCancelledTurnQuarantine(sessionId: string): boolean {

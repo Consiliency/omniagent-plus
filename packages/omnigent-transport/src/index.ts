@@ -53,6 +53,8 @@ export type {
   OmnigentNativeReasoningEffortOption,
   OmnigentProcessSignal,
   OmnigentServerStatus,
+  OmnigentSessionMutationFenceState,
+  OmnigentSessionMutationFenceStore,
   OmnigentSessionSnapshot,
   OmnigentSessionListItem,
   OmnigentTurnAck,

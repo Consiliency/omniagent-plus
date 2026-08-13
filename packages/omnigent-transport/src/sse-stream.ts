@@ -271,8 +271,10 @@ export class OmnigentSseNormalizer {
     const officialTurnId = nestedResponseId ?? explicitResponseId;
     const officialTurnRejected =
       officialTurnId !== undefined && this.rejectedTurnIds.has(officialTurnId);
-    if (officialTurnId !== undefined && !officialTurnRejected) {
-      this.identityFreeQuarantineTurnId = undefined;
+    if (officialTurnId !== undefined) {
+      this.identityFreeQuarantineTurnId = officialTurnRejected
+        ? officialTurnId
+        : undefined;
     }
     const status = statusValue(raw.status) ?? statusValue(response?.status);
     const terminal =
