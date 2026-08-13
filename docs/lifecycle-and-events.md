@@ -40,8 +40,9 @@ The provider-owned turn states are:
 | `completed` | terminal |
 | `failed` | terminal |
 
-One active turn per session is the default. Duplicate `sendTurn` calls reuse the
-same handle only when the `idempotencyKey` matches the active turn.
+One active turn per session is the default. In the HTTP adapter, duplicate
+`sendTurn` calls reuse the same process-local promise when session and
+`idempotencyKey` match.
 
 ## Event Rules
 
@@ -58,12 +59,20 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-The official Omnigent `v0.7.0` freeze includes `waiting` in the release
-OpenAPI session snapshot enum, so the previous waiting drift is resolved.
-The `session.status` SSE family still includes `launching`; the transport
-treats it as the neutral `starting` session state. Additional release
-metadata/UI event families are accepted by the parser and no-op mapped unless
-they affect provider state.
+The official Omnigent `v0.9.0` freeze retains 52 stream event types. Reconnect
+opens SSE before fetching the snapshot and all cursor-paginated history. The
+persisted-item mapper never manufactures successful completion from an idle
+snapshot; success requires tagged response lifecycle evidence. Stream item IDs
+dedupe overlap with persisted history. When an official buffered text delta has
+no identity, only its matching persisted text prefix is consumed; mismatched or
+continued output remains live. Tool overlap uses call identity even when the
+persisted and streamed item IDs differ. Metadata-only history rows never create
+a neutral turn lifecycle.
+
+`session.created` on a parent stream describes a child session and does not
+create a neutral root-session lifecycle event. The canonical CLI start remains
+`omnigent server --background`; v0.9's hidden `omnigent server start` alias is
+never invoked.
 
 The v0.5.1 `session.mcp_startup` and `response.policy_denied` events preserve
 their metadata through parsing and intentionally emit no normalized runtime

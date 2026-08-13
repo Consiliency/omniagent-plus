@@ -5,6 +5,7 @@ import {
   omnigentMcpServerStartupStatuses,
   omnigentProviderModes,
   omnigentResponseStatuses,
+  omnigentSessionEventStatuses,
   omnigentSessionStatuses,
   omnigentStreamEventTypes,
   type OmnigentHarnessCatalogResponse,
@@ -17,31 +18,30 @@ import {
 describe("transport types", () => {
   it("freezes the provider modes, capability states, and stream events", () => {
     const httpOptions: OmnigentHttpClientOptions = {
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
-    };
-    const rawEvent: OmnigentRawEvent = {
-      id: "item-1",
-      type: "response.output_text.delta",
-      sessionId: "session-1",
-      occurredAt: "2026-06-30T00:00:00.000Z",
-      delta: "hello",
-      itemId: "item-1",
+      sessionMutationFenceStore: {
+        read: async () => ({ rejectedTurnIds: [] }),
+        write: async () => undefined,
+      },
+      withExclusiveSessionLease: async (_sessionId, operation) => operation(),
     };
     const snapshot: OmnigentSessionSnapshot = {
+      agentId: "agent-session-1",
       id: "session-1",
       title: "transport test",
       status: "idle",
       createdAt: "2026-06-30T00:00:00.000Z",
       updatedAt: "2026-06-30T00:00:00.000Z",
       backend: "omnigent-http",
-      active_response_id: "response-1",
-      background_task_count: 1,
-      mcp_startup: {
+      activeResponseId: "response-1",
+      backgroundTaskCount: 1,
+      mcpStartup: {
         "safe-server": { error: null, status: "ready" },
       },
-      parent_session_id: "session-parent",
-      project_id: "project-1",
-      model_options: [
+      parentSessionId: "session-parent",
+      projectId: "project-1",
+      modelOptions: [
         {
           defaultReasoningEffort: "medium",
           displayName: "Codex",
@@ -56,21 +56,32 @@ describe("transport types", () => {
           ],
         },
       ],
-      items: [{ id: "item-1", event: rawEvent }],
-      viewer_last_seen: 1_780_000_000,
-      viewer_unread: false,
+      items: [
+        {
+          content: [{ text: "hello", type: "output_text" }],
+          created_at: 1_780_000_000,
+          id: "item-1",
+          response_id: "response-1",
+          role: "assistant",
+          status: "completed",
+          type: "message",
+        },
+      ],
+      viewerLastSeen: 1_780_000_000,
+      viewerUnread: false,
     };
     const harnessCatalog: OmnigentHarnessCatalogResponse = {
       local: [{ name: "codex", public_session_override: false }],
     };
     const modelOption: OmnigentNativeModelOption | undefined =
-      snapshot.model_options?.[0];
+      snapshot.modelOptions?.[0];
     const camelSnapshot: OmnigentSessionSnapshot = {
+      agentId: "agent-session-camel",
       backend: "omnigent-http",
       createdAt: "2026-06-30T00:00:00.000Z",
       id: "session-camel",
       items: [],
-      modelOptions: snapshot.model_options,
+      modelOptions: snapshot.modelOptions,
       projectId: "project-camel",
       status: "idle",
       title: "camel aliases",
@@ -119,9 +130,18 @@ describe("transport types", () => {
     };
 
     expect(httpOptions.baseUrl).toContain("127.0.0.1");
+    expect(httpOptions.allowQueuedTurns).toBe(true);
+    expect(httpOptions.sessionMutationFenceStore).toBeTypeOf("object");
+    expect(httpOptions.withExclusiveSessionLease).toBeTypeOf("function");
     expect(omnigentProviderModes).toEqual(["http", "cli", "hybrid"]);
     expect(omnigentCapabilityStatuses).toContain("emulated");
     expect(omnigentSessionStatuses).toEqual([
+      "idle",
+      "running",
+      "waiting",
+      "failed",
+    ]);
+    expect(omnigentSessionEventStatuses).toEqual([
       "idle",
       "launching",
       "running",
@@ -154,16 +174,16 @@ describe("transport types", () => {
       "response.function_call_output.delta",
     );
     expect(omnigentStreamEventTypes).toHaveLength(52);
-    expect(snapshot.items[0]?.event.delta).toBe("hello");
-    expect(snapshot.active_response_id).toBe("response-1");
-    expect(snapshot.background_task_count).toBe(1);
+    expect(snapshot.items[0]?.id).toBe("item-1");
+    expect(snapshot.activeResponseId).toBe("response-1");
+    expect(snapshot.backgroundTaskCount).toBe(1);
     expect(camelSnapshot.modelOptions?.[0]?.id).toBe("gpt-5.6-codex");
     expect(camelSnapshot.projectId).toBe("project-camel");
     expect(harnessCatalog.local?.[0]?.name).toBe("codex");
     expect(reasoningEvent.reasoning_effort).toBe("medium");
-    expect(snapshot.mcp_startup?.["safe-server"]?.status).toBe("ready");
-    expect(snapshot.parent_session_id).toBe("session-parent");
-    expect(snapshot.project_id).toBe("project-1");
+    expect(snapshot.mcpStartup?.["safe-server"]?.status).toBe("ready");
+    expect(snapshot.parentSessionId).toBe("session-parent");
+    expect(snapshot.projectId).toBe("project-1");
     expect(modelOption?.supportedReasoningEfforts?.[0]?.reasoningEffort).toBe(
       "medium",
     );

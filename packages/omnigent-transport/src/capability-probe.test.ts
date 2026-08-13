@@ -21,7 +21,7 @@ describe("capability probe", () => {
     expect(snapshot.capabilities.canClose).toBe(true);
     expect(snapshot.capabilities.canSpawnChildSessions).toBe(false);
     expect(snapshot.endpoint).toBe("http://127.0.0.1:4010");
-    expect(snapshot.gitSha).toBe("35519fb04743f66b30cac8a40695d5d72fa163ea");
-    expect(snapshot.version).toBe("0.7.0");
+    expect(snapshot.gitSha).toBe("cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2");
+    expect(snapshot.version).toBe("0.9.0");
   });
 });

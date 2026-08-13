@@ -7,6 +7,7 @@ import type {
   RuntimeFailureCategory,
   SendTurnRequest,
   TurnHandle,
+  OmnigentAgentSpecRef,
 } from "@consiliency/runtime-provider";
 import type { ChildProcess } from "node:child_process";
 
@@ -23,12 +24,21 @@ export type OmnigentCapabilityStatus =
 
 export const omnigentSessionStatuses = [
   "idle",
-  "launching",
   "running",
   "waiting",
   "failed",
 ] as const;
 export type OmnigentSessionStatus = (typeof omnigentSessionStatuses)[number];
+
+export const omnigentSessionEventStatuses = [
+  "idle",
+  "launching",
+  "running",
+  "waiting",
+  "failed",
+] as const;
+export type OmnigentSessionEventStatus =
+  (typeof omnigentSessionEventStatuses)[number];
 
 export const omnigentResponseStatuses = [
   "queued",
@@ -112,10 +122,47 @@ export const omnigentStreamEventTypes = [
 export type OmnigentStreamEventType =
   (typeof omnigentStreamEventTypes)[number];
 
+export interface OmnigentCancellationFence {
+  readonly awaitingIdentity: boolean;
+  readonly officialTurnIds?: readonly string[];
+  readonly turnId: string;
+}
+
+export interface OmnigentSessionMutationFenceState {
+  readonly cancellation?: OmnigentCancellationFence;
+  readonly closed?: true;
+  readonly closing?: true;
+  readonly rejectedTurnIds: readonly string[];
+}
+
+export interface OmnigentSessionMutationFenceStore {
+  read(sessionId: string): Promise<OmnigentSessionMutationFenceState>;
+  write(
+    sessionId: string,
+    state: OmnigentSessionMutationFenceState,
+  ): Promise<void>;
+}
+
 export interface OmnigentHttpClientOptions {
+  /** Explicitly opt into Omnigent's server-side pending-input queue. */
+  readonly allowQueuedTurns?: boolean;
   readonly baseUrl: string;
   readonly headers?: Record<string, string>;
   readonly fetch?: typeof globalThis.fetch;
+  readonly now?: () => string;
+  readonly resolveAgentId?: (
+    agentSpec: OmnigentAgentSpecRef,
+  ) => Promise<string> | string;
+  /** Persist cancellation fences and rejected identities in the lease authority. */
+  readonly sessionMutationFenceStore?: OmnigentSessionMutationFenceStore;
+  /**
+   * Run every session mutation under a fleet-wide exclusive lease. All clients
+   * that can write the same Omnigent session must use the same lease authority.
+   */
+  readonly withExclusiveSessionLease?: <T>(
+    sessionId: string,
+    operation: () => Promise<T>,
+  ) => Promise<T>;
 }
 
 export interface OmnigentCommandOptions {
@@ -156,33 +203,190 @@ export interface OmnigentNativeModelOption {
   readonly supportedReasoningEfforts?: readonly OmnigentNativeReasoningEffortOption[];
 }
 
+export interface OmnigentPendingInput {
+  readonly content: readonly Readonly<Record<string, unknown>>[];
+  readonly pendingId: string;
+}
+
 export interface OmnigentSessionSnapshot {
+  readonly agentId: string;
   readonly id: string;
   readonly title: string;
   readonly status: OmnigentSessionStatus;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly backend: `omnigent-${OmnigentProviderMode}`;
-  readonly items: OmnigentHistoryItem[];
+  readonly items: OmnigentConversationItem[];
   readonly activeTurnId?: string;
   readonly activeResponseId?: string | null;
-  readonly active_response_id?: string | null;
   readonly backgroundTaskCount?: number | null;
-  readonly background_task_count?: number | null;
+  readonly kind?: string;
   readonly metadata?: Record<string, unknown>;
-  readonly mcp_startup?:
+  readonly mcpStartup?:
     | Readonly<Record<string, OmnigentMcpServerStartup>>
     | null;
   readonly parentSessionId?: string | null;
-  readonly parent_session_id?: string | null;
+  readonly pendingInputs?: readonly OmnigentPendingInput[];
   readonly projectId?: string | null;
-  readonly project_id?: string | null;
   readonly modelOptions?: readonly OmnigentNativeModelOption[];
-  readonly model_options?: readonly OmnigentNativeModelOption[];
+  readonly subagentRoutingOverride?: string | null;
   readonly viewerLastSeen?: number | null;
   readonly viewerUnread?: boolean;
+}
+
+export interface OmnigentWirePage<T> {
+  readonly data: T[];
+  readonly first_id: string | null;
+  readonly has_more: boolean;
+  readonly last_id: string | null;
+}
+
+export interface OmnigentWireSessionResponse {
+  readonly [key: string]: unknown;
+  readonly active_response_id?: string | null;
+  readonly agent_id: string;
+  readonly background_task_count?: number | null;
+  readonly created_at: number;
+  readonly id: string;
+  readonly items?: OmnigentWireConversationItem[];
+  readonly kind?: string;
+  readonly mcp_startup?: Readonly<Record<string, OmnigentMcpServerStartup>> | null;
+  readonly model_options?: readonly OmnigentNativeModelOption[];
+  readonly parent_session_id?: string | null;
+  readonly pending_inputs?: readonly {
+    readonly content: readonly Readonly<Record<string, unknown>>[];
+    readonly pending_id: string;
+  }[];
+  readonly project_id?: string | null;
+  readonly status: OmnigentSessionStatus;
+  readonly subagent_routing_override?: string | null;
+  readonly title: string | null;
+  readonly updated_at?: number | null;
   readonly viewer_last_seen?: number | null;
   readonly viewer_unread?: boolean;
+}
+
+export interface OmnigentSessionListItem {
+  readonly [key: string]: unknown;
+  readonly agent_id: string;
+  readonly created_at: number;
+  readonly id: string;
+  readonly kind?: string;
+  readonly parent_session_id?: string | null;
+  readonly project_id?: string | null;
+  readonly status: OmnigentSessionStatus;
+  readonly title?: string | null;
+  readonly updated_at: number;
+}
+
+export interface OmnigentChildSessionSummary {
+  readonly [key: string]: unknown;
+  readonly agent_id?: string | null;
+  readonly agent_name?: string | null;
+  readonly busy?: boolean;
+  readonly created_at: number;
+  readonly current_task_id?: string | null;
+  readonly current_task_status?: string | null;
+  readonly id: string;
+  readonly kind?: string;
+  readonly labels?: Readonly<Record<string, string>>;
+  readonly last_message_preview?: string | null;
+  readonly last_task_error?: Readonly<Record<string, string>> | null;
+  readonly object?: string;
+  readonly parent_session_id: string;
+  readonly pending_elicitations_count?: number;
+  readonly routed_model?: string | null;
+  readonly routing_decision_id?: string | null;
+  readonly session_name?: string | null;
+  readonly title?: string | null;
+  readonly tool?: string | null;
+  readonly updated_at: number;
+}
+
+export interface OmnigentMessageData {
+  readonly content: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  readonly interrupted?: boolean;
+  readonly is_meta?: boolean;
+  readonly model?: string | null;
+  readonly role: "assistant" | "user";
+}
+
+export interface OmnigentFunctionCallData {
+  readonly arguments: string;
+  readonly call_id: string;
+  readonly model: string;
+  readonly name: string;
+}
+
+export interface OmnigentFunctionCallOutputData {
+  readonly call_id: string;
+  readonly output: string;
+}
+
+export interface OmnigentPersistedErrorData {
+  readonly code: string;
+  readonly message: string;
+  readonly source: "execution" | "llm" | "tool";
+}
+
+export interface OmnigentNativeToolData {
+  readonly item: Readonly<Record<string, unknown>>;
+}
+
+export interface OmnigentRoutingDecisionData {
+  readonly [key: string]: unknown;
+  readonly agent?: string | null;
+  readonly applied: boolean;
+  readonly attempted_override?: string | null;
+  readonly decision_id?: string | null;
+  readonly harness?: string | null;
+  readonly model: string;
+  readonly rationale: string;
+  readonly raw_model?: string | null;
+  readonly router_source?: string | null;
+  readonly scope?: "session" | "turn" | "child_session" | "native_subagent";
+}
+
+export type OmnigentConversationItemType =
+  | "compaction"
+  | "error"
+  | "function_call"
+  | "function_call_output"
+  | "message"
+  | "native_tool"
+  | "reasoning"
+  | "resource_event"
+  | "routing_decision"
+  | "slash_command"
+  | "terminal_command";
+
+export type OmnigentConversationItemData =
+  | OmnigentFunctionCallData
+  | OmnigentFunctionCallOutputData
+  | OmnigentMessageData
+  | OmnigentNativeToolData
+  | OmnigentPersistedErrorData
+  | OmnigentRoutingDecisionData
+  | Readonly<Record<string, unknown>>;
+
+export interface OmnigentConversationItem {
+  readonly [key: string]: unknown;
+  readonly created_at: number;
+  readonly created_by?: string | null;
+  readonly id: string;
+  readonly response_id: string;
+  readonly status: string;
+  readonly type: OmnigentConversationItemType;
+}
+
+export interface OmnigentWireConversationItem {
+  readonly created_at: number;
+  readonly created_by?: string | null;
+  readonly data: OmnigentConversationItemData;
+  readonly id: string;
+  readonly response_id: string;
+  readonly status: string;
+  readonly type: OmnigentConversationItemType;
 }
 
 export interface OmnigentEventFailure {
@@ -201,12 +405,20 @@ export interface OmnigentRawEvent {
   readonly occurredAt: string;
   readonly backgroundTaskCount?: number | null;
   readonly background_task_count?: number | null;
+  readonly blocked_on?: string | null;
   readonly sequence_number?: number | null;
+  readonly agent_id?: string | null;
   readonly conversation_id?: string;
+  readonly child_session_id?: string;
+  readonly cleared_pending_id?: string;
+  readonly consumed_item_id?: string;
+  readonly parent_session_id?: string | null;
   readonly response_id?: string;
   readonly itemId?: string;
   readonly terminal?: boolean;
-  readonly status?: OmnigentSessionStatus | OmnigentResponseStatus;
+  readonly turnAliasConfirmed?: boolean;
+  readonly turnAliasId?: string;
+  readonly status?: OmnigentSessionEventStatus | OmnigentResponseStatus;
   readonly reason?: string;
   readonly phase?: string;
   readonly servers?: Readonly<Record<string, OmnigentMcpServerStartup>>;
@@ -232,6 +444,29 @@ export interface OmnigentRawEvent {
   readonly source?: string;
   readonly elicitation_id?: string;
   readonly params?: Record<string, unknown>;
+  readonly item?: Readonly<Record<string, unknown>>;
+  readonly message_id?: string;
+  readonly index?: number;
+  readonly final?: boolean;
+}
+
+export interface OmnigentTaggedSseEvent {
+  readonly [key: string]: unknown;
+  readonly sequence_number?: number | null;
+  readonly type: OmnigentStreamEventType;
+}
+
+export interface OmnigentOpenStream {
+  readonly events: AsyncIterable<OmnigentRawEvent>;
+  bindResponseId(responseId: string, turnId: string): void;
+  close(): Promise<void>;
+  quarantineFallbackTurnId(turnId: string): void;
+  rejectTurnId(turnId: string): void;
+  removeFallbackTurnId(turnId: string): void;
+  replaceFallbackTurnId(previousTurnId: string, nextTurnId: string): void;
+  restoreRejectedTurnId(turnId: string): void;
+  setActiveResponseId(responseId: string | null | undefined): void;
+  setFallbackTurnId(turnId: string | undefined): void;
 }
 
 export interface OmnigentReadStateInput {
@@ -250,11 +485,32 @@ export interface OmnigentHistoryItem {
   readonly event: OmnigentRawEvent;
 }
 
-export interface OmnigentEventAck {
-  readonly queued: boolean;
-  readonly sessionId: string;
-  readonly turnId: string;
+export interface OmnigentAcceptedEventAck {
+  readonly denied?: false;
+  readonly item_id?: string;
+  readonly pending_id?: string;
+  readonly queued: true;
 }
+
+export interface OmnigentHandledEventAck {
+  readonly denied?: false;
+  readonly queued: false;
+}
+
+export interface OmnigentDeniedEventAck {
+  readonly denied: true;
+  readonly queued: false;
+  readonly reason: string;
+}
+
+export type OmnigentEventAck =
+  | OmnigentAcceptedEventAck
+  | OmnigentHandledEventAck
+  | OmnigentDeniedEventAck;
+
+export type OmnigentTurnAck =
+  | OmnigentAcceptedEventAck
+  | OmnigentDeniedEventAck;
 
 export type OmnigentSendEventType =
   | "message"

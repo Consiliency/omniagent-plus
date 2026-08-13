@@ -10,6 +10,7 @@ export {
   createCommandBackedCliTransport,
   OmnigentCliProvider,
 } from "./cli-client.js";
+export { loadOmnigentV09WireContract } from "./contract-fixtures.js";
 export {
   mapCapabilityGap,
   mapCliFailure,
@@ -45,9 +46,16 @@ export type {
   OmnigentCliCommandResult,
   OmnigentCliCommandRunner,
   OmnigentHttpClientOptions,
+  OmnigentChildSessionSummary,
+  OmnigentConversationItem,
+  OmnigentEventAck,
   OmnigentNativeModelOption,
   OmnigentNativeReasoningEffortOption,
   OmnigentProcessSignal,
   OmnigentServerStatus,
+  OmnigentSessionMutationFenceState,
+  OmnigentSessionMutationFenceStore,
   OmnigentSessionSnapshot,
+  OmnigentSessionListItem,
+  OmnigentTurnAck,
 } from "./types.js";

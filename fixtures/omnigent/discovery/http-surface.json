@@ -1,324 +1,88 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-30T03:53:08Z",
+  "captured_at": "2026-08-12T19:00:00Z",
   "openapi_delta": {
     "operation_count": 97,
-    "added_paths": [
-      "/v1/hosts/{host_id}/credentials/detected",
-      "/v1/hosts/{host_id}/harnesses/{harness}/credential",
-      "/v1/hosts/{host_id}/harnesses/{harness}/install",
-      "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
-      "/v1/projects",
-      "/v1/projects/{project_id}",
-      "/v1/usage"
-    ],
+    "added_paths": [],
     "removed_paths": [],
-    "added_schemas": [
-      "CreateProjectRequest",
-      "NativeModelOption",
-      "NativeReasoningEffortOption",
-      "SessionProjectSummary",
-      "SessionUsage",
-      "StoreHarnessCredentialRequest",
-      "UpdateProjectRequest",
-      "UsageReport"
-    ],
-    "removed_schemas": []
+    "added_schemas": [],
+    "removed_schemas": [],
+    "changed_schemas": [
+      "ChildSessionSummary",
+      "ImportSessionRequest",
+      "RoutingDecisionData",
+      "SessionResponse",
+      "SessionStatusEvent",
+      "UpdateSessionRequest"
+    ]
   },
   "session_endpoints": [
-    {
-      "method": "POST",
-      "path": "/v1/sessions",
-      "purpose": "create_session"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/sessions",
-      "purpose": "list_sessions"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/sessions/{session_id}",
-      "purpose": "snapshot"
-    },
-    {
-      "method": "PATCH",
-      "path": "/v1/sessions/{session_id}",
-      "purpose": "bind_runner_or_mutate_session"
-    },
-    {
-      "method": "DELETE",
-      "path": "/v1/sessions/{session_id}",
-      "purpose": "destructive_delete"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/sessions/{session_id}/items",
-      "purpose": "read_history"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/sessions/{session_id}/stream",
-      "purpose": "stream_events"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/sessions/{session_id}/events",
-      "purpose": "send_turn_or_interrupt"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/sessions/{session_id}/child_sessions",
-      "purpose": "observe_child_sessions"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/sessions/{source_id}/fork",
-      "purpose": "fork_session"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/sessions/{session_id}/switch-agent",
-      "purpose": "switch_bound_agent"
-    },
-    {
-      "method": "PUT",
-      "path": "/v1/sessions/{session_id}/read-state",
-      "purpose": "update_viewer_read_state"
-    }
+    { "method": "POST", "path": "/v1/sessions", "purpose": "create_existing_agent_session" },
+    { "method": "GET", "path": "/v1/sessions", "purpose": "list_sessions_paginated" },
+    { "method": "GET", "path": "/v1/sessions/{session_id}", "purpose": "snapshot" },
+    { "method": "PATCH", "path": "/v1/sessions/{session_id}", "purpose": "mutate_session" },
+    { "method": "DELETE", "path": "/v1/sessions/{session_id}", "purpose": "destructive_delete" },
+    { "method": "GET", "path": "/v1/sessions/{session_id}/items", "purpose": "read_history_paginated" },
+    { "method": "GET", "path": "/v1/sessions/{session_id}/stream", "purpose": "stream_events" },
+    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "purpose": "send_turn_or_interrupt" },
+    { "method": "GET", "path": "/v1/sessions/{session_id}/child_sessions", "purpose": "observe_children_paginated" },
+    { "method": "POST", "path": "/v1/sessions/{source_id}/fork", "purpose": "fork_session" },
+    { "method": "POST", "path": "/v1/sessions/{session_id}/switch-agent", "purpose": "switch_bound_agent" },
+    { "method": "PUT", "path": "/v1/sessions/{session_id}/read-state", "purpose": "update_viewer_read_state" }
   ],
   "harness_endpoints": [
-    {
-      "method": "GET",
-      "path": "/v1/harnesses",
-      "purpose": "read_only_harness_catalog"
-    }
+    { "method": "GET", "path": "/v1/harnesses", "purpose": "read_only_harness_catalog" }
   ],
   "session_snapshot_fields": {
-    "active_response_id": "optional reconnect hint for active in-flight response",
-    "background_task_count": "optional native terminal shell count",
-    "viewer_last_seen": "session list read-state marker",
-    "viewer_unread": "session list read-state marker",
-    "mcp_startup": "optional per-server MCP startup status metadata",
-    "parent_session_id": "optional lineage metadata already present on full session responses",
-    "project_id": "optional project association added to full session responses in v0.7.0",
-    "model_options": "runner-owned native model-picker options using NativeModelOption rows"
+    "active_response_id": "nullable reconnect hint",
+    "background_task_count": "nullable native terminal task count",
+    "created_at": "Unix epoch seconds normalized to ISO at the adapter boundary",
+    "updated_at": "optional Unix epoch seconds; falls back to created_at",
+    "kind": "additive session-kind metadata",
+    "mcp_startup": "nullable per-server startup metadata",
+    "model_options": "read-only native model options",
+    "parent_session_id": "nullable lineage metadata",
+    "project_id": "nullable project metadata",
+    "subagent_routing_override": "read-only routing metadata"
   },
-  "session_list_item_fields": {
-    "search_snippet": "optional server-generated search result excerpt",
-    "parent_session_id": "optional parent lineage included in list responses",
-    "project_id": "optional project association added to list responses in v0.7.0"
+  "child_session_public_surface": {
+    "observe": ["GET /v1/sessions/{session_id}/child_sessions", "session.created", "session.child_session.updated"],
+    "create_under_parent": false,
+    "fork_available": true,
+    "read_only_fields": ["routed_model", "routing_decision_id"]
   },
-  "session_status_contract": {
-    "api_md": [
-      "idle",
-      "running",
-      "waiting",
-      "failed"
-    ],
-    "openapi_session_response": [
-      "idle",
-      "running",
-      "waiting",
-      "failed"
-    ],
-    "sse_status_event": [
-      "launching",
-      "running",
-      "waiting",
-      "idle",
-      "failed"
-    ],
-    "tolerated_raw_edge": [
-      "launching"
-    ],
-    "note": "v0.7.0 retains the resolved waiting status; launching remains tolerated from session.status edges and maps to starting."
+  "conversation_item_contract": {
+    "envelope_fields": ["id", "type", "status", "response_id", "created_at", "created_by", "data"],
+    "mapped_types": ["message", "function_call", "function_call_output", "error"],
+    "metadata_only_types": ["reasoning", "compaction", "native_tool", "resource_event", "routing_decision", "slash_command", "terminal_command"]
   },
-  "response_status_contract": [
-    "queued",
-    "in_progress",
-    "completed",
-    "failed",
-    "incomplete",
-    "cancelled"
-  ],
   "stream_contract": {
     "mode": "live_tail_only",
     "done_sentinel": "[DONE]",
     "replay": false,
-    "reconnect_steps": [
-      "open_stream",
-      "get_snapshot",
-      "dedupe_by_item_id"
-    ],
-    "event_families": [
-      "session",
-      "response",
-      "turn",
-      "browser"
-    ],
+    "reconnect_steps": ["open_stream", "get_snapshot", "get_all_history_pages", "dedupe_by_item_id"],
+    "event_families": ["session", "response", "turn", "browser"],
     "official_release_event_count": 52,
     "release_event_types": []
   },
   "optional_release_surfaces": [
-    {
-      "method": "GET",
-      "path": "/v1/hosts/{host_id}/worktrees",
-      "status": "observed_not_provider_required",
-      "reason": "host worktree inventory is not part of the transport provider contract"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/sessions/{session_id}/resources/files:copy",
-      "status": "observed_not_provider_required",
-      "reason": "resource copying is not required by the transport provider"
-    },
-    {
-      "methods": [
-        "GET",
-        "PUT"
-      ],
-      "path": "/v1/sharing",
-      "status": "observed_not_provider_required",
-      "reason": "sharing settings are not coordination leases"
-    },
-    {
-      "field": "SessionGitOptions.existing_worktree",
-      "status": "observed_not_provider_required",
-      "reason": "existing worktree selection is an upstream launch option"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/imports",
-      "status": "observed_not_provider_required",
-      "reason": "local transcript import is not part of the transport provider contract"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/sessions/{session_id}/auto-title",
-      "status": "observed_not_provider_required",
-      "reason": "automatic UI title selection is not part of the transport provider contract"
-    },
-    {
-      "methods": [
-        "GET",
-        "POST"
-      ],
-      "path": "/v1/projects",
-      "status": "observed_not_provider_required",
-      "reason": "project administration is not part of the neutral runtime provider contract"
-    },
-    {
-      "methods": [
-        "GET",
-        "PATCH",
-        "DELETE"
-      ],
-      "path": "/v1/projects/{project_id}",
-      "status": "observed_not_provider_required",
-      "reason": "project administration is not part of the neutral runtime provider contract"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/usage",
-      "status": "observed_not_provider_required",
-      "reason": "usage reporting does not change runtime-provider capability"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/hosts/{host_id}/credentials/detected",
-      "status": "observed_not_provider_required",
-      "reason": "host credential discovery remains an operator administration surface"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/hosts/{host_id}/harnesses/{harness}/credential",
-      "status": "observed_not_provider_required",
-      "reason": "credential storage remains an operator administration surface"
-    },
-    {
-      "method": "POST",
-      "path": "/v1/hosts/{host_id}/harnesses/{harness}/install",
-      "status": "observed_not_provider_required",
-      "reason": "harness installation remains an operator administration surface"
-    },
-    {
-      "method": "GET",
-      "path": "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
-      "status": "observed_not_provider_required",
-      "reason": "model-option lookup does not add a neutral provider method"
-    },
-    {
-      "field": "ImportSessionRequest.source",
-      "status": "observed_not_provider_required",
-      "reason": "v0.7.0 expands import sources to claude, codex, kimi, kiro, opencode, pi, and qwen"
-    },
-    {
-      "field": "MCPServerSummary.headers",
-      "status": "observed_not_provider_required",
-      "reason": "optional MCP headers are preserved upstream administration metadata"
-    },
-    {
-      "field": "UpsertMCPServerRequest.headers",
-      "status": "observed_not_provider_required",
-      "reason": "optional MCP headers are preserved upstream administration metadata"
-    },
-    {
-      "field": "GET /v1/info response.single_user",
-      "status": "observed_not_provider_required",
-      "reason": "single-user server capability metadata does not change provider behavior"
-    }
+    { "field": "ImportSessionRequest.force", "status": "observed_not_provider_required", "reason": "import remains an operator surface" },
+    { "field": "UpdateSessionRequest.subagent_routing_override", "status": "observed_not_provider_required", "reason": "routing metadata does not grant coordinator authority" },
+    { "field": "RoutingDecisionData", "status": "observed_not_provider_required", "reason": "smart routing does not create a neutral route decision" },
+    { "path": "/v1/sessions/{session_id}/events", "method": "POST", "status": "api_guide_authority", "reason": "tagged API guide remains authority because generated OpenAPI omits this route" }
   ],
   "fork_request": {
-    "allowed_fields": [
-      "agent_id",
-      "title",
-      "up_to_response_id"
-    ],
-    "removed_fields": [
-      "model_override"
-    ],
+    "allowed_fields": ["agent_id", "title", "up_to_response_id"],
+    "removed_fields": ["model_override"],
     "provider_sends_removed_fields": false
   },
-  "child_session_public_surface": {
-    "observe": [
-      "GET /v1/sessions/{session_id}/child_sessions",
-      "session.created",
-      "session.child_session.updated"
-    ],
-    "create_under_parent": false,
-    "fork_available": true
-  },
   "endpoint_provenance": [
-    {
-      "method": "POST",
-      "path": "/v1/sessions/{session_id}/events",
-      "source": "omnigent/server/API.md and tagged route source",
-      "ref": "v0.7.0",
-      "note": "required send-turn/interrupt route is documented and implemented but omitted from generated OpenAPI"
-    }
+    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "source": "omnigent/server/API.md and tagged route source", "ref": "v0.9.0", "note": "required route omitted from generated OpenAPI" }
   ],
   "provenance": [
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/server/API.md",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "openapi.json",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/server/routes/harnesses.py",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/server/schemas.py",
-      "ref": "v0.7.0"
-    }
+    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.9.0" },
+    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.9.0" },
+    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.9.0" }
   ]
 }

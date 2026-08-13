@@ -62,6 +62,14 @@ describe("cli provider", () => {
           stdout: JSON.stringify({
             rawEvents: [
               {
+                id: "cli-session-created",
+                itemId: "cli-session-created",
+                occurredAt: "2026-06-30T00:00:00.000Z",
+                sessionId: "session-cli",
+                status: "launching",
+                type: "session.created",
+              },
+              {
                 id: "cli-1",
                 itemId: "cli-1",
                 message: "hello",
@@ -99,6 +107,17 @@ describe("cli provider", () => {
           stderr: "",
           stdout: JSON.stringify({
             history: [
+              {
+                event: {
+                  id: "cli-history-session-created",
+                  itemId: "cli-history-session-created",
+                  occurredAt: "2026-06-30T00:00:00.000Z",
+                  sessionId: "session-cli",
+                  status: "launching",
+                  type: "session.created",
+                },
+                id: "cli-history-session-created",
+              },
               {
                 event: {
                   id: "cli-history-1",
@@ -166,6 +185,12 @@ describe("cli provider", () => {
     expect(history.events.some((event) => event.type === "runtime.turn.started")).toBe(
       true,
     );
+    expect(
+      history.events.some((event) => event.type === "runtime.session.created"),
+    ).toBe(true);
+    expect(
+      streamed.some((event) => event.type === "runtime.session.created"),
+    ).toBe(true);
     expect(streamed.some((event) => event.type === "runtime.turn.completed")).toBe(
       true,
     );

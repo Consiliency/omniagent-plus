@@ -1,81 +1,33 @@
 # Omnigent Upstream Readiness
 
-This document tracks upstream Omnigent movement beyond the frozen release
-contract in `docs/omnigent-contract.md`. It does not replace the
-`IF-0-CONTRACT-1` freeze.
-
 ## Current Decision
 
-- Latest published GitHub release: `v0.7.0`
-- Release commit: `35519fb04743f66b30cac8a40695d5d72fa163ea`
-- Release published: `2026-07-27T22:40:00Z`
-- Latest PyPI package: `omnigent 0.7.0`
-- Python requirement: `>=3.12`
-- Current upstream `main` probe: `0ba64ba906f85006fac47afc319fbe84824a545a`
-- Probe time: `2026-07-31T22:12:29Z`
+- Stable authority: `v0.9.0`
+- Commit: `cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2`
+- Published: `2026-08-11T21:02:42Z`
+- PyPI: `omnigent 0.9.0`, Python `>=3.12`
+- Stream vocabulary: unchanged at 52 event types
+- OpenAPI: unchanged sets and 97 operations
 
-`omniagent-plus` is adapted to the latest published release. `v0.7.0` is the
-authoritative freeze because it is the current GitHub and PyPI release.
+`omniagent-plus` consumes the tagged v0.9 wire through
+`@consiliency/omnigent-transport@0.5.0`. The six additive schema changes are
+frozen in `fixtures/omnigent/discovery/`.
 
-## Stable Release Delta
+## Development Main
 
-Relative to the previous `v0.6.0` freeze, v0.7.0 adds:
+The 2026-08-12 probe observed `0.10.0.dev0` at
+`3f9d0a3212c61710bceddc37967c615720bf378c`, 145 commits ahead of v0.9, with
+two additional paths and no additional stream events. This is informational,
+not authority.
 
-- projects and usage administration routes
-- detected-credential, credential-store, harness-install, and harness
-  model-option routes
-- optional `project_id` on session list/detail/update surfaces
-- typed native `model_options` on full session responses
-- optional MCP server headers and import sources for Claude, Codex, Kimi, Kiro,
-  OpenCode, Pi, and Qwen
-- `omnigent server --background` in place of the removed start subcommand, plus
-  direct machine status from `omnigent server status --json`
+Development main includes a security fix that roots sub-agent sessions at
+their own bundle directory rather than inheriting parent skills and tools.
+Because that fix is not in v0.9, operators must not claim tagged parity with it.
 
-The tagged event vocabulary remains exactly 52 entries. Existing v0.6 browser
-action and tool-output-delta events remain metadata-only no-ops. Project, usage,
-credential, installation, model lookup, import, and automatic title surfaces
-are not provider requirements.
+## Next Release Gate
 
-Still not upgraded to public transport capability:
-
-- Public harness override remains blocked; `GET /v1/harnesses` is catalog-only.
-- Stable public spawn-under-parent child-session creation remains blocked.
-- Parent lineage, projects, usage, credentials, installation, model options,
-  import, and automatic title APIs do not provide lease, lock, coordination, or
-  inbox semantics.
-
-## Unreleased Main Delta
-
-Current `main` is ahead of the official v0.7.0 tag. Its OpenAPI path, schema,
-and event sets are unchanged from the tag. Optional `can_approve` and `kind`
-fields plus `ImportSessionRequest.force` are non-authoritative probes only. The
-import override remains an administration surface and is not a provider method
-or capability. These fields do not change the provider contract until a later
-release or explicit SHA freeze, and no current-main observation is promoted
-into CS-2.2 lease semantics.
-
-## Maintenance Plan
-
-Use a detailed-plan lane, not a new roadmap, when the next Omnigent release
-lands unless it introduces a breaking transport contract.
-
-1. Refresh GitHub release, tag SHA, PyPI, Python, OpenAPI, and safe local CLI
-   probe evidence.
-2. Regenerate discovery fixtures and add focused event fixtures for changed
-   discriminators.
-3. Update TypeScript contracts only for public stable fields used or safely
-   accepted at the provider boundary.
-4. Keep provider capability statuses unchanged unless a release exposes the
-   full required semantic contract.
-5. Run format, lint, typecheck, fixture tests, transport tests, and the full
-   workspace test suite.
-
-## Non-Goals
-
-- Do not pin this repo to unreleased upstream `main` by default.
-- Do not treat upstream UI, lineage, import, auto-title, worktree, file-copy, or
-  sharing features as lease authority.
-- Do not mark harness override or child-session spawn supported without a
-  stable public API and conformance proof.
-- Do not expose credential values in fixtures, CLI output, or live-smoke
-  evidence.
+Re-run the release, PyPI, OpenAPI, API-guide, schema, CLI, and stream probes when
+a newer stable release appears. Amend this freeze if that release contains the
+bundle-root fix or otherwise changes the public transport contract. Do not pin
+unreleased main or turn smart routing and administration surfaces into lease,
+lock, approval, or authority capability.

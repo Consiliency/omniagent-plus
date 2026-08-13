@@ -1,16 +1,10 @@
 {
   "schema": "omnigent.cli_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-07-30T03:53:08Z",
+  "captured_at": "2026-08-12T19:00:00Z",
   "entrypoints": [
-    {
-      "name": "omnigent",
-      "target": "omnigent.cli:main"
-    },
-    {
-      "name": "omni",
-      "target": "omnigent.cli:main"
-    }
+    { "name": "omnigent", "target": "omnigent.cli:main" },
+    { "name": "omni", "target": "omnigent.cli:main" }
   ],
   "documented_commands": [
     "omnigent run",
@@ -19,67 +13,32 @@
     "omnigent server --background",
     "omnigent server status --json",
     "omnigent server stop",
-    "omnigent stop",
-    "omnigent host",
-    "omnigent setup",
-    "omnigent login",
-    "omni upgrade",
-    "omni upgrade --check",
-    "omnigent claude",
-    "omnigent codex",
-    "omnigent cursor",
-    "omnigent opencode",
-    "omnigent hermes",
-    "omnigent pi",
-    "omni session export --id",
-    "omnigent debug logs",
-    "omnigent run --harness acp:<slug>",
-    "omni import --harness <claude|codex|kimi|kiro|opencode|pi|qwen> (--session <id>|--last <count>)"
+    "omnigent run --profile"
   ],
-  "non_provider_required_commands": [
-    "omni session export --id",
-    "omnigent debug logs",
-    "omnigent run --harness acp:<slug>",
-    "omni import --harness <claude|codex|kimi|kiro|opencode|pi|qwen> (--session <id>|--last <count>)"
-  ],
-  "platform_notes": [
+  "non_provider_required_commands": ["omnigent run --profile"],
+  "deprecated_aliases": [
     {
-      "platform": "windows",
-      "native_terminal_wrappers_supported": false,
-      "server_and_sdk_modes_supported": true
+      "command": "omnigent server start",
+      "visibility": "hidden",
+      "replacement": "omnigent server --background",
+      "warning": true,
+      "production_usage": false
     }
   ],
   "exit_code_contract": {
     "success_code": 0,
     "nonzero_codes_are_stable_abi": false,
-    "note": "v0.7.0 does not publish a stable non-zero exit-code table; classify failures from stderr or response semantics."
+    "note": "v0.9.0 does not publish a stable non-zero exit-code table"
   },
   "compatibility_notes": [
-    "optional extra memory was renamed to hindsight; memory remains a compatibility alias",
-    "OMNIGENT_<NAME>_PATH replaces deprecated HARNESS_*_PATH through v0.8",
-    "omnigent server --background replaces the removed server start subcommand and emits human-readable startup text",
-    "omnigent server status --json emits a direct machine-readable status object",
-    "this repository uses neither deprecated surface"
+    "v0.8 extra_args is not used by this repository",
+    "v0.8 env_passthrough must remain explicit and is not used locally",
+    "v0.8 recursive dotfile scanning is not used locally",
+    "production lifecycle invokes only omnigent server --background"
   ],
-  "local_probe": {
-    "omnigent_on_path": false,
-    "omni_on_path": false
-  },
   "provenance": [
-    {
-      "kind": "tagged_source",
-      "path": "pyproject.toml",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "README.md",
-      "ref": "v0.7.0"
-    },
-    {
-      "kind": "tagged_source",
-      "path": "omnigent/cli.py",
-      "ref": "v0.7.0"
-    }
+    { "kind": "tagged_source", "path": "pyproject.toml", "ref": "v0.9.0" },
+    { "kind": "tagged_source", "path": "README.md", "ref": "v0.9.0" },
+    { "kind": "tagged_source", "path": "omnigent/cli.py", "ref": "v0.9.0" }
   ]
 }

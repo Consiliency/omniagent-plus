@@ -1,23 +1,25 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import {
-  loadOmnigentCliSurface,
-  loadOmnigentEventFixture,
-  loadOmnigentFakeServerScenarios,
-} from "./contract-fixtures.js";
+import { loadOmnigentFakeServerScenarios } from "./contract-fixtures.js";
 import type {
-  OmnigentEventAck,
+  OmnigentChildSessionSummary,
+  OmnigentConversationItem,
   OmnigentHarnessCatalogResponse,
-  OmnigentRawEvent,
   OmnigentSendEventInput,
-  OmnigentSessionSnapshot,
+  OmnigentSessionListItem,
+  OmnigentTaggedSseEvent,
+  OmnigentWireConversationItem,
+  OmnigentWirePage,
+  OmnigentWireSessionResponse,
 } from "./types.js";
 
 export interface FakeOmnigentServerOptions {
   readonly activeResponseId?: string;
   readonly malformedFrameBeforeValid?: boolean;
+  readonly pageSize?: number;
   readonly rejectNextTurnWith?: "auth" | "billing" | "policy" | "rate_limit";
+  readonly stagnantPagination?: boolean;
   readonly streamDisconnect?: boolean;
 }
 
@@ -25,136 +27,23 @@ export interface FakeOmnigentRequestLogEntry {
   readonly body?: unknown;
   readonly method: string;
   readonly path: string;
+  readonly url: string;
 }
 
 interface FakeSessionRecord {
-  snapshot: OmnigentSessionSnapshot;
-  stream: OmnigentRawEvent[];
+  items: OmnigentConversationItem[];
+  snapshot: OmnigentWireSessionResponse;
+  stream: OmnigentTaggedSseEvent[];
 }
 
-function timestamp(offsetMs = 0): string {
-  return new Date(Date.parse("2026-06-30T00:00:00.000Z") + offsetMs).toISOString();
+const EPOCH = 1_780_272_000;
+
+function timestamp(offsetSeconds = 0): number {
+  return EPOCH + offsetSeconds;
 }
 
-function cloneSnapshot(snapshot: OmnigentSessionSnapshot): OmnigentSessionSnapshot {
-  return {
-    ...snapshot,
-    items: snapshot.items.map((item) => ({
-      ...item,
-      event: {
-        ...item.event,
-      },
-    })),
-    metadata: snapshot.metadata === undefined ? undefined : { ...snapshot.metadata },
-  };
-}
-
-function buildSessionCreatedEvent(sessionId: string, title: string): OmnigentRawEvent {
-  return {
-    id: `${sessionId}-created`,
-    itemId: `${sessionId}-created`,
-    message: title,
-    occurredAt: timestamp(),
-    sessionId,
-    status: "idle",
-    type: "session.created",
-  };
-}
-
-function buildNormalTerminalEvents(
-  sessionId: string,
-  turnId: string,
-  message: string,
-): OmnigentRawEvent[] {
-  const fixture = loadOmnigentEventFixture("normal-terminal");
-  return (fixture.events ?? []).map((event, index) => ({
-    delta:
-      event.type === "response.output_text.delta" ? `Echo: ${message}` : undefined,
-    id: `${turnId}-${index + 1}`,
-    itemId: event.type === "[DONE]" ? undefined : `${turnId}-${index + 1}`,
-    message:
-      event.type === "response.created" || event.type === "turn.started"
-        ? message
-        : undefined,
-    occurredAt: timestamp((index + 1) * 1000),
-    outputText:
-      event.type === "response.completed" ? `Echo: ${message}` : undefined,
-    reason: event.reason,
-    sessionId,
-    status:
-      event.type === "session.status" && event.status
-        ? (event.status as OmnigentRawEvent["status"])
-        : undefined,
-    terminal: event.terminal,
-    turnId:
-      event.type.startsWith("response.") || event.type.startsWith("turn.")
-        ? turnId
-        : undefined,
-    type: event.type as OmnigentRawEvent["type"],
-  }));
-}
-
-function buildCancelEvents(sessionId: string, turnId: string): OmnigentRawEvent[] {
-  const fixture = loadOmnigentEventFixture("cancel-interrupt");
-  return (fixture.events ?? []).map((event, index) => ({
-    id: `${turnId}-cancel-${index + 1}`,
-    itemId: `${turnId}-cancel-${index + 1}`,
-    occurredAt: timestamp((index + 10) * 1000),
-    reason: event.reason,
-    sessionId,
-    status:
-      event.type === "session.status" && event.status
-        ? (event.status as OmnigentRawEvent["status"])
-        : undefined,
-    terminal: event.terminal,
-    turnId: event.type.startsWith("response.") ? turnId : undefined,
-    type: event.type as OmnigentRawEvent["type"],
-  }));
-}
-
-function buildV04NoopEvents(sessionId: string, turnId: string): OmnigentRawEvent[] {
-  const fixture = loadOmnigentEventFixture("v0-4-noop-events");
-  return (fixture.events ?? []).map((event, index) => ({
-    attempt: event.type === "response.retry" ? 1 : undefined,
-    delay_seconds: event.type === "response.retry" ? 2 : undefined,
-    elicitation_id:
-      event.type === "response.elicitation_request" ? `${turnId}-elicitation` : undefined,
-    error:
-      event.type === "response.error"
-        ? { message: "metadata-only error event" }
-        : undefined,
-    id: `${turnId}-v04-${index + 1}`,
-    itemId: `${turnId}-v04-${index + 1}`,
-    occurredAt: timestamp((index + 30) * 1000),
-    reason: event.reason,
-    reasoning_effort:
-      event.type === "session.reasoning_effort" ? "medium" : undefined,
-    response_id: event.type.startsWith("response.") ? turnId : undefined,
-    sessionId,
-    terminal: event.terminal,
-    total_cost_usd: event.type === "session.usage" ? 0 : undefined,
-    turnId: event.type.startsWith("response.") ? turnId : undefined,
-    type: event.type as OmnigentRawEvent["type"],
-    usage_by_model:
-      event.type === "session.usage" ? { "metadata-only": {} } : undefined,
-  }));
-}
-
-function buildV06NoopEvents(sessionId: string, turnId: string): OmnigentRawEvent[] {
-  const fixture = loadOmnigentEventFixture("v0-6-noop-events");
-  return (fixture.events ?? []).map((event, index) => ({
-    action: event.action,
-    action_id: event.action_id,
-    args: event.args,
-    call_id: event.call_id,
-    delta: event.delta,
-    id: `${turnId}-v06-${index + 1}`,
-    itemId: `${turnId}-v06-${index + 1}`,
-    occurredAt: timestamp((index + 60) * 1000),
-    sessionId,
-    terminal: event.terminal,
-    type: event.type as OmnigentRawEvent["type"],
-  }));
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function harnessCatalog(): OmnigentHarnessCatalogResponse {
@@ -209,8 +98,63 @@ function writeJson(response: ServerResponse, statusCode: number, body: unknown):
   response.end(JSON.stringify(body));
 }
 
-function stripQuery(pathname: string): string {
-  return pathname.split("?")[0] ?? pathname;
+function textFromMessage(event: OmnigentSendEventInput): string {
+  const content = Array.isArray(event.data.content) ? event.data.content : [];
+  const first = content[0];
+  return typeof first === "object" && first !== null && "text" in first
+    ? String(first.text)
+    : "send turn";
+}
+
+function listItem(snapshot: OmnigentWireSessionResponse): OmnigentSessionListItem {
+  return {
+    agent_id: snapshot.agent_id,
+    created_at: snapshot.created_at,
+    id: snapshot.id,
+    kind: snapshot.kind,
+    parent_session_id: snapshot.parent_session_id,
+    project_id: snapshot.project_id,
+    status: snapshot.status,
+    title: snapshot.title,
+    updated_at: snapshot.updated_at ?? snapshot.created_at,
+  };
+}
+
+function conversationItem(
+  value: {
+    readonly created_at: number;
+    readonly data: Readonly<Record<string, unknown>>;
+    readonly id: string;
+    readonly response_id: string;
+    readonly status: string;
+    readonly type: OmnigentConversationItem["type"];
+  },
+): OmnigentConversationItem {
+  const { data, ...common } = value;
+  return { ...common, ...data };
+}
+
+function snapshotConversationItem(
+  value: OmnigentConversationItem,
+): OmnigentWireConversationItem {
+  const {
+    created_at,
+    created_by,
+    id,
+    response_id,
+    status,
+    type,
+    ...data
+  } = value;
+  return {
+    created_at,
+    ...(created_by === undefined ? {} : { created_by }),
+    data,
+    id,
+    response_id,
+    status,
+    type,
+  };
 }
 
 export class FakeOmnigentServer {
@@ -219,6 +163,8 @@ export class FakeOmnigentServer {
 
   baseUrl = "";
 
+  private nextSession = 1;
+  private nextTurn = 1;
   private readonly options: FakeOmnigentServerOptions;
   private rejectNextTurnWith: FakeOmnigentServerOptions["rejectNextTurnWith"];
   private readonly sessions = new Map<string, FakeSessionRecord>();
@@ -248,11 +194,33 @@ export class FakeOmnigentServer {
       this.server.close((error) => {
         if (error) {
           reject(error);
-          return;
+        } else {
+          resolve();
         }
-        resolve();
       });
     });
+  }
+
+  private page<T extends { readonly id: string }>(
+    values: readonly T[],
+    url: URL,
+  ): OmnigentWirePage<T> {
+    const after = url.searchParams.get("after");
+    const requested = Number(url.searchParams.get("limit") ?? values.length);
+    const pageSize = Math.min(requested, this.options.pageSize ?? requested);
+    const start = after === null ? 0 : Math.max(0, values.findIndex((v) => v.id === after) + 1);
+    const data = values.slice(start, start + pageSize);
+    const hasMore = start + data.length < values.length;
+    const actualLast = data.at(-1)?.id ?? null;
+    return {
+      data: clone(data),
+      first_id: data[0]?.id ?? null,
+      has_more: hasMore,
+      last_id:
+        hasMore && this.options.stagnantPagination && after !== null
+          ? after
+          : actualLast,
+    };
   }
 
   private async handleRequest(
@@ -260,9 +228,11 @@ export class FakeOmnigentServer {
     response: ServerResponse,
   ): Promise<void> {
     const method = request.method ?? "GET";
-    const path = stripQuery(request.url ?? "/");
+    const rawUrl = request.url ?? "/";
+    const url = new URL(rawUrl, "http://fake.omnigent.local");
+    const path = url.pathname;
     const body = method === "GET" ? undefined : await readBody(request);
-    this.requestLog.push({ body, method, path });
+    this.requestLog.push({ body, method, path, url: rawUrl });
 
     if (method === "GET" && path === "/v1/harnesses") {
       writeJson(response, 200, harnessCatalog());
@@ -271,29 +241,47 @@ export class FakeOmnigentServer {
 
     if (method === "POST" && path === "/v1/sessions") {
       const payload = (body ?? {}) as Record<string, unknown>;
-      const idempotencyKey = String(payload.idempotencyKey ?? "session");
-      const sessionId = `session-${idempotencyKey}`;
-      const title = String(payload.title ?? "Omnigent session");
-      const created = buildSessionCreatedEvent(sessionId, title);
-      const snapshot: OmnigentSessionSnapshot = {
-        active_response_id: this.options.activeResponseId,
-        backend: "omnigent-http",
-        createdAt: created.occurredAt,
+      if (typeof payload.agent_id !== "string" || !Array.isArray(payload.initial_items)) {
+        writeJson(response, 422, { error: "agent_id and initial_items are required" });
+        return;
+      }
+      const sessionId = `session-${this.nextSession++}`;
+      const title = typeof payload.title === "string" ? payload.title : null;
+      const items = (payload.initial_items as Array<Record<string, unknown>>).map(
+        (initial, index): OmnigentConversationItem => conversationItem({
+          created_at: timestamp(index),
+          data: (initial.data ?? {}) as Readonly<Record<string, unknown>>,
+          id: `${sessionId}-initial-${index + 1}`,
+          response_id: `${sessionId}-initial-response`,
+          status: "completed",
+          type: "message",
+        }),
+      );
+      const snapshot: OmnigentWireSessionResponse = {
+        active_response_id: this.options.activeResponseId ?? null,
+        agent_id: payload.agent_id,
+        background_task_count: 0,
+        created_at: timestamp(),
         id: sessionId,
-        items: [{ id: created.itemId ?? created.id, event: created }],
+        items: items.map(snapshotConversationItem),
+        kind: "agent",
+        mcp_startup: null,
         metadata: {
-          commands: loadOmnigentCliSurface().documented_commands.slice(0, 4),
-          targetHarness: payload.targetHarness,
+          agent_id: payload.agent_id,
+          workspace: payload.workspace,
         },
+        parent_session_id: null,
+        pending_inputs: [],
+        project_id: null,
         status: this.options.activeResponseId ? "running" : "idle",
+        subagent_routing_override: null,
         title,
-        updatedAt: created.occurredAt,
+        updated_at: timestamp(),
+        viewer_last_seen: null,
+        viewer_unread: false,
       };
-      this.sessions.set(sessionId, {
-        snapshot,
-        stream: [created],
-      });
-      writeJson(response, 200, cloneSnapshot(snapshot));
+      this.sessions.set(sessionId, { items, snapshot, stream: [] });
+      writeJson(response, 200, clone(snapshot));
       return;
     }
 
@@ -301,239 +289,255 @@ export class FakeOmnigentServer {
       writeJson(
         response,
         200,
-        Array.from(this.sessions.values()).map((record) =>
-          cloneSnapshot(record.snapshot),
+        this.page(
+          Array.from(this.sessions.values()).map((record) => listItem(record.snapshot)),
+          url,
         ),
       );
       return;
     }
 
-    const sessionIdMatch =
-      /^\/v1\/sessions\/([^/]+)(?:\/(items|stream|child_sessions|events|switch-agent|read-state))?$/.exec(
-        path,
-      );
-    if (sessionIdMatch) {
-      const sessionId = decodeURIComponent(sessionIdMatch[1] ?? "");
-      const action = sessionIdMatch[2] ?? "";
-      const record = this.sessions.get(sessionId);
-      if (!record) {
-        writeJson(response, 404, { error: "session not found" });
-        return;
-      }
-
-      if (method === "GET" && action === "") {
-        writeJson(response, 200, cloneSnapshot(record.snapshot));
-        return;
-      }
-
-      if (method === "PATCH" && action === "") {
-        const nextMetadata = {
-          ...(record.snapshot.metadata ?? {}),
-          ...((body as Record<string, unknown> | undefined) ?? {}),
-        };
-        record.snapshot = {
-          ...record.snapshot,
-          metadata: nextMetadata,
-          updatedAt: timestamp(500),
-        };
-        writeJson(response, 200, cloneSnapshot(record.snapshot));
-        return;
-      }
-
-      if (method === "DELETE" && action === "") {
-        this.sessions.delete(sessionId);
-        response.statusCode = 204;
-        response.end();
-        return;
-      }
-
-      if (method === "GET" && action === "items") {
-        writeJson(response, 200, record.snapshot.items.map((item) => ({ ...item })));
-        return;
-      }
-
-      if (method === "GET" && action === "child_sessions") {
-        writeJson(response, 200, []);
-        return;
-      }
-
-      if (method === "PUT" && action === "read-state") {
-        const payload = (body ?? {}) as Record<string, unknown>;
-        const lastSeen = Number(payload.last_seen);
-        const unread = Boolean(payload.unread);
-        record.snapshot = {
-          ...record.snapshot,
-          updatedAt: timestamp(750),
-          viewerLastSeen: lastSeen,
-          viewerUnread: unread,
-          viewer_last_seen: lastSeen,
-          viewer_unread: unread,
-        };
-        response.statusCode = 204;
-        response.end();
-        return;
-      }
-
-      if (method === "POST" && action === "switch-agent") {
-        writeJson(response, 200, {
-          switched: true,
-        });
-        return;
-      }
-
-      if (method === "POST" && action === "events") {
-        const event = (body ?? {}) as OmnigentSendEventInput;
-        if (event.type === "message" && this.rejectNextTurnWith) {
-          const rejection = this.rejectNextTurnWith;
-          this.rejectNextTurnWith = undefined;
-          if (rejection === "rate_limit") {
-            response.setHeader("retry-after", "60");
-            writeJson(response, 429, {
-              error: "usage cap reached",
-            });
-            return;
-          }
-          if (rejection === "billing") {
-            writeJson(response, 403, { error: "billing issue" });
-            return;
-          }
-          if (rejection === "policy") {
-            writeJson(response, 403, { error: "policy blocked" });
-            return;
-          }
-          writeJson(response, 403, { error: "auth required" });
-          return;
-        }
-
-        if (event.type === "message") {
-          const turnId = `turn-${record.snapshot.items.length + 1}`;
-          const message = String(event.data.message ?? "send turn");
-          const rawEvents = [
-            ...buildNormalTerminalEvents(sessionId, turnId, message),
-            ...buildV04NoopEvents(sessionId, turnId),
-            ...buildV06NoopEvents(sessionId, turnId),
-          ];
-          record.stream.push(...rawEvents);
-          record.snapshot = {
-            ...record.snapshot,
-            activeTurnId: undefined,
-            active_response_id: undefined,
-            items: [
-              ...record.snapshot.items,
-              ...rawEvents
-                .filter((item) => item.type !== "[DONE]")
-                .map((item) => ({
-                  id: item.itemId ?? item.id,
-                  event: item,
-                })),
-            ],
-            status: "idle",
-            updatedAt: timestamp(9000),
-          };
-          writeJson(response, 200, {
-            queued: true,
-            sessionId,
-            turnId,
-          } satisfies OmnigentEventAck);
-          return;
-        }
-
-        if (event.type === "interrupt") {
-          const turnId =
-            record.snapshot.activeTurnId ??
-            `turn-${record.snapshot.items.length + 1}`;
-          const rawEvents = buildCancelEvents(sessionId, turnId);
-          record.stream.push(...rawEvents);
-          record.snapshot = {
-            ...record.snapshot,
-            items: [
-              ...record.snapshot.items,
-              ...rawEvents.map((item) => ({
-                id: item.itemId ?? item.id,
-                event: item,
-              })),
-            ],
-            status: "idle",
-            updatedAt: timestamp(12000),
-          };
-          writeJson(response, 200, {
-            queued: false,
-            sessionId,
-            turnId,
-          } satisfies OmnigentEventAck);
-          return;
-        }
-
-        if (event.type === "stop_session") {
-          record.snapshot = {
-            ...record.snapshot,
-            activeTurnId: undefined,
-            status: "idle",
-            updatedAt: timestamp(15000),
-          };
-          writeJson(response, 200, {
-            queued: false,
-            sessionId,
-            turnId: record.snapshot.activeTurnId ?? "logical-close",
-          } satisfies OmnigentEventAck);
-          return;
-        }
-
-        writeJson(response, 400, { error: "unsupported event type" });
-        return;
-      }
-
-      if (method === "GET" && action === "stream") {
-        if (this.options.streamDisconnect) {
-          response.destroy(new Error("simulated disconnect"));
-          return;
-        }
-        response.statusCode = 200;
-        response.setHeader("content-type", "text/event-stream");
-        response.setHeader("cache-control", "no-cache");
-        response.flushHeaders();
-
-        if (this.options.malformedFrameBeforeValid) {
-          response.write("data: not-json\n\n");
-          response.write('data: "still not an object"\n\n');
-          response.write('data: {"type":"unknown.event"}\n\n');
-        }
-
-        for (const item of record.stream) {
-          if (item.type === "[DONE]") {
-            response.write("data: [DONE]\n\n");
-            continue;
-          }
-          response.write(`data: ${JSON.stringify(item)}\n\n`);
-        }
-        response.write("data: [DONE]\n\n");
-        response.end();
-        return;
-      }
-    }
-
     const forkMatch = /^\/v1\/sessions\/([^/]+)\/fork$/.exec(path);
     if (method === "POST" && forkMatch) {
       const sourceId = decodeURIComponent(forkMatch[1] ?? "");
-      const sourceRecord = this.sessions.get(sourceId);
-      if (!sourceRecord) {
+      const source = this.sessions.get(sourceId);
+      if (!source) {
         writeJson(response, 404, { error: "source session not found" });
         return;
       }
-      const forkedId = `${sourceId}-fork`;
-      const forkedSnapshot: OmnigentSessionSnapshot = {
-        ...cloneSnapshot(sourceRecord.snapshot),
-        id: forkedId,
-        title: `${sourceRecord.snapshot.title} fork`,
+      const id = `${sourceId}-fork`;
+      const snapshot = { ...clone(source.snapshot), id, title: `${source.snapshot.title ?? "Session"} fork` };
+      this.sessions.set(id, { items: clone(source.items), snapshot, stream: clone(source.stream) });
+      writeJson(response, 200, snapshot);
+      return;
+    }
+
+    const match =
+      /^\/v1\/sessions\/([^/]+)(?:\/(items|stream|child_sessions|events|switch-agent|read-state))?$/.exec(path);
+    if (!match) {
+      writeJson(response, 404, { error: "route not found" });
+      return;
+    }
+
+    const sessionId = decodeURIComponent(match[1] ?? "");
+    const action = match[2] ?? "";
+    const record = this.sessions.get(sessionId);
+    if (!record) {
+      writeJson(response, 404, { error: "session not found" });
+      return;
+    }
+
+    if (method === "GET" && action === "") {
+      const snapshot = {
+        ...clone(record.snapshot),
+        items:
+          url.searchParams.get("include_items") === "false"
+            ? []
+            : record.items.map(snapshotConversationItem),
       };
-      this.sessions.set(forkedId, {
-        snapshot: forkedSnapshot,
-        stream: [...sourceRecord.stream],
-      });
-      writeJson(response, 200, forkedSnapshot);
+      writeJson(response, 200, snapshot);
+      return;
+    }
+
+    if (method === "PATCH" && action === "") {
+      const changes = (body ?? {}) as Record<string, unknown>;
+      record.snapshot = {
+        ...record.snapshot,
+        ...changes,
+        id: record.snapshot.id,
+        items: record.items.map(snapshotConversationItem),
+        updated_at: timestamp(1),
+      };
+      writeJson(response, 200, clone(record.snapshot));
+      return;
+    }
+
+    if (method === "DELETE" && action === "") {
+      this.sessions.delete(sessionId);
+      response.statusCode = 204;
+      response.end();
+      return;
+    }
+
+    if (method === "GET" && action === "items") {
+      writeJson(response, 200, this.page(record.items, url));
+      return;
+    }
+
+    if (method === "GET" && action === "child_sessions") {
+      const children: OmnigentChildSessionSummary[] = [];
+      writeJson(response, 200, this.page(children, url));
+      return;
+    }
+
+    if (method === "PUT" && action === "read-state") {
+      const payload = (body ?? {}) as Record<string, unknown>;
+      record.snapshot = {
+        ...record.snapshot,
+        updated_at: timestamp(2),
+        viewer_last_seen: Number(payload.last_seen),
+        viewer_unread: Boolean(payload.unread),
+      };
+      response.statusCode = 204;
+      response.end();
+      return;
+    }
+
+    if (method === "POST" && action === "switch-agent") {
+      writeJson(response, 200, { switched: true });
+      return;
+    }
+
+    if (method === "POST" && action === "events") {
+      await this.handleEvent(record, sessionId, body, response);
+      return;
+    }
+
+    if (method === "GET" && action === "stream") {
+      this.writeStream(record, response);
       return;
     }
 
     writeJson(response, 404, { error: "route not found" });
+  }
+
+  private async handleEvent(
+    record: FakeSessionRecord,
+    sessionId: string,
+    body: unknown,
+    response: ServerResponse,
+  ): Promise<void> {
+    const event = (body ?? {}) as OmnigentSendEventInput;
+    if (event.type === "message" && this.rejectNextTurnWith) {
+      const rejection = this.rejectNextTurnWith;
+      this.rejectNextTurnWith = undefined;
+      if (rejection === "rate_limit") {
+        response.setHeader("retry-after", "60");
+        writeJson(response, 429, { error: "usage cap reached" });
+      } else if (rejection === "billing") {
+        writeJson(response, 403, { error: "billing issue" });
+      } else if (rejection === "policy") {
+        writeJson(response, 202, {
+          denied: true,
+          queued: false,
+          reason: "policy blocked",
+        });
+      } else {
+        writeJson(response, 403, { error: "auth required" });
+      }
+      return;
+    }
+
+    if (event.type === "message") {
+      const ordinal = this.nextTurn++;
+      const responseId = `response-${ordinal}`;
+      const userItemId = `message-user-${ordinal}`;
+      const message = textFromMessage(event);
+      record.items.push(conversationItem({
+        created_at: timestamp(ordinal * 10),
+        data: event.data,
+        id: userItemId,
+        response_id: responseId,
+        status: "completed",
+        type: "message",
+      }));
+      record.stream.push(
+        {
+          response: {
+            created_at: timestamp(ordinal * 10),
+            id: responseId,
+            status: "in_progress",
+          },
+          type: "response.created",
+        },
+        { delta: `Echo: ${message}`, type: "response.output_text.delta" },
+        {
+          item: {
+            arguments: "{}",
+            call_id: `call-${ordinal}`,
+            id: `function-call-${ordinal}`,
+            name: "metadata_tool",
+            type: "function_call",
+          },
+          type: "response.output_item.done",
+        },
+        {
+          action: "snapshot",
+          action_id: "baction_metadata_only",
+          type: "browser.action_request",
+        },
+        {
+          call_id: "call_metadata_only",
+          delta: "metadata-only tool output",
+          type: "response.function_call_output.delta",
+        },
+        {
+          response: {
+            completed_at: timestamp(ordinal * 10 + 2),
+            id: responseId,
+            status: "completed",
+          },
+          type: "response.completed",
+        },
+        {
+          conversation_id: sessionId,
+          response_id: null,
+          status: "idle",
+          type: "session.status",
+        },
+      );
+      record.snapshot = {
+        ...record.snapshot,
+        active_response_id: null,
+        items: record.items.map(snapshotConversationItem),
+        status: "idle",
+        updated_at: timestamp(ordinal * 10 + 2),
+      };
+      writeJson(response, 202, { item_id: userItemId, queued: true });
+      return;
+    }
+
+    if (event.type === "interrupt") {
+      const responseId = record.snapshot.active_response_id ?? `response-${this.nextTurn}`;
+      record.stream.push({
+        response: {
+          completed_at: timestamp(100),
+          id: responseId,
+          incomplete_details: { reason: "interrupted" },
+          status: "cancelled",
+        },
+        type: "response.cancelled",
+      });
+      writeJson(response, 202, { queued: false });
+      return;
+    }
+
+    if (event.type === "stop_session") {
+      writeJson(response, 202, { queued: false });
+      return;
+    }
+
+    writeJson(response, 400, { error: "unsupported event type" });
+  }
+
+  private writeStream(record: FakeSessionRecord, response: ServerResponse): void {
+    if (this.options.streamDisconnect) {
+      response.destroy(new Error("simulated disconnect"));
+      return;
+    }
+    response.statusCode = 200;
+    response.setHeader("content-type", "text/event-stream");
+    response.setHeader("cache-control", "no-cache");
+    response.flushHeaders();
+    if (this.options.malformedFrameBeforeValid) {
+      response.write("data: not-json\n\n");
+      response.write('data: "still not an object"\n\n');
+      response.write('data: {"type":"unknown.event"}\n\n');
+    }
+    for (const event of record.stream) {
+      response.write(`data: ${JSON.stringify(event)}\n\n`);
+    }
+    response.write("data: [DONE]\n\n");
+    response.end();
   }
 }

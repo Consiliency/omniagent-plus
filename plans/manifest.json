@@ -4,8 +4,9 @@
       "acceptance_criteria_count": 10,
       "created_at": "2026-07-08T20:55:13Z",
       "file": "plans/detailed-cs-2-2-off-device-lease-coordinator-20260708-205513.md",
-      "handoff_path": ".dev-skills/handoffs/codex-plan-detailed/20260708-205513-cs-2-2-off-device-lease-coordinator.md",
       "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260708-205513-cs-2-2-off-device-lease-coordinator.md",
+      "if_gates_produced": [],
+      "lanes": [],
       "lifecycle": [
         {
           "at": "2026-07-08T20:55:13Z",
@@ -19,7 +20,9 @@
         }
       ],
       "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee94a74/detached-head/20260708-205513-cs-2-2-off-device-lease-coordinator.md",
+      "roadmap_ref": null,
       "slug": "detailed-cs-2-2-off-device-lease-coordinator-20260708-205513",
       "status": "planned",
       "task_summary": "Plan CS-2.2 off-device Supabase lease backend and omniagent-plus coordinator arbitration.",
@@ -30,8 +33,9 @@
       "acceptance_criteria_count": 11,
       "created_at": "2026-07-05T00:20:32Z",
       "file": "plans/detailed-omnigent-v0-4-adaptation-20260705-002032.md",
-      "handoff_path": ".dev-skills/handoffs/codex-plan-detailed/20260705-002032-omnigent-v0-4-adaptation.md",
       "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260705-002032-omnigent-v0-4-adaptation.md",
+      "if_gates_produced": [],
+      "lanes": [],
       "lifecycle": [
         {
           "at": "2026-07-05T00:20:32Z",
@@ -62,7 +66,9 @@
         }
       ],
       "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee94a74/main/20260705-002032-omnigent-v0-4-adaptation.md",
+      "roadmap_ref": null,
       "slug": "detailed-omnigent-v0-4-adaptation-20260705-002032",
       "status": "committed",
       "task_summary": "Plan official Omnigent v0.4.0 transport contract adaptation.",
@@ -332,6 +338,98 @@
       "task_summary": "Plan official Omnigent v0.7.0 transport contract maintenance and the transport-only 0.4.0 release.",
       "type": "detailed",
       "updated_at": "2026-07-30T04:06:14Z"
+    },
+    {
+      "acceptance_criteria_count": 17,
+      "created_at": "2026-08-12T18:08:38Z",
+      "file": "plans/detailed-omnigent-v0-9-accommodations-20260812-180838.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260812T180838Z-omnigent-v090-accommodations.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-08-12T18:08:38Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-9-accommodations-20260812-180838.md",
+            "plan_sha256": "61eaf1a086a80b504e4443d9599d6a7aa5ba6a2b8218d5542cd4fd26381fbee2",
+            "upstream_omnigent_release": "v0.9.0",
+            "upstream_tag_commit": "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2"
+          },
+          "transition": "committed"
+        },
+        {
+          "at": "2026-08-12T18:44:16Z",
+          "by": "codex-advisor-board",
+          "metadata": {
+            "amended_plan_sha256": "cefaa2e45f7ce014a15970a71e109880d1cb4f637236ddbe8e3ff3044c36a93b",
+            "original_plan_sha256": "61eaf1a086a80b504e4443d9599d6a7aa5ba6a2b8218d5542cd4fd26381fbee2",
+            "review_status": "amended_after_blocking_dissent",
+            "second_pass_delivered_seats": 2,
+            "second_pass_requested_seats": 4
+          },
+          "transition": "amended"
+        },
+        {
+          "at": "2026-08-12T18:59:42Z",
+          "by": "codex-advisor-board",
+          "metadata": {
+            "amended_plan_sha256": "468102e2eaf61580ef0e32e4705d9ef9d4e2edca5b84624a900e7cf2da182e9e",
+            "previous_plan_sha256": "cefaa2e45f7ce014a15970a71e109880d1cb4f637236ddbe8e3ff3044c36a93b",
+            "review_status": "amended_after_third_pass_dissent",
+            "third_pass_delivered_seats": 3,
+            "third_pass_requested_seats": 4
+          },
+          "transition": "amended"
+        },
+        {
+          "at": "2026-08-12T19:08:51Z",
+          "by": "codex-advisor-board",
+          "metadata": {
+            "final_pass_delivered_seats": 3,
+            "final_pass_requested_seats": 4,
+            "final_plan_sha256": "468102e2eaf61580ef0e32e4705d9ef9d4e2edca5b84624a900e7cf2da182e9e",
+            "plan_level_blockers": 0,
+            "review_status": "execute_ready_with_implementation_gates_open"
+          },
+          "transition": "reviewed"
+        },
+        {
+          "at": "2026-08-12T19:12:10Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "artifact": "plans/detailed-omnigent-v0-9-accommodations-20260812-180838.md",
+            "base_commit": "21cfc47",
+            "plan_sha256": "468102e2eaf61580ef0e32e4705d9ef9d4e2edca5b84624a900e7cf2da182e9e",
+            "run_id": "20260812T190851Z-omnigent-v090-execute"
+          },
+          "transition": "executing"
+        },
+        {
+          "at": "2026-08-12T19:41:33Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "acceptance_criteria": "17/17",
+            "diagnostic": "verified_ready_for_publication",
+            "dirty_path_classification": "all dirty paths are plan-owned implementation, tests, fixtures, docs, release, verification, or lifecycle output",
+            "doc_delta_decision": "docs_updated",
+            "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/b22b87b7/codex-implement-omnigent-v0-9/20260812T190851Z-omnigent-v090-execute.md",
+            "run_id": "20260812T190851Z-omnigent-v090-execute",
+            "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260812T190851Z-omnigent-v090-verification.md",
+            "verification_status": "passed"
+          },
+          "transition": "completed"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/024588e9/codex-plan-omnigent-v0-9-accommodations/20260812T180838Z-omnigent-v090-accommodations.md",
+      "roadmap_ref": null,
+      "slug": "detailed-omnigent-v0-9-accommodations-20260812-180838",
+      "status": "completed",
+      "task_summary": "Plan official Omnigent v0.9.0 authority, HTTP wire conformance, and transport 0.5.0 release accommodations.",
+      "type": "detailed",
+      "updated_at": "2026-08-12T19:41:33Z"
     },
     {
       "acceptance_criteria_count": 7,

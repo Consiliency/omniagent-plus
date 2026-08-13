@@ -1,0 +1,140 @@
+{
+  "schema": "omnigent.http_wire.v0.9",
+  "redaction": "metadata_only",
+  "authority": {
+    "tag": "v0.9.0",
+    "commit": "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2",
+    "sources": [
+      "omnigent/server/API.md",
+      "omnigent/server/schemas.py",
+      "omnigent/server/routes/sessions/routes_events.py",
+      "omnigent/server/routes/sessions/routes_items.py",
+      "omnigent/server/routes/_sessions/orchestration.py",
+      "omnigent/entities/conversation.py",
+      "tests/server/integration/test_sessions_endpoints.py",
+      "openapi.json"
+    ],
+    "note": "conformance evidence, not a source of truth"
+  },
+  "create_request": {
+    "agent_id": "agent-123",
+    "initial_items": [
+      {
+        "type": "message",
+        "data": {
+          "role": "user",
+          "content": [{ "type": "input_text", "text": "hello" }]
+        }
+      }
+    ],
+    "title": "Wire fixture",
+    "workspace": "/workspace/repo"
+  },
+  "session_response": {
+    "agent_id": "agent-session-123",
+    "id": "session-123",
+    "title": null,
+    "status": "running",
+    "created_at": 1780272000,
+    "updated_at": 1780272001,
+    "active_response_id": null,
+    "background_task_count": 0,
+    "kind": "agent",
+    "mcp_startup": null,
+    "model_options": [],
+    "parent_session_id": null,
+    "project_id": null,
+    "pending_inputs": [
+      {
+        "pending_id": "pending-snapshot-1",
+        "content": [{ "type": "input_text", "text": "pending snapshot" }]
+      }
+    ],
+    "subagent_routing_override": "smart",
+    "items": [
+      {
+        "id": "snapshot-message-assistant",
+        "type": "message",
+        "status": "completed",
+        "response_id": "snapshot-response-1",
+        "created_at": 1780272001,
+        "data": {
+          "role": "assistant",
+          "content": [{ "type": "output_text", "text": "snapshot answer" }]
+        }
+      }
+    ]
+  },
+  "session_pages": [
+    {
+      "data": [{ "id": "session-1", "agent_id": "agent-session-1", "title": null, "status": "idle", "created_at": 1780272000, "updated_at": 1780272000 }],
+      "first_id": "session-1",
+      "last_id": "session-1",
+      "has_more": true
+    },
+    {
+      "data": [{ "id": "session-2", "agent_id": "agent-session-2", "title": "Second", "status": "running", "created_at": 1780272001, "updated_at": 1780272002 }],
+      "first_id": "session-2",
+      "last_id": "session-2",
+      "has_more": false
+    }
+  ],
+  "child_page": {
+    "data": [
+      {
+        "agent_id": "agent-child",
+        "busy": true,
+        "created_at": 1780272010,
+        "current_task_status": "in_progress",
+        "id": "child-1",
+        "parent_session_id": "session-123",
+        "routed_model": "model-routed",
+        "routing_decision_id": "route-1",
+        "title": "Child",
+        "updated_at": 1780272011
+      }
+    ],
+    "first_id": "child-1",
+    "last_id": "child-1",
+    "has_more": false
+  },
+  "conversation_items": [
+    { "id": "message-user", "type": "message", "status": "completed", "response_id": "response-1", "created_at": 1780272020, "role": "user", "content": [{ "type": "input_text", "text": "question" }] },
+    { "id": "message-assistant", "type": "message", "status": "completed", "response_id": "response-1", "created_at": 1780272021, "role": "assistant", "content": [{ "type": "output_text", "text": "answer" }] },
+    { "id": "function-call", "type": "function_call", "status": "completed", "response_id": "response-1", "created_at": 1780272022, "call_id": "call-1", "name": "lookup", "arguments": "{}", "model": "model" },
+    { "id": "function-output", "type": "function_call_output", "status": "completed", "response_id": "response-1", "created_at": 1780272023, "call_id": "call-1", "output": "result" },
+    { "id": "native-tool", "type": "native_tool", "status": "completed", "response_id": "response-1", "created_at": 1780272024, "item": { "type": "terminal" } },
+    { "id": "routing", "type": "routing_decision", "status": "completed", "response_id": "response-1", "created_at": 1780272025, "model": "model-routed", "applied": true, "rationale": "Selected for the task.", "decision_id": "route-1", "scope": "turn" },
+    { "id": "interrupted", "type": "message", "status": "incomplete", "response_id": "response-2", "created_at": 1780272030, "role": "assistant", "content": [], "interrupted": true },
+    { "id": "error", "type": "error", "status": "failed", "response_id": "response-3", "created_at": 1780272040, "code": "failed", "message": "fixture failure", "source": "execution" }
+  ],
+  "send_message": {
+    "type": "message",
+    "data": {
+      "role": "user",
+      "content": [{ "type": "input_text", "text": "hello" }]
+    }
+  },
+  "acknowledgements": [
+    { "queued": true },
+    { "queued": true, "item_id": "item-1" },
+    { "queued": true, "pending_id": "pending-1" },
+    { "queued": false, "denied": true, "reason": "policy blocked" },
+    { "queued": false }
+  ],
+  "sse_frames": [
+    { "type": "session.input.consumed", "data": { "item_id": "message-user", "type": "message", "data": { "role": "user", "content": [{ "type": "input_text", "text": "question" }] }, "created_by": null, "cleared_pending_id": "pending-1" }, "sequence_number": null },
+    { "type": "session.status", "conversation_id": "session-123", "status": "running", "response_id": "response-1", "blocked_on": "tool" },
+    { "type": "response.created", "response": { "id": "response-1", "status": "in_progress", "created_at": 1780272050 } },
+    { "type": "response.output_text.delta", "delta": "answer" },
+    { "type": "response.output_item.done", "item": { "id": "call-item", "type": "function_call", "call_id": "call-1", "name": "lookup", "arguments": "{}" } },
+    { "type": "session.created", "conversation_id": "session-123", "child_session_id": "child-1", "agent_id": "agent-child", "parent_session_id": "session-123", "sequence_number": null },
+    { "type": "turn.started", "session_id": "session-123" },
+    { "type": "response.completed", "response": { "id": "response-1", "status": "completed", "completed_at": 1780272051 } }
+  ],
+  "item_only_sse_frames": [
+    { "type": "response.created", "response": { "id": "response-item-only", "status": "in_progress", "created_at": 1780272060 } },
+    { "type": "response.output_item.done", "item": { "id": "message-item-only", "type": "message", "status": "completed", "response_id": "response-item-only", "role": "assistant", "content": [{ "type": "output_text", "text": "terminal-backed fixture reply" }] } },
+    { "type": "response.completed", "response": { "id": "response-item-only", "status": "completed", "completed_at": 1780272061 } }
+  ]
+}

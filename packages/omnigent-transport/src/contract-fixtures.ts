@@ -23,6 +23,7 @@ export interface OmnigentHttpSurfaceFixture {
     readonly removed_paths: string[];
     readonly added_schemas: string[];
     readonly removed_schemas: string[];
+    readonly changed_schemas?: string[];
   };
   readonly endpoint_provenance?: Array<{
     readonly method: string;
@@ -67,7 +68,30 @@ export interface OmnigentHttpSurfaceFixture {
   };
 }
 
+export interface OmnigentV09WireFixture {
+  readonly acknowledgements: unknown[];
+  readonly authority: {
+    readonly commit: string;
+    readonly tag: string;
+  };
+  readonly child_page: unknown;
+  readonly conversation_items: unknown[];
+  readonly create_request: unknown;
+  readonly item_only_sse_frames: unknown[];
+  readonly send_message: unknown;
+  readonly session_pages: unknown[];
+  readonly session_response: unknown;
+  readonly sse_frames: unknown[];
+}
+
 export interface OmnigentCliSurfaceFixture {
+  readonly deprecated_aliases?: Array<{
+    readonly command: string;
+    readonly production_usage: boolean;
+    readonly replacement: string;
+    readonly visibility: string;
+    readonly warning: boolean;
+  }>;
   readonly documented_commands: string[];
   readonly non_provider_required_commands?: string[];
   readonly entrypoints: Array<{
@@ -157,6 +181,12 @@ export function loadOmnigentSourceMetadata(): OmnigentSourceMetadataFixture {
 export function loadOmnigentHttpSurface(): OmnigentHttpSurfaceFixture {
   return readOmnigentFixture<OmnigentHttpSurfaceFixture>(
     "discovery/http-surface.json",
+  );
+}
+
+export function loadOmnigentV09WireContract(): OmnigentV09WireFixture {
+  return readOmnigentFixture<OmnigentV09WireFixture>(
+    "http/v0-9-wire-contract.json",
   );
 }
 

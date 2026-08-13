@@ -45,6 +45,7 @@ describe("hybrid provider", () => {
       async getSessionInfo() {
         return {
           session: {
+            agentId: "agent-hybrid",
             backend: "omnigent-http",
             createdAt: "2026-06-30T00:00:00.000Z",
             id: "unused",
@@ -81,13 +82,25 @@ describe("hybrid provider", () => {
     };
 
     try {
+      let fenceState = { rejectedTurnIds: [] as string[] };
       const provider = createHybridProvider({
         baseUrl: server.baseUrl,
         cliTransport,
         processManager,
+        sessionMutationFenceStore: {
+          read: async () => fenceState,
+          write: async (_sessionId, state) => {
+            fenceState = {
+              ...state,
+              rejectedTurnIds: [...state.rejectedTurnIds],
+            };
+          },
+        },
         stopServerOnClose: true,
+        withExclusiveSessionLease: async (_sessionId, operation) => operation(),
       });
       const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: "agent-hybrid" },
         idempotencyKey: "hybrid-session",
         runtime: "omnigent",
         targetHarness: "codex",

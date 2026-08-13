@@ -6,272 +6,230 @@ import {
   loadOmnigentFakeServerScenarios,
   loadOmnigentHttpSurface,
   loadOmnigentSourceMetadata,
+  loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
-import { mapOmnigentEventSequence } from "./event-mapper.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
-import { mapOmnigentHistory } from "./history-mapper.js";
-import {
-  omnigentStreamEventTypes,
-  type OmnigentHistoryItem,
-  type OmnigentRawEvent,
-  type OmnigentSessionSnapshot,
-} from "./types.js";
+import { omnigentStreamEventTypes } from "./types.js";
 
-async function readJson<T>(response: Response): Promise<T> {
-  return (await response.json()) as T;
-}
+describe("official Omnigent v0.9 conformance", () => {
+  it("freezes the release authority without broadening neutral capabilities", () => {
+    const source = loadOmnigentSourceMetadata();
+    const http = loadOmnigentHttpSurface();
+    const cli = loadOmnigentCliSurface();
+    const capabilities = loadOmnigentCapabilityMatrix();
+    const wire = loadOmnigentV09WireContract();
 
-async function readRawEvents(response: Response): Promise<OmnigentRawEvent[]> {
-  const body = await response.text();
-  return body
-    .split("\n\n")
-    .map((block) => block.trim())
-    .filter((block) => block.startsWith("data: ") && block !== "data: [DONE]")
-    .map((block) => JSON.parse(block.slice(6)) as OmnigentRawEvent);
-}
-
-describe("fake omnigent conformance", () => {
-  it("covers the frozen scenario catalog and session lifecycle flows", async () => {
-    const scenarios = loadOmnigentFakeServerScenarios();
-    const sourceMetadata = loadOmnigentSourceMetadata();
-    const capabilityMatrix = loadOmnigentCapabilityMatrix();
-    const cliSurface = loadOmnigentCliSurface();
-    const httpSurface = loadOmnigentHttpSurface();
-    const server = await FakeOmnigentServer.start();
-
-    try {
-      const createResponse = await fetch(`${server.baseUrl}/v1/sessions`, {
-        body: JSON.stringify({
-          idempotencyKey: "conformance",
-          targetHarness: "codex",
-          title: "Conformance session",
+    expect(source.freeze_target).toEqual(
+      expect.objectContaining({
+        commit: "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2",
+        package_version: "0.9.0",
+        requires_python: ">=3.12",
+        tag: "v0.9.0",
+      }),
+    );
+    expect(wire.authority).toEqual(
+      expect.objectContaining({
+        commit: source.freeze_target.commit,
+        tag: source.freeze_target.tag,
+      }),
+    );
+    expect(http.openapi_delta).toEqual(
+      expect.objectContaining({
+        added_paths: [],
+        added_schemas: [],
+        operation_count: 97,
+        removed_paths: [],
+        removed_schemas: [],
+      }),
+    );
+    expect(http.openapi_delta?.changed_schemas).toEqual([
+      "ChildSessionSummary",
+      "ImportSessionRequest",
+      "RoutingDecisionData",
+      "SessionResponse",
+      "SessionStatusEvent",
+      "UpdateSessionRequest",
+    ]);
+    const routingDecision = wire.conversation_items.find(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        item.type === "routing_decision",
+    ) as Record<string, unknown>;
+    expect(routingDecision).toEqual(
+      expect.objectContaining({
+        applied: true,
+        decision_id: "route-1",
+        model: "model-routed",
+        rationale: "Selected for the task.",
+        scope: "turn",
+      }),
+    );
+    expect(routingDecision).not.toHaveProperty("data");
+    const snapshotItem = (
+      wire.session_response as { items: Array<Record<string, unknown>> }
+    ).items[0];
+    expect(snapshotItem).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({ role: "assistant" }),
+      }),
+    );
+    expect(snapshotItem).not.toHaveProperty("role");
+    expect(
+      (wire.session_response as { pending_inputs: unknown[] }).pending_inputs,
+    ).toEqual([
+      {
+        content: [{ text: "pending snapshot", type: "input_text" }],
+        pending_id: "pending-snapshot-1",
+      },
+    ]);
+    expect(wire.sse_frames).toContainEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          cleared_pending_id: "pending-1",
+          item_id: "message-user",
         }),
-        headers: {
-          "content-type": "application/json",
-        },
+        type: "session.input.consumed",
+      }),
+    );
+    expect(wire.item_only_sse_frames).toEqual([
+      expect.objectContaining({ type: "response.created" }),
+      expect.objectContaining({
+        item: expect.objectContaining({
+          response_id: "response-item-only",
+          role: "assistant",
+          type: "message",
+        }),
+        type: "response.output_item.done",
+      }),
+      expect.objectContaining({ type: "response.completed" }),
+    ]);
+    expect(wire.acknowledgements).toContainEqual({ queued: false });
+    expect(omnigentStreamEventTypes).toHaveLength(52);
+    expect(cli.documented_commands).toContain("omnigent server --background");
+    expect(cli.documented_commands).not.toContain("omnigent server start");
+    expect(cli.deprecated_aliases).toContainEqual({
+      command: "omnigent server start",
+      production_usage: false,
+      replacement: "omnigent server --background",
+      visibility: "hidden",
+      warning: true,
+    });
+
+    const capabilityNames = capabilities.capabilities.map(({ name }) => name);
+    expect(capabilities.capabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "child_session", status: "blocked" }),
+        expect.objectContaining({ name: "harness_override", status: "blocked" }),
+      ]),
+    );
+    for (const forbidden of ["approval", "authority", "lease", "lock", "route_decision"]) {
+      expect(capabilityNames).not.toContain(forbidden);
+    }
+  });
+
+  it("serves exact tagged create, page, event, and SSE shapes", async () => {
+    const server = await FakeOmnigentServer.start();
+    try {
+      const create = await fetch(`${server.baseUrl}/v1/sessions`, {
+        body: JSON.stringify({
+          agent_id: "agent-conformance",
+          initial_items: [],
+          title: "Conformance",
+        }),
+        headers: { "content-type": "application/json" },
         method: "POST",
       });
-      const snapshot = await readJson<OmnigentSessionSnapshot>(createResponse);
-      const turnResponse = await fetch(
-        `${server.baseUrl}/v1/sessions/${snapshot.id}/events`,
-        {
-          body: JSON.stringify({
-            data: { message: "hello transport" },
-            type: "message",
-          }),
-          headers: {
-            "content-type": "application/json",
+      const snapshot = (await create.json()) as Record<string, unknown>;
+      expect(snapshot).toEqual(
+        expect.objectContaining({
+          active_response_id: null,
+          agent_id: "agent-conformance",
+          created_at: expect.any(Number),
+          id: expect.any(String),
+          items: [],
+          status: "idle",
+          updated_at: expect.any(Number),
+        }),
+      );
+      expect(snapshot).not.toHaveProperty("createdAt");
+      expect(snapshot).not.toHaveProperty("backend");
+
+      const list = (await (
+        await fetch(`${server.baseUrl}/v1/sessions?limit=1000&order=asc`)
+      ).json()) as Record<string, unknown>;
+      expect(list).toEqual(
+        expect.objectContaining({ data: expect.any(Array), has_more: false }),
+      );
+      expect(list.data).toEqual([
+        expect.objectContaining({
+          agent_id: "agent-conformance",
+          updated_at: expect.any(Number),
+        }),
+      ]);
+
+      const sessionId = String(snapshot.id);
+      const turn = await fetch(`${server.baseUrl}/v1/sessions/${sessionId}/events`, {
+        body: JSON.stringify({
+          data: {
+            content: [{ text: "hello", type: "input_text" }],
+            role: "user",
           },
+          type: "message",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      expect(turn.status).toBe(202);
+      expect(await turn.json()).toEqual({ item_id: "message-user-1", queued: true });
+
+      const history = (await (
+        await fetch(`${server.baseUrl}/v1/sessions/${sessionId}/items`)
+      ).json()) as { data: Array<Record<string, unknown>> };
+      expect(history.data[0]).toEqual(
+        expect.objectContaining({
+          content: [{ text: "hello", type: "input_text" }],
+          role: "user",
+        }),
+      );
+      expect(history.data[0]).not.toHaveProperty("data");
+
+      const refreshedSnapshot = (await (
+        await fetch(`${server.baseUrl}/v1/sessions/${sessionId}`)
+      ).json()) as { items: Array<Record<string, unknown>> };
+      expect(refreshedSnapshot.items[0]).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            content: [{ text: "hello", type: "input_text" }],
+            role: "user",
+          }),
+        }),
+      );
+      expect(refreshedSnapshot.items[0]).not.toHaveProperty("role");
+
+      const interrupt = await fetch(
+        `${server.baseUrl}/v1/sessions/${sessionId}/events`,
+        {
+          body: JSON.stringify({ data: {}, type: "interrupt" }),
+          headers: { "content-type": "application/json" },
           method: "POST",
         },
       );
+      expect(await interrupt.json()).toEqual({ queued: false });
 
-      expect(turnResponse.ok).toBe(true);
-      expect(
-        scenarios.scenarios.map((scenario) => scenario.name),
-      ).toEqual(
+      const rawStream = await (
+        await fetch(`${server.baseUrl}/v1/sessions/${sessionId}/stream`)
+      ).text();
+      expect(rawStream).toContain('"type":"response.created"');
+      expect(rawStream).toContain('"response":{"created_at"');
+      expect(rawStream).not.toContain('"occurredAt"');
+      expect(rawStream).not.toContain('"sessionId"');
+
+      expect(loadOmnigentFakeServerScenarios().scenarios).toEqual(
         expect.arrayContaining([
-          "create_send_stream_success",
-          "interrupt_cancel",
-          "reconnect_snapshot_dedupe",
-          "malformed_sse_skip",
-          "terminal_marker_deduplication",
-          "v0_4_harness_catalog_and_read_state",
-          "v0_6_metadata_events",
+          expect.objectContaining({ name: "v0_9_official_wire" }),
         ]),
-      );
-      expect(sourceMetadata.freeze_target.tag).toBe("v0.7.0");
-      expect(sourceMetadata.freeze_target.commit).toBe(
-        "35519fb04743f66b30cac8a40695d5d72fa163ea",
-      );
-      expect(sourceMetadata.freeze_target.package_version).toBe("0.7.0");
-      expect(httpSurface.stream_contract.official_release_event_count).toBe(
-        omnigentStreamEventTypes.length,
-      );
-      expect(httpSurface.stream_contract.release_event_types).toEqual([]);
-      expect(httpSurface.openapi_delta).toEqual(
-        expect.objectContaining({
-          operation_count: 97,
-          removed_paths: [],
-          removed_schemas: [],
-        }),
-      );
-      expect(httpSurface.openapi_delta?.added_paths).toHaveLength(7);
-      expect(httpSurface.openapi_delta?.added_schemas).toHaveLength(8);
-      expect(httpSurface.stream_contract.event_families).toContain("browser");
-      expect(httpSurface.session_snapshot_fields?.mcp_startup).toBeTruthy();
-      expect(httpSurface.session_list_item_fields?.search_snippet).toBeTruthy();
-      expect(httpSurface.session_list_item_fields?.parent_session_id).toBeTruthy();
-      expect(httpSurface.session_list_item_fields?.project_id).toBeTruthy();
-      expect(httpSurface.session_snapshot_fields?.model_options).toBeTruthy();
-      expect(httpSurface.session_snapshot_fields?.project_id).toBeTruthy();
-      expect(httpSurface.endpoint_provenance).toContainEqual(
-        expect.objectContaining({
-          path: "/v1/sessions/{session_id}/events",
-          ref: "v0.7.0",
-        }),
-      );
-      expect(httpSurface.optional_release_surfaces).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            path: "/v1/hosts/{host_id}/worktrees",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/sessions/{session_id}/resources/files:copy",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/sharing",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/imports",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/sessions/{session_id}/auto-title",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/projects",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/projects/{project_id}",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/usage",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/hosts/{host_id}/credentials/detected",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/hosts/{host_id}/harnesses/{harness}/credential",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/hosts/{host_id}/harnesses/{harness}/install",
-            status: "observed_not_provider_required",
-          }),
-          expect.objectContaining({
-            path: "/v1/hosts/{host_id}/harnesses/{harness}/model-options",
-            status: "observed_not_provider_required",
-          }),
-        ]),
-      );
-      const requiredSessionPaths = httpSurface.session_endpoints.map(
-        (endpoint) => endpoint.path,
-      );
-      const optionalPaths =
-        httpSurface.optional_release_surfaces?.flatMap((surface) =>
-          surface.path === undefined ? [] : [surface.path],
-        ) ?? [];
-      expect(optionalPaths).toHaveLength(12);
-      for (const optionalPath of optionalPaths) {
-        expect(requiredSessionPaths).not.toContain(optionalPath);
-      }
-      for (const coordinationPathFragment of ["lease", "lock"]) {
-        expect(
-          requiredSessionPaths.some((path) =>
-            path.toLowerCase().includes(coordinationPathFragment),
-          ),
-        ).toBe(false);
-      }
-      expect(cliSurface.documented_commands).toEqual(
-        expect.arrayContaining([
-          "omnigent server --background",
-          "omnigent server status --json",
-          "omnigent server stop",
-        ]),
-      );
-      expect(cliSurface.documented_commands).not.toContain(
-        ["omnigent", "server", "start"].join(" "),
-      );
-      expect(httpSurface.fork_request).toEqual(
-        expect.objectContaining({
-          provider_sends_removed_fields: false,
-          removed_fields: ["model_override"],
-        }),
-      );
-      expect(capabilityMatrix.capabilities).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: "harness_catalog",
-            status: "supported",
-          }),
-          expect.objectContaining({
-            name: "harness_override",
-            status: "blocked",
-          }),
-          expect.objectContaining({
-            name: "child_session",
-            status: "blocked",
-          }),
-        ]),
-      );
-      const capabilityNames = capabilityMatrix.capabilities.map(
-        (capability) => capability.name,
-      );
-      for (const coordinationCapability of ["lease", "lock"]) {
-        expect(capabilityNames).not.toContain(coordinationCapability);
-      }
-
-      const historyResponse = await fetch(
-        `${server.baseUrl}/v1/sessions/${snapshot.id}/items`,
-      );
-      const historyItems = await readJson<OmnigentHistoryItem[]>(historyResponse);
-      const mappedHistory = mapOmnigentHistory(snapshot.id, historyItems);
-      const streamResponse = await fetch(
-        `${server.baseUrl}/v1/sessions/${snapshot.id}/stream`,
-      );
-      const rawEvents = await readRawEvents(streamResponse);
-      const runtimeEvents = mapOmnigentEventSequence(snapshot.id, rawEvents);
-
-      expect(rawEvents).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            action_id: "baction_metadata_only",
-            type: "browser.action_request",
-          }),
-          expect.objectContaining({
-            call_id: "call_metadata_only",
-            type: "response.function_call_output.delta",
-          }),
-        ]),
-      );
-
-      expect(mappedHistory.history.events.some((event) => event.type === "runtime.turn.started")).toBe(
-        true,
-      );
-      expect(runtimeEvents.filter((event) => event.type === "runtime.turn.completed")).toHaveLength(
-        1,
-      );
-      expect(runtimeEvents.some((event) => event.type === "runtime.text.delta")).toBe(true);
-      expect(
-        runtimeEvents.some((event) => event.eventId.includes("-v06-")),
-      ).toBe(false);
-
-      await fetch(`${server.baseUrl}/v1/sessions/${snapshot.id}/events`, {
-        body: JSON.stringify({
-          data: {},
-          type: "interrupt",
-        }),
-        headers: {
-          "content-type": "application/json",
-        },
-        method: "POST",
-      });
-      const cancelledHistory = await readJson<OmnigentHistoryItem[]>(
-        await fetch(`${server.baseUrl}/v1/sessions/${snapshot.id}/items`),
-      );
-      const cancelledEvents = mapOmnigentHistory(snapshot.id, cancelledHistory).history.events;
-
-      expect(cancelledEvents.some((event) => event.type === "runtime.turn.cancelled")).toBe(
-        true,
       );
     } finally {
       await server.stop();

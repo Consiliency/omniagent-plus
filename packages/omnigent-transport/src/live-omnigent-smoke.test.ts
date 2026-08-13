@@ -44,14 +44,18 @@ describe("live Omnigent smoke", () => {
   const liveBaseUrl = process.env.OMNIAGENT_PLUS_LIVE_OMNIGENT_BASE_URL?.trim();
   const bearerToken =
     process.env.OMNIAGENT_PLUS_LIVE_OMNIGENT_BEARER_TOKEN?.trim();
+  const agentId = process.env.OMNIGENT_AGENT_ID?.trim();
   const liveGateEnabled =
     process.env.OMNIAGENT_PLUS_LIVE_OMNIGENT === "1"
     && typeof liveBaseUrl === "string"
-    && liveBaseUrl.length > 0;
+    && liveBaseUrl.length > 0
+    && typeof agentId === "string"
+    && agentId.length > 0;
   const liveIt = liveGateEnabled ? it : it.skip;
 
   liveIt("collects metadata_only live evidence only when explicitly enabled", async () => {
     const fixture = readFixture();
+    let fenceState = { rejectedTurnIds: [] as string[] };
     const provider = createHttpProvider({
       baseUrl: liveBaseUrl!,
       headers:
@@ -60,11 +64,22 @@ describe("live Omnigent smoke", () => {
           : {
               authorization: `Bearer ${bearerToken}`,
             },
+      sessionMutationFenceStore: {
+        read: async () => fenceState,
+        write: async (_sessionId, state) => {
+          fenceState = {
+            ...state,
+            rejectedTurnIds: [...state.rejectedTurnIds],
+          };
+        },
+      },
+      withExclusiveSessionLease: async (_sessionId, operation) => operation(),
     });
     let sessionId: string | undefined;
 
     try {
       const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: agentId! },
         idempotencyKey: "hardening-live-smoke",
         runtime: "omnigent",
         targetHarness: "codex",

@@ -60,6 +60,7 @@ still own the reusable metadata-only operator primitives:
   snapshot dedupe, and duplicate terminal normalization
 - CLI fallback around documented `run`, `resume`, `attach`, and
   `server --background`, `server status --json`, and `server stop` commands
+  (`server start` is a hidden deprecated upstream alias, not a production path)
 - hybrid local-server process ownership, heartbeat probes, parent-death
   cleanup, and timeout cleanup
 - failure normalization into `RuntimeFailure` plus bounded limit-classification
