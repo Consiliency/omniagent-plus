@@ -185,6 +185,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async sendTurn(request: SendTurnRequest): Promise<TurnHandle> {
+    if (this.hasCancelledTurnQuarantine(request.sessionId)) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${request.sessionId} is awaiting cancellation reconciliation.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
     const key = `${request.sessionId}:${request.idempotencyKey}`;
     const existing = this.sends.get(key);
     if (existing) {
@@ -404,7 +413,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       for (const rejectedKey of this.rejectedTurnKeys) {
         if (rejectedKey.startsWith(rejectedKeyPrefix)) {
           const rejectedTurnId = rejectedKey.slice(rejectedKeyPrefix.length);
-          stream.rejectTurnId(rejectedTurnId);
+          if (this.cancelledTurnQuarantineKeys.has(rejectedKey)) {
+            stream.quarantineFallbackTurnId(rejectedTurnId);
+          } else {
+            stream.rejectTurnId(rejectedTurnId);
+          }
         }
       }
       for (const turnId of provisionalTurnIds) {
@@ -668,6 +681,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "session",
       });
     }
+    this.clearSettledCancelledTurnQuarantines(sessionId, snapshot);
     const provisionalTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
     const soleProvisionalTurnId =
       provisionalTurnIds.length === 1 ? provisionalTurnIds[0] : undefined;
@@ -1171,6 +1185,37 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.rejectedTurnKeys.add(`${sessionId}:${event.turnId}`);
       for (const stream of this.openStreams.get(sessionId) ?? []) {
         stream.rejectTurnId(event.turnId);
+      }
+    }
+  }
+
+  private hasCancelledTurnQuarantine(sessionId: string): boolean {
+    const keyPrefix = `${sessionId}:`;
+    return [...this.cancelledTurnQuarantineKeys].some((key) =>
+      key.startsWith(keyPrefix),
+    );
+  }
+
+  private clearSettledCancelledTurnQuarantines(
+    sessionId: string,
+    snapshot: OmnigentSessionSnapshot,
+  ): void {
+    if (
+      snapshot.status !== "idle" ||
+      snapshot.activeResponseId !== null ||
+      (snapshot.pendingInputs?.length ?? 0) > 0
+    ) {
+      return;
+    }
+    const keyPrefix = `${sessionId}:`;
+    for (const key of this.cancelledTurnQuarantineKeys) {
+      if (!key.startsWith(keyPrefix)) {
+        continue;
+      }
+      this.cancelledTurnQuarantineKeys.delete(key);
+      const turnId = key.slice(keyPrefix.length);
+      for (const stream of this.openStreams.get(sessionId) ?? []) {
+        stream.removeFallbackTurnId(turnId);
       }
     }
   }

@@ -245,7 +245,7 @@ describe("http provider", () => {
       id: "session-cancelled-queued",
       items: [],
       pending_inputs: [],
-      status: "running",
+      status: "idle",
       title: "Cancelled queued handle",
       updated_at: 1_780_272_001,
     };
@@ -318,6 +318,7 @@ describe("http provider", () => {
     });
     const firstTurnId = first.turnId;
     const cancelled = await provider.cancelTurn(first);
+    await provider.getSessionInfo(session.id);
     const second = await provider.sendTurn({
       idempotencyKey: "cancelled-queued-second",
       message: "run me",
@@ -335,7 +336,7 @@ describe("http provider", () => {
     ).toEqual(["next response"]);
   });
 
-  it("quarantines late lifecycle from a cancelled handle on an open stream", async () => {
+  it("quarantines late lifecycle from a cancelled handle on a replacement stream", async () => {
     const snapshot = {
       active_response_id: null,
       agent_id: "agent-cancelled-late",
@@ -398,15 +399,17 @@ describe("http provider", () => {
       sessionId: session.id,
     });
     const firstTurnId = first.turnId;
+    const cancelled = await provider.cancelTurn(first);
     const eventsPromise = collectAsync(provider.streamEvents(session.id));
     await historyReady;
-    const cancelled = await provider.cancelTurn(first);
-    const second = await provider.sendTurn({
-      idempotencyKey: "cancelled-late-second",
-      message: "run me",
-      sessionId: session.id,
-    });
-    const frames = [
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "cancelled-late-second",
+        message: "run me",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({ category: "state_conflict" });
+    const cancelledFrames = [
       {
         response: { id: "response-cancelled-a", status: "in_progress" },
         type: "response.created",
@@ -420,6 +423,19 @@ describe("http provider", () => {
         response: { id: "response-cancelled-a", status: "cancelled" },
         type: "response.cancelled",
       },
+    ];
+    for (const frame of cancelledFrames) {
+      streamController.enqueue(
+        encoder.encode(`data: ${JSON.stringify(frame)}\n\n`),
+      );
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const second = await provider.sendTurn({
+      idempotencyKey: "cancelled-late-second",
+      message: "run me",
+      sessionId: session.id,
+    });
+    const nextFrames = [
       {
         response: { id: "response-after-cancel", status: "in_progress" },
         type: "response.created",
@@ -434,7 +450,7 @@ describe("http provider", () => {
         type: "response.completed",
       },
     ];
-    for (const frame of frames) {
+    for (const frame of nextFrames) {
       streamController.enqueue(
         encoder.encode(`data: ${JSON.stringify(frame)}\n\n`),
       );
