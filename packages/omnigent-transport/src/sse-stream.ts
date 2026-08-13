@@ -217,9 +217,16 @@ export class OmnigentSseNormalizer {
         (status === "failed" ||
           (status === "idle" && explicitResponseId !== undefined)));
     const isBareTurn = tagged.type.startsWith("turn.");
+    const fallbackTurnId =
+      terminal &&
+      officialTurnId === undefined &&
+      previousResponseId === undefined &&
+      this.unboundTurnIds.length !== 1
+        ? undefined
+        : this.fallbackTurnId;
     const turnId = isBareTurn
       ? explicitResponseId
-      : officialTurnId ?? previousResponseId ?? this.fallbackTurnId;
+      : officialTurnId ?? previousResponseId ?? fallbackTurnId;
     let turnAliasId = officialTurnId
       ? this.responseAliases.get(officialTurnId)
       : previousResponseId

@@ -378,6 +378,33 @@ describe("sse stream parser", () => {
     ).toBeUndefined();
   });
 
+  it("does not attribute an identity-free terminal across multiple pending turns", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-ambiguous-status",
+    });
+    normalizer.setFallbackTurnId("turn-first");
+    normalizer.setFallbackTurnId("turn-second");
+
+    const failed = normalizer.normalize({
+      status: "failed",
+      type: "session.status",
+    });
+    const official = normalizer.normalize({
+      response: { id: "response-first", status: "in_progress" },
+      type: "response.created",
+    });
+
+    expect(failed).toEqual(
+      expect.objectContaining({ terminal: true, turnId: undefined }),
+    );
+    expect(official).toEqual(
+      expect.objectContaining({
+        turnAliasConfirmed: true,
+        turnAliasId: "turn-first",
+      }),
+    );
+  });
+
   it("keeps prior terminal identity after a new response becomes official", () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-12T19:00:00.000Z",

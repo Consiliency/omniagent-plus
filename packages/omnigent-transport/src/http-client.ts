@@ -708,7 +708,10 @@ export class OmnigentHttpClient {
     }
     try {
       return (await response.json()) as T;
-    } catch {
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) {
+        throw new OmnigentNetworkError(error);
+      }
       throw createRuntimeFailure({
         actor: "provider",
         category: "malformed_response",

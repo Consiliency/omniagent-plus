@@ -525,6 +525,113 @@ describe("http provider", () => {
     await iterator.return?.();
   });
 
+  it("keeps stream-proven acceptance when the acknowledgement body disconnects", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-lost-ack-body",
+      created_at: 1_780_272_000,
+      id: "session-lost-ack-body",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Lost acknowledgement body",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let resolveAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          streamController.enqueue(
+            new TextEncoder().encode(
+              `data: ${JSON.stringify({
+                response: { id: "response-lost-ack-body", status: "in_progress" },
+                type: "response.created",
+              })}\n\n`,
+            ),
+          );
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "lost-ack-body-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
+    const request = {
+      idempotencyKey: "lost-ack-body-turn",
+      message: "accept before body disconnect",
+      sessionId: session.id,
+    };
+
+    const firstSend = provider.sendTurn(request);
+    await expect(firstEvent).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-lost-ack-body",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    resolveAck(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.error(new TypeError("terminated"));
+          },
+        }),
+        { status: 202 },
+      ),
+    );
+    const first = await firstSend;
+    const second = await provider.sendTurn(request);
+
+    expect(first).toBe(second);
+    expect(first.turnId).toBe("response-lost-ack-body");
+    expect(postCount).toBe(1);
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBe(
+      "response-lost-ack-body",
+    );
+    streamController.close();
+    await iterator.return?.();
+  });
+
   it("keeps policy denial authoritative after pre-acknowledgement lifecycle", async () => {
     const snapshot = {
       active_response_id: null,
@@ -1391,6 +1498,111 @@ describe("http provider", () => {
     expect(events.every((event) => event.turnId !== "pending-new")).toBe(true);
     expect(afterStream.activeTurnId).toBe("pending-new");
     expect(afterStream.state).toBe("turn_active");
+  });
+
+  it("removes a mid-stream pending acknowledgement from response fallback", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-mid-stream-pending",
+      created_at: 1_780_272_000,
+      id: "session-mid-stream-pending",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Mid-stream pending",
+      updated_at: 1_780_272_000,
+    };
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(
+            JSON.stringify({ pending_id: "pending-mid-stream", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "mid-stream-pending-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const started = iterator.next();
+    await historyReady;
+    const handle = await provider.sendTurn({
+      idempotencyKey: "mid-stream-pending-turn",
+      message: "remain pending",
+      sessionId: session.id,
+    });
+    streamController.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            response: { id: "response-unrelated", status: "in_progress" },
+            type: "response.created",
+          },
+          {
+            response: { id: "response-unrelated", status: "completed" },
+            type: "response.completed",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
+
+    await expect(started).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-unrelated",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    await expect(iterator.next()).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-unrelated",
+          type: "runtime.turn.completed",
+        }),
+      }),
+    );
+    expect(handle.turnId).toBe("pending-mid-stream");
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBe(
+      "pending-mid-stream",
+    );
+    streamController.close();
+    await iterator.return?.();
   });
 
   it("reconciles a pending acknowledgement through input-consumed and history", async () => {
@@ -2302,6 +2514,82 @@ describe("http provider", () => {
     ).toEqual([]);
     expect(info.activeTurnId).toBeUndefined();
     expect(info.state).toBe("idle");
+  });
+
+  it("does not let repeated history reads consume a new identical message", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-repeated-history",
+      created_at: 1_780_272_000,
+      id: "session-repeated-history",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Repeated history",
+      updated_at: 1_780_272_002,
+    };
+    const firstMessage: OmnigentConversationItem = {
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_001,
+      id: "message-repeated-first",
+      response_id: "response-repeated",
+      role: "assistant",
+      status: "completed",
+      type: "message",
+    };
+    let history: OmnigentConversationItem[] = [firstMessage];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "repeated-history-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const first = await provider.readHistory(session.id);
+    const cursor = first.nextCursor;
+    await provider.readHistory(session.id);
+    history = [
+      firstMessage,
+      {
+        content: [{ text: "same", type: "output_text" }],
+        created_at: 1_780_272_002,
+        id: "message-repeated-second",
+        response_id: "response-repeated",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+
+    const resumed = await provider.readHistory(session.id, {
+      afterSequence: cursor,
+    });
+    expect(
+      resumed.events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["same"]);
   });
 
   it("returns a cursor for the limited history slice", async () => {

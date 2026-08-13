@@ -142,6 +142,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly claimedHistoryItemKeys = new Set<string>();
   private readonly creates = new Map<string, Promise<AgentSession>>();
+  private readonly deliveredTextEventKeys = new Set<string>();
   private readonly deliveredTextByTurnIds = new Map<string, string>();
   private readonly eventSequences = new Map<string, Map<string, number>>();
   private readonly latestTurnIds = new Map<string, string>();
@@ -261,6 +262,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         this.nativePendingTurnKeys.add(
           `${handle.sessionId}:${ack.pending_id}`,
         );
+        for (const stream of this.openStreams.get(request.sessionId) ?? []) {
+          stream.removeFallbackTurnId(ack.pending_id);
+        }
       } else if (!ack.item_id && handle.turnId === turnId) {
         this.queuedOnlyTurnKeys.add(`${handle.sessionId}:${turnId}`);
       }
@@ -794,6 +798,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   ): void {
     for (const event of events) {
       if (event.type === "runtime.text.delta" && event.turnId) {
+        const eventKey = `${sessionId}:${runtimeEventSequenceKey(event)}`;
+        if (this.deliveredTextEventKeys.has(eventKey)) {
+          continue;
+        }
+        this.deliveredTextEventKeys.add(eventKey);
         const turnKey = `${sessionId}:${event.turnId}`;
         this.deliveredTextByTurnIds.set(
           turnKey,
