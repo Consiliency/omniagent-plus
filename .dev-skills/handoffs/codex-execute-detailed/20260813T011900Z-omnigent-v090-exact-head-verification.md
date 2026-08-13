@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `c1c437e`, and no source or evidence
+this file. The final implementation parent is `31eeced`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 102 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 103 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 274 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 275 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -140,6 +140,16 @@ files may change after this receipt is committed without another full run.
 - Failure state records its turn identity. A trailing idle status for that same
   failed response preserves the error, while a different newer successful turn
   clears the stale error and leaves the session idle.
+- Pending FIFO recovery now fails closed unless the number of unclaimed user
+  rows exactly matches the number of locally consumed native pending handles.
+  A regression proves an extra external row cannot capture the local handle,
+  while the handle reconciles once the evidence becomes unambiguous.
+- Delivered-text trimming is cursor-resume-only. Repeated ordinary history reads
+  remain byte-equivalent with a stable cursor, while reconnect calls with an
+  explicit cursor retain duplicate suppression.
+- Cancel and close controls now check the normalized acknowledgement before
+  mutating local state. Explicit control denials surface as non-retryable policy
+  failures and preserve the active turn.
 - An explicit synchronous policy denial remains authoritative even when a
   lifecycle event reconciles the provisional handle before the acknowledgement
   arrives. Denial fully removes both provisional and official registration,
