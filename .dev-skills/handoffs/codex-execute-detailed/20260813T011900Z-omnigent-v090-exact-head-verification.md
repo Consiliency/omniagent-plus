@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `35c25f3`, and no source or evidence
+this file. The final implementation parent is `f000e4c`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 116 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 117 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 288 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 289 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -221,6 +221,11 @@ files may change after this receipt is committed without another full run.
   event plus consumed-prefix length. Live identified `Hel` followed by committed
   `Hello` therefore emits `lo` above the live cursor instead of inheriting the
   colliding original sequence.
+- Exact `item_id` acknowledgements now reserve their persisted row even when an
+  earlier SSE lifecycle already reconciled the shared handle to its response ID.
+  A race regression lets turn A complete over SSE before its item acknowledgement,
+  then sends pending turn B and exposes only A's row. B remains pending rather
+  than being rebound to A's response through FIFO recovery.
 - Reconnect message deduplication now aligns a buffered chunk anywhere within
   the remaining persisted message, so a stream that resumes at a suffix chunk
   cannot replay that suffix. Terminal output-item deduplication uses
