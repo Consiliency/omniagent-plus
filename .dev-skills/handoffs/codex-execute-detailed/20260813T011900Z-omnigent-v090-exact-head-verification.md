@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `dab6dd5`, and no source or evidence
+this file. The final implementation parent is `ccb0d03`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 79 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 80 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 251 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 252 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -61,6 +61,11 @@ files may change after this receipt is committed without another full run.
   abort, and the hybrid adapter preserves that cancellation behavior. A
   pre-first-frame idle-stream regression proves iterator return completes and
   the request signal is aborted.
+- Persisted/live text deduplication is message-scoped when v0.9 supplies a
+  `message_id`, with response-wide matching retained only for identifier-free
+  streams. A provider race test opens the stream with message B in-flight, then
+  reads history after A and B share one response and B has committed. The
+  resulting neutral text is exactly A then B; buffered B is not emitted twice.
 
 ## Boundaries
 
