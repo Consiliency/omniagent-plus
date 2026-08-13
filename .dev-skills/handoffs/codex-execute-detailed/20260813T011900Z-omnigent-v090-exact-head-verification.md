@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`3771f0e1b4067222b59948c6f321ccd11ab1f0b2`, and no source or evidence files
+`a96b63ff87e15ff499abc1176f041572018c02b6`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -335,6 +335,13 @@ may change after this receipt is committed without another full run.
   the supplied handle to own the active session identity before any control POST.
   A stale A followed by active B regression proves cancelling A fails with
   `state_conflict`, sends no interrupt, and cannot clear or interrupt B.
+- Cancellation no longer guesses whether the next uncorrelated official response
+  is late A or new B. While a cancelled-turn quarantine is unresolved, new sends
+  fail closed with `state_conflict` before registration or HTTP. The barrier
+  clears only when A's lifecycle consumes it or an authoritative idle snapshot
+  confirms no active response or pending inputs. Replacement streams inherit the
+  quarantine. Regressions prove B cannot be stolen in either B-first or late-A
+  ordering and can proceed after lifecycle or snapshot reconciliation.
 
 ## Boundaries
 
