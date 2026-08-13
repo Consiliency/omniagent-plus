@@ -237,7 +237,7 @@ describe("http provider", () => {
     }
   });
 
-  it("retires a cancelled queued handle before correlating the next response", async () => {
+  it("keeps a cancelled queued handle blocked without lifecycle evidence", async () => {
     const snapshot = {
       active_response_id: null,
       agent_id: "agent-cancelled-queued",
@@ -319,21 +319,21 @@ describe("http provider", () => {
     const firstTurnId = first.turnId;
     const cancelled = await provider.cancelTurn(first);
     await provider.getSessionInfo(session.id);
-    const second = await provider.sendTurn({
-      idempotencyKey: "cancelled-queued-second",
-      message: "run me",
+    const repeated = await provider.sendTurn({
+      idempotencyKey: "cancelled-queued-first",
+      message: "cancel me",
       sessionId: session.id,
     });
 
-    const events = await collectAsync(provider.streamEvents(session.id));
-
     expect(cancelled).toMatchObject({ state: "cancelled", turnId: firstTurnId });
-    expect(second.turnId).toBe("response-after-cancel");
-    expect(
-      events
-        .filter((event) => event.type === "runtime.text.delta")
-        .map((event) => event.payload.delta),
-    ).toEqual(["next response"]);
+    expect(repeated).toBe(cancelled);
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "cancelled-queued-second",
+        message: "run me",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({ category: "state_conflict" });
   });
 
   it("quarantines late lifecycle from a cancelled handle on a replacement stream", async () => {

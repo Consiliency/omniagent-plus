@@ -185,6 +185,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async sendTurn(request: SendTurnRequest): Promise<TurnHandle> {
+    const key = `${request.sessionId}:${request.idempotencyKey}`;
+    const existing = this.sends.get(key);
+    if (existing) {
+      return existing;
+    }
     if (this.hasCancelledTurnQuarantine(request.sessionId)) {
       throw createRuntimeFailure({
         actor: "provider",
@@ -193,11 +198,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         retryable: false,
         scope: "turn",
       });
-    }
-    const key = `${request.sessionId}:${request.idempotencyKey}`;
-    const existing = this.sends.get(key);
-    if (existing) {
-      return existing;
     }
 
     const pending = this.sendTurnOnce(request);
@@ -527,8 +527,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
 
       for await (const rawEvent of stream.events) {
         this.recordConsumedPendingItem(sessionId, rawEvent, items, stream);
+        this.consumeCancelledTurnQuarantine(sessionId, rawEvent);
         if (this.eventIsRejected(sessionId, rawEvent)) {
-          this.consumeCancelledTurnQuarantine(sessionId, rawEvent);
           continue;
         }
         const mappedEvents = mapper.map(rawEvent);
@@ -639,6 +639,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       updatedAt: new Date().toISOString(),
     };
     this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
+    this.sends.set(
+      `${handle.sessionId}:${handle.idempotencyKey}`,
+      Promise.resolve(cancelled),
+    );
     this.retireCancelledTurn(handle.sessionId, handle.turnId);
     const session = this.sessions.get(handle.sessionId);
     if (session) {
@@ -681,7 +685,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "session",
       });
     }
-    this.clearSettledCancelledTurnQuarantines(sessionId, snapshot);
     const provisionalTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
     const soleProvisionalTurnId =
       provisionalTurnIds.length === 1 ? provisionalTurnIds[0] : undefined;
@@ -1171,11 +1174,20 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     event: OmnigentRawEvent,
   ): void {
-    const cancelledTurnId = [event.turnAliasId, event.turnId].find(
+    const keyPrefix = `${sessionId}:`;
+    let cancelledTurnId = [event.turnAliasId, event.turnId].find(
       (turnId) =>
         turnId !== undefined &&
         this.cancelledTurnQuarantineKeys.has(`${sessionId}:${turnId}`),
     );
+    if (!cancelledTurnId && event.type === "session.interrupted") {
+      const quarantines = [...this.cancelledTurnQuarantineKeys].filter((key) =>
+        key.startsWith(keyPrefix),
+      );
+      if (quarantines.length === 1) {
+        cancelledTurnId = quarantines[0]?.slice(keyPrefix.length);
+      }
+    }
     if (!cancelledTurnId) {
       return;
     }
@@ -1198,31 +1210,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     return [...this.cancelledTurnQuarantineKeys].some((key) =>
       key.startsWith(keyPrefix),
     );
-  }
-
-  private clearSettledCancelledTurnQuarantines(
-    sessionId: string,
-    snapshot: OmnigentSessionSnapshot,
-  ): void {
-    if (
-      snapshot.status !== "idle" ||
-      snapshot.activeResponseId !== null ||
-      (snapshot.pendingInputs?.length ?? 0) > 0 ||
-      (this.openStreams.get(sessionId)?.size ?? 0) > 0
-    ) {
-      return;
-    }
-    const keyPrefix = `${sessionId}:`;
-    for (const key of this.cancelledTurnQuarantineKeys) {
-      if (!key.startsWith(keyPrefix)) {
-        continue;
-      }
-      this.cancelledTurnQuarantineKeys.delete(key);
-      const turnId = key.slice(keyPrefix.length);
-      for (const stream of this.openStreams.get(sessionId) ?? []) {
-        stream.removeFallbackTurnId(turnId);
-      }
-    }
   }
 
   private reconcileTurnsFromHistory(
