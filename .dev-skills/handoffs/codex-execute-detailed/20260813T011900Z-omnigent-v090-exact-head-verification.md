@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`606e5ace04c06b0b997fd0ee69e4a563641c0e30`, and no source or evidence files
+`efa85c2447909497996f88a5e35fb33f4030f78c`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 145 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 146 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 317 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 318 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -432,6 +432,13 @@ may change after this receipt is committed without another full run.
   a two-provider shared-lease regression starts A and B concurrently, records
   A's pending work upstream, and proves B receives retryable
   `concurrency_limit` with exactly one message POST across both providers.
+- Stream setup no longer leaves multiple bare-ack queued turns eligible for
+  fallback attribution while the authoritative snapshot reports native pending
+  work. Every unresolved queued-only synthetic ID is removed from that stream's
+  fallback queue until consumption or exact history provides correlation. A
+  regression sends two bare acknowledgements, exposes two native pending inputs
+  plus unrelated active response C, and proves neither local handle is rebound
+  to C while C's lifecycle remains independently visible.
 
 ## Boundaries
 
