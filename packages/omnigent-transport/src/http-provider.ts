@@ -257,6 +257,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         });
       }
       const acknowledgedTurnId = ack.item_id ?? ack.pending_id;
+      if (ack.item_id) {
+        this.claimedHistoryItemKeys.add(
+          `${request.sessionId}:${ack.item_id}`,
+        );
+      }
       if (handle.turnId === turnId && acknowledgedTurnId) {
         this.replaceProvisionalTurnId(
           request.sessionId,

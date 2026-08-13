@@ -2367,6 +2367,133 @@ describe("http provider", () => {
     expect(second.turnId).toBe("response-exact-second");
   });
 
+  it("reserves a late exact item acknowledgement after SSE reconciliation", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-late-item-reservation",
+      created_at: 1_780_272_000,
+      id: "session-late-item-reservation",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Late item reservation",
+      updated_at: 1_780_272_002,
+    };
+    let sendCount = 0;
+    let history: Record<string, unknown>[] = [];
+    let resolveFirstAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          sendCount += 1;
+          if (sendCount === 1) {
+            streamController.enqueue(
+              new TextEncoder().encode(
+                [
+                  {
+                    response: { id: "response-late-item-a", status: "in_progress" },
+                    type: "response.created",
+                  },
+                  {
+                    response: { id: "response-late-item-a", status: "completed" },
+                    type: "response.completed",
+                  },
+                ]
+                  .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+                  .join(""),
+              ),
+            );
+            return new Promise<Response>((resolve) => {
+              resolveFirstAck = resolve;
+            });
+          }
+          return new Response(
+            JSON.stringify({ pending_id: "pending-late-item-b", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "late-item-reservation-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const started = iterator.next();
+    await historyReady;
+    const firstSend = provider.sendTurn({
+      idempotencyKey: "late-item-reservation-a",
+      message: "turn A",
+      sessionId: session.id,
+    });
+    await started;
+    await iterator.next();
+    resolveFirstAck(
+      new Response(JSON.stringify({ item_id: "item-late-a", queued: true }), {
+        status: 202,
+      }),
+    );
+    const first = await firstSend;
+    streamController.close();
+    await iterator.next();
+    const second = await provider.sendTurn({
+      idempotencyKey: "late-item-reservation-b",
+      message: "turn B",
+      sessionId: session.id,
+    });
+    history = [
+      {
+        content: [{ text: "turn A", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-late-a",
+        response_id: "response-late-item-a",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+
+    await provider.readHistory(session.id);
+
+    expect(first.turnId).toBe("response-late-item-a");
+    expect(second.turnId).toBe("pending-late-item-b");
+  });
+
   it("evicts transport failures so the same send key can retry", async () => {
     const server = await FakeOmnigentServer.start({
       rejectNextTurnWith: "rate_limit",
