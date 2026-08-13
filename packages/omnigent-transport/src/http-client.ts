@@ -103,6 +103,50 @@ function sessionStatus(value: unknown): OmnigentSessionStatus {
   return value as OmnigentSessionStatus;
 }
 
+function normalizeEventAck(value: unknown): OmnigentEventAck {
+  if (!isRecord(value)) {
+    throw malformedEventAck();
+  }
+  if (
+    value.denied === true &&
+    value.queued === false &&
+    typeof value.reason === "string" &&
+    value.reason.length > 0
+  ) {
+    return {
+      denied: true,
+      queued: false,
+      reason: value.reason,
+    };
+  }
+  if (
+    (value.denied === undefined || value.denied === false) &&
+    value.queued === true &&
+    (value.item_id === undefined ||
+      (typeof value.item_id === "string" && value.item_id.length > 0)) &&
+    (value.pending_id === undefined ||
+      (typeof value.pending_id === "string" && value.pending_id.length > 0))
+  ) {
+    return {
+      denied: value.denied,
+      item_id: value.item_id,
+      pending_id: value.pending_id,
+      queued: true,
+    };
+  }
+  throw malformedEventAck();
+}
+
+function malformedEventAck(): ReturnType<typeof createRuntimeFailure> {
+  return createRuntimeFailure({
+    actor: "provider",
+    category: "malformed_response",
+    message: "Omnigent event acknowledgement has an unsupported shape.",
+    retryable: false,
+    scope: "turn",
+  });
+}
+
 function normalizeSessionListItem(value: unknown): OmnigentSessionListItem {
   if (!isRecord(value)) {
     throw createRuntimeFailure({
@@ -386,10 +430,12 @@ export class OmnigentHttpClient {
     sessionId: string,
     event: OmnigentSendEventInput,
   ): Promise<OmnigentEventAck> {
-    return this.requestJson(
-      "POST",
-      `/v1/sessions/${encodeURIComponent(sessionId)}/events`,
-      event,
+    return normalizeEventAck(
+      await this.requestJson(
+        "POST",
+        `/v1/sessions/${encodeURIComponent(sessionId)}/events`,
+        event,
+      ),
     );
   }
 

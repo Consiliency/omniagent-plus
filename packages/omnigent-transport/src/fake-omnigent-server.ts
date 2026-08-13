@@ -469,12 +469,12 @@ export class FakeOmnigentServer {
         },
         type: "response.cancelled",
       });
-      writeJson(response, 202, { queued: false });
+      writeJson(response, 202, { queued: true });
       return;
     }
 
     if (event.type === "stop_session") {
-      writeJson(response, 202, { queued: false });
+      writeJson(response, 202, { queued: true });
       return;
     }
 

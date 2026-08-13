@@ -435,4 +435,32 @@ describe("http client", () => {
       await server.stop();
     }
   });
+
+  it("rejects malformed event acknowledgement shapes", async () => {
+    for (const ack of [
+      {},
+      { queued: false },
+      { denied: true, queued: false },
+      { item_id: "", queued: true },
+      { pending_id: 42, queued: true },
+    ]) {
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async () => new Response(JSON.stringify(ack), { status: 202 }),
+      });
+
+      await expect(
+        client.sendEvent("session-malformed-ack", {
+          data: {},
+          type: "compact",
+        }),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          category: "malformed_response",
+          retryable: false,
+          scope: "turn",
+        }),
+      );
+    }
+  });
 });

@@ -429,7 +429,7 @@ export interface OmnigentAcceptedEventAck {
   readonly denied?: false;
   readonly item_id?: string;
   readonly pending_id?: string;
-  readonly queued: boolean;
+  readonly queued: true;
 }
 
 export interface OmnigentDeniedEventAck {

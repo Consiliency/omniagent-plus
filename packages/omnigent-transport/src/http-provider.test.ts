@@ -856,12 +856,39 @@ describe("http provider", () => {
           } else if (historyReads === 2) {
             resolveSecondHistory?.();
           }
+          const data =
+            historyReads < 3
+              ? []
+              : [
+                  {
+                    created_at: 1_780_272_001,
+                    data: {
+                      content: [{ text: "one", type: "input_text" }],
+                      role: "user",
+                    },
+                    id: "item-1",
+                    response_id: "response-one",
+                    status: "completed",
+                    type: "message",
+                  },
+                  {
+                    created_at: 1_780_272_002,
+                    data: {
+                      content: [{ text: "two", type: "input_text" }],
+                      role: "user",
+                    },
+                    id: "item-2",
+                    response_id: "response-two",
+                    status: "completed",
+                    type: "message",
+                  },
+                ];
           return new Response(
             JSON.stringify({
-              data: [],
-              first_id: null,
+              data,
+              first_id: data[0]?.id ?? null,
               has_more: false,
-              last_id: null,
+              last_id: data.at(-1)?.id ?? null,
             }),
           );
         }
@@ -977,6 +1004,10 @@ describe("http provider", () => {
     expect(thirdHandle.turnId).toBe("response-three");
     expect(firstHandle.turnId).toBe("item-1");
     expect(secondHandle.turnId).toBe("item-2");
+
+    await provider.readHistory(session.id);
+    expect(firstHandle.turnId).toBe("response-one");
+    expect(secondHandle.turnId).toBe("response-two");
   });
 
   it("keeps rapid accepted turns separate when prior lifecycle arrives late", async () => {
