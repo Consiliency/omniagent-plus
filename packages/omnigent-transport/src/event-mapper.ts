@@ -24,6 +24,22 @@ function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
   return rawEvent.message ?? `Omnigent turn ${rawEvent.turnId ?? "unknown"}`;
 }
 
+function assistantItemText(item: Readonly<Record<string, unknown>>): string {
+  if (item.role !== "assistant" || !Array.isArray(item.content)) {
+    return "";
+  }
+  return item.content
+    .flatMap((block) =>
+      typeof block === "object" &&
+      block !== null &&
+      "text" in block &&
+      typeof block.text === "string"
+        ? [block.text]
+        : [],
+    )
+    .join("");
+}
+
 export interface OmnigentEventMapperOptions {
   readonly historicalTextByMessageId?: Iterable<readonly [string, string]>;
   readonly historicalTextByTurnId?: Iterable<readonly [string, string]>;
@@ -41,6 +57,8 @@ export class OmnigentEventMapper {
 
   private readonly emittedStartedTurnIds: Set<string>;
   private readonly emittedTerminalTurnIds: Set<string>;
+  private readonly emittedTextByMessageId = new Map<string, string>();
+  private readonly emittedTextByTurnId = new Map<string, string>();
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
   private readonly historicalTextRemainders: Map<string, string>;
@@ -191,6 +209,18 @@ export class OmnigentEventMapper {
       }
     }
 
+    if (rawEvent.message_id) {
+      this.emittedTextByMessageId.set(
+        rawEvent.message_id,
+        `${this.emittedTextByMessageId.get(rawEvent.message_id) ?? ""}${delta}`,
+      );
+    }
+    if (rawEvent.turnId) {
+      this.emittedTextByTurnId.set(
+        rawEvent.turnId,
+        `${this.emittedTextByTurnId.get(rawEvent.turnId) ?? ""}${delta}`,
+      );
+    }
     return [
       this.createEvent({
         eventId: rawEvent.id,
@@ -209,6 +239,39 @@ export class OmnigentEventMapper {
     }
     const item = rawEvent.item;
     const itemType = typeof item.type === "string" ? item.type : undefined;
+    if (itemType === "message") {
+      const text = assistantItemText(item);
+      if (text.length === 0) {
+        return [];
+      }
+      const messageId = typeof item.id === "string" ? item.id : undefined;
+      const emitted =
+        (messageId ? this.emittedTextByMessageId.get(messageId) : undefined) ??
+        this.emittedTextByTurnId.get(rawEvent.turnId) ??
+        "";
+      const delta = text.startsWith(emitted)
+        ? text.slice(emitted.length)
+        : emitted.startsWith(text)
+          ? ""
+          : text;
+      if (delta.length === 0) {
+        return [];
+      }
+      if (messageId) {
+        this.emittedTextByMessageId.set(messageId, text);
+      }
+      this.emittedTextByTurnId.set(rawEvent.turnId, text);
+      return [
+        this.createEvent({
+          eventId: `${rawEvent.id}:text`,
+          occurredAt: rawEvent.occurredAt,
+          payload: { delta },
+          terminal: false,
+          turnId: rawEvent.turnId,
+          type: "runtime.text.delta",
+        }),
+      ];
+    }
     if (itemType === "function_call") {
       const callId =
         typeof item.call_id === "string" ? item.call_id : rawEvent.call_id;

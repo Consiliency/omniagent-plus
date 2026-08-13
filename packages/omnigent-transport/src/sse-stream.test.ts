@@ -244,6 +244,27 @@ describe("sse stream parser", () => {
     ).toHaveLength(1);
   });
 
+  it("maps a fixture assistant item when the harness emitted no text deltas", async () => {
+    const frames = loadOmnigentV09WireContract().item_only_sse_frames;
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          frames.map((frame) => `data: ${JSON.stringify(frame)}`).join("\n\n"),
+        ),
+        {
+          now: () => "2026-08-12T19:00:00.000Z",
+          sessionId: "session-item-only",
+        },
+      ),
+    );
+
+    expect(
+      mapOmnigentEventSequence("session-item-only", events)
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["terminal-backed fixture reply"]);
+  });
+
   it("preserves every indexed chunk that shares a stable message id", async () => {
     const events = await collectAsync(
       parseOmnigentSseStream(

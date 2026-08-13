@@ -151,7 +151,9 @@ export class OmnigentSseNormalizer {
     const item = isRecord(raw.item) ? raw.item : undefined;
     const nestedResponseId = stringValue(response?.id);
     const explicitResponseId =
-      stringValue(raw.response_id) ?? stringValue(data?.response_id);
+      stringValue(raw.response_id) ??
+      stringValue(data?.response_id) ??
+      stringValue(item?.response_id);
     const previousResponseId = this.currentResponseId;
     const officialTurnId = nestedResponseId ?? explicitResponseId;
     const status = statusValue(raw.status) ?? statusValue(response?.status);

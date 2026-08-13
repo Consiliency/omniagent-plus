@@ -94,29 +94,13 @@ type MutableTurnHandle = {
   -readonly [Key in keyof TurnHandle]: TurnHandle[Key];
 };
 
-function userMessageText(item: Readonly<Record<string, unknown>>): string | undefined {
-  if (item.role !== "user" || !Array.isArray(item.content)) {
-    return undefined;
-  }
-  return item.content
-    .flatMap((block) =>
-      typeof block === "object" &&
-      block !== null &&
-      "text" in block &&
-      typeof block.text === "string"
-        ? [block.text]
-        : [],
-    )
-    .join("");
-}
-
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly creates = new Map<string, Promise<AgentSession>>();
   private readonly latestTurnIds = new Map<string, string>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
+  private readonly nativePendingTurnKeys = new Set<string>();
   private readonly pendingItemTurnIds = new Map<string, string>();
-  private readonly pendingTurnMessages = new Map<string, string>();
   private readonly provisionalTurnOrder = new Map<string, string[]>();
   private readonly provisionalTurnKeys = new Set<string>();
   private readonly sends = new Map<string, Promise<TurnHandle>>();
@@ -202,10 +186,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.provisionalTurnOrder.set(handle.sessionId, provisionalOrder);
     this.latestTurnIds.set(handle.sessionId, handle.turnId);
     if (ack.pending_id) {
-      this.pendingTurnMessages.set(
-        `${handle.sessionId}:${ack.pending_id}`,
-        request.message,
-      );
+      this.nativePendingTurnKeys.add(`${handle.sessionId}:${ack.pending_id}`);
     }
 
     const session = this.sessions.get(request.sessionId);
@@ -298,8 +279,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         stream.setFallbackTurnId(turnId);
       }
       const items = await this.client.getHistory(sessionId);
-      this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items, stream);
       this.reconcileTurnsFromHistory(sessionId, items, stream);
+      this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items, stream);
       const unresolvedTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
       const soleUnresolvedTurnId =
         unresolvedTurnIds.length === 1 ? unresolvedTurnIds[0] : undefined;
@@ -618,12 +599,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.turns.set(`${sessionId}:${officialTurnId}`, handle);
     }
     this.provisionalTurnKeys.delete(`${sessionId}:${provisionalTurnId}`);
-    this.pendingTurnMessages.delete(`${sessionId}:${provisionalTurnId}`);
-    for (const [itemKey, pendingId] of this.pendingItemTurnIds) {
-      if (itemKey.startsWith(`${sessionId}:`) && pendingId === provisionalTurnId) {
-        this.pendingItemTurnIds.delete(itemKey);
-      }
-    }
+    this.nativePendingTurnKeys.delete(`${sessionId}:${provisionalTurnId}`);
     const provisionalOrder = this.provisionalTurnOrder.get(sessionId);
     const provisionalIndex = provisionalOrder?.indexOf(provisionalTurnId) ?? -1;
     if (provisionalOrder && provisionalIndex >= 0) {
@@ -738,21 +714,21 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const consumedPending = [...(this.provisionalTurnOrder.get(sessionId) ?? [])]
       .filter(
         (pendingId) =>
-          this.pendingTurnMessages.has(`${sessionId}:${pendingId}`) &&
+          this.nativePendingTurnKeys.has(`${sessionId}:${pendingId}`) &&
           !stillPending.has(pendingId),
       );
-    let beforeIndex = items.length;
-    for (const pendingId of consumedPending.reverse()) {
-      const message = this.pendingTurnMessages.get(`${sessionId}:${pendingId}`);
-      let itemIndex = beforeIndex - 1;
-      while (itemIndex >= 0 && userMessageText(items[itemIndex] ?? {}) !== message) {
-        itemIndex -= 1;
-      }
-      if (itemIndex < 0) {
-        continue;
-      }
-      const item = items[itemIndex]!;
-      beforeIndex = itemIndex;
+    const candidates = items.filter(
+      (item) =>
+        item.type === "message" &&
+        item.role === "user" &&
+        !this.pendingItemTurnIds.has(`${sessionId}:${item.id}`),
+    );
+    if (candidates.length < consumedPending.length) {
+      return;
+    }
+    const consumedItems = candidates.slice(-consumedPending.length);
+    for (const [index, pendingId] of consumedPending.entries()) {
+      const item = consumedItems[index]!;
       this.pendingItemTurnIds.set(`${sessionId}:${item.id}`, pendingId);
       stream?.bindResponseId(item.response_id, pendingId);
       this.reconcileTurn(

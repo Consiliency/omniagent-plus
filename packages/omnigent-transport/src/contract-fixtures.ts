@@ -77,6 +77,7 @@ export interface OmnigentV09WireFixture {
   readonly child_page: unknown;
   readonly conversation_items: unknown[];
   readonly create_request: unknown;
+  readonly item_only_sse_frames: unknown[];
   readonly send_message: unknown;
   readonly session_pages: unknown[];
   readonly session_response: unknown;

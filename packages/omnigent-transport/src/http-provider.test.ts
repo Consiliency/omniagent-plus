@@ -552,7 +552,7 @@ describe("http provider", () => {
     let sendCount = 0;
     const history = [
       {
-        content: [{ text: "first native", type: "input_text" }],
+        content: [{ text: "> first native\n[Attached: context]", type: "input_text" }],
         created_at: 1_780_272_001,
         id: "item-native-first",
         response_id: "response-native-first",
@@ -561,7 +561,7 @@ describe("http provider", () => {
         type: "message",
       },
       {
-        content: [{ text: "second native", type: "input_text" }],
+        content: [{ text: "second   native", type: "input_text" }],
         created_at: 1_780_272_002,
         id: "item-native-second",
         response_id: "response-native-second",
@@ -870,6 +870,98 @@ describe("http provider", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["A", "B"]);
+  });
+
+  it("emits a terminal-backed assistant item without preceding text deltas", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-item-only",
+      created_at: 1_780_272_000,
+      id: "session-item-only",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Item only",
+      updated_at: 1_780_272_001,
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            [
+              `data: ${JSON.stringify({
+                response: {
+                  created_at: 1_780_272_000,
+                  id: "response-item-only",
+                  status: "in_progress",
+                },
+                type: "response.created",
+              })}`,
+              "",
+              `data: ${JSON.stringify({
+                item: {
+                  content: [{ text: "terminal-backed reply", type: "output_text" }],
+                  id: "message-item-only",
+                  response_id: "response-item-only",
+                  role: "assistant",
+                  status: "completed",
+                  type: "message",
+                },
+                type: "response.output_item.done",
+              })}`,
+              "",
+              `data: ${JSON.stringify({
+                response: {
+                  completed_at: 1_780_272_001,
+                  id: "response-item-only",
+                  status: "completed",
+                },
+                type: "response.completed",
+              })}`,
+              "",
+            ].join("\n"),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "item-only-create",
+      runtime: "omnigent",
+      targetHarness: "custom",
+      title: snapshot.title,
+    });
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["terminal-backed reply"]);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        turnId: "response-item-only",
+        type: "runtime.turn.completed",
+      }),
+    );
   });
 
   it("returns a cursor for the limited history slice", async () => {

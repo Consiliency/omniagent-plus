@@ -93,6 +93,18 @@ describe("official Omnigent v0.9 conformance", () => {
         type: "session.input.consumed",
       }),
     );
+    expect(wire.item_only_sse_frames).toEqual([
+      expect.objectContaining({ type: "response.created" }),
+      expect.objectContaining({
+        item: expect.objectContaining({
+          response_id: "response-item-only",
+          role: "assistant",
+          type: "message",
+        }),
+        type: "response.output_item.done",
+      }),
+      expect.objectContaining({ type: "response.completed" }),
+    ]);
     expect(wire.acknowledgements).toContainEqual({ queued: false });
     expect(omnigentStreamEventTypes).toHaveLength(52);
     expect(cli.documented_commands).toContain("omnigent server --background");

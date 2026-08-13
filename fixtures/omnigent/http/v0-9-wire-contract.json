@@ -131,5 +131,10 @@
     { "type": "session.created", "conversation_id": "session-123", "child_session_id": "child-1", "agent_id": "agent-child", "parent_session_id": "session-123", "sequence_number": null },
     { "type": "turn.started", "session_id": "session-123" },
     { "type": "response.completed", "response": { "id": "response-1", "status": "completed", "completed_at": 1780272051 } }
+  ],
+  "item_only_sse_frames": [
+    { "type": "response.created", "response": { "id": "response-item-only", "status": "in_progress", "created_at": 1780272060 } },
+    { "type": "response.output_item.done", "item": { "id": "message-item-only", "type": "message", "status": "completed", "response_id": "response-item-only", "role": "assistant", "content": [{ "type": "output_text", "text": "terminal-backed fixture reply" }] } },
+    { "type": "response.completed", "response": { "id": "response-item-only", "status": "completed", "completed_at": 1780272061 } }
   ]
 }

@@ -198,6 +198,70 @@ describe("event mapper", () => {
     ]);
   });
 
+  it("emits assistant output items when no text delta preceded them", () => {
+    const events = mapOmnigentEventSequence("session-1", [
+      {
+        id: "message-done",
+        item: {
+          content: [{ text: "item-only reply", type: "output_text" }],
+          id: "message-item-only",
+          response_id: "response-item-only",
+          role: "assistant",
+          type: "message",
+        },
+        itemId: "message-item-only",
+        occurredAt: "2026-06-30T00:00:00.000Z",
+        sessionId: "session-1",
+        turnId: "response-item-only",
+        type: "response.output_item.done",
+      },
+    ]);
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        payload: { delta: "item-only reply" },
+        turnId: "response-item-only",
+        type: "runtime.text.delta",
+      }),
+    ]);
+  });
+
+  it("does not repeat assistant output already delivered as text deltas", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-1", [
+      {
+        delta: "streamed reply",
+        id: "message-streamed:0",
+        message_id: "message-streamed",
+        occurredAt,
+        sessionId: "session-1",
+        turnId: "response-streamed",
+        type: "response.output_text.delta",
+      },
+      {
+        id: "message-streamed-done",
+        item: {
+          content: [{ text: "streamed reply", type: "output_text" }],
+          id: "message-streamed",
+          response_id: "response-streamed",
+          role: "assistant",
+          type: "message",
+        },
+        itemId: "message-streamed",
+        occurredAt,
+        sessionId: "session-1",
+        turnId: "response-streamed",
+        type: "response.output_item.done",
+      },
+    ]);
+
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["streamed reply"]);
+  });
+
   it("accepts v0.4 UI and metadata events as safe no-ops", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",
