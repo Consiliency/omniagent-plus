@@ -152,11 +152,40 @@ describe("http provider", () => {
         targetHarness: "codex",
         title: "HTTP close",
       });
+      await provider.sendTurn({
+        idempotencyKey: "http-provider-before-close",
+        message: "close after lifecycle",
+        sessionId: session.id,
+      });
       await provider.closeSession(session.id);
+      await provider.readHistory(session.id);
+      const closedEvents = await collectAsync(provider.streamEvents(session.id));
       const info = await provider.getSessionInfo(session.id);
       const health = await provider.health();
 
       expect(info.state).toBe("closed");
+      await expect(
+        provider.sendTurn({
+          idempotencyKey: "http-provider-after-close",
+          message: "must remain closed",
+          sessionId: session.id,
+        }),
+      ).rejects.toMatchObject({
+        category: "state_conflict",
+        retryable: false,
+        scope: "session",
+      });
+      expect(closedEvents.some((event) => event.type === "runtime.turn.started")).toBe(
+        true,
+      );
+      expect(
+        server.requestLog.filter(
+          (entry) =>
+            entry.method === "POST" &&
+            entry.path.endsWith("/events") &&
+            (entry.body as { type?: string } | undefined)?.type === "message",
+        ),
+      ).toHaveLength(1);
       expect(health.backend).toBe("omnigent-http");
       expect(health.notes?.[0]).toContain("logical close");
       expect(health.sessionStateDrift).toEqual([]);
@@ -398,6 +427,7 @@ describe("http provider", () => {
       updated_at: 1_780_272_001,
     };
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -506,6 +536,7 @@ describe("http provider", () => {
       resolveHistoryReady = resolve;
     });
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -663,6 +694,7 @@ describe("http provider", () => {
     let streamController!: ReadableStreamDefaultController<Uint8Array>;
     let messagePosts = 0;
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -833,6 +865,7 @@ describe("http provider", () => {
     };
     let interruptPosts = 0;
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -890,6 +923,7 @@ describe("http provider", () => {
       snapshotRequested = resolve;
     });
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -1080,6 +1114,7 @@ describe("http provider", () => {
       interruptRequested = resolve;
     });
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -1748,6 +1783,7 @@ describe("http provider", () => {
         }),
     );
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -2461,6 +2497,147 @@ describe("http provider", () => {
     expect(sendCount).toBe(1);
   });
 
+  it("rejects locally active work even when no active response id is available", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-active-without-id",
+      created_at: 1_780_272_000,
+      id: "session-active-without-id",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Active without identity",
+      updated_at: 1_780_272_001,
+    };
+    let messagePosts = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (_input, init) => {
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          messagePosts += 1;
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "active-without-id-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "active-without-id-turn",
+        message: "must not overlap",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({
+      category: "concurrency_limit",
+      retryable: true,
+    });
+    expect(messagePosts).toBe(0);
+  });
+
+  it("rechecks upstream work inside a lease shared by provider instances", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-cross-provider-concurrency",
+      created_at: 1_780_272_000,
+      id: "session-cross-provider-concurrency",
+      items: [],
+      pending_inputs: [] as Record<string, unknown>[],
+      status: "idle",
+      title: "Cross-provider concurrency",
+      updated_at: 1_780_272_001,
+    };
+    const leaseTails = new Map<string, Promise<void>>();
+    const withSharedLease = async <T>(
+      sessionId: string,
+      operation: () => Promise<T>,
+    ): Promise<T> => {
+      const previous = leaseTails.get(sessionId) ?? Promise.resolve();
+      let release!: () => void;
+      const current = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      leaseTails.set(sessionId, current);
+      await previous;
+      try {
+        return await operation();
+      } finally {
+        release();
+        if (leaseTails.get(sessionId) === current) {
+          leaseTails.delete(sessionId);
+        }
+      }
+    };
+    let messagePosts = 0;
+    const fetch: typeof globalThis.fetch = async (_input, init) => {
+      if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+        return new Response(JSON.stringify(snapshot));
+      }
+      if (init?.method === "POST") {
+        messagePosts += 1;
+        snapshot.pending_inputs = [
+          { content: [], pending_id: "pending-cross-provider-a" },
+        ];
+        return new Response(
+          JSON.stringify({ item_id: "item-cross-provider-a", queued: true }),
+          { status: 202 },
+        );
+      }
+      return new Response(JSON.stringify(snapshot));
+    };
+    const firstProvider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch,
+      withExclusiveSessionLease: withSharedLease,
+    });
+    const secondProvider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch,
+      withExclusiveSessionLease: withSharedLease,
+    });
+    const firstSession = await firstProvider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cross-provider-create-a",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const secondSession = await secondProvider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cross-provider-create-b",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const first = firstProvider.sendTurn({
+      idempotencyKey: "cross-provider-turn-a",
+      message: "A",
+      sessionId: firstSession.id,
+    });
+    const second = secondProvider.sendTurn({
+      idempotencyKey: "cross-provider-turn-b",
+      message: "B",
+      sessionId: secondSession.id,
+    });
+
+    await expect(first).resolves.toMatchObject({ turnId: "item-cross-provider-a" });
+    await expect(second).rejects.toMatchObject({
+      category: "concurrency_limit",
+      retryable: true,
+    });
+    expect(messagePosts).toBe(1);
+  });
+
   it("keeps a newer accepted turn active when an older concurrent send is denied", async () => {
     const snapshot = {
       active_response_id: null,
@@ -2646,23 +2823,25 @@ describe("http provider", () => {
       [{ queued: true }, "omnigent:session-ack:turn-ack"],
       [{ pending_id: "pending-ack", queued: true }, "pending-ack"],
     ] as const) {
+      const snapshot = {
+        active_response_id: null,
+        agent_id: "agent-ack",
+        created_at: 1_780_272_000,
+        id: "session-ack",
+        items: [],
+        pending_inputs: [],
+        status: "idle",
+        title: "Ack",
+        updated_at: 1_780_272_000,
+      };
       const provider = createHttpProvider({
         baseUrl: "http://127.0.0.1:4010",
         fetch: async (_input, init) => {
           if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
-            return new Response(
-              JSON.stringify({
-                active_response_id: null,
-                agent_id: "agent-ack",
-                created_at: 1_780_272_000,
-                id: "session-ack",
-                items: [],
-                status: "idle",
-                title: "Ack",
-                updated_at: 1_780_272_000,
-              }),
-              { status: 200 },
-            );
+            return new Response(JSON.stringify(snapshot), { status: 200 });
+          }
+          if (init?.method !== "POST") {
+            return new Response(JSON.stringify(snapshot), { status: 200 });
           }
           return new Response(JSON.stringify(ack), { status: 202 });
         },
@@ -2900,7 +3079,7 @@ describe("http provider", () => {
       id: "session-pending-consumed",
       items: [],
       pending_inputs: [],
-      status: "running",
+      status: "idle",
       title: "Pending consumed",
       updated_at: 1_780_272_001,
     };
@@ -3261,6 +3440,7 @@ describe("http provider", () => {
       type: "message",
     };
     let sessionReadsAfterSend = 0;
+    let turnAccepted = false;
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
@@ -3269,6 +3449,7 @@ describe("http provider", () => {
           return new Response(JSON.stringify(baseSnapshot));
         }
         if (init?.method === "POST") {
+          turnAccepted = true;
           return new Response(
             JSON.stringify({ pending_id: "pending-read-race", queued: true }),
             { status: 202 },
@@ -3283,6 +3464,9 @@ describe("http provider", () => {
               last_id: historyItem.id,
             }),
           );
+        }
+        if (!turnAccepted) {
+          return new Response(JSON.stringify(baseSnapshot));
         }
         sessionReadsAfterSend += 1;
         return new Response(

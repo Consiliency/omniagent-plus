@@ -343,7 +343,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
-  private sendTurnWithExclusiveLease(
+  private async sendTurnWithExclusiveLease(
     request: SendTurnRequest,
   ): Promise<TurnHandle> {
     if (this.cancellationReservations.has(request.sessionId)) {
@@ -365,18 +365,43 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
     }
     const session = this.sessions.get(request.sessionId);
+    if (session?.state === "closed") {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${request.sessionId} is closed.`,
+        retryable: false,
+        scope: "session",
+      });
+    }
     if (
       !this.allowQueuedTurns &&
-      session?.state === "turn_active" &&
-      session.activeTurnId
+      session?.state === "turn_active"
     ) {
       throw createRuntimeFailure({
         actor: "provider",
         category: "concurrency_limit",
-        message: `Session ${request.sessionId} already has active turn ${session.activeTurnId}.`,
+        message: session.activeTurnId
+          ? `Session ${request.sessionId} already has active turn ${session.activeTurnId}.`
+          : `Session ${request.sessionId} already has active work.`,
         retryable: true,
         scope: "turn",
       });
+    }
+    if (this.withExclusiveSessionLease && !this.allowQueuedTurns) {
+      const snapshot = await this.client.getSession(request.sessionId);
+      if (
+        snapshot.activeResponseId ||
+        (snapshot.pendingInputs?.length ?? 0) > 0
+      ) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "concurrency_limit",
+          message: `Session ${request.sessionId} already has upstream active or pending work.`,
+          retryable: true,
+          scope: "turn",
+        });
+      }
     }
 
     return this.sendTurnOnce(request);
@@ -995,7 +1020,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       const next = toSessionInfo(existing, snapshot, existing);
       this.sessions.set(
         sessionId,
-        preserveActiveIdentity
+        existing.state === "closed"
+          ? {
+              ...next,
+              activeTurnId: undefined,
+              state: "closed",
+            }
+          : preserveActiveIdentity
           ? {
               ...next,
               activeTurnId: existing.activeTurnId,
@@ -1027,7 +1058,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   ): void {
     this.latestTurnIds.set(sessionId, turnId);
     const session = this.sessions.get(sessionId);
-    if (session) {
+    if (session && session.state !== "closed") {
       this.sessions.set(sessionId, {
         ...session,
         activeTurnId: turnId,
@@ -1649,6 +1680,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     events: readonly RuntimeEvent[],
   ): void {
+    if (this.sessions.get(sessionId)?.state === "closed") {
+      return;
+    }
     let latestLifecycle: RuntimeEvent | undefined;
     for (let index = events.length - 1; index >= 0; index -= 1) {
       const event = events[index]!;
@@ -1698,7 +1732,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     turnId?: string,
   ): void {
     const session = this.sessions.get(sessionId);
-    if (session) {
+    if (session && session.state !== "closed") {
       const preserveFailure =
         turnId !== undefined && this.latestFailureTurnIds.get(sessionId) === turnId;
       if (!preserveFailure) {
@@ -1721,7 +1755,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     turnId?: string,
   ): void {
     const session = this.sessions.get(sessionId);
-    if (session) {
+    if (session && session.state !== "closed") {
       if (turnId !== undefined) {
         this.latestFailureTurnIds.set(sessionId, turnId);
       }
