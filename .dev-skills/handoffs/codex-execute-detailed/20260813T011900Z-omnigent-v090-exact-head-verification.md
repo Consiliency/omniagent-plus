@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `de36931`, and no source or evidence
+this file. The final implementation parent is `2eb20e0`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 98 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 100 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 270 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 272 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -110,6 +110,16 @@ files may change after this receipt is committed without another full run.
   older failed turn followed by a newer cancelled turn clears the stale failure
   and leaves the session idle, while the existing single-failure regression
   continues to preserve the mapped failure.
+- Persisted and live runtime events now share a provider-local per-session
+  sequence ledger. Newly observed persisted lifecycle events receive sequence
+  numbers above the prior live high-water mark, while stable event identities
+  retain their prior sequence. A reconnect regression proves a new persisted
+  failure remains visible after a cursor that previously exceeded its rebuilt
+  history ordinal.
+- Turn rollback now restores prior session state only while the rejected turn
+  still owns the active identity. A concurrent-send regression accepts a newer
+  pending turn before denying the older request and proves the newer turn
+  remains active.
 - An explicit synchronous policy denial remains authoritative even when a
   lifecycle event reconciles the provisional handle before the acknowledgement
   arrives. Denial fully removes both provisional and official registration,
