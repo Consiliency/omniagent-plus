@@ -241,6 +241,7 @@ function isNonRetryableRuntimeFailure(value: unknown): boolean {
 
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
+  private readonly cancellationReservations = new Map<string, string>();
   private readonly cancelledTurnQuarantineKeys = new Set<string>();
   private readonly claimedHistoryItemKeys = new Set<string>();
   private readonly creates = new Map<string, Promise<AgentSession>>();
@@ -256,6 +257,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       }
     >
   >();
+  private readonly earlyCancellationProofKeys = new Set<string>();
   private readonly eventSequences = new Map<string, Map<string, number>>();
   private readonly latestTurnIds = new Map<string, string>();
   private readonly latestFailureTurnIds = new Map<string, string>();
@@ -298,6 +300,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const existing = this.sends.get(key);
     if (existing) {
       return existing;
+    }
+    if (this.cancellationReservations.has(request.sessionId)) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${request.sessionId} has a cancellation in progress.`,
+        retryable: false,
+        scope: "turn",
+      });
     }
     if (this.hasCancelledTurnQuarantine(request.sessionId)) {
       throw createRuntimeFailure({
@@ -712,6 +723,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     handle: TurnHandle,
     reason: CancellationReason = "user_request",
   ): Promise<TurnHandle> {
+    if (this.cancellationReservations.has(handle.sessionId)) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${handle.sessionId} already has a cancellation in progress.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
     const activeTurnId = this.sessions.get(handle.sessionId)?.activeTurnId;
     if (activeTurnId !== handle.turnId) {
       throw createRuntimeFailure({
@@ -722,45 +742,65 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "turn",
       });
     }
-    const snapshot = await this.client.getSession(handle.sessionId);
-    if (
-      snapshot.activeResponseId &&
-      snapshot.activeResponseId !== handle.turnId
-    ) {
-      throw createRuntimeFailure({
-        actor: "provider",
-        category: "state_conflict",
-        message: `Turn ${handle.turnId} is not the upstream active response for session ${handle.sessionId}.`,
-        retryable: false,
-        scope: "turn",
+    const turnKey = `${handle.sessionId}:${handle.turnId}`;
+    this.cancellationReservations.set(handle.sessionId, handle.turnId);
+    try {
+      const snapshot = await this.client.getSession(handle.sessionId);
+      if (
+        snapshot.activeResponseId &&
+        snapshot.activeResponseId !== handle.turnId
+      ) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "state_conflict",
+          message: `Turn ${handle.turnId} is not the upstream active response for session ${handle.sessionId}.`,
+          retryable: false,
+          scope: "turn",
+        });
+      }
+      if (this.sessions.get(handle.sessionId)?.activeTurnId !== handle.turnId) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "state_conflict",
+          message: `Turn ${handle.turnId} stopped owning session ${handle.sessionId} before cancellation.`,
+          retryable: false,
+          scope: "turn",
+        });
+      }
+      const ack = await this.client.sendEvent(handle.sessionId, {
+        data: { reason },
+        type: "interrupt",
       });
+      assertControlEventAccepted(ack);
+      const cancelled: TurnHandle = {
+        ...handle,
+        state: "cancelled",
+        updatedAt: new Date().toISOString(),
+      };
+      this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
+      this.sends.set(
+        `${handle.sessionId}:${handle.idempotencyKey}`,
+        Promise.resolve(cancelled),
+      );
+      this.retireCancelledTurn(
+        handle.sessionId,
+        handle.turnId,
+        this.earlyCancellationProofKeys.has(turnKey),
+      );
+      const session = this.sessions.get(handle.sessionId);
+      if (session?.activeTurnId === handle.turnId) {
+        this.sessions.set(handle.sessionId, {
+          ...session,
+          activeTurnId: undefined,
+          state: "idle",
+          updatedAt: cancelled.updatedAt,
+        });
+      }
+      return cancelled;
+    } finally {
+      this.cancellationReservations.delete(handle.sessionId);
+      this.earlyCancellationProofKeys.delete(turnKey);
     }
-    const ack = await this.client.sendEvent(handle.sessionId, {
-      data: { reason },
-      type: "interrupt",
-    });
-    assertControlEventAccepted(ack);
-    const cancelled: TurnHandle = {
-      ...handle,
-      state: "cancelled",
-      updatedAt: new Date().toISOString(),
-    };
-    this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
-    this.sends.set(
-      `${handle.sessionId}:${handle.idempotencyKey}`,
-      Promise.resolve(cancelled),
-    );
-    this.retireCancelledTurn(handle.sessionId, handle.turnId);
-    const session = this.sessions.get(handle.sessionId);
-    if (session) {
-      this.sessions.set(handle.sessionId, {
-        ...session,
-        activeTurnId: undefined,
-        state: "idle",
-        updatedAt: cancelled.updatedAt,
-      });
-    }
-    return cancelled;
   }
 
   async closeSession(sessionId: string): Promise<void> {
@@ -1256,13 +1296,19 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
-  private retireCancelledTurn(sessionId: string, turnId: string): void {
+  private retireCancelledTurn(
+    sessionId: string,
+    turnId: string,
+    cancellationProofObserved = false,
+  ): void {
     const turnKey = `${sessionId}:${turnId}`;
     this.retireProvisionalTurnCandidate(sessionId, turnId);
     this.provisionalTurnKeys.delete(turnKey);
     this.nativePendingTurnKeys.delete(turnKey);
     this.queuedOnlyTurnKeys.delete(turnKey);
-    this.cancelledTurnQuarantineKeys.add(turnKey);
+    if (!cancellationProofObserved) {
+      this.cancelledTurnQuarantineKeys.add(turnKey);
+    }
     this.rejectedTurnKeys.add(turnKey);
     this.provisionalTurnAliases.delete(turnKey);
     for (const [aliasKey, aliasedTurnId] of this.provisionalTurnAliases) {
@@ -1279,7 +1325,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.latestTurnIds.delete(sessionId);
     }
     for (const stream of this.openStreams.get(sessionId) ?? []) {
-      stream.quarantineFallbackTurnId(turnId);
+      if (cancellationProofObserved) {
+        stream.rejectTurnId(turnId);
+      } else {
+        stream.quarantineFallbackTurnId(turnId);
+      }
     }
   }
 
@@ -1288,6 +1338,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     event: OmnigentRawEvent,
   ): void {
     const keyPrefix = `${sessionId}:`;
+    const reservedTurnId = this.cancellationReservations.get(sessionId);
+    if (
+      reservedTurnId &&
+      (event.type === "session.interrupted" ||
+        (isCancellationTerminal(event) &&
+          [event.turnAliasId, event.turnId].includes(reservedTurnId)))
+    ) {
+      this.earlyCancellationProofKeys.add(`${sessionId}:${reservedTurnId}`);
+    }
     let cancelledTurnId = [event.turnAliasId, event.turnId].find(
       (turnId) =>
         turnId !== undefined &&
@@ -1553,6 +1612,15 @@ function isFailureTerminal(event: OmnigentRawEvent): boolean {
     event.type === "response.incomplete" &&
     !event.reason?.includes("interrupt") &&
     !event.reason?.includes("timeout")
+  );
+}
+
+function isCancellationTerminal(event: OmnigentRawEvent): boolean {
+  return (
+    event.type === "response.cancelled" ||
+    event.type === "turn.cancelled" ||
+    (event.type === "response.incomplete" &&
+      event.reason?.includes("interrupt") === true)
   );
 }
 

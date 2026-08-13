@@ -161,6 +161,7 @@ describe("http provider", () => {
       title: "Control denial",
       updated_at: 1_780_272_001,
     };
+    let messagePosts = 0;
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
@@ -171,8 +172,12 @@ describe("http provider", () => {
         if (init?.method === "POST") {
           const event = JSON.parse(String(init.body)) as { type?: string };
           if (event.type === "message") {
+            messagePosts += 1;
             return new Response(
-              JSON.stringify({ item_id: "item-control", queued: true }),
+              JSON.stringify({
+                item_id: `item-control-${messagePosts}`,
+                queued: true,
+              }),
               { status: 202 },
             );
           }
@@ -203,12 +208,18 @@ describe("http provider", () => {
     await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
       category: "policy_denied",
     });
+    const next = await provider.sendTurn({
+      idempotencyKey: "control-denial-next",
+      message: "reservation released",
+      sessionId: session.id,
+    });
     await expect(provider.closeSession(session.id)).rejects.toMatchObject({
       category: "policy_denied",
     });
     const info = await provider.getSessionInfo(session.id);
 
-    expect(info.activeTurnId).toBe("item-control");
+    expect(next.turnId).toBe("item-control-2");
+    expect(info.activeTurnId).toBe("item-control-2");
     expect(info.state).toBe("turn_active");
   });
 
@@ -635,6 +646,172 @@ describe("http provider", () => {
       category: "state_conflict",
     });
     expect(interruptPosts).toBe(0);
+  });
+
+  it("blocks a newer send while cancellation preflight is in flight", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-cancel-reservation",
+      created_at: 1_780_272_000,
+      id: "session-cancel-reservation",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Cancellation reservation",
+      updated_at: 1_780_272_001,
+    };
+    let deferSnapshot = false;
+    let interruptPosts = 0;
+    let messagePosts = 0;
+    let resolveSnapshot!: (response: Response) => void;
+    let snapshotRequested!: () => void;
+    const snapshotReady = new Promise<void>((resolve) => {
+      snapshotRequested = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "interrupt") {
+            interruptPosts += 1;
+            return new Response(JSON.stringify({ queued: false }));
+          }
+          messagePosts += 1;
+          return new Response(JSON.stringify({ queued: true }));
+        }
+        if (deferSnapshot) {
+          snapshotRequested();
+          return new Promise<Response>((resolve) => {
+            resolveSnapshot = resolve;
+          });
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cancel-reservation-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "cancel-reservation-a",
+      message: "A",
+      sessionId: session.id,
+    });
+    deferSnapshot = true;
+    const cancelling = provider.cancelTurn(first);
+    await snapshotReady;
+
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "cancel-reservation-b",
+        message: "B",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({ category: "state_conflict" });
+    expect(messagePosts).toBe(1);
+    resolveSnapshot(new Response(JSON.stringify(snapshot)));
+
+    await expect(cancelling).resolves.toMatchObject({ state: "cancelled" });
+    expect(interruptPosts).toBe(1);
+  });
+
+  it("retains interruption proof that arrives before the control acknowledgement", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-early-interrupt",
+      created_at: 1_780_272_000,
+      id: "session-early-interrupt",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Early interruption proof",
+      updated_at: 1_780_272_001,
+    };
+    let messagePosts = 0;
+    let resolveInterrupt!: (response: Response) => void;
+    let interruptRequested!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const interruptReady = new Promise<void>((resolve) => {
+      interruptRequested = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "interrupt") {
+            interruptRequested();
+            return new Promise<Response>((resolve) => {
+              resolveInterrupt = resolve;
+            });
+          }
+          messagePosts += 1;
+          return new Response(JSON.stringify({ queued: true }));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(JSON.stringify({ data: [], has_more: false }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "early-interrupt-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "early-interrupt-a",
+      message: "A",
+      sessionId: session.id,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const streamRead = iterator.next();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const cancelling = provider.cancelTurn(first);
+    await interruptReady;
+    streamController.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({ type: "session.interrupted" })}\n\n`,
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    resolveInterrupt(new Response(JSON.stringify({ queued: false })));
+    await expect(cancelling).resolves.toMatchObject({ state: "cancelled" });
+
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "early-interrupt-b",
+        message: "B",
+        sessionId: session.id,
+      }),
+    ).resolves.toMatchObject({ state: "queued" });
+    expect(messagePosts).toBe(2);
+    streamController.close();
+    await expect(streamRead).resolves.toEqual({ done: true, value: undefined });
   });
 
   it("does not bind a provisional handle from snapshot-only evidence", async () => {
