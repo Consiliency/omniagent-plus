@@ -136,6 +136,8 @@ function normalizeEventAck(
   if (
     (value.denied === undefined || value.denied === false) &&
     (value.queued === true || (!requireQueued && value.queued === false)) &&
+    (value.queued === true ||
+      (value.item_id === undefined && value.pending_id === undefined)) &&
     (value.item_id === undefined ||
       (typeof value.item_id === "string" && value.item_id.length > 0)) &&
     (value.pending_id === undefined ||

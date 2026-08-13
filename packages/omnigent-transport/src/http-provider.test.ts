@@ -298,7 +298,7 @@ describe("http provider", () => {
     expect(controlPosts).toBe(0);
   });
 
-  it("rejects queued control acknowledgements without local mutation", async () => {
+  it("rejects malformed control acknowledgements without local mutation", async () => {
     const snapshot = {
       active_response_id: "item-queued-control",
       agent_id: "agent-queued-control",
@@ -310,49 +310,54 @@ describe("http provider", () => {
       title: "Queued control acknowledgement",
       updated_at: 1_780_272_001,
     };
-    const provider = createHttpProvider({
-      allowQueuedTurns: true,
-      baseUrl: "http://127.0.0.1:4010",
-      fetch: async (input, init) => {
-        const url = String(input);
-        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+    for (const controlAck of [
+      { queued: true },
+      { item_id: "message-only-id", queued: false },
+    ]) {
+      const provider = createHttpProvider({
+        allowQueuedTurns: true,
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async (input, init) => {
+          const url = String(input);
+          if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+            return new Response(JSON.stringify(snapshot));
+          }
+          if (init?.method === "POST") {
+            const event = JSON.parse(String(init.body)) as { type?: string };
+            return new Response(
+              JSON.stringify(
+                event.type === "message"
+                  ? { item_id: "item-queued-control", queued: true }
+                  : controlAck,
+              ),
+            );
+          }
           return new Response(JSON.stringify(snapshot));
-        }
-        if (init?.method === "POST") {
-          const event = JSON.parse(String(init.body)) as { type?: string };
-          return new Response(
-            JSON.stringify(
-              event.type === "message"
-                ? { item_id: "item-queued-control", queued: true }
-                : { queued: true },
-            ),
-          );
-        }
-        return new Response(JSON.stringify(snapshot));
-      },
-    });
-    const session = await provider.createSession({
-      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
-      idempotencyKey: "queued-control-create",
-      runtime: "omnigent",
-      targetHarness: "codex",
-      title: snapshot.title,
-    });
-    const handle = await provider.sendTurn({
-      idempotencyKey: "queued-control-turn",
-      message: "remain active",
-      sessionId: session.id,
-    });
+        },
+      });
+      const session = await provider.createSession({
+        agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+        idempotencyKey: "queued-control-create",
+        runtime: "omnigent",
+        targetHarness: "codex",
+        title: snapshot.title,
+      });
+      const handle = await provider.sendTurn({
+        idempotencyKey: "queued-control-turn",
+        message: "remain active",
+        sessionId: session.id,
+      });
 
-    await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
-      category: "malformed_response",
-    });
-    await expect(provider.closeSession(session.id)).rejects.toMatchObject({
-      category: "malformed_response",
-    });
-    const info = await provider.getSessionInfo(session.id);
-    expect(info.activeTurnId).toBe("item-queued-control");
-    expect(info.state).toBe("turn_active");
+      await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
+        category: "malformed_response",
+      });
+      await expect(provider.closeSession(session.id)).rejects.toMatchObject({
+        category: "malformed_response",
+      });
+      const info = await provider.getSessionInfo(session.id);
+      expect(info.activeTurnId).toBe("item-queued-control");
+      expect(info.state).toBe("turn_active");
+    }
   });
 
   it("maps active_response_id snapshots into active turn identity", async () => {
@@ -563,6 +568,22 @@ describe("http provider", () => {
         sessionId: session.id,
       }),
     ).rejects.toMatchObject({ category: "state_conflict" });
+    streamController.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          delta: "identity-free cancelled output",
+          type: "response.output_text.delta",
+        })}\n\n`,
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "cancelled-late-second",
+        message: "run me",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({ category: "state_conflict" });
     const cancelledFrames = [
       {
         response: { id: "response-cancelled-a", status: "in_progress" },
@@ -578,17 +599,20 @@ describe("http provider", () => {
         type: "response.cancelled",
       },
     ];
-    for (const frame of cancelledFrames) {
-      streamController.enqueue(
-        encoder.encode(`data: ${JSON.stringify(frame)}\n\n`),
-      );
-    }
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    streamController.enqueue(
+      encoder.encode(`data: ${JSON.stringify(cancelledFrames[0])}\n\n`),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10));
     const second = await provider.sendTurn({
       idempotencyKey: "cancelled-late-second",
       message: "run me",
       sessionId: session.id,
     });
+    for (const frame of cancelledFrames.slice(1)) {
+      streamController.enqueue(
+        encoder.encode(`data: ${JSON.stringify(frame)}\n\n`),
+      );
+    }
     const nextFrames = [
       {
         response: { id: "response-after-cancel", status: "in_progress" },
@@ -2362,7 +2386,32 @@ describe("http provider", () => {
       updated_at: 1_780_272_001,
     };
     let resolveFirstSend!: (response: Response) => void;
+    let firstSendStarted!: () => void;
+    const firstSendReady = new Promise<void>((resolve) => {
+      firstSendStarted = resolve;
+    });
     let sendCount = 0;
+    const leaseTails = new Map<string, Promise<void>>();
+    const withYieldingLease = async <T>(
+      sessionId: string,
+      operation: () => Promise<T>,
+    ): Promise<T> => {
+      const previous = leaseTails.get(sessionId) ?? Promise.resolve();
+      let release!: () => void;
+      const current = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      leaseTails.set(sessionId, current);
+      await previous;
+      try {
+        return await operation();
+      } finally {
+        release();
+        if (leaseTails.get(sessionId) === current) {
+          leaseTails.delete(sessionId);
+        }
+      }
+    };
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (_input, init) => {
@@ -2371,12 +2420,14 @@ describe("http provider", () => {
         }
         if (init?.method === "POST") {
           sendCount += 1;
+          firstSendStarted();
           return new Promise<Response>((resolve) => {
             resolveFirstSend = resolve;
           });
         }
         return new Response(JSON.stringify(snapshot));
       },
+      withExclusiveSessionLease: withYieldingLease,
     });
     const session = await provider.createSession({
       agentSpec: { kind: "named_agent", value: snapshot.agent_id },
@@ -2391,22 +2442,23 @@ describe("http provider", () => {
       sessionId: session.id,
     });
 
-    await expect(
-      provider.sendTurn({
-        idempotencyKey: "default-concurrency-second",
-        message: "second",
-        sessionId: session.id,
-      }),
-    ).rejects.toMatchObject({
-      category: "concurrency_limit",
-      retryable: true,
+    const second = provider.sendTurn({
+      idempotencyKey: "default-concurrency-second",
+      message: "second",
+      sessionId: session.id,
     });
+    await firstSendReady;
     expect(sendCount).toBe(1);
 
     resolveFirstSend(
       new Response(JSON.stringify({ item_id: "item-first", queued: true })),
     );
     await expect(first).resolves.toMatchObject({ turnId: "item-first" });
+    await expect(second).rejects.toMatchObject({
+      category: "concurrency_limit",
+      retryable: true,
+    });
+    expect(sendCount).toBe(1);
   });
 
   it("keeps a newer accepted turn active when an older concurrent send is denied", async () => {

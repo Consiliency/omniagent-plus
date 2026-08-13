@@ -207,6 +207,7 @@ export class OmnigentSseNormalizer {
 
   quarantineFallbackTurnId(turnId: string): void {
     this.rejectedTurnIds.add(turnId);
+    this.identityFreeQuarantineTurnId = turnId;
     if (
       !this.unboundTurnIds.includes(turnId) &&
       !this.pendingTerminalTurnIds.includes(turnId) &&

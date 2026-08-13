@@ -495,7 +495,9 @@ describe("http client", () => {
       {},
       { denied: true, queued: false },
       { item_id: "", queued: true },
+      { item_id: "message-only-id", queued: false },
       { pending_id: 42, queued: true },
+      { pending_id: "pending-only-id", queued: false },
     ]) {
       const client = new OmnigentHttpClient({
         baseUrl: "http://127.0.0.1:4010",

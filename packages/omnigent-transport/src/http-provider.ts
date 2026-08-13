@@ -248,10 +248,21 @@ function isNonRetryableRuntimeFailure(value: unknown): boolean {
   );
 }
 
+function isSendAdmissionFailure(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "category" in value &&
+    (value.category === "state_conflict" ||
+      value.category === "concurrency_limit")
+  );
+}
+
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly allowQueuedTurns: boolean;
   private readonly client: OmnigentHttpClient;
   private readonly cancellationReservations = new Map<string, string>();
+  private readonly cancelledTurnAwaitingIdentityKeys = new Set<string>();
   private readonly cancelledTurnQuarantineKeys = new Set<string>();
   private readonly claimedHistoryItemKeys = new Set<string>();
   private readonly creates = new Map<string, Promise<AgentSession>>();
@@ -273,6 +284,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly latestFailureTurnIds = new Map<string, string>();
   private readonly nextEventSequences = new Map<string, number>();
   private readonly observedHistoryItemKeys = new Set<string>();
+  private readonly officialResponseTurnKeys = new Set<string>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
   private readonly nativePendingTurnKeys = new Set<string>();
   private readonly pendingItemTurnIds = new Map<string, string>();
@@ -314,6 +326,26 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (existing) {
       return existing;
     }
+    const pending = this.runSessionMutation(request.sessionId, () =>
+      this.sendTurnWithExclusiveLease(request),
+    );
+    this.sends.set(key, pending);
+    try {
+      return await pending;
+    } catch (error) {
+      if (
+        !isNonRetryableRuntimeFailure(error) ||
+        isSendAdmissionFailure(error)
+      ) {
+        this.sends.delete(key);
+      }
+      throw error;
+    }
+  }
+
+  private sendTurnWithExclusiveLease(
+    request: SendTurnRequest,
+  ): Promise<TurnHandle> {
     if (this.cancellationReservations.has(request.sessionId)) {
       throw createRuntimeFailure({
         actor: "provider",
@@ -347,18 +379,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
     }
 
-    const pending = this.runSessionMutation(request.sessionId, () =>
-      this.sendTurnOnce(request),
-    );
-    this.sends.set(key, pending);
-    try {
-      return await pending;
-    } catch (error) {
-      if (!isNonRetryableRuntimeFailure(error)) {
-        this.sends.delete(key);
-      }
-      throw error;
-    }
+    return this.sendTurnOnce(request);
   }
 
   private async createSessionOnce(
@@ -1323,6 +1344,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     updatedAt: string,
   ): void {
     const suppliedProvisionalKey = `${sessionId}:${provisionalTurnId}`;
+    this.officialResponseTurnKeys.add(`${sessionId}:${officialTurnId}`);
     const currentProvisionalTurnId =
       this.provisionalTurnAliases.get(suppliedProvisionalKey) ?? provisionalTurnId;
     if (
@@ -1398,12 +1420,17 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     cancellationProofObserved = false,
   ): void {
     const turnKey = `${sessionId}:${turnId}`;
+    const hasOfficialResponseIdentity =
+      this.officialResponseTurnKeys.has(turnKey);
     this.retireProvisionalTurnCandidate(sessionId, turnId);
     this.provisionalTurnKeys.delete(turnKey);
     this.nativePendingTurnKeys.delete(turnKey);
     this.queuedOnlyTurnKeys.delete(turnKey);
     if (!cancellationProofObserved) {
       this.cancelledTurnQuarantineKeys.add(turnKey);
+      if (!hasOfficialResponseIdentity) {
+        this.cancelledTurnAwaitingIdentityKeys.add(turnKey);
+      }
     }
     this.rejectedTurnKeys.add(turnKey);
     this.provisionalTurnAliases.delete(turnKey);
@@ -1459,9 +1486,25 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (!cancelledTurnId) {
       return;
     }
-    this.cancelledTurnQuarantineKeys.delete(
-      `${sessionId}:${cancelledTurnId}`,
-    );
+    const cancelledTurnKey = `${sessionId}:${cancelledTurnId}`;
+    const sessionInterruption = event.type === "session.interrupted";
+    const confirmedOfficialIdentity =
+      event.turnAliasConfirmed !== false &&
+      event.turnAliasId === cancelledTurnId &&
+      event.turnId !== undefined &&
+      event.turnId !== cancelledTurnId;
+    if (
+      this.cancelledTurnAwaitingIdentityKeys.has(cancelledTurnKey) &&
+      !sessionInterruption &&
+      !confirmedOfficialIdentity
+    ) {
+      return;
+    }
+    if (confirmedOfficialIdentity && event.turnId) {
+      this.officialResponseTurnKeys.add(`${sessionId}:${event.turnId}`);
+    }
+    this.cancelledTurnAwaitingIdentityKeys.delete(cancelledTurnKey);
+    this.cancelledTurnQuarantineKeys.delete(cancelledTurnKey);
     for (const stream of this.openStreams.get(sessionId) ?? []) {
       stream.removeFallbackTurnId(cancelledTurnId);
     }
