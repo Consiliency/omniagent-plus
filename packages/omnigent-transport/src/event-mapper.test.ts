@@ -198,6 +198,28 @@ describe("event mapper", () => {
     ]);
   });
 
+  it("suppresses a buffered suffix of a persisted message after reconnect", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: " world",
+          id: "delta-buffered-suffix",
+          message_id: "message-suffix",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          turnId: "response-suffix",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalTextByMessageId: [["message-suffix", "Hello world"]],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([]);
+  });
+
   it("emits assistant output items when no text delta preceded them", () => {
     const events = mapOmnigentEventSequence("session-1", [
       {
@@ -260,6 +282,48 @@ describe("event mapper", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["streamed reply"]);
+  });
+
+  it("preserves complete text for distinct messages sharing one response", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-1", [
+      {
+        id: "message-first-done",
+        item: {
+          content: [{ text: "Hello", type: "output_text" }],
+          id: "message-first",
+          response_id: "response-shared",
+          role: "assistant",
+          type: "message",
+        },
+        itemId: "message-first",
+        occurredAt,
+        sessionId: "session-1",
+        turnId: "response-shared",
+        type: "response.output_item.done",
+      },
+      {
+        id: "message-second-done",
+        item: {
+          content: [{ text: "Hello again", type: "output_text" }],
+          id: "message-second",
+          response_id: "response-shared",
+          role: "assistant",
+          type: "message",
+        },
+        itemId: "message-second",
+        occurredAt,
+        sessionId: "session-1",
+        turnId: "response-shared",
+        type: "response.output_item.done",
+      },
+    ]);
+
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["Hello", "Hello again"]);
   });
 
   it("accepts v0.4 UI and metadata events as safe no-ops", () => {

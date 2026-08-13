@@ -190,8 +190,9 @@ export class OmnigentEventMapper {
         : this.historicalTextRemainders;
       const remaining = remainders.get(historicalKey);
       if (remaining !== undefined) {
-        if (remaining.startsWith(delta)) {
-          const next = remaining.slice(delta.length);
+        const replayOffset = remaining.indexOf(delta);
+        if (delta.length > 0 && replayOffset >= 0) {
+          const next = remaining.slice(replayOffset + delta.length);
           if (next.length === 0) {
             remainders.delete(historicalKey);
           } else {
@@ -245,10 +246,9 @@ export class OmnigentEventMapper {
         return [];
       }
       const messageId = typeof item.id === "string" ? item.id : undefined;
-      const emitted =
-        (messageId ? this.emittedTextByMessageId.get(messageId) : undefined) ??
-        this.emittedTextByTurnId.get(rawEvent.turnId) ??
-        "";
+      const emitted = messageId
+        ? (this.emittedTextByMessageId.get(messageId) ?? "")
+        : (this.emittedTextByTurnId.get(rawEvent.turnId) ?? "");
       const delta = text.startsWith(emitted)
         ? text.slice(emitted.length)
         : emitted.startsWith(text)
@@ -260,7 +260,10 @@ export class OmnigentEventMapper {
       if (messageId) {
         this.emittedTextByMessageId.set(messageId, text);
       }
-      this.emittedTextByTurnId.set(rawEvent.turnId, text);
+      this.emittedTextByTurnId.set(
+        rawEvent.turnId,
+        `${this.emittedTextByTurnId.get(rawEvent.turnId) ?? ""}${delta}`,
+      );
       return [
         this.createEvent({
           eventId: `${rawEvent.id}:text`,
