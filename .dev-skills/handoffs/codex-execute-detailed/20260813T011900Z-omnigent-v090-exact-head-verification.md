@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`7988e1c5b4c9db69254d497270bd3cf1148b2456`, and no source or evidence files
+`bec200281e00301e3ee2d5ab34d79d04e088fdbb`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 140 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 143 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 312 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 315 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -376,6 +376,18 @@ may change after this receipt is committed without another full run.
   A `{queued:true}` interrupt or close acknowledgement is a non-retryable
   `malformed_response`, leaves local state unchanged, and releases the cancellation
   reservation so later work is not stranded.
+- Omnigent v0.9 interrupt and stop controls are session-scoped and expose no
+  target response or fencing token. HTTP and hybrid controls now fail closed
+  with `backend_capability_missing` unless the caller supplies a fleet-wide
+  `withExclusiveSessionLease` shared by every session writer. Send, cancel, and
+  close all enter that lease; a two-provider regression suspends the interrupt
+  acknowledgement and proves another provider cannot post B until cancellation
+  releases the shared lease. An unconfigured-provider regression proves cancel
+  and close issue zero control requests.
+- The neutral one-active-turn policy is enforced before a distinct send. The
+  default regression proves the second call returns retryable
+  `concurrency_limit` with one POST, while queue/reordering regressions now opt
+  in through `allowQueuedTurns` and retain queued handles.
 - Cancellation no longer guesses whether the next uncorrelated official response
   is late A or new B. While a cancelled-turn quarantine is unresolved, new sends
   fail closed with `state_conflict` before registration or HTTP. The barrier
