@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`94d66d0c036f097b14b5d7d522eb6e5f18565457`, and no source or evidence files
+`b8001295b4c61a878d67bda457b9baff58833d30`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 136 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 138 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 308 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 310 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -38,6 +38,17 @@ may change after this receipt is committed without another full run.
 
 ## Review Reconciliation
 
+- Cancellation owns a per-session reservation before any snapshot or control
+  I/O. Distinct sends and concurrent cancellations fail closed while it is held;
+  ownership is rechecked immediately before the session-wide interrupt; and the
+  reservation is released on snapshot, transport, policy, malformed-ack, and
+  success paths. A suspended-preflight regression proves B never posts while A
+  is cancelling, and the denied-control regression proves failure releases the
+  reservation for a later send.
+- Lifecycle cancellation proof that arrives before the control acknowledgement
+  is retained against the reservation. A pre-acknowledgement
+  `session.interrupted` regression proves successful cancellation does not
+  install a stale quarantine and the next distinct turn can post immediately.
 - Session-wide cancellation now performs a fresh snapshot preflight before the
   interrupt POST. A non-empty upstream `active_response_id` must equal the
   supplied handle, so a queued B cannot interrupt an already-running A. The
