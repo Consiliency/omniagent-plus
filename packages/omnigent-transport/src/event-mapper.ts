@@ -6,6 +6,20 @@ import {
 
 import type { OmnigentRawEvent } from "./types.js";
 
+function sessionCreatedState(
+  rawEvent: OmnigentRawEvent,
+): "created" | "starting" | "idle" | "failed" {
+  if (rawEvent.status === "failed") {
+    return "failed";
+  }
+
+  if (rawEvent.status === "launching" || rawEvent.status === "running") {
+    return "starting";
+  }
+
+  return rawEvent.type === "session.created" ? "created" : "idle";
+}
+
 function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
   return rawEvent.message ?? `Omnigent turn ${rawEvent.turnId ?? "unknown"}`;
 }
@@ -14,6 +28,7 @@ export interface OmnigentEventMapperOptions {
   readonly historicalTextByTurnId?: Iterable<readonly [string, string]>;
   readonly historicalToolCallIds?: Iterable<string>;
   readonly historicalToolResultIds?: Iterable<string>;
+  readonly legacySessionCreatedEvents?: boolean;
   readonly seenItemIds?: Iterable<string>;
   readonly startingSequence?: number;
   readonly startedTurnIds?: Iterable<string>;
@@ -29,6 +44,8 @@ export class OmnigentEventMapper {
   private readonly historicalTextRemainders: Map<string, string>;
   private readonly emittedToolCallIds: Set<string>;
   private readonly emittedToolResultIds: Set<string>;
+  private emittedSessionCreated = false;
+  private readonly legacySessionCreatedEvents: boolean;
   private nextSequence: number;
 
   constructor(
@@ -43,6 +60,8 @@ export class OmnigentEventMapper {
     );
     this.emittedToolCallIds = new Set(options.historicalToolCallIds ?? []);
     this.emittedToolResultIds = new Set(options.historicalToolResultIds ?? []);
+    this.legacySessionCreatedEvents =
+      options.legacySessionCreatedEvents ?? false;
     this.seenItemIds = new Set(options.seenItemIds ?? []);
     this.nextSequence = options.startingSequence ?? 1;
   }
@@ -64,7 +83,25 @@ export class OmnigentEventMapper {
 
     switch (rawEvent.type) {
       case "session.created":
-        return [];
+        if (
+          !this.legacySessionCreatedEvents ||
+          this.emittedSessionCreated
+        ) {
+          return [];
+        }
+        this.emittedSessionCreated = true;
+        return [
+          this.createEvent({
+            eventId: rawEvent.id,
+            occurredAt: rawEvent.occurredAt,
+            payload: {
+              state: sessionCreatedState(rawEvent),
+              title: rawEvent.message ?? "Omnigent session",
+            },
+            terminal: false,
+            type: "runtime.session.created",
+          }),
+        ];
       case "turn.started":
       case "response.created":
         if (!rawEvent.turnId || this.emittedStartedTurnIds.has(rawEvent.turnId)) {
@@ -356,6 +393,16 @@ export class OmnigentEventMapper {
     this.nextSequence += 1;
     return created as Extract<RuntimeEvent, { type: TType }>;
   }
+}
+
+export function createLegacyOmnigentEventMapper(
+  sessionId: string,
+  options: OmnigentEventMapperOptions = {},
+): OmnigentEventMapper {
+  return new OmnigentEventMapper(sessionId, {
+    ...options,
+    legacySessionCreatedEvents: true,
+  });
 }
 
 export function mapOmnigentEventSequence(

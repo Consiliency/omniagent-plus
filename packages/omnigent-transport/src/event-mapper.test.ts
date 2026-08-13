@@ -112,6 +112,7 @@ describe("event mapper", () => {
       {
         id: "session-created-launching",
         itemId: "session-created-launching",
+        child_session_id: "child-1",
         occurredAt: "2026-06-30T00:00:00.000Z",
         sessionId: "session-1",
         status: "launching",
@@ -120,6 +121,30 @@ describe("event mapper", () => {
     ]);
 
     expect(runtimeEvents).toEqual([]);
+  });
+
+  it("preserves session-created events for the legacy CLI mapper", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          id: "session-created-launching",
+          itemId: "session-created-launching",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          status: "launching",
+          type: "session.created",
+        },
+      ],
+      { legacySessionCreatedEvents: true },
+    );
+
+    expect(runtimeEvents).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({ state: "starting" }),
+        type: "runtime.session.created",
+      }),
+    ]);
   });
 
   it("skips raw duplicates by item id during reconnect dedupe", () => {

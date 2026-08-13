@@ -5,7 +5,10 @@ import {
   type SessionHistory,
 } from "@consiliency/runtime-provider";
 
-import { OmnigentEventMapper, type OmnigentEventMapperOptions } from "./event-mapper.js";
+import {
+  createLegacyOmnigentEventMapper,
+  type OmnigentEventMapperOptions,
+} from "./event-mapper.js";
 import type {
   OmnigentConversationItem,
   OmnigentHistoryItem,
@@ -32,7 +35,7 @@ export function mapOmnigentHistory(
   options: OmnigentHistoryMapperOptions = {},
 ): MappedOmnigentHistory {
   const afterSequence = options.afterSequence;
-  const mapper = new OmnigentEventMapper(sessionId, options);
+  const mapper = createLegacyOmnigentEventMapper(sessionId, options);
   const runtimeEvents = items.flatMap((item) => mapper.map(item.event));
   const filteredEvents =
     afterSequence === undefined

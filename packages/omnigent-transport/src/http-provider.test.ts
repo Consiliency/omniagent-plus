@@ -803,6 +803,182 @@ describe("http provider", () => {
     expect(info.state).toBe("failed");
   });
 
+  it("does not reseed terminalized ambiguous turns on a later reconnect", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-terminal-reconnect",
+      created_at: 1_780_272_000,
+      id: "session-terminal-reconnect",
+      items: [],
+      status: "idle",
+      title: "Terminal reconnect",
+      updated_at: 1_780_272_000,
+    };
+    const streamControllers: ReadableStreamDefaultController<Uint8Array>[] = [];
+    let historyReads = 0;
+    let resolveFirstHistory: (() => void) | undefined;
+    let resolveSecondHistory: (() => void) | undefined;
+    const firstHistoryReady = new Promise<void>((resolve) => {
+      resolveFirstHistory = resolve;
+    });
+    const secondHistoryReady = new Promise<void>((resolve) => {
+      resolveSecondHistory = resolve;
+    });
+    let sendCount = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          sendCount += 1;
+          return new Response(
+            JSON.stringify({ item_id: `item-${sendCount}`, queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamControllers.push(controller);
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          historyReads += 1;
+          if (historyReads === 1) {
+            resolveFirstHistory?.();
+          } else if (historyReads === 2) {
+            resolveSecondHistory?.();
+          }
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        if (url.includes(`/v1/sessions/${snapshot.id}`)) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        throw new Error(`Unexpected request: ${init?.method ?? "GET"} ${url}`);
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "terminal-reconnect-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const firstIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = firstIterator.next();
+    await firstHistoryReady;
+    const firstHandle = await provider.sendTurn({
+      idempotencyKey: "terminal-reconnect-one",
+      message: "one",
+      sessionId: session.id,
+    });
+    streamControllers[0]?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          conversation_id: session.id,
+          error: { message: "one failed" },
+          status: "failed",
+          type: "session.status",
+        })}\n\n`,
+      ),
+    );
+    expect(await firstEvent).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: firstHandle.turnId,
+          type: "runtime.turn.failed",
+        }),
+      }),
+    );
+
+    const secondHandle = await provider.sendTurn({
+      idempotencyKey: "terminal-reconnect-two",
+      message: "two",
+      sessionId: session.id,
+    });
+    const secondFailure = firstIterator.next();
+    streamControllers[0]?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          conversation_id: session.id,
+          error: { message: "two failed" },
+          status: "failed",
+          type: "session.status",
+        })}\n\n`,
+      ),
+    );
+    expect(await secondFailure).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: secondHandle.turnId,
+          type: "runtime.turn.failed",
+        }),
+      }),
+    );
+    for (const responseId of ["response-two", "response-one"]) {
+      streamControllers[0]?.enqueue(
+        new TextEncoder().encode(
+          `data: ${JSON.stringify({
+            response: {
+              error: { message: `${responseId} failed` },
+              id: responseId,
+              status: "failed",
+            },
+            type: "response.failed",
+          })}\n\n`,
+        ),
+      );
+    }
+    streamControllers[0]?.close();
+    expect(await firstIterator.next()).toEqual({ done: true, value: undefined });
+    expect(firstHandle.turnId).toBe("item-1");
+    expect(secondHandle.turnId).toBe("item-2");
+
+    const thirdHandle = await provider.sendTurn({
+      idempotencyKey: "terminal-reconnect-three",
+      message: "three",
+      sessionId: session.id,
+    });
+    const secondIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const thirdTerminal = secondIterator.next();
+    await secondHistoryReady;
+    streamControllers[1]?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-three", status: "completed" },
+          type: "response.completed",
+        })}\n\n`,
+      ),
+    );
+    expect(await thirdTerminal).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-three",
+          type: "runtime.turn.completed",
+        }),
+      }),
+    );
+    streamControllers[1]?.close();
+    expect(await secondIterator.next()).toEqual({ done: true, value: undefined });
+    expect(thirdHandle.turnId).toBe("response-three");
+    expect(firstHandle.turnId).toBe("item-1");
+    expect(secondHandle.turnId).toBe("item-2");
+  });
+
   it("keeps rapid accepted turns separate when prior lifecycle arrives late", async () => {
     const snapshot = {
       active_response_id: null,

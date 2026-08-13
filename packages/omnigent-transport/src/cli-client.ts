@@ -15,7 +15,7 @@ import {
   type TurnHandle,
 } from "@consiliency/runtime-provider";
 
-import { OmnigentEventMapper } from "./event-mapper.js";
+import { createLegacyOmnigentEventMapper } from "./event-mapper.js";
 import { mapOmnigentHistory } from "./history-mapper.js";
 import type {
   OmnigentCliCommandResult,
@@ -316,7 +316,7 @@ export class OmnigentCliProvider implements AgentRuntimeProvider {
     options?: StreamOptions,
   ): AsyncIterable<RuntimeEvent> {
     const rawEvents = await this.transport.streamEvents(sessionId);
-    const mapper = new OmnigentEventMapper(sessionId, {
+    const mapper = createLegacyOmnigentEventMapper(sessionId, {
       startingSequence: (options?.afterSequence ?? 0) + 1,
     });
     for (const rawEvent of rawEvents) {

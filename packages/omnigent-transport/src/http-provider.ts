@@ -331,6 +331,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           rawEvent,
         );
         if (rawEvent.terminal) {
+          if (rawEvent.turnId) {
+            this.retireProvisionalTurnCandidate(sessionId, rawEvent.turnId);
+          }
           if (eventConcernsActiveTurn && isFailureTerminal(rawEvent)) {
             this.failActiveTurn(
               sessionId,
@@ -571,6 +574,23 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         activeTurnId: officialTurnId,
         updatedAt,
       });
+    }
+  }
+
+  private retireProvisionalTurnCandidate(
+    sessionId: string,
+    provisionalTurnId: string,
+  ): void {
+    if (!this.provisionalTurnKeys.has(`${sessionId}:${provisionalTurnId}`)) {
+      return;
+    }
+    const provisionalOrder = this.provisionalTurnOrder.get(sessionId);
+    const provisionalIndex = provisionalOrder?.indexOf(provisionalTurnId) ?? -1;
+    if (provisionalOrder && provisionalIndex >= 0) {
+      provisionalOrder.splice(provisionalIndex, 1);
+      if (provisionalOrder.length === 0) {
+        this.provisionalTurnOrder.delete(sessionId);
+      }
     }
   }
 
