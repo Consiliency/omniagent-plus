@@ -458,6 +458,105 @@ describe("http provider", () => {
     await iterator.return?.();
   });
 
+  it("keeps policy denial authoritative after pre-acknowledgement lifecycle", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-streamed-denial",
+      created_at: 1_780_272_000,
+      id: "session-streamed-denial",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Streamed denial",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let resolveAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          streamController.enqueue(
+            new TextEncoder().encode(
+              `data: ${JSON.stringify({
+                response: { id: "response-denied", status: "in_progress" },
+                type: "response.created",
+              })}\n\n`,
+            ),
+          );
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "streamed-denial-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const lifecycle = iterator.next();
+    await historyReady;
+    const request = {
+      idempotencyKey: "streamed-denial-turn",
+      message: "deny after lifecycle",
+      sessionId: session.id,
+    };
+    const denied = provider.sendTurn(request);
+    await lifecycle;
+    resolveAck(
+      new Response(
+        JSON.stringify({
+          denied: true,
+          queued: false,
+          reason: "policy rejected streamed input",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(denied).rejects.toEqual(
+      expect.objectContaining({ category: "policy_denied", retryable: false }),
+    );
+    await expect(provider.sendTurn(request)).rejects.toEqual(
+      expect.objectContaining({ category: "policy_denied" }),
+    );
+    expect(postCount).toBe(1);
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+    streamController.close();
+    await iterator.return?.();
+  });
+
   it("reconciles from persisted history before yielding its first event", async () => {
     const snapshot = {
       active_response_id: null,

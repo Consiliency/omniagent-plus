@@ -215,12 +215,23 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       }
       return handle;
     } catch (error) {
+      if (isPolicyDenied(error)) {
+        this.rollbackTurnRegistration(
+          request.sessionId,
+          turnId,
+          handle.turnId,
+          previousLatestTurnId,
+          previousSession,
+        );
+        throw error;
+      }
       if (handle.turnId !== turnId) {
         return handle;
       }
-      this.rollbackProvisionalTurn(
+      this.rollbackTurnRegistration(
         request.sessionId,
         turnId,
+        handle.turnId,
         previousLatestTurnId,
         previousSession,
       );
@@ -613,27 +624,44 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
-  private rollbackProvisionalTurn(
+  private rollbackTurnRegistration(
     sessionId: string,
-    turnId: string,
+    originalTurnId: string,
+    currentTurnId: string,
     previousLatestTurnId: string | undefined,
     previousSession: AgentSessionInfo | undefined,
   ): void {
-    const key = `${sessionId}:${turnId}`;
-    if (!this.provisionalTurnKeys.has(key)) {
-      return;
+    const originalKey = `${sessionId}:${originalTurnId}`;
+    const currentKey = `${sessionId}:${currentTurnId}`;
+    this.turns.delete(originalKey);
+    this.turns.delete(currentKey);
+    this.provisionalTurnKeys.delete(originalKey);
+    this.provisionalTurnKeys.delete(currentKey);
+    this.nativePendingTurnKeys.delete(originalKey);
+    this.nativePendingTurnKeys.delete(currentKey);
+    this.provisionalTurnAliases.delete(originalKey);
+    for (const [aliasKey, aliasedTurnId] of this.provisionalTurnAliases) {
+      if (
+        aliasKey.startsWith(`${sessionId}:`) &&
+        aliasedTurnId === currentTurnId
+      ) {
+        this.provisionalTurnAliases.delete(aliasKey);
+      }
     }
-    this.turns.delete(key);
-    this.provisionalTurnKeys.delete(key);
     const provisionalOrder = this.provisionalTurnOrder.get(sessionId);
-    const index = provisionalOrder?.indexOf(turnId) ?? -1;
-    if (provisionalOrder && index >= 0) {
-      provisionalOrder.splice(index, 1);
+    if (provisionalOrder) {
+      const retained = provisionalOrder.filter(
+        (turnId) => turnId !== originalTurnId && turnId !== currentTurnId,
+      );
+      provisionalOrder.splice(0, provisionalOrder.length, ...retained);
       if (provisionalOrder.length === 0) {
         this.provisionalTurnOrder.delete(sessionId);
       }
     }
-    if (this.latestTurnIds.get(sessionId) === turnId) {
+    if (
+      this.latestTurnIds.get(sessionId) === originalTurnId ||
+      this.latestTurnIds.get(sessionId) === currentTurnId
+    ) {
       if (previousLatestTurnId === undefined) {
         this.latestTurnIds.delete(sessionId);
       } else {
@@ -644,7 +672,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.sessions.set(sessionId, previousSession);
     }
     for (const stream of this.openStreams.get(sessionId) ?? []) {
-      stream.removeFallbackTurnId(turnId);
+      stream.removeFallbackTurnId(originalTurnId);
+      stream.removeFallbackTurnId(currentTurnId);
     }
   }
 
