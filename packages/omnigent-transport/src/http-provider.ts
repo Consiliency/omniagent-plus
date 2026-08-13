@@ -94,11 +94,33 @@ type MutableTurnHandle = {
   -readonly [Key in keyof TurnHandle]: TurnHandle[Key];
 };
 
+function runtimeEventSequenceKey(event: RuntimeEvent): string {
+  switch (event.type) {
+    case "runtime.turn.started":
+      return `turn:${event.turnId}:started`;
+    case "runtime.turn.completed":
+    case "runtime.turn.failed":
+    case "runtime.turn.cancelled":
+    case "runtime.turn.timed_out":
+      return `turn:${event.turnId}:${event.type}`;
+    case "runtime.text.delta":
+      return `text:${event.eventId.replace(/:text:(\d+)$/, ":$1")}`;
+    case "runtime.tool.call":
+      return `tool-call:${event.payload.toolCall.toolCallId}`;
+    case "runtime.tool.result":
+      return `tool-result:${event.payload.toolCallId}`;
+    default:
+      return `${event.type}:${event.eventId}`;
+  }
+}
+
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly claimedHistoryItemKeys = new Set<string>();
   private readonly creates = new Map<string, Promise<AgentSession>>();
+  private readonly eventSequences = new Map<string, Map<string, number>>();
   private readonly latestTurnIds = new Map<string, string>();
+  private readonly nextEventSequences = new Map<string, number>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
   private readonly nativePendingTurnKeys = new Set<string>();
   private readonly pendingItemTurnIds = new Map<string, string>();
@@ -245,15 +267,17 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   ): Promise<SessionHistory> {
     const items = await this.client.getHistory(sessionId);
     this.reconcileTurnsFromHistory(sessionId, items);
-    const mapped = mapOmnigentConversationHistory(sessionId, items, {
-      afterSequence: options?.afterSequence,
-    });
+    const mapped = mapOmnigentConversationHistory(sessionId, items);
     this.applyMappedHistoryState(sessionId, mapped.runtimeEvents);
+    const mappedEvents = this.resequenceRuntimeEvents(
+      sessionId,
+      mapped.runtimeEvents,
+    ).filter((event) => event.sequence > (options?.afterSequence ?? 0));
 
     const events =
       options?.limit === undefined
-        ? mapped.history.events
-        : mapped.history.events.slice(0, options.limit);
+        ? mappedEvents
+        : mappedEvents.slice(0, options.limit);
 
     return {
       events,
@@ -352,9 +376,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         snapshot.activeResponseId ??
           (provisionalTurnIds.length === 0 ? activeTurnId : undefined),
       );
-      const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items, {
-        afterSequence: options?.afterSequence,
-      });
+      const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items);
+      const mappedHistoryEvents = this.resequenceRuntimeEvents(
+        sessionId,
+        mappedSnapshot.runtimeEvents,
+      );
 
       this.refreshTrackedSession(
         sessionId,
@@ -365,13 +391,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
             soleUnresolvedTurnStillPending),
       );
       this.applyMappedHistoryState(sessionId, mappedSnapshot.runtimeEvents);
-      for (const event of mappedSnapshot.history.events) {
-        yield event;
+      for (const event of mappedHistoryEvents) {
+        if (event.sequence > (options?.afterSequence ?? 0)) {
+          yield event;
+        }
       }
 
       const startingSequence =
         Math.max(
-          mappedSnapshot.runtimeEvents.at(-1)?.sequence ?? 0,
+          (this.nextEventSequences.get(sessionId) ?? 1) - 1,
           options?.afterSequence ?? 0,
         ) + 1;
       const mapper = new OmnigentEventMapper(sessionId, {
@@ -387,7 +415,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
 
       for await (const rawEvent of stream.events) {
         this.recordConsumedPendingItem(sessionId, rawEvent, items, stream);
-        const events = mapper.map(rawEvent);
+        const events = this.resequenceRuntimeEvents(
+          sessionId,
+          mapper.map(rawEvent),
+          options?.afterSequence,
+        );
         const mappedFailure = events.find(
           (event): event is Extract<RuntimeEvent, { type: "runtime.turn.failed" }> =>
             event.type === "runtime.turn.failed",
@@ -640,6 +672,33 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
+  private resequenceRuntimeEvents(
+    sessionId: string,
+    events: readonly RuntimeEvent[],
+    sequenceFloor = 0,
+  ): RuntimeEvent[] {
+    const sequences = this.eventSequences.get(sessionId) ?? new Map();
+    let nextSequence = Math.max(
+      this.nextEventSequences.get(sessionId) ?? 1,
+      sequenceFloor + 1,
+    );
+    const resequenced = events.map((event) => {
+      const key = runtimeEventSequenceKey(event);
+      const existingSequence = sequences.get(key);
+      const sequence = existingSequence ?? nextSequence;
+      if (existingSequence === undefined) {
+        sequences.set(key, sequence);
+        nextSequence += 1;
+      }
+      return event.sequence === sequence
+        ? event
+        : ({ ...event, sequence } as RuntimeEvent);
+    });
+    this.eventSequences.set(sessionId, sequences);
+    this.nextEventSequences.set(sessionId, nextSequence);
+    return resequenced;
+  }
+
   private rollbackTurnRegistration(
     sessionId: string,
     originalTurnId: string,
@@ -674,18 +733,46 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         this.provisionalTurnOrder.delete(sessionId);
       }
     }
+    const session = this.sessions.get(sessionId);
+    const activeTurnWasRemoved =
+      session?.activeTurnId === originalTurnId ||
+      session?.activeTurnId === currentTurnId;
+    const currentLatestTurnId = this.latestTurnIds.get(sessionId);
     if (
-      this.latestTurnIds.get(sessionId) === originalTurnId ||
-      this.latestTurnIds.get(sessionId) === currentTurnId
+      currentLatestTurnId === originalTurnId ||
+      currentLatestTurnId === currentTurnId
     ) {
-      if (previousLatestTurnId === undefined) {
+      const retainedLatestTurnId =
+        session?.activeTurnId !== undefined &&
+        !activeTurnWasRemoved &&
+        this.turns.has(`${sessionId}:${session.activeTurnId}`)
+          ? session.activeTurnId
+          : previousLatestTurnId !== undefined &&
+              this.turns.has(`${sessionId}:${previousLatestTurnId}`)
+            ? previousLatestTurnId
+            : provisionalOrder?.at(-1);
+      if (retainedLatestTurnId === undefined) {
         this.latestTurnIds.delete(sessionId);
       } else {
-        this.latestTurnIds.set(sessionId, previousLatestTurnId);
+        this.latestTurnIds.set(sessionId, retainedLatestTurnId);
       }
     }
-    if (previousSession) {
-      this.sessions.set(sessionId, previousSession);
+    if (activeTurnWasRemoved && previousSession) {
+      const restoredActiveTurnId =
+        previousSession.activeTurnId !== undefined &&
+        this.turns.has(`${sessionId}:${previousSession.activeTurnId}`)
+          ? previousSession.activeTurnId
+          : undefined;
+      this.sessions.set(sessionId, {
+        ...previousSession,
+        activeTurnId: restoredActiveTurnId,
+        state:
+          restoredActiveTurnId !== undefined
+            ? "turn_active"
+            : previousSession.state === "failed"
+              ? "failed"
+              : "idle",
+      });
     }
     for (const stream of this.openStreams.get(sessionId) ?? []) {
       stream.removeFallbackTurnId(originalTurnId);

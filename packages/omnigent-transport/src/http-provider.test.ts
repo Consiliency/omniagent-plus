@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createHttpProvider } from "./http-provider.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
+import type { OmnigentConversationItem } from "./types.js";
 
 async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
   const result: T[] = [];
@@ -917,6 +918,84 @@ describe("http provider", () => {
     expect(info.activeTurnId).toBeUndefined();
     expect(info.lastError).toBeUndefined();
     expect(info.state).toBe("idle");
+  });
+
+  it("keeps a newer accepted turn active when an older concurrent send is denied", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-concurrent-rollback",
+      created_at: 1_780_272_000,
+      id: "session-concurrent-rollback",
+      items: [],
+      pending_inputs: [
+        {
+          content: [{ text: "newer turn", type: "input_text" }],
+          pending_id: "pending-2",
+        },
+      ],
+      status: "idle",
+      title: "Concurrent rollback",
+      updated_at: 1_780_272_002,
+    };
+    let resolveOlderSend!: (response: Response) => void;
+    let sendCount = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (_input, init) => {
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          sendCount += 1;
+          if (sendCount === 1) {
+            return new Promise<Response>((resolve) => {
+              resolveOlderSend = resolve;
+            });
+          }
+          return new Response(
+            JSON.stringify({ pending_id: "pending-2", queued: true }),
+            { status: 202 },
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "concurrent-rollback-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const olderSend = provider.sendTurn({
+      idempotencyKey: "concurrent-rollback-older",
+      message: "older turn",
+      sessionId: session.id,
+    });
+    const newerHandle = await provider.sendTurn({
+      idempotencyKey: "concurrent-rollback-newer",
+      message: "newer turn",
+      sessionId: session.id,
+    });
+    resolveOlderSend(
+      new Response(
+        JSON.stringify({
+          denied: true,
+          queued: false,
+          reason: "older turn denied",
+        }),
+      ),
+    );
+
+    await expect(olderSend).rejects.toMatchObject({
+      category: "policy_denied",
+    });
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(newerHandle.turnId).toBe("pending-2");
+    expect(info.activeTurnId).toBe("pending-2");
+    expect(info.state).toBe("turn_active");
   });
 
   it("suppresses duplicate creates and sends within one provider process", async () => {
@@ -2720,5 +2799,118 @@ describe("http provider", () => {
     } finally {
       await server.stop();
     }
+  });
+
+  it("assigns newly persisted lifecycle events after the prior live cursor", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-reconnect-history-cursor",
+      created_at: 1_780_272_000,
+      id: "session-reconnect-history-cursor",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Reconnect history cursor",
+      updated_at: 1_780_272_004,
+    };
+    const oldUserItem: OmnigentConversationItem = {
+      content: [{ text: "old turn", type: "input_text" }],
+      created_at: 1_780_272_001,
+      id: "message-old-user",
+      response_id: "response-old",
+      role: "user",
+      status: "completed",
+      type: "message",
+    };
+    let history: OmnigentConversationItem[] = [oldUserItem];
+    const streamBody = [
+      {
+        delta: "old live output",
+        index: 0,
+        message_id: "message-old-assistant",
+        response_id: "response-old",
+        type: "response.output_text.delta",
+      },
+      {
+        response: {
+          completed_at: 1_780_272_002,
+          id: "response-old",
+          status: "completed",
+        },
+        type: "response.completed",
+      },
+    ]
+      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+      .join("");
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(streamBody, {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "reconnect-history-cursor-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const streamed = await collectAsync(provider.streamEvents(session.id));
+    const priorCursor = streamed.at(-1)?.sequence ?? 0;
+    history = [
+      oldUserItem,
+      {
+        content: [{ text: "new turn", type: "input_text" }],
+        created_at: 1_780_272_003,
+        id: "message-new-user",
+        response_id: "response-new",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+      {
+        created_at: 1_780_272_004,
+        id: "error-new",
+        message: "new persisted failure",
+        response_id: "response-new",
+        status: "failed",
+        type: "error",
+      },
+    ];
+
+    const replay = await provider.readHistory(session.id, {
+      afterSequence: priorCursor,
+    });
+
+    expect(priorCursor).toBeGreaterThan(1);
+    expect(replay.events.every((event) => event.sequence > priorCursor)).toBe(
+      true,
+    );
+    expect(replay.events).toContainEqual(
+      expect.objectContaining({
+        turnId: "response-new",
+        type: "runtime.turn.failed",
+      }),
+    );
   });
 });
