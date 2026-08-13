@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The implementation parent is `96252dd`, and no source or evidence
+this file. The final implementation parent is `d5b3d7c`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -24,7 +24,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 247 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 250 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -45,8 +45,14 @@ files may change after this receipt is committed without another full run.
 - Event acknowledgements are runtime-normalized. Accepted input requires literal
   `queued: true` with optional non-empty `item_id` or `pending_id`; synchronous
   denial requires `denied: true`, `queued: false`, and a non-empty reason. Empty,
-  false-queued accepted, or mistyped shapes fail as non-retryable
-  `malformed_response` and cannot create an active handle.
+  false-queued send-turn, or mistyped shapes fail as non-retryable
+  `malformed_response` and cannot create an active handle. Control events retain
+  the official successful `{queued:false}` response.
+- Official v0.9 `ConversationItem.to_api_dict()` rows are flat: type-specific
+  fields are spread beside `id`, `response_id`, `type`, `status`, and
+  `created_at`. The authority fixture, fake server, client boundary, snapshot and
+  paginated-history tests, and history mapper all use that frozen shape; nested
+  synthetic `data` rows are no longer accepted as conformance evidence.
 
 ## Boundaries
 
