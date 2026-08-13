@@ -271,12 +271,14 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           ack.pending_id !== undefined,
         );
       }
-      if (ack.pending_id && handle.turnId === ack.pending_id) {
-        this.nativePendingTurnKeys.add(
-          `${handle.sessionId}:${ack.pending_id}`,
-        );
+      if (ack.pending_id) {
         for (const stream of this.openStreams.get(request.sessionId) ?? []) {
           stream.removeFallbackTurnId(ack.pending_id);
+        }
+        if (handle.turnId === ack.pending_id) {
+          this.nativePendingTurnKeys.add(
+            `${handle.sessionId}:${ack.pending_id}`,
+          );
         }
       } else if (!ack.item_id && handle.turnId === turnId) {
         const order = this.provisionalTurnOrder.get(handle.sessionId) ?? [];
@@ -430,11 +432,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         snapshot.activeResponseId &&
           this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
       );
+      const snapshotResponseRejected = Boolean(
+        snapshot.activeResponseId &&
+          this.rejectedTurnKeys.has(`${sessionId}:${snapshot.activeResponseId}`),
+      );
       if (
         snapshot.activeResponseId &&
         soleUnresolvedTurnId &&
         !soleUnresolvedTurnStillPending &&
-        !snapshotResponseAlreadyResolved
+        !snapshotResponseAlreadyResolved &&
+        !snapshotResponseRejected
       ) {
         stream.bindResponseId(snapshot.activeResponseId, soleUnresolvedTurnId);
         this.reconcileTurn(
@@ -474,7 +481,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         Boolean(snapshot.activeResponseId) &&
           (unresolvedTurnIds.length > 1 ||
             snapshotResponseAlreadyResolved ||
-            soleUnresolvedTurnStillPending),
+            soleUnresolvedTurnStillPending ||
+            snapshotResponseRejected),
       );
       this.applyMappedHistoryState(sessionId, mappedSnapshot.runtimeEvents);
       for (const event of mappedHistoryEvents) {
@@ -652,11 +660,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       snapshot.activeResponseId &&
         this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
     );
+    const snapshotResponseRejected = Boolean(
+      snapshot.activeResponseId &&
+        this.rejectedTurnKeys.has(`${sessionId}:${snapshot.activeResponseId}`),
+    );
     if (
       soleProvisionalTurnId &&
       snapshot.activeResponseId &&
       !soleProvisionalTurnStillPending &&
-      !snapshotResponseAlreadyResolved
+      !snapshotResponseAlreadyResolved &&
+      !snapshotResponseRejected
     ) {
       this.reconcileTurn(
         sessionId,
@@ -678,7 +691,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         : snapshot.activeResponseId &&
             (provisionalTurnIds.length > 1 ||
               snapshotResponseAlreadyResolved ||
-              soleProvisionalTurnStillPending)
+              soleProvisionalTurnStillPending ||
+              snapshotResponseRejected)
           ? {
               ...next,
               activeTurnId: existing.activeTurnId,

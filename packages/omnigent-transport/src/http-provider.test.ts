@@ -805,6 +805,7 @@ describe("http provider", () => {
     };
     let postCount = 0;
     let historyReadCount = 0;
+    let staleRejectedSnapshot = false;
     let resolveDeniedAck!: (response: Response) => void;
     const streamControllers: ReadableStreamDefaultController<Uint8Array>[] = [];
     const historyResolvers: Array<() => void> = [];
@@ -858,7 +859,17 @@ describe("http provider", () => {
             JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
           );
         }
-        return new Response(JSON.stringify(snapshot));
+        return new Response(
+          JSON.stringify(
+            staleRejectedSnapshot
+              ? {
+                  ...snapshot,
+                  active_response_id: "response-rejected-a",
+                  status: "running",
+                }
+              : snapshot,
+          ),
+        );
       },
     });
     const session = await provider.createSession({
@@ -899,14 +910,18 @@ describe("http provider", () => {
       value: undefined,
     });
 
-    const secondIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
-    const firstReplacementEvent = secondIterator.next();
-    await historyReady[1];
+    staleRejectedSnapshot = true;
     const accepted = await provider.sendTurn({
       idempotencyKey: "rejected-reconnect-b",
       message: "accept B",
       sessionId: session.id,
     });
+    const staleInfo = await provider.getSessionInfo(session.id);
+    expect(accepted.turnId).toBe("item-accepted-b");
+    expect(staleInfo.activeTurnId).toBe("item-accepted-b");
+    const secondIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstReplacementEvent = secondIterator.next();
+    await historyReady[1];
     streamControllers[1]?.enqueue(
       new TextEncoder().encode(
         [
@@ -1939,6 +1954,180 @@ describe("http provider", () => {
     await provider.readHistory(session.id);
 
     expect(handle.turnId).toBe("response-native-1");
+  });
+
+  it("removes a delayed pending fallback after stream-first reconciliation", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-stream-first-pending",
+      created_at: 1_780_272_000,
+      id: "session-stream-first-pending",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Stream-first pending",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let resolveFirstAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          if (postCount === 1) {
+            return new Promise<Response>((resolve) => {
+              resolveFirstAck = resolve;
+            });
+          }
+          return new Response(
+            JSON.stringify({ item_id: "item-stream-first-b", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "stream-first-pending-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstLifecycle = iterator.next();
+    await historyReady;
+    const firstPending = provider.sendTurn({
+      idempotencyKey: "stream-first-pending-a",
+      message: "stream A before pending ack",
+      sessionId: session.id,
+    });
+    streamController.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-stream-first-a", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    await expect(firstLifecycle).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({ turnId: "response-stream-first-a" }),
+      }),
+    );
+    const consumedProcessed = iterator.next();
+    streamController.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            data: {
+              cleared_pending_id: "pending-stream-first-a",
+              item_id: "item-stream-first-a",
+            },
+            type: "session.input.consumed",
+          },
+          {
+            delta: "A output",
+            response_id: "response-stream-first-a",
+            type: "response.output_text.delta",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
+    await expect(consumedProcessed).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({ turnId: "response-stream-first-a" }),
+      }),
+    );
+    resolveFirstAck(
+      new Response(
+        JSON.stringify({ pending_id: "pending-stream-first-a", queued: true }),
+        { status: 202 },
+      ),
+    );
+    const firstHandle = await firstPending;
+    expect(firstHandle.turnId).toBe("response-stream-first-a");
+
+    const secondHandle = await provider.sendTurn({
+      idempotencyKey: "stream-first-pending-b",
+      message: "accept B after delayed pending ack",
+      sessionId: session.id,
+    });
+    const secondEvents = [];
+    const secondStarted = iterator.next();
+    streamController.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            response: { id: "response-stream-first-b", status: "in_progress" },
+            type: "response.created",
+          },
+          {
+            delta: "B output",
+            response_id: "response-stream-first-b",
+            type: "response.output_text.delta",
+          },
+          {
+            response: { id: "response-stream-first-b", status: "completed" },
+            type: "response.completed",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
+    streamController.close();
+    const firstSecondEvent = await secondStarted;
+    if (!firstSecondEvent.done) {
+      secondEvents.push(firstSecondEvent.value);
+    }
+    for (;;) {
+      const next = await iterator.next();
+      if (next.done) {
+        break;
+      }
+      secondEvents.push(next.value);
+    }
+
+    expect(secondEvents.map(({ type }) => type)).toEqual([
+      "runtime.turn.started",
+      "runtime.text.delta",
+      "runtime.turn.completed",
+    ]);
+    expect(secondEvents.every(({ turnId }) => turnId === "response-stream-first-b"))
+      .toBe(true);
+    expect(secondHandle.turnId).toBe("response-stream-first-b");
+    const info = await provider.getSessionInfo(session.id);
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.state).toBe("idle");
   });
 
   it("reconciles a consumed pending acknowledgement from readHistory alone", async () => {
