@@ -362,6 +362,102 @@ describe("http provider", () => {
     expect(info.state).toBe("idle");
   });
 
+  it("caches stream-proven acceptance when the acknowledgement connection fails", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-lost-ack",
+      created_at: 1_780_272_000,
+      id: "session-lost-ack",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Lost acknowledgement",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let rejectAck!: (error: Error) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const encoder = new TextEncoder();
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          streamController.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                response: { id: "response-lost-ack", status: "in_progress" },
+                type: "response.created",
+              })}\n\n`,
+            ),
+          );
+          return new Promise<Response>((_resolve, reject) => {
+            rejectAck = reject;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "lost-ack-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
+    const request = {
+      idempotencyKey: "lost-ack-turn",
+      message: "accept before disconnect",
+      sessionId: session.id,
+    };
+
+    const firstSend = provider.sendTurn(request);
+    expect(await firstEvent).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-lost-ack",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    rejectAck(new TypeError("acknowledgement connection lost"));
+    const first = await firstSend;
+    const second = await provider.sendTurn(request);
+
+    expect(first).toBe(second);
+    expect(first.turnId).toBe("response-lost-ack");
+    expect(postCount).toBe(1);
+    streamController.close();
+    await iterator.return?.();
+  });
+
   it("reconciles from persisted history before yielding its first event", async () => {
     const snapshot = {
       active_response_id: null,
@@ -442,6 +538,96 @@ describe("http provider", () => {
       "response-official",
     );
     await iterator.return?.();
+  });
+
+  it("applies persisted terminal history to tracked provider state", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-persisted-terminal",
+      created_at: 1_780_272_000,
+      id: "session-persisted-terminal",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Persisted terminal",
+      updated_at: 1_780_272_002,
+    };
+    const history = [
+      {
+        content: [{ text: "fail from history", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-persisted-terminal",
+        response_id: "response-persisted-terminal",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+      {
+        created_at: 1_780_272_002,
+        id: "error-persisted-terminal",
+        message: "persisted terminal failure",
+        response_id: "response-persisted-terminal",
+        status: "failed",
+        type: "error",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(
+            JSON.stringify({ item_id: "item-persisted-terminal", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "persisted-terminal-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "persisted-terminal-turn",
+      message: "fail from history",
+      sessionId: session.id,
+    });
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(handle.turnId).toBe("response-persisted-terminal");
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        turnId: "response-persisted-terminal",
+        type: "runtime.turn.failed",
+      }),
+    );
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.lastError?.message).toBe("persisted terminal failure");
+    expect(info.state).toBe("failed");
   });
 
   it("suppresses duplicate creates and sends within one provider process", async () => {
@@ -676,6 +862,122 @@ describe("http provider", () => {
     expect(handle.turnId).toBe("response-native-1");
   });
 
+  it("restores delayed pending acknowledgement correlation after a status terminal", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-delayed-pending",
+      created_at: 1_780_272_000,
+      id: "session-delayed-pending",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Delayed pending acknowledgement",
+      updated_at: 1_780_272_002,
+    };
+    let history: Record<string, unknown>[] = [];
+    let resolveAck!: (response: Response) => void;
+    let resolveFirstHistory!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const firstHistoryReady = new Promise<void>((resolve) => {
+      resolveFirstHistory = resolve;
+    });
+    let historyReads = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          if (historyReads > 0) {
+            return new Response("", {
+              headers: { "content-type": "text/event-stream" },
+            });
+          }
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          historyReads += 1;
+          if (historyReads === 1) {
+            resolveFirstHistory();
+          }
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "delayed-pending-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const firstIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const terminal = firstIterator.next();
+    await firstHistoryReady;
+    const pendingHandle = provider.sendTurn({
+      idempotencyKey: "delayed-pending-turn",
+      message: "persist after terminal",
+      sessionId: session.id,
+    });
+    streamController.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          conversation_id: session.id,
+          error: { message: "ambiguous setup failure" },
+          status: "failed",
+          type: "session.status",
+        })}\n\n`,
+      ),
+    );
+    await terminal;
+    resolveAck(
+      new Response(JSON.stringify({ pending_id: "pending-delayed", queued: true }), {
+        status: 202,
+      }),
+    );
+    const handle = await pendingHandle;
+    expect(handle.turnId).toBe("pending-delayed");
+    streamController.close();
+    await firstIterator.next();
+
+    history = [
+      {
+        content: [{ text: "persist after terminal", type: "input_text" }],
+        created_at: 1_780_272_002,
+        id: "item-delayed",
+        response_id: "response-delayed",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    await collectAsync(provider.streamEvents(session.id));
+
+    expect(handle.turnId).toBe("response-delayed");
+  });
+
   it("reconciles multiple consumed pending turns from snapshot and ordered history", async () => {
     const snapshot = {
       active_response_id: null,
@@ -763,6 +1065,99 @@ describe("http provider", () => {
 
     expect(first.turnId).toBe("response-native-first");
     expect(second.turnId).toBe("response-native-second");
+  });
+
+  it("excludes exact item acknowledgements from pending FIFO recovery", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-mixed-ack-reconnect",
+      created_at: 1_780_272_000,
+      id: "session-mixed-ack-reconnect",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Mixed acknowledgement reconnect",
+      updated_at: 1_780_272_002,
+    };
+    let sendCount = 0;
+    const history = [
+      {
+        content: [{ text: "pending first", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-pending-first",
+        response_id: "response-pending-first",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+      {
+        content: [{ text: "item second", type: "input_text" }],
+        created_at: 1_780_272_002,
+        id: "item-exact-second",
+        response_id: "response-exact-second",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          sendCount += 1;
+          return new Response(
+            JSON.stringify(
+              sendCount === 1
+                ? { pending_id: "pending-first", queued: true }
+                : { item_id: "item-exact-second", queued: true },
+            ),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "mixed-ack-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "mixed-ack-first",
+      message: "pending first",
+      sessionId: session.id,
+    });
+    const second = await provider.sendTurn({
+      idempotencyKey: "mixed-ack-second",
+      message: "item second",
+      sessionId: session.id,
+    });
+
+    await collectAsync(provider.streamEvents(session.id));
+
+    expect(first.turnId).toBe("response-pending-first");
+    expect(second.turnId).toBe("response-exact-second");
   });
 
   it("evicts transport failures so the same send key can retry", async () => {
