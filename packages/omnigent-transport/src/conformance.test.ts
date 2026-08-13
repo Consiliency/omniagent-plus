@@ -76,6 +76,23 @@ describe("official Omnigent v0.9 conformance", () => {
       }),
     );
     expect(snapshotItem).not.toHaveProperty("role");
+    expect(
+      (wire.session_response as { pending_inputs: unknown[] }).pending_inputs,
+    ).toEqual([
+      {
+        content: [{ text: "pending snapshot", type: "input_text" }],
+        pending_id: "pending-snapshot-1",
+      },
+    ]);
+    expect(wire.sse_frames).toContainEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          cleared_pending_id: "pending-1",
+          item_id: "message-user",
+        }),
+        type: "session.input.consumed",
+      }),
+    );
     expect(wire.acknowledgements).toContainEqual({ queued: false });
     expect(omnigentStreamEventTypes).toHaveLength(52);
     expect(cli.documented_commands).toContain("omnigent server --background");

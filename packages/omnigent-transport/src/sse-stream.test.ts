@@ -220,6 +220,12 @@ describe("sse stream parser", () => {
       }),
     );
     expect(events.find((event) => event.type === "turn.started")?.turnId).toBeUndefined();
+    expect(events.find((event) => event.type === "session.input.consumed")).toEqual(
+      expect.objectContaining({
+        cleared_pending_id: "pending-1",
+        consumed_item_id: "message-user",
+      }),
+    );
     expect(events.find((event) => event.type === "session.created")).toEqual(
       expect.objectContaining({
         agent_id: "agent-child",

@@ -382,6 +382,12 @@ describe("http client", () => {
       }),
     );
     expect(session.items[0]).not.toHaveProperty("data");
+    expect(session.pendingInputs).toEqual([
+      {
+        content: [{ text: "pending snapshot", type: "input_text" }],
+        pendingId: "pending-snapshot-1",
+      },
+    ]);
   });
 
   it("rejects malformed session and child page rows", async () => {

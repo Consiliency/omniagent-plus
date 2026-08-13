@@ -264,6 +264,11 @@ export class OmnigentSseNormalizer {
         raw.blocked_on === null ? null : stringValue(raw.blocked_on),
       call_id: stringValue(raw.call_id) ?? stringValue(item?.call_id),
       child_session_id: stringValue(raw.child_session_id),
+      cleared_pending_id: stringValue(data?.cleared_pending_id),
+      consumed_item_id:
+        tagged.type === "session.input.consumed"
+          ? stringValue(data?.item_id)
+          : undefined,
       conversation_id: stringValue(raw.conversation_id),
       delay_seconds: numberValue(raw.delay_seconds),
       delta: stringValue(raw.delta),

@@ -271,6 +271,7 @@ export class FakeOmnigentServer {
           workspace: payload.workspace,
         },
         parent_session_id: null,
+        pending_inputs: [],
         project_id: null,
         status: this.options.activeResponseId ? "running" : "idle",
         subagent_routing_override: null,

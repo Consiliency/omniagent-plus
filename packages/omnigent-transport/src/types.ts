@@ -170,6 +170,11 @@ export interface OmnigentNativeModelOption {
   readonly supportedReasoningEfforts?: readonly OmnigentNativeReasoningEffortOption[];
 }
 
+export interface OmnigentPendingInput {
+  readonly content: readonly Readonly<Record<string, unknown>>[];
+  readonly pendingId: string;
+}
+
 export interface OmnigentSessionSnapshot {
   readonly agentId: string;
   readonly id: string;
@@ -188,6 +193,7 @@ export interface OmnigentSessionSnapshot {
     | Readonly<Record<string, OmnigentMcpServerStartup>>
     | null;
   readonly parentSessionId?: string | null;
+  readonly pendingInputs?: readonly OmnigentPendingInput[];
   readonly projectId?: string | null;
   readonly modelOptions?: readonly OmnigentNativeModelOption[];
   readonly subagentRoutingOverride?: string | null;
@@ -214,6 +220,10 @@ export interface OmnigentWireSessionResponse {
   readonly mcp_startup?: Readonly<Record<string, OmnigentMcpServerStartup>> | null;
   readonly model_options?: readonly OmnigentNativeModelOption[];
   readonly parent_session_id?: string | null;
+  readonly pending_inputs?: readonly {
+    readonly content: readonly Readonly<Record<string, unknown>>[];
+    readonly pending_id: string;
+  }[];
   readonly project_id?: string | null;
   readonly status: OmnigentSessionStatus;
   readonly subagent_routing_override?: string | null;
@@ -367,6 +377,8 @@ export interface OmnigentRawEvent {
   readonly agent_id?: string | null;
   readonly conversation_id?: string;
   readonly child_session_id?: string;
+  readonly cleared_pending_id?: string;
+  readonly consumed_item_id?: string;
   readonly parent_session_id?: string | null;
   readonly response_id?: string;
   readonly itemId?: string;

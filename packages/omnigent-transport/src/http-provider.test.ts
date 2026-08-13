@@ -448,6 +448,184 @@ describe("http provider", () => {
     }
   });
 
+  it("reconciles a pending acknowledgement through input-consumed and history", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-pending-consumed",
+      created_at: 1_780_272_000,
+      id: "session-pending-consumed",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Pending consumed",
+      updated_at: 1_780_272_001,
+    };
+    let history: Record<string, unknown>[] = [];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(
+            JSON.stringify({ pending_id: "pending-native-1", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            `data: ${JSON.stringify({
+              data: {
+                cleared_pending_id: "pending-native-1",
+                created_by: null,
+                data: {
+                  content: [{ text: "native prompt", type: "input_text" }],
+                  role: "user",
+                },
+                item_id: "item-native-1",
+                type: "message",
+              },
+              sequence_number: null,
+              type: "session.input.consumed",
+            })}\n\n`,
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "pending-consumed-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "pending-consumed-turn",
+      message: "native prompt",
+      sessionId: session.id,
+    });
+    expect(handle.turnId).toBe("pending-native-1");
+
+    await collectAsync(provider.streamEvents(session.id));
+    history = [
+      {
+        content: [{ text: "native prompt", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-native-1",
+        response_id: "response-native-1",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    await provider.readHistory(session.id);
+
+    expect(handle.turnId).toBe("response-native-1");
+  });
+
+  it("reconciles multiple consumed pending turns from snapshot and ordered history", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-pending-reconnect",
+      created_at: 1_780_272_000,
+      id: "session-pending-reconnect",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Pending reconnect",
+      updated_at: 1_780_272_002,
+    };
+    let sendCount = 0;
+    const history = [
+      {
+        content: [{ text: "first native", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-native-first",
+        response_id: "response-native-first",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+      {
+        content: [{ text: "second native", type: "input_text" }],
+        created_at: 1_780_272_002,
+        id: "item-native-second",
+        response_id: "response-native-second",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          sendCount += 1;
+          return new Response(
+            JSON.stringify({ pending_id: `pending-native-${sendCount}`, queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: "item-native-first",
+              has_more: false,
+              last_id: "item-native-second",
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "pending-reconnect-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "pending-reconnect-first",
+      message: "first native",
+      sessionId: session.id,
+    });
+    const second = await provider.sendTurn({
+      idempotencyKey: "pending-reconnect-second",
+      message: "second native",
+      sessionId: session.id,
+    });
+
+    await collectAsync(provider.streamEvents(session.id));
+
+    expect(first.turnId).toBe("response-native-first");
+    expect(second.turnId).toBe("response-native-second");
+  });
+
   it("evicts transport failures so the same send key can retry", async () => {
     const server = await FakeOmnigentServer.start({
       rejectNextTurnWith: "rate_limit",

@@ -248,6 +248,25 @@ function normalizeSnapshotConversationItem(
   return { ...common, ...data } as unknown as OmnigentConversationItem;
 }
 
+function normalizePendingInput(value: unknown) {
+  if (
+    !isRecord(value) ||
+    typeof value.pending_id !== "string" ||
+    value.pending_id.length === 0 ||
+    !Array.isArray(value.content) ||
+    !value.content.every(isRecord)
+  ) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session pending input is malformed.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  return { content: value.content, pendingId: value.pending_id };
+}
+
 function normalizeSession(
   value: unknown,
   fallbackTitle?: string,
@@ -275,6 +294,15 @@ function normalizeSession(
       actor: "provider",
       category: "malformed_response",
       message: "Omnigent session response field items must be an array.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  if (value.pending_inputs !== undefined && !Array.isArray(value.pending_inputs)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session response field pending_inputs must be an array.",
       retryable: false,
       scope: "session",
     });
@@ -308,6 +336,9 @@ function normalizeSession(
       typeof wire.parent_session_id === "string"
         ? wire.parent_session_id
         : null,
+    pendingInputs: Array.isArray(value.pending_inputs)
+      ? value.pending_inputs.map(normalizePendingInput)
+      : [],
     projectId:
       typeof wire.project_id === "string" ? wire.project_id : null,
     status,

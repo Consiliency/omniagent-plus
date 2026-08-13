@@ -44,6 +44,12 @@
     "model_options": [],
     "parent_session_id": null,
     "project_id": null,
+    "pending_inputs": [
+      {
+        "pending_id": "pending-snapshot-1",
+        "content": [{ "type": "input_text", "text": "pending snapshot" }]
+      }
+    ],
     "subagent_routing_override": "smart",
     "items": [
       {
@@ -117,6 +123,7 @@
     { "queued": false }
   ],
   "sse_frames": [
+    { "type": "session.input.consumed", "data": { "item_id": "message-user", "type": "message", "data": { "role": "user", "content": [{ "type": "input_text", "text": "question" }] }, "created_by": null, "cleared_pending_id": "pending-1" }, "sequence_number": null },
     { "type": "session.status", "conversation_id": "session-123", "status": "running", "response_id": "response-1", "blocked_on": "tool" },
     { "type": "response.created", "response": { "id": "response-1", "status": "in_progress", "created_at": 1780272050 } },
     { "type": "response.output_text.delta", "delta": "answer" },

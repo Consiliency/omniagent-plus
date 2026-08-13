@@ -94,11 +94,29 @@ type MutableTurnHandle = {
   -readonly [Key in keyof TurnHandle]: TurnHandle[Key];
 };
 
+function userMessageText(item: Readonly<Record<string, unknown>>): string | undefined {
+  if (item.role !== "user" || !Array.isArray(item.content)) {
+    return undefined;
+  }
+  return item.content
+    .flatMap((block) =>
+      typeof block === "object" &&
+      block !== null &&
+      "text" in block &&
+      typeof block.text === "string"
+        ? [block.text]
+        : [],
+    )
+    .join("");
+}
+
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly creates = new Map<string, Promise<AgentSession>>();
   private readonly latestTurnIds = new Map<string, string>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
+  private readonly pendingItemTurnIds = new Map<string, string>();
+  private readonly pendingTurnMessages = new Map<string, string>();
   private readonly provisionalTurnOrder = new Map<string, string[]>();
   private readonly provisionalTurnKeys = new Set<string>();
   private readonly sends = new Map<string, Promise<TurnHandle>>();
@@ -183,6 +201,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     provisionalOrder.push(handle.turnId);
     this.provisionalTurnOrder.set(handle.sessionId, provisionalOrder);
     this.latestTurnIds.set(handle.sessionId, handle.turnId);
+    if (ack.pending_id) {
+      this.pendingTurnMessages.set(
+        `${handle.sessionId}:${ack.pending_id}`,
+        request.message,
+      );
+    }
 
     const session = this.sessions.get(request.sessionId);
     if (session) {
@@ -274,6 +298,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         stream.setFallbackTurnId(turnId);
       }
       const items = await this.client.getHistory(sessionId);
+      this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items, stream);
       this.reconcileTurnsFromHistory(sessionId, items, stream);
       const unresolvedTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
       const soleUnresolvedTurnId =
@@ -336,6 +361,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
 
       for await (const rawEvent of stream.events) {
+        this.recordConsumedPendingItem(sessionId, rawEvent, items, stream);
         const events = mapper.map(rawEvent);
         const mappedFailure = events.find(
           (event): event is Extract<RuntimeEvent, { type: "runtime.turn.failed" }> =>
@@ -592,6 +618,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.turns.set(`${sessionId}:${officialTurnId}`, handle);
     }
     this.provisionalTurnKeys.delete(`${sessionId}:${provisionalTurnId}`);
+    this.pendingTurnMessages.delete(`${sessionId}:${provisionalTurnId}`);
+    for (const [itemKey, pendingId] of this.pendingItemTurnIds) {
+      if (itemKey.startsWith(`${sessionId}:`) && pendingId === provisionalTurnId) {
+        this.pendingItemTurnIds.delete(itemKey);
+      }
+    }
     const provisionalOrder = this.provisionalTurnOrder.get(sessionId);
     const provisionalIndex = provisionalOrder?.indexOf(provisionalTurnId) ?? -1;
     if (provisionalOrder && provisionalIndex >= 0) {
@@ -640,15 +672,95 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     stream?: OmnigentOpenStream,
   ): void {
     for (const item of items) {
-      if (this.turns.has(`${sessionId}:${item.id}`)) {
-        stream?.bindResponseId(item.response_id, item.id);
+      const pendingTurnId = this.pendingItemTurnIds.get(`${sessionId}:${item.id}`);
+      const provisionalTurnId = this.turns.has(`${sessionId}:${item.id}`)
+        ? item.id
+        : pendingTurnId;
+      if (provisionalTurnId) {
+        stream?.bindResponseId(item.response_id, provisionalTurnId);
         this.reconcileTurn(
           sessionId,
-          item.id,
+          provisionalTurnId,
           item.response_id,
           new Date(item.created_at * 1000).toISOString(),
         );
       }
+    }
+  }
+
+  private recordConsumedPendingItem(
+    sessionId: string,
+    event: OmnigentRawEvent,
+    items: readonly {
+      readonly created_at: number;
+      readonly id: string;
+      readonly response_id: string;
+    }[],
+    stream: OmnigentOpenStream,
+  ): void {
+    if (
+      event.type !== "session.input.consumed" ||
+      !event.cleared_pending_id ||
+      !event.consumed_item_id
+    ) {
+      return;
+    }
+    this.pendingItemTurnIds.set(
+      `${sessionId}:${event.consumed_item_id}`,
+      event.cleared_pending_id,
+    );
+    const item = items.find(({ id }) => id === event.consumed_item_id);
+    if (item) {
+      stream.bindResponseId(item.response_id, event.cleared_pending_id);
+      this.reconcileTurn(
+        sessionId,
+        event.cleared_pending_id,
+        item.response_id,
+        new Date(item.created_at * 1000).toISOString(),
+      );
+    }
+  }
+
+  private reconcilePendingTurnsFromSnapshot(
+    sessionId: string,
+    snapshot: OmnigentSessionSnapshot,
+    items: readonly {
+      readonly created_at: number;
+      readonly id: string;
+      readonly response_id: string;
+      readonly [key: string]: unknown;
+    }[],
+    stream?: OmnigentOpenStream,
+  ): void {
+    const stillPending = new Set(
+      (snapshot.pendingInputs ?? []).map(({ pendingId }) => pendingId),
+    );
+    const consumedPending = [...(this.provisionalTurnOrder.get(sessionId) ?? [])]
+      .filter(
+        (pendingId) =>
+          this.pendingTurnMessages.has(`${sessionId}:${pendingId}`) &&
+          !stillPending.has(pendingId),
+      );
+    let beforeIndex = items.length;
+    for (const pendingId of consumedPending.reverse()) {
+      const message = this.pendingTurnMessages.get(`${sessionId}:${pendingId}`);
+      let itemIndex = beforeIndex - 1;
+      while (itemIndex >= 0 && userMessageText(items[itemIndex] ?? {}) !== message) {
+        itemIndex -= 1;
+      }
+      if (itemIndex < 0) {
+        continue;
+      }
+      const item = items[itemIndex]!;
+      beforeIndex = itemIndex;
+      this.pendingItemTurnIds.set(`${sessionId}:${item.id}`, pendingId);
+      stream?.bindResponseId(item.response_id, pendingId);
+      this.reconcileTurn(
+        sessionId,
+        pendingId,
+        item.response_id,
+        new Date(item.created_at * 1000).toISOString(),
+      );
     }
   }
 
