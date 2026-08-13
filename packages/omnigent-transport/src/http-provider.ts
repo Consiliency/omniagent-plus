@@ -355,11 +355,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         request.sessionId,
       );
       this.installSharedSessionMutationState(request.sessionId, sharedState);
-      if (sharedState.closed) {
+      if (sharedState.closed || sharedState.closing) {
         throw createRuntimeFailure({
           actor: "provider",
           category: "state_conflict",
-          message: `Session ${request.sessionId} is closed.`,
+          message: `Session ${request.sessionId} is closing or closed.`,
           retryable: false,
           scope: "session",
         });
@@ -449,7 +449,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       turnId,
       updatedAt: now,
     };
-    this.rejectedTurnKeys.delete(`${request.sessionId}:${turnId}`);
+    const retryingRejectedTurn = this.rejectedTurnKeys.delete(
+      `${request.sessionId}:${turnId}`,
+    );
     const previousLatestTurnId = this.latestTurnIds.get(request.sessionId);
     const previousSession = this.sessions.get(request.sessionId);
     this.turns.set(`${handle.sessionId}:${handle.turnId}`, handle);
@@ -467,6 +469,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
     }
     for (const stream of this.openStreams.get(request.sessionId) ?? []) {
+      if (retryingRejectedTurn) {
+        stream.restoreRejectedTurnId(turnId);
+      }
       stream.setFallbackTurnId(turnId);
     }
 
@@ -730,7 +735,18 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
 
       for await (const rawEvent of stream.events) {
-        this.recordConsumedPendingItem(sessionId, rawEvent, items, stream);
+        const reopenedCancellationTurnId = this.recordConsumedPendingItem(
+          sessionId,
+          rawEvent,
+          items,
+          stream,
+        );
+        if (reopenedCancellationTurnId) {
+          await this.reopenSharedCancellationFence(
+            sessionId,
+            reopenedCancellationTurnId,
+          );
+        }
         const resolvedCancellation = this.consumeCancelledTurnQuarantine(
           sessionId,
           rawEvent,
@@ -859,6 +875,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const store = this.requireSessionMutationFenceStore();
     const sharedState = await store.read(handle.sessionId);
     this.installSharedSessionMutationState(handle.sessionId, sharedState);
+    if (sharedState.closed || sharedState.closing) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${handle.sessionId} is closing or closed.`,
+        retryable: false,
+        scope: "session",
+      });
+    }
     if (sharedState.cancellation) {
       throw createRuntimeFailure({
         actor: "provider",
@@ -1012,15 +1037,31 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           scope: "session",
         });
       }
-      const ack = await this.client.sendEvent(sessionId, {
-        data: {},
-        type: "stop_session",
-      });
-      assertControlEventAccepted(ack);
-      await this.requireSessionMutationFenceStore().write(sessionId, {
+      if (sharedState.closed) {
+        return;
+      }
+      const store = this.requireSessionMutationFenceStore();
+      await store.write(sessionId, {
         ...sharedState,
-        closed: true,
+        closing: true,
       });
+      try {
+        const ack = await this.client.sendEvent(sessionId, {
+          data: {},
+          type: "stop_session",
+        });
+        assertControlEventAccepted(ack);
+        const { closing: _closing, ...stateWithoutClosing } = sharedState;
+        await store.write(sessionId, {
+          ...stateWithoutClosing,
+          closed: true,
+        });
+      } catch (error) {
+        if (isPolicyDenied(error)) {
+          await store.write(sessionId, sharedState);
+        }
+        throw error;
+      }
       const session = this.sessions.get(sessionId);
       if (session) {
         this.sessions.set(sessionId, {
@@ -1177,6 +1218,32 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       }
       await store.write(sessionId, {
         ...(state.closed ? { closed: true as const } : {}),
+        rejectedTurnIds: [...rejectedTurnIds],
+      });
+    });
+  }
+
+  private async reopenSharedCancellationFence(
+    sessionId: string,
+    cancelledTurnId: string,
+  ): Promise<void> {
+    if (!this.withExclusiveSessionLease) {
+      return;
+    }
+    await this.withExclusiveSessionLease(sessionId, async () => {
+      const store = this.requireSessionMutationFenceStore();
+      const state = await store.read(sessionId);
+      if (state.closed || state.closing || state.cancellation) {
+        return;
+      }
+      const rejectedTurnIds = new Set(state.rejectedTurnIds);
+      rejectedTurnIds.add(cancelledTurnId);
+      await store.write(sessionId, {
+        ...state,
+        cancellation: {
+          awaitingIdentity: true,
+          turnId: cancelledTurnId,
+        },
         rejectedTurnIds: [...rejectedTurnIds],
       });
     });
@@ -1771,13 +1838,25 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       readonly response_id: string;
     }[],
     stream: OmnigentOpenStream,
-  ): void {
+  ): string | undefined {
     if (
       event.type !== "session.input.consumed" ||
       !event.cleared_pending_id ||
       !event.consumed_item_id
     ) {
       return;
+    }
+    const pendingTurnKey = `${sessionId}:${event.cleared_pending_id}`;
+    if (
+      this.rejectedTurnKeys.has(pendingTurnKey) ||
+      this.cancelledTurnQuarantineKeys.has(pendingTurnKey)
+    ) {
+      this.cancelledTurnQuarantineKeys.add(pendingTurnKey);
+      this.cancelledTurnAwaitingIdentityKeys.add(pendingTurnKey);
+      for (const target of this.openStreams.get(sessionId) ?? [stream]) {
+        target.quarantineFallbackTurnId(event.cleared_pending_id);
+      }
+      return event.cleared_pending_id;
     }
     this.pendingItemTurnIds.set(
       `${sessionId}:${event.consumed_item_id}`,

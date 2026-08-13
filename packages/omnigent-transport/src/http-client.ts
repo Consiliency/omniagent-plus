@@ -577,6 +577,9 @@ export class OmnigentHttpClient {
       replaceFallbackTurnId: (previousTurnId, nextTurnId) => {
         normalizer.replaceFallbackTurnId(previousTurnId, nextTurnId);
       },
+      restoreRejectedTurnId: (turnId) => {
+        normalizer.restoreRejectedTurnId(turnId);
+      },
       setActiveResponseId: (responseId) => {
         normalizer.setActiveResponseId(responseId);
       },

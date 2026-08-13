@@ -638,6 +638,27 @@ describe("sse stream parser", () => {
     );
   });
 
+  it("does not restore a rejected fallback without an explicit retry", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-rejected-fallback",
+    });
+    normalizer.rejectTurnId("request-rejected");
+    normalizer.setFallbackTurnId("request-rejected");
+    normalizer.setFallbackTurnId("request-accepted");
+
+    expect(
+      normalizer.normalize({
+        response: { id: "response-accepted", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "request-accepted",
+        turnId: "response-accepted",
+      }),
+    );
+  });
+
   it("binds rapid accepted turns to official responses in lifecycle order", () => {
     const normalizer = new OmnigentSseNormalizer({
       sessionId: "session-rapid-turns",

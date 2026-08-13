@@ -380,49 +380,154 @@ describe("http provider", () => {
       { queued: true },
       { item_id: "message-only-id", queued: false },
     ]) {
-      const provider = createHttpProvider({
-        allowQueuedTurns: true,
-        baseUrl: "http://127.0.0.1:4010",
-        fetch: async (input, init) => {
-          const url = String(input);
-          if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+      const createControlProvider = () =>
+        createHttpProvider({
+          allowQueuedTurns: true,
+          baseUrl: "http://127.0.0.1:4010",
+          fetch: async (input, init) => {
+            const url = String(input);
+            if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+              return new Response(JSON.stringify(snapshot));
+            }
+            if (init?.method === "POST") {
+              const event = JSON.parse(String(init.body)) as { type?: string };
+              return new Response(
+                JSON.stringify(
+                  event.type === "message"
+                    ? { item_id: "item-queued-control", queued: true }
+                    : controlAck,
+                ),
+              );
+            }
             return new Response(JSON.stringify(snapshot));
-          }
-          if (init?.method === "POST") {
-            const event = JSON.parse(String(init.body)) as { type?: string };
-            return new Response(
-              JSON.stringify(
-                event.type === "message"
-                  ? { item_id: "item-queued-control", queued: true }
-                  : controlAck,
-              ),
-            );
-          }
-          return new Response(JSON.stringify(snapshot));
+          },
+        });
+      const createActiveTurn = async (
+        provider: ReturnType<typeof createHttpProvider>,
+        suffix: string,
+      ) => {
+        const session = await provider.createSession({
+          agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+          idempotencyKey: `queued-control-create-${suffix}`,
+          runtime: "omnigent",
+          targetHarness: "codex",
+          title: snapshot.title,
+        });
+        const handle = await provider.sendTurn({
+          idempotencyKey: `queued-control-turn-${suffix}`,
+          message: "remain active",
+          sessionId: session.id,
+        });
+        return { handle, session };
+      };
+
+      const closeProvider = createControlProvider();
+      const closeState = await createActiveTurn(closeProvider, "close");
+      await expect(
+        closeProvider.closeSession(closeState.session.id),
+      ).rejects.toMatchObject({
+        category: "malformed_response",
+      });
+      const closeInfo = await closeProvider.getSessionInfo(closeState.session.id);
+      expect(closeInfo.activeTurnId).toBe("item-queued-control");
+      expect(closeInfo.state).toBe("turn_active");
+
+      const cancelProvider = createControlProvider();
+      const cancelState = await createActiveTurn(cancelProvider, "cancel");
+      await expect(cancelProvider.cancelTurn(cancelState.handle)).rejects.toMatchObject({
+        category: "malformed_response",
+      });
+      const cancelInfo = await cancelProvider.getSessionInfo(cancelState.session.id);
+      expect(cancelInfo.activeTurnId).toBe("item-queued-control");
+      expect(cancelInfo.state).toBe("turn_active");
+    }
+  });
+
+  it("retains a shared close fence when acknowledgement is ambiguous", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-ambiguous-close",
+      created_at: 1_780_272_000,
+      id: "session-ambiguous-close",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Ambiguous close",
+      updated_at: 1_780_272_001,
+    };
+    const responseFactories = [
+      () => new Response("{", { status: 200 }),
+      () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.error(new TypeError("terminated"));
+            },
+          }),
+          { status: 200 },
+        ),
+    ];
+
+    for (const responseFactory of responseFactories) {
+      const states = new Map<string, OmnigentSessionMutationFenceState>();
+      const fenceStore: OmnigentSessionMutationFenceStore = {
+        read: async (sessionId) =>
+          states.get(sessionId) ?? { rejectedTurnIds: [] },
+        write: async (sessionId, state) => {
+          states.set(sessionId, state);
         },
+      };
+      let messagePosts = 0;
+      const fetch: typeof globalThis.fetch = async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "message") {
+            messagePosts += 1;
+            return new Response(JSON.stringify({ queued: true }));
+          }
+          return responseFactory();
+        }
+        return new Response(JSON.stringify(snapshot));
+      };
+      const provider = createHttpProvider({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch,
+        sessionMutationFenceStore: fenceStore,
       });
       const session = await provider.createSession({
         agentSpec: { kind: "named_agent", value: snapshot.agent_id },
-        idempotencyKey: "queued-control-create",
+        idempotencyKey: "ambiguous-close-create",
         runtime: "omnigent",
         targetHarness: "codex",
         title: snapshot.title,
       });
-      const handle = await provider.sendTurn({
-        idempotencyKey: "queued-control-turn",
-        message: "remain active",
-        sessionId: session.id,
+
+      await expect(provider.closeSession(session.id)).rejects.toBeDefined();
+      await expect(fenceStore.read(session.id)).resolves.toMatchObject({
+        closing: true,
       });
 
-      await expect(provider.closeSession(session.id)).rejects.toMatchObject({
-        category: "malformed_response",
+      const replacementProvider = createHttpProvider({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch,
+        sessionMutationFenceStore: fenceStore,
       });
-      await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
-        category: "malformed_response",
+      await expect(
+        replacementProvider.sendTurn({
+          idempotencyKey: "ambiguous-close-replacement",
+          message: "must remain fenced",
+          sessionId: session.id,
+        }),
+      ).rejects.toMatchObject({
+        category: "state_conflict",
+        retryable: false,
+        scope: "session",
       });
-      const info = await provider.getSessionInfo(session.id);
-      expect(info.activeTurnId).toBe("item-queued-control");
-      expect(info.state).toBe("turn_active");
+      expect(messagePosts).toBe(0);
     }
   });
 
@@ -712,6 +817,200 @@ describe("http provider", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["next response"]);
+  });
+
+  it("reopens cancellation fencing for a late consumed cancelled input", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-cancelled-late-consumed",
+      created_at: 1_780_272_000,
+      id: "session-cancelled-late-consumed",
+      items: [],
+      pending_inputs: [
+        { content: [], pending_id: "pending-cancelled-late-consumed" },
+      ],
+      status: "idle",
+      title: "Cancelled late consumed input",
+      updated_at: 1_780_272_001,
+    };
+    const states = new Map<string, OmnigentSessionMutationFenceState>();
+    const stateWaiters: Array<{
+      predicate: (state: OmnigentSessionMutationFenceState) => boolean;
+      resolve: () => void;
+    }> = [];
+    const fenceStore: OmnigentSessionMutationFenceStore = {
+      read: async (sessionId) =>
+        states.get(sessionId) ?? { rejectedTurnIds: [] },
+      write: async (sessionId, state) => {
+        states.set(sessionId, state);
+        for (const waiter of [...stateWaiters]) {
+          if (waiter.predicate(state)) {
+            stateWaiters.splice(stateWaiters.indexOf(waiter), 1);
+            waiter.resolve();
+          }
+        }
+      },
+    };
+    const waitForState = (
+      predicate: (state: OmnigentSessionMutationFenceState) => boolean,
+    ) => {
+      const current = states.get(snapshot.id) ?? { rejectedTurnIds: [] };
+      if (predicate(current)) {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve) => {
+        stateWaiters.push({ predicate, resolve });
+      });
+    };
+    let messagePosts = 0;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    let streamStarted!: () => void;
+    const streamReady = new Promise<void>((resolve) => {
+      streamStarted = resolve;
+    });
+    const provider = createHttpProvider({
+      allowQueuedTurns: true,
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "message") {
+            messagePosts += 1;
+            return new Response(
+              JSON.stringify(
+                messagePosts === 1
+                  ? {
+                      pending_id: "pending-cancelled-late-consumed",
+                      queued: true,
+                    }
+                  : { item_id: "item-after-late-consumed", queued: true },
+              ),
+              { status: 202 },
+            );
+          }
+          return new Response(JSON.stringify({ queued: false }));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+                streamStarted();
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+      sessionMutationFenceStore: fenceStore,
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cancelled-late-consumed-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "cancelled-late-consumed-a",
+      message: "cancel A",
+      sessionId: session.id,
+    });
+    await provider.cancelTurn(first);
+    const eventsPromise = collectAsync(provider.streamEvents(session.id));
+    await streamReady;
+    const encoder = new TextEncoder();
+
+    streamController.enqueue(
+      encoder.encode(`data: ${JSON.stringify({ type: "session.interrupted" })}\n\n`),
+    );
+    await waitForState((state) => state.cancellation === undefined);
+    streamController.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          data: {
+            cleared_pending_id: "pending-cancelled-late-consumed",
+            item_id: "item-cancelled-late-consumed",
+          },
+          type: "session.input.consumed",
+        })}\n\n`,
+      ),
+    );
+    await waitForState(
+      (state) =>
+        state.cancellation?.turnId === "pending-cancelled-late-consumed",
+    );
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "cancelled-late-consumed-b",
+        message: "B must wait",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({ category: "state_conflict" });
+    expect(messagePosts).toBe(1);
+
+    streamController.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-cancelled-late-consumed", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    await waitForState((state) => state.cancellation === undefined);
+    const second = await provider.sendTurn({
+      idempotencyKey: "cancelled-late-consumed-b",
+      message: "B may proceed",
+      sessionId: session.id,
+    });
+    for (const event of [
+      {
+        delta: "late A output",
+        type: "response.output_text.delta",
+      },
+      {
+        response: {
+          id: "response-cancelled-late-consumed",
+          status: "cancelled",
+        },
+        type: "response.cancelled",
+      },
+      {
+        response: { id: "response-after-late-consumed", status: "in_progress" },
+        type: "response.created",
+      },
+      {
+        delta: "B output",
+        type: "response.output_text.delta",
+      },
+      {
+        response: { id: "response-after-late-consumed", status: "completed" },
+        type: "response.completed",
+      },
+    ]) {
+      streamController.enqueue(
+        encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+      );
+    }
+    streamController.close();
+
+    const events = await eventsPromise;
+    expect(second.turnId).toBe("response-after-late-consumed");
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["B output"]);
   });
 
   it("consumes official cancellation lifecycle before accepting the next turn", async () => {

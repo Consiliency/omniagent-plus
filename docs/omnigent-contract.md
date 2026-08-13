@@ -73,8 +73,12 @@ controls unless the caller supplies both `withExclusiveSessionLease` and
 every writer of that session. Send, cancel, and close operations all enter that
 lease and consult the shared state. A pending cancellation blocks every writer
 until correlated lifecycle proof arrives; rejected response IDs and logical
-close remain visible to replacement clients. The package consumes these guards
-but does not implement or own lease, lock, or durable fence authority.
+close remain visible to replacement clients. Close records a pending terminal
+fence before sending `stop_session`; only an explicit policy denial removes it,
+so malformed or disconnected acknowledgements remain fail-closed. A late
+consumed-input event for a cancelled pending turn reopens cancellation fencing
+until that turn's lifecycle is correlated. The package consumes these guards but
+does not implement or own lease, lock, or durable fence authority.
 
 ## History And Stream
 

@@ -170,12 +170,15 @@ export class OmnigentSseNormalizer {
   }
 
   setFallbackTurnId(turnId: string | undefined): void {
+    if (turnId !== undefined && this.rejectedTurnIds.has(turnId)) {
+      return;
+    }
     this.fallbackTurnId = turnId;
-    if (turnId !== undefined) {
-      this.rejectedTurnIds.delete(turnId);
-      if (this.identityFreeQuarantineTurnId === turnId) {
-        this.identityFreeQuarantineTurnId = undefined;
-      }
+    if (
+      turnId !== undefined &&
+      this.identityFreeQuarantineTurnId === turnId
+    ) {
+      this.identityFreeQuarantineTurnId = undefined;
     }
     if (
       turnId !== undefined &&
@@ -224,6 +227,13 @@ export class OmnigentSseNormalizer {
     if (this.currentResponseId === turnId) {
       this.identityFreeQuarantineTurnId = turnId;
       this.currentResponseId = undefined;
+    }
+  }
+
+  restoreRejectedTurnId(turnId: string): void {
+    this.rejectedTurnIds.delete(turnId);
+    if (this.identityFreeQuarantineTurnId === turnId) {
+      this.identityFreeQuarantineTurnId = undefined;
     }
   }
 

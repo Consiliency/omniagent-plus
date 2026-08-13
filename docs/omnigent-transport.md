@@ -32,8 +32,11 @@ with `backend_capability_missing` unless `withExclusiveSessionLease` and
 `sessionMutationFenceStore` are configured. Both hooks must use the same
 fleet-wide authority shared by every client that can mutate the session. The
 provider runs send, cancel, and close through the lease; the store keeps pending
-cancellation, rejected response IDs, and logical close visible across clients.
-Durable lease and fence ownership remain outside this package.
+cancellation, rejected response IDs, pending close, and logical close visible
+across clients. Ambiguous stop acknowledgements retain the pending close fence;
+only explicit policy denial rolls it back. Late consumption of a cancelled
+pending input similarly restores its cancellation fence until correlated
+lifecycle arrives. Durable lease and fence ownership remain outside this package.
 
 ## Event Boundary
 

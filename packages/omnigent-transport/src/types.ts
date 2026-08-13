@@ -130,6 +130,7 @@ export interface OmnigentCancellationFence {
 export interface OmnigentSessionMutationFenceState {
   readonly cancellation?: OmnigentCancellationFence;
   readonly closed?: true;
+  readonly closing?: true;
   readonly rejectedTurnIds: readonly string[];
 }
 
@@ -462,6 +463,7 @@ export interface OmnigentOpenStream {
   rejectTurnId(turnId: string): void;
   removeFallbackTurnId(turnId: string): void;
   replaceFallbackTurnId(previousTurnId: string, nextTurnId: string): void;
+  restoreRejectedTurnId(turnId: string): void;
   setActiveResponseId(responseId: string | null | undefined): void;
   setFallbackTurnId(turnId: string | undefined): void;
 }
