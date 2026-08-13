@@ -427,6 +427,8 @@ export interface OmnigentOpenStream {
   readonly events: AsyncIterable<OmnigentRawEvent>;
   bindResponseId(responseId: string, turnId: string): void;
   close(): Promise<void>;
+  removeFallbackTurnId(turnId: string): void;
+  replaceFallbackTurnId(previousTurnId: string, nextTurnId: string): void;
   setActiveResponseId(responseId: string | null | undefined): void;
   setFallbackTurnId(turnId: string | undefined): void;
 }

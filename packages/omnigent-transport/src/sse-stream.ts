@@ -143,6 +143,53 @@ export class OmnigentSseNormalizer {
     }
   }
 
+  removeFallbackTurnId(turnId: string): void {
+    if (this.fallbackTurnId === turnId) {
+      this.fallbackTurnId = undefined;
+    }
+    this.removeUnboundTurnId(turnId);
+    this.removePendingTerminalTurnId(turnId);
+    for (const [responseId, aliasId] of this.responseAliases) {
+      if (aliasId === turnId) {
+        this.responseAliases.delete(responseId);
+      }
+    }
+    for (const [responseId, aliasId] of this.tentativeResponseAliases) {
+      if (aliasId === turnId) {
+        this.tentativeResponseAliases.delete(responseId);
+      }
+    }
+  }
+
+  replaceFallbackTurnId(previousTurnId: string, nextTurnId: string): void {
+    if (previousTurnId === nextTurnId) {
+      return;
+    }
+    if (this.fallbackTurnId === previousTurnId) {
+      this.fallbackTurnId = nextTurnId;
+    }
+    this.replaceTrackedTurnId(
+      this.unboundTurnIds,
+      previousTurnId,
+      nextTurnId,
+    );
+    this.replaceTrackedTurnId(
+      this.pendingTerminalTurnIds,
+      previousTurnId,
+      nextTurnId,
+    );
+    for (const [responseId, aliasId] of this.responseAliases) {
+      if (aliasId === previousTurnId) {
+        this.responseAliases.set(responseId, nextTurnId);
+      }
+    }
+    for (const [responseId, aliasId] of this.tentativeResponseAliases) {
+      if (aliasId === previousTurnId) {
+        this.tentativeResponseAliases.set(responseId, nextTurnId);
+      }
+    }
+  }
+
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
     this.frameOrdinal += 1;
     const raw = tagged as Record<string, unknown>;
@@ -365,6 +412,21 @@ export class OmnigentSseNormalizer {
     const index = this.pendingTerminalTurnIds.indexOf(turnId);
     if (index >= 0) {
       this.pendingTerminalTurnIds.splice(index, 1);
+    }
+  }
+
+  private replaceTrackedTurnId(
+    turnIds: string[],
+    previousTurnId: string,
+    nextTurnId: string,
+  ): void {
+    const index = turnIds.indexOf(previousTurnId);
+    if (index < 0) {
+      return;
+    }
+    turnIds.splice(index, 1);
+    if (!turnIds.includes(nextTurnId)) {
+      turnIds.splice(index, 0, nextTurnId);
     }
   }
 

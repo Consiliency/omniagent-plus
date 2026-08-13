@@ -223,6 +223,145 @@ describe("http provider", () => {
     expect(info.activeTurnId).toBe("response-official");
   });
 
+  it("reconciles stream events that arrive before the send acknowledgement", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-send-stream-race",
+      created_at: 1_780_272_000,
+      id: "session-send-stream-race",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Send stream race",
+      updated_at: 1_780_272_002,
+    };
+    let resolveAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let resolveTurnPosted!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const turnPosted = new Promise<void>((resolve) => {
+      resolveTurnPosted = resolve;
+    });
+    const encoder = new TextEncoder();
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          streamController.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                response: {
+                  created_at: 1_780_272_001,
+                  id: "response-race",
+                  status: "in_progress",
+                },
+                type: "response.created",
+              })}\n\n`,
+            ),
+          );
+          streamController.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                response: {
+                  completed_at: 1_780_272_002,
+                  id: "response-race",
+                  status: "completed",
+                },
+                type: "response.completed",
+              })}\n\n`,
+            ),
+          );
+          resolveTurnPosted();
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "send-stream-race-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
+
+    const send = provider.sendTurn({
+      idempotencyKey: "send-stream-race-turn",
+      message: "race the acknowledgement",
+      sessionId: session.id,
+    });
+    await turnPosted;
+
+    await expect(firstEvent).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-race",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    await expect(iterator.next()).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-race",
+          type: "runtime.turn.completed",
+        }),
+      }),
+    );
+    resolveAck(
+      new Response(
+        JSON.stringify({ item_id: "item-race", queued: true }),
+        { status: 202 },
+      ),
+    );
+
+    const handle = await send;
+    expect(handle.turnId).toBe("response-race");
+    streamController.close();
+    await expect(iterator.next()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+    await provider.readHistory(session.id);
+    const info = await provider.getSessionInfo(session.id);
+    expect(handle.turnId).toBe("response-race");
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.state).toBe("idle");
+  });
+
   it("reconciles from persisted history before yielding its first event", async () => {
     const snapshot = {
       active_response_id: null,

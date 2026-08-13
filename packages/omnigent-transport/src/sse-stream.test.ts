@@ -446,6 +446,43 @@ describe("sse stream parser", () => {
     );
   });
 
+  it("replaces and removes pre-acknowledgement fallback identities", () => {
+    const replaced = new OmnigentSseNormalizer({
+      sessionId: "session-ack-replace",
+    });
+    replaced.setFallbackTurnId("request-provisional");
+    replaced.replaceFallbackTurnId("request-provisional", "item-acknowledged");
+    expect(
+      replaced.normalize({
+        response: { id: "response-replaced", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "item-acknowledged",
+        turnId: "response-replaced",
+      }),
+    );
+
+    const removed = new OmnigentSseNormalizer({
+      sessionId: "session-ack-remove",
+    });
+    removed.setFallbackTurnId("request-rejected");
+    removed.removeFallbackTurnId("request-rejected");
+    removed.setFallbackTurnId("request-accepted");
+    expect(
+      removed.normalize({
+        response: { id: "response-accepted", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "request-accepted",
+        turnId: "response-accepted",
+      }),
+    );
+  });
+
   it("binds rapid accepted turns to official responses in lifecycle order", () => {
     const normalizer = new OmnigentSseNormalizer({
       sessionId: "session-rapid-turns",
