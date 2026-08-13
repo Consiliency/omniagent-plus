@@ -60,6 +60,7 @@ export class OmnigentEventMapper {
   private readonly emittedTextByMessageId = new Map<string, string>();
   private readonly emittedTextByTurnId = new Map<string, string>();
   private readonly emittedUnidentifiedTextByTurnId = new Map<string, string>();
+  private readonly pendingMessageIdsByTurnId = new Map<string, string[]>();
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
   private readonly emittedToolCallIds: Set<string>;
@@ -183,6 +184,15 @@ export class OmnigentEventMapper {
     if (rawEvent.message_id) {
       const remaining = this.historicalTextByMessageId.get(rawEvent.message_id);
       if (remaining !== undefined) {
+        if (delta.length > 0 && remaining.startsWith(delta)) {
+          const next = remaining.slice(delta.length);
+          if (next.length === 0) {
+            this.historicalTextByMessageId.delete(rawEvent.message_id);
+          } else {
+            this.historicalTextByMessageId.set(rawEvent.message_id, next);
+          }
+          return [];
+        }
         const replayOffset = remaining.indexOf(delta);
         if (
           delta.length > 0 &&
@@ -212,6 +222,17 @@ export class OmnigentEventMapper {
         rawEvent.message_id,
         `${this.emittedTextByMessageId.get(rawEvent.message_id) ?? ""}${delta}`,
       );
+      if (rawEvent.turnId) {
+        const pendingMessageIds =
+          this.pendingMessageIdsByTurnId.get(rawEvent.turnId) ?? [];
+        if (!pendingMessageIds.includes(rawEvent.message_id)) {
+          pendingMessageIds.push(rawEvent.message_id);
+          this.pendingMessageIdsByTurnId.set(
+            rawEvent.turnId,
+            pendingMessageIds,
+          );
+        }
+      }
     }
     if (rawEvent.turnId) {
       this.emittedTextByTurnId.set(
@@ -249,8 +270,31 @@ export class OmnigentEventMapper {
         return [];
       }
       const messageId = typeof item.id === "string" ? item.id : undefined;
+      const directEmitted = messageId
+        ? this.emittedTextByMessageId.get(messageId)
+        : undefined;
+      const pendingMessageIds =
+        this.pendingMessageIdsByTurnId.get(rawEvent.turnId) ?? [];
+      const pendingMessageIndex =
+        directEmitted !== undefined
+          ? pendingMessageIds.indexOf(messageId ?? "")
+          : pendingMessageIds.findIndex((pendingMessageId) => {
+              const pendingText =
+                this.emittedTextByMessageId.get(pendingMessageId) ?? "";
+              return (
+                pendingText.length > 0 &&
+                (text.startsWith(pendingText) || pendingText.startsWith(text))
+              );
+            });
+      const correlatedEmitted =
+        pendingMessageIndex >= 0
+          ? this.emittedTextByMessageId.get(
+              pendingMessageIds[pendingMessageIndex] ?? "",
+            )
+          : undefined;
       const emitted = messageId
-        ? (this.emittedTextByMessageId.get(messageId) ??
+        ? (directEmitted ??
+          correlatedEmitted ??
           this.emittedUnidentifiedTextByTurnId.get(rawEvent.turnId) ??
           "")
         : (this.emittedTextByTurnId.get(rawEvent.turnId) ?? "");
@@ -259,12 +303,18 @@ export class OmnigentEventMapper {
         : emitted.startsWith(text)
           ? ""
           : text;
-      if (delta.length === 0) {
-        return [];
+      if (pendingMessageIndex >= 0) {
+        pendingMessageIds.splice(pendingMessageIndex, 1);
+        if (pendingMessageIds.length === 0) {
+          this.pendingMessageIdsByTurnId.delete(rawEvent.turnId);
+        }
       }
       if (messageId) {
         this.emittedTextByMessageId.set(messageId, text);
         this.emittedUnidentifiedTextByTurnId.delete(rawEvent.turnId);
+      }
+      if (delta.length === 0) {
+        return [];
       }
       this.emittedTextByTurnId.set(
         rawEvent.turnId,

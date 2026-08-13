@@ -220,6 +220,37 @@ describe("event mapper", () => {
     expect(runtimeEvents).toEqual([]);
   });
 
+  it("suppresses buffered prefix chunks of a persisted message after reconnect", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: "Hello",
+          id: "delta-buffered-prefix-1",
+          message_id: "message-prefix",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          turnId: "response-prefix",
+          type: "response.output_text.delta",
+        },
+        {
+          delta: " world",
+          id: "delta-buffered-prefix-2",
+          message_id: "message-prefix",
+          occurredAt: "2026-06-30T00:00:01.000Z",
+          sessionId: "session-1",
+          turnId: "response-prefix",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalTextByMessageId: [["message-prefix", "Hello world"]],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([]);
+  });
+
   it("preserves new identifier-free text that repeats a historical prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",
@@ -335,6 +366,42 @@ describe("event mapper", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["streamed reply"]);
+  });
+
+  it("correlates streamed text with a committed item from another id namespace", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-1", [
+      {
+        delta: "Hello",
+        id: "stream-message:0:1",
+        message_id: "stream-message",
+        occurredAt,
+        sessionId: "session-1",
+        turnId: "response-streamed",
+        type: "response.output_text.delta",
+      },
+      {
+        id: "ap-item-done",
+        item: {
+          content: [{ text: "Hello world", type: "output_text" }],
+          id: "ap-item",
+          response_id: "response-streamed",
+          role: "assistant",
+          type: "message",
+        },
+        itemId: "ap-item",
+        occurredAt,
+        sessionId: "session-1",
+        turnId: "response-streamed",
+        type: "response.output_item.done",
+      },
+    ]);
+
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["Hello", " world"]);
   });
 
   it("preserves complete text for distinct messages sharing one response", () => {

@@ -328,7 +328,7 @@ describe("sse stream parser", () => {
             {
               delta: "second",
               final: true,
-              index: 1,
+              index: 0,
               message_id: "message-stable",
               type: "response.output_text.delta",
             },
@@ -346,10 +346,7 @@ describe("sse stream parser", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["first", "second"]);
-    expect(events.slice(1).map((event) => event.id)).toEqual([
-      "message-stable:0",
-      "message-stable:1",
-    ]);
+    expect(new Set(events.slice(1).map((event) => event.id)).size).toBe(2);
     expect(events.slice(1).map((event) => event.itemId)).toEqual([
       undefined,
       undefined,

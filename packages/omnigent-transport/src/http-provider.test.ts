@@ -3253,7 +3253,7 @@ describe("http provider", () => {
         type: "message",
       },
       {
-        content: [{ text: "B", type: "output_text" }],
+        content: [{ text: "Hello world", type: "output_text" }],
         created_at: 1_780_272_002,
         id: "message-b",
         response_id: "response-shared",
@@ -3282,7 +3282,14 @@ describe("http provider", () => {
               })}`,
               "",
               `data: ${JSON.stringify({
-                delta: "B",
+                delta: "Hello",
+                index: 0,
+                message_id: "message-b",
+                type: "response.output_text.delta",
+              })}`,
+              "",
+              `data: ${JSON.stringify({
+                delta: " world",
                 index: 0,
                 message_id: "message-b",
                 type: "response.output_text.delta",
@@ -3319,7 +3326,7 @@ describe("http provider", () => {
       events
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
-    ).toEqual(["A", "B"]);
+    ).toEqual(["A", "Hello world"]);
   });
 
   it("emits a terminal-backed assistant item without preceding text deltas", async () => {

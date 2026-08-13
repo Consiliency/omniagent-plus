@@ -356,10 +356,13 @@ export class OmnigentSseNormalizer {
       stringValue(raw.elicitation_id) ??
       stringValue(raw.file_id);
     const messageIndex = numberValue(raw.index);
+    const streamEventOrdinal =
+      sequence ??
+      `${this.options.syntheticEventIdPrefix ?? sessionId}:${this.frameOrdinal}`;
     const eventId =
       itemId ??
       (messageId
-        ? `${messageId}:${messageIndex ?? this.frameOrdinal}`
+        ? `${messageId}:${messageIndex ?? 0}:${streamEventOrdinal}`
         : undefined) ??
       (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
       `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
