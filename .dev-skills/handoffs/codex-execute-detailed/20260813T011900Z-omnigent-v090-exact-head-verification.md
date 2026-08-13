@@ -2,8 +2,9 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `a2783a9`, and no source or evidence
-files may change after this receipt is committed without another full run.
+this file. The final implementation parent is
+`75c6bb0afaa5e9506a3d0fae7a19f693b6168b5f`, and no source or evidence files
+may change after this receipt is committed without another full run.
 
 ## Scope
 
@@ -17,7 +18,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 125 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 127 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +27,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 297 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 299 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -295,6 +296,20 @@ files may change after this receipt is committed without another full run.
   A stream-first regression consumes pending A before its delayed acknowledgement,
   then sends B and proves the old pending fallback cannot capture B's response;
   B reconciles, emits, completes, and leaves the session idle.
+- Stable message identity no longer doubles as chunk identity. Repeated v0.9
+  Antigravity chunks with the same `message_id` and index receive distinct
+  stream-event identities, so both chunks reach the runtime mapper. A regression
+  sends two index-zero chunks and proves both are emitted in order.
+- Streamed message IDs and committed Antigravity item IDs are correlated within
+  their turn without assuming a shared namespace. FIFO, content-compatible
+  matching suppresses bytes already delivered from the live stream while
+  preserving a committed continuation. A regression streams `Hello` under a
+  message ID, commits `Hello world` under a different item ID, and emits only
+  the remaining ` world`.
+- Message-scoped persisted replay now consumes exact buffered prefix chunks in
+  order as well as suffix-only reconnect chunks. A history-first provider race
+  buffers `Hello` and ` world` while the same `Hello world` message commits, and
+  proves the persisted message is delivered exactly once.
 
 ## Boundaries
 
