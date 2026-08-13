@@ -515,6 +515,19 @@ describe("sse stream parser", () => {
         officialOne,
       ]).filter((event) => event.type === "runtime.turn.failed"),
     ).toHaveLength(2);
+
+    normalizer.setFallbackTurnId("provisional-three");
+    expect(
+      normalizer.normalize({
+        response: { id: "response-three", status: "completed" },
+        type: "response.completed",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasConfirmed: true,
+        turnAliasId: "provisional-three",
+      }),
+    );
   });
 
   it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {

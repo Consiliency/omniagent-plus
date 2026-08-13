@@ -134,6 +134,45 @@ describe("event mapper", () => {
     );
   });
 
+  it("keeps text that continues a persisted message id after reconnect", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: "hello",
+          id: "delta-replayed",
+          message_id: "message-1",
+          occurredAt,
+          sessionId: "session-1",
+          turnId: "response-1",
+          type: "response.output_text.delta",
+        },
+        {
+          delta: " world",
+          id: "delta-continuation",
+          message_id: "message-1",
+          occurredAt,
+          sessionId: "session-1",
+          turnId: "response-1",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalTextByTurnId: [["response-1", "hello"]],
+        seenItemIds: ["message-1"],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([
+      expect.objectContaining({
+        payload: { delta: " world" },
+        turnId: "response-1",
+        type: "runtime.text.delta",
+      }),
+    ]);
+  });
+
   it("accepts v0.4 UI and metadata events as safe no-ops", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

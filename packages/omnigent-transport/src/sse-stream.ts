@@ -97,6 +97,7 @@ export class OmnigentSseNormalizer {
   private currentResponseId: string | undefined;
   private fallbackTurnId: string | undefined;
   private readonly knownResponseIds = new Set<string>();
+  private pendingTerminalAmbiguous = false;
   private readonly pendingTerminalTurnIds: string[] = [];
   private readonly responseAliases = new Map<string, string>();
   private readonly tentativeResponseAliases = new Map<string, string>();
@@ -201,8 +202,13 @@ export class OmnigentSseNormalizer {
         this.pendingTerminalTurnIds.length > 0 &&
         this.unboundTurnIds.length === 0
       ) {
-        turnAliasId = this.pendingTerminalTurnIds[0];
-        turnAliasConfirmed = this.pendingTerminalTurnIds.length === 1;
+        const pendingCount = this.pendingTerminalTurnIds.length;
+        turnAliasId = this.pendingTerminalTurnIds.shift();
+        turnAliasConfirmed =
+          !this.pendingTerminalAmbiguous && pendingCount === 1;
+        if (this.pendingTerminalTurnIds.length === 0) {
+          this.pendingTerminalAmbiguous = false;
+        }
       } else if (
         this.pendingTerminalTurnIds.length === 0 &&
         this.unboundTurnIds.length > 0
@@ -316,6 +322,9 @@ export class OmnigentSseNormalizer {
       ) {
         this.removeUnboundTurnId(turnId);
         if (!this.pendingTerminalTurnIds.includes(turnId)) {
+          if (this.pendingTerminalTurnIds.length > 0) {
+            this.pendingTerminalAmbiguous = true;
+          }
           this.pendingTerminalTurnIds.push(turnId);
         }
       }

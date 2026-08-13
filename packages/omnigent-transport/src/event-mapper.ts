@@ -48,11 +48,7 @@ export class OmnigentEventMapper {
   }
 
   map(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
-    const historicalItemKey =
-      rawEvent.itemId ??
-      (rawEvent.type === "response.output_text.delta"
-        ? rawEvent.message_id
-        : undefined);
+    const historicalItemKey = rawEvent.itemId;
     if (historicalItemKey && this.historicalItemIds.has(historicalItemKey)) {
       return [];
     }
@@ -127,7 +123,7 @@ export class OmnigentEventMapper {
 
   private mapTextDelta(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     let delta = rawEvent.delta ?? "";
-    if (rawEvent.turnId && rawEvent.message_id === undefined) {
+    if (rawEvent.turnId) {
       const remaining = this.historicalTextRemainders.get(rawEvent.turnId);
       if (remaining !== undefined) {
         if (remaining.startsWith(delta)) {
@@ -147,8 +143,6 @@ export class OmnigentEventMapper {
           }
         }
       }
-    } else if (rawEvent.turnId) {
-      this.historicalTextRemainders.delete(rawEvent.turnId);
     }
 
     return [
