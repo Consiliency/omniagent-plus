@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `c0e79a5`, and no source or evidence
+this file. The final implementation parent is `51d0939`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 88 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 92 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 260 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 264 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -92,6 +92,20 @@ files may change after this receipt is committed without another full run.
   pre-acknowledgement fallback. A regression delivers both response-created and
   response-completed before releasing a valid acknowledgement and proves the
   returned handle remains official and the session remains idle.
+- Exact item acknowledgement rows are reserved before pending FIFO recovery, so
+  a mixed pending-ID then item-ID sequence cannot assign both handles to the
+  latter response. A mixed acknowledgement regression proves each handle keeps
+  its own official response.
+- If an official SSE lifecycle reconciles a request provisional before the HTTP
+  acknowledgement connection fails, the lifecycle is authoritative evidence of
+  acceptance. The same idempotency key retains the fulfilled handle and cannot
+  post the turn again. A deterministic lost-ack regression proves one POST.
+- A native pending acknowledgement arriving after an id-less status terminal
+  restores its pending ID to reconnect order without reseeding the retired
+  synthetic request ID. Persisted history then reconciles the handle normally.
+- Persisted terminal history now updates tracked provider state after snapshot
+  refresh. A persisted error regression proves the emitted failure also clears
+  active identity and leaves the session failed with the mapped error.
 
 ## Boundaries
 
