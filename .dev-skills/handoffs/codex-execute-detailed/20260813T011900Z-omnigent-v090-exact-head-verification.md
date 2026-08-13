@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`5977ed8c7d724685af0db33382cfd4e65fb742ff`, and no source or evidence files
+`606e5ace04c06b0b997fd0ee69e4a563641c0e30`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 143 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 145 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 315 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 317 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -419,6 +419,19 @@ may change after this receipt is committed without another full run.
   provisional alias or official turn ID. A send-to-official, cancel, official
   `response.cancelled`, then send-B regression proves the barrier clears and B
   receives its own official response.
+- Logical close is terminal for the provider-owned session state. Snapshot and
+  history refresh, persisted lifecycle reduction, and later live lifecycle
+  events preserve `closed`; a subsequent send fails as a non-retryable session
+  `state_conflict` before any message POST. The regression closes a session with
+  existing lifecycle history, replays both history and stream events, and proves
+  the session cannot reopen.
+- Default one-active-turn admission no longer depends on an available active
+  response ID. Any locally tracked `turn_active` state fails closed, and leased
+  admission performs a fresh upstream snapshot check while the shared session
+  lease is held. A no-ID running-session regression proves zero message POSTs;
+  a two-provider shared-lease regression starts A and B concurrently, records
+  A's pending work upstream, and proves B receives retryable
+  `concurrency_limit` with exactly one message POST across both providers.
 
 ## Boundaries
 
