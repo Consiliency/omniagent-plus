@@ -335,6 +335,177 @@ describe("http provider", () => {
     ).toEqual(["next response"]);
   });
 
+  it("quarantines late lifecycle from a cancelled handle on an open stream", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-cancelled-late",
+      created_at: 1_780_272_000,
+      id: "session-cancelled-late",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Cancelled late lifecycle",
+      updated_at: 1_780_272_001,
+    };
+    const encoder = new TextEncoder();
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    let resolveHistoryReady!: () => void;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          return new Response(
+            JSON.stringify(
+              event.type === "message" ? { queued: true } : { queued: false },
+            ),
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(JSON.stringify({ data: [], has_more: false }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cancelled-late-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "cancelled-late-first",
+      message: "cancel me",
+      sessionId: session.id,
+    });
+    const firstTurnId = first.turnId;
+    const eventsPromise = collectAsync(provider.streamEvents(session.id));
+    await historyReady;
+    const cancelled = await provider.cancelTurn(first);
+    const second = await provider.sendTurn({
+      idempotencyKey: "cancelled-late-second",
+      message: "run me",
+      sessionId: session.id,
+    });
+    const frames = [
+      {
+        response: { id: "response-cancelled-a", status: "in_progress" },
+        type: "response.created",
+      },
+      {
+        delta: "cancelled output",
+        message_id: "message-cancelled-a",
+        type: "response.output_text.delta",
+      },
+      {
+        response: { id: "response-cancelled-a", status: "cancelled" },
+        type: "response.cancelled",
+      },
+      {
+        response: { id: "response-after-cancel", status: "in_progress" },
+        type: "response.created",
+      },
+      {
+        delta: "next response",
+        message_id: "message-after-cancel",
+        type: "response.output_text.delta",
+      },
+      {
+        response: { id: "response-after-cancel", status: "completed" },
+        type: "response.completed",
+      },
+    ];
+    for (const frame of frames) {
+      streamController.enqueue(
+        encoder.encode(`data: ${JSON.stringify(frame)}\n\n`),
+      );
+    }
+    streamController.close();
+
+    const events = await eventsPromise;
+
+    expect(cancelled).toMatchObject({ state: "cancelled", turnId: firstTurnId });
+    expect(second.turnId).toBe("response-after-cancel");
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["next response"]);
+  });
+
+  it("rejects stale-handle cancellation before sending a session interrupt", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-stale-cancel",
+      created_at: 1_780_272_000,
+      id: "session-stale-cancel",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Stale cancellation",
+      updated_at: 1_780_272_001,
+    };
+    let interruptPosts = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "interrupt") {
+            interruptPosts += 1;
+          }
+          return new Response(JSON.stringify({ queued: true }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "stale-cancel-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "stale-cancel-first",
+      message: "first",
+      sessionId: session.id,
+    });
+    await provider.sendTurn({
+      idempotencyKey: "stale-cancel-second",
+      message: "second",
+      sessionId: session.id,
+    });
+
+    await expect(provider.cancelTurn(first)).rejects.toMatchObject({
+      category: "state_conflict",
+    });
+    expect(interruptPosts).toBe(0);
+  });
+
   it("reconciles a provisional handle from snapshot-only evidence", async () => {
     const snapshot = {
       active_response_id: null as string | null,
@@ -4622,6 +4793,93 @@ describe("http provider", () => {
         .map((event) => event.payload.delta),
     ).toEqual(["lo"]);
     expect(second.every((event) => event.sequence > cursor)).toBe(true);
+  });
+
+  it("does not reactivate a completed turn from a cursor-filtered start replay", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-replayed-start",
+      created_at: 1_780_272_000,
+      id: "session-replayed-start",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Replayed start",
+      updated_at: 1_780_272_002,
+    };
+    let streamRead = 0;
+    let interruptPosts = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "interrupt") {
+            interruptPosts += 1;
+            return new Response(JSON.stringify({ queued: false }));
+          }
+          return new Response(JSON.stringify({ queued: true }));
+        }
+        if (url.endsWith("/stream")) {
+          streamRead += 1;
+          const frames = [
+            {
+              response: { id: "response-replayed", status: "in_progress" },
+              type: "response.created",
+            },
+            ...(streamRead === 1
+              ? [
+                  {
+                    response: {
+                      id: "response-replayed",
+                      status: "completed",
+                    },
+                    type: "response.completed",
+                  },
+                ]
+              : []),
+          ];
+          return new Response(
+            frames
+              .map((frame) => `data: ${JSON.stringify(frame)}\n\n`)
+              .join(""),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(JSON.stringify({ data: [], has_more: false }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "replayed-start-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "replayed-start-turn",
+      message: "run once",
+      sessionId: session.id,
+    });
+    const first = await collectAsync(provider.streamEvents(session.id));
+    const cursor = first.at(-1)?.sequence ?? 0;
+
+    const replay = await collectAsync(
+      provider.streamEvents(session.id, { afterSequence: cursor }),
+    );
+
+    expect(replay).toEqual([]);
+    await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
+      category: "state_conflict",
+    });
+    expect(interruptPosts).toBe(0);
   });
 
   it("keeps history cursor zero independent from an earlier reader", async () => {

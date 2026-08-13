@@ -140,6 +140,7 @@ function isNonRetryableRuntimeFailure(value: unknown): boolean {
 
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
+  private readonly cancelledTurnQuarantineKeys = new Set<string>();
   private readonly claimedHistoryItemKeys = new Set<string>();
   private readonly creates = new Map<string, Promise<AgentSession>>();
   private readonly deliveredTextEventsByTurnIds = new Map<
@@ -402,7 +403,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       const rejectedKeyPrefix = `${sessionId}:`;
       for (const rejectedKey of this.rejectedTurnKeys) {
         if (rejectedKey.startsWith(rejectedKeyPrefix)) {
-          stream.rejectTurnId(rejectedKey.slice(rejectedKeyPrefix.length));
+          const rejectedTurnId = rejectedKey.slice(rejectedKeyPrefix.length);
+          stream.rejectTurnId(rejectedTurnId);
         }
       }
       for (const turnId of provisionalTurnIds) {
@@ -513,6 +515,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       for await (const rawEvent of stream.events) {
         this.recordConsumedPendingItem(sessionId, rawEvent, items, stream);
         if (this.eventIsRejected(sessionId, rawEvent)) {
+          this.consumeCancelledTurnQuarantine(sessionId, rawEvent);
           continue;
         }
         const mappedEvents = mapper.map(rawEvent);
@@ -548,38 +551,44 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           );
         }
         if (
-          rawEvent.turnId &&
-          rawEvent.turnAliasId === undefined &&
-          this.sessions.get(sessionId)?.activeTurnId === undefined &&
-          (rawEvent.type === "response.created" ||
-            rawEvent.type === "turn.started")
+          rawEvent.terminal ||
+          events.length > 0 ||
+          !stateMutationRequiresRuntimeEvent(rawEvent)
         ) {
-          this.latestTurnIds.set(sessionId, rawEvent.turnId);
-        }
-        const eventConcernsActiveTurn = this.eventConcernsActiveTurn(
-          sessionId,
-          rawEvent,
-        );
-        if (rawEvent.terminal) {
-          if (rawEvent.turnId) {
-            this.retireProvisionalTurnCandidate(sessionId, rawEvent.turnId);
+          if (
+            rawEvent.turnId &&
+            rawEvent.turnAliasId === undefined &&
+            this.sessions.get(sessionId)?.activeTurnId === undefined &&
+            (rawEvent.type === "response.created" ||
+              rawEvent.type === "turn.started")
+          ) {
+            this.latestTurnIds.set(sessionId, rawEvent.turnId);
           }
-          if (eventConcernsActiveTurn && isFailureTerminal(rawEvent)) {
-            this.failActiveTurn(
-              sessionId,
-              rawEvent.occurredAt,
-              mappedFailure ?? failureFromRawEvent(rawEvent),
-              rawEvent.turnId,
-            );
-          } else if (eventConcernsActiveTurn) {
-            this.clearActiveTurn(
-              sessionId,
-              rawEvent.occurredAt,
-              rawEvent.turnId,
-            );
+          const eventConcernsActiveTurn = this.eventConcernsActiveTurn(
+            sessionId,
+            rawEvent,
+          );
+          if (rawEvent.terminal) {
+            if (rawEvent.turnId) {
+              this.retireProvisionalTurnCandidate(sessionId, rawEvent.turnId);
+            }
+            if (eventConcernsActiveTurn && isFailureTerminal(rawEvent)) {
+              this.failActiveTurn(
+                sessionId,
+                rawEvent.occurredAt,
+                mappedFailure ?? failureFromRawEvent(rawEvent),
+                rawEvent.turnId,
+              );
+            } else if (eventConcernsActiveTurn) {
+              this.clearActiveTurn(
+                sessionId,
+                rawEvent.occurredAt,
+                rawEvent.turnId,
+              );
+            }
+          } else if (rawEvent.turnId && eventConcernsActiveTurn) {
+            this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
           }
-        } else if (rawEvent.turnId && eventConcernsActiveTurn) {
-          this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
         }
         for (const event of events) {
           this.recordDeliveredText(sessionId, [event]);
@@ -596,6 +605,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     handle: TurnHandle,
     reason: CancellationReason = "user_request",
   ): Promise<TurnHandle> {
+    const activeTurnId = this.sessions.get(handle.sessionId)?.activeTurnId;
+    if (activeTurnId !== handle.turnId) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Turn ${handle.turnId} is not the active turn for session ${handle.sessionId}.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
     const ack = await this.client.sendEvent(handle.sessionId, {
       data: { reason },
       type: "interrupt",
@@ -1113,6 +1132,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.provisionalTurnKeys.delete(turnKey);
     this.nativePendingTurnKeys.delete(turnKey);
     this.queuedOnlyTurnKeys.delete(turnKey);
+    this.cancelledTurnQuarantineKeys.add(turnKey);
+    this.rejectedTurnKeys.add(turnKey);
     this.provisionalTurnAliases.delete(turnKey);
     for (const [aliasKey, aliasedTurnId] of this.provisionalTurnAliases) {
       if (aliasKey.startsWith(`${sessionId}:`) && aliasedTurnId === turnId) {
@@ -1128,7 +1149,29 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.latestTurnIds.delete(sessionId);
     }
     for (const stream of this.openStreams.get(sessionId) ?? []) {
-      stream.removeFallbackTurnId(turnId);
+      stream.quarantineFallbackTurnId(turnId);
+    }
+  }
+
+  private consumeCancelledTurnQuarantine(
+    sessionId: string,
+    event: OmnigentRawEvent,
+  ): void {
+    if (!event.turnAliasId) {
+      return;
+    }
+    const cancelledKey = `${sessionId}:${event.turnAliasId}`;
+    if (!this.cancelledTurnQuarantineKeys.delete(cancelledKey)) {
+      return;
+    }
+    for (const stream of this.openStreams.get(sessionId) ?? []) {
+      stream.removeFallbackTurnId(event.turnAliasId);
+    }
+    if (event.turnId) {
+      this.rejectedTurnKeys.add(`${sessionId}:${event.turnId}`);
+      for (const stream of this.openStreams.get(sessionId) ?? []) {
+        stream.rejectTurnId(event.turnId);
+      }
     }
   }
 
@@ -1360,6 +1403,22 @@ function isFailureTerminal(event: OmnigentRawEvent): boolean {
     event.type === "response.incomplete" &&
     !event.reason?.includes("interrupt") &&
     !event.reason?.includes("timeout")
+  );
+}
+
+function stateMutationRequiresRuntimeEvent(event: OmnigentRawEvent): boolean {
+  return (
+    event.type === "response.created" ||
+    event.type === "turn.started" ||
+    event.type === "response.output_text.delta" ||
+    event.type === "response.output_item.done" ||
+    event.type === "response.completed" ||
+    event.type === "turn.completed" ||
+    event.type === "response.cancelled" ||
+    event.type === "turn.cancelled" ||
+    event.type === "response.incomplete" ||
+    event.type === "response.failed" ||
+    event.type === "turn.failed"
   );
 }
 

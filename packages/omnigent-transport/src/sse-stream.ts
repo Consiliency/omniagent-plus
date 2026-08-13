@@ -205,6 +205,17 @@ export class OmnigentSseNormalizer {
     }
   }
 
+  quarantineFallbackTurnId(turnId: string): void {
+    this.rejectedTurnIds.add(turnId);
+    if (
+      !this.unboundTurnIds.includes(turnId) &&
+      !this.pendingTerminalTurnIds.includes(turnId) &&
+      ![...this.responseAliases.values()].includes(turnId)
+    ) {
+      this.unboundTurnIds.push(turnId);
+    }
+  }
+
   rejectTurnId(turnId: string): void {
     this.rejectedTurnIds.add(turnId);
     this.removeFallbackTurnId(turnId);
