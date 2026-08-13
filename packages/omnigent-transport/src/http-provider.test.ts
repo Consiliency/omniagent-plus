@@ -96,11 +96,13 @@ describe("http provider", () => {
         sessionId: session.id,
       });
       const history = await provider.readHistory(session.id);
+      const repeatedHistory = await provider.readHistory(session.id);
       const streamed = await collectAsync(provider.streamEvents(session.id));
       await provider.readHistory(session.id);
       const info = await provider.getSessionInfo(session.id);
 
       expect(handle.state).toBe("queued");
+      expect(repeatedHistory).toEqual(history);
       expect(history.events.some((event) => event.type === "runtime.turn.started")).toBe(
         true,
       );
@@ -145,6 +147,69 @@ describe("http provider", () => {
     } finally {
       await server.stop();
     }
+  });
+
+  it("keeps local state unchanged when cancel and close controls are denied", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-control-denial",
+      created_at: 1_780_272_000,
+      id: "session-control-denial",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Control denial",
+      updated_at: 1_780_272_001,
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "message") {
+            return new Response(
+              JSON.stringify({ item_id: "item-control", queued: true }),
+              { status: 202 },
+            );
+          }
+          return new Response(
+            JSON.stringify({
+              denied: true,
+              queued: false,
+              reason: `${event.type} denied`,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "control-denial-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "control-denial-turn",
+      message: "remain active",
+      sessionId: session.id,
+    });
+
+    await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
+      category: "policy_denied",
+    });
+    await expect(provider.closeSession(session.id)).rejects.toMatchObject({
+      category: "policy_denied",
+    });
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(info.activeTurnId).toBe("item-control");
+    expect(info.state).toBe("turn_active");
   });
 
   it("maps active_response_id snapshots into active turn identity", async () => {
@@ -1426,12 +1491,22 @@ describe("http provider", () => {
       title: "Pending offline",
       updated_at: 1_780_272_001,
     };
-    const history = [
+    const localItem = {
+      content: [{ text: "offline prompt", type: "input_text" }],
+      created_at: 1_780_272_001,
+      id: "item-pending-offline",
+      response_id: "response-pending-offline",
+      role: "user",
+      status: "completed",
+      type: "message",
+    };
+    let history = [
+      localItem,
       {
-        content: [{ text: "offline prompt", type: "input_text" }],
-        created_at: 1_780_272_001,
-        id: "item-pending-offline",
-        response_id: "response-pending-offline",
+        content: [{ text: "external prompt", type: "input_text" }],
+        created_at: 1_780_272_002,
+        id: "item-external-offline",
+        response_id: "response-external-offline",
         role: "user",
         status: "completed",
         type: "message",
@@ -1476,6 +1551,10 @@ describe("http provider", () => {
       sessionId: session.id,
     });
 
+    await provider.readHistory(session.id);
+    expect(handle.turnId).toBe("pending-offline");
+
+    history = [localItem];
     await provider.readHistory(session.id);
     const info = await provider.getSessionInfo(session.id);
 

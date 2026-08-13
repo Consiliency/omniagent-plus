@@ -20,6 +20,7 @@ import { OmnigentEventMapper } from "./event-mapper.js";
 import { mapOmnigentConversationHistory } from "./history-mapper.js";
 import { OmnigentHttpClient, OmnigentNetworkError } from "./http-client.js";
 import type {
+  OmnigentEventAck,
   OmnigentHttpClientOptions,
   OmnigentOpenStream,
   OmnigentRawEvent,
@@ -111,6 +112,18 @@ function runtimeEventSequenceKey(event: RuntimeEvent): string {
       return `tool-result:${event.payload.toolCallId}`;
     default:
       return `${event.type}:${event.eventId}`;
+  }
+}
+
+function assertControlEventAccepted(ack: OmnigentEventAck): void {
+  if ("denied" in ack && ack.denied) {
+    throw createRuntimeFailure({
+      actor: "policy",
+      category: "policy_denied",
+      message: ack.reason,
+      retryable: false,
+      scope: "turn",
+    });
   }
 }
 
@@ -274,10 +287,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const mapped = mapOmnigentConversationHistory(sessionId, items);
     this.refreshTrackedSession(sessionId, snapshot);
     this.applyMappedHistoryState(sessionId, mapped.runtimeEvents);
-    const replayEvents = this.trimDeliveredHistoryText(
-      sessionId,
-      mapped.runtimeEvents,
-    );
+    const replayEvents =
+      options?.afterSequence === undefined
+        ? mapped.runtimeEvents
+        : this.trimDeliveredHistoryText(sessionId, mapped.runtimeEvents);
     const mappedEvents = this.resequenceRuntimeEvents(
       sessionId,
       replayEvents,
@@ -390,10 +403,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (provisionalTurnIds.length === 0 ? activeTurnId : undefined),
       );
       const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items);
-      const replayEvents = this.trimDeliveredHistoryText(
-        sessionId,
-        mappedSnapshot.runtimeEvents,
-      );
+      const replayEvents =
+        options?.afterSequence === undefined
+          ? mappedSnapshot.runtimeEvents
+          : this.trimDeliveredHistoryText(
+              sessionId,
+              mappedSnapshot.runtimeEvents,
+            );
       const mappedHistoryEvents = this.resequenceRuntimeEvents(
         sessionId,
         replayEvents,
@@ -503,10 +519,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     handle: TurnHandle,
     reason: CancellationReason = "user_request",
   ): Promise<TurnHandle> {
-    await this.client.sendEvent(handle.sessionId, {
+    const ack = await this.client.sendEvent(handle.sessionId, {
       data: { reason },
       type: "interrupt",
     });
+    assertControlEventAccepted(ack);
     const cancelled: TurnHandle = {
       ...handle,
       state: "cancelled",
@@ -526,10 +543,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async closeSession(sessionId: string): Promise<void> {
-    await this.client.sendEvent(sessionId, {
+    const ack = await this.client.sendEvent(sessionId, {
       data: {},
       type: "stop_session",
     });
+    assertControlEventAccepted(ack);
     const session = this.sessions.get(sessionId);
     if (session) {
       this.sessions.set(sessionId, {
@@ -1044,7 +1062,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         !this.claimedHistoryItemKeys.has(`${sessionId}:${item.id}`) &&
         !this.pendingItemTurnIds.has(`${sessionId}:${item.id}`),
     );
-    if (candidates.length < consumedPending.length) {
+    if (candidates.length !== consumedPending.length) {
       return;
     }
     const consumedItems = candidates.slice(-consumedPending.length);
