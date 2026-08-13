@@ -65,6 +65,30 @@ describe("sse stream parser", () => {
     expect(events[0]?.delta).toBe("hi");
   });
 
+  it("parses CRLF-delimited SSE frames independently", async () => {
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          [
+            'data: {"response":{"id":"response-crlf","status":"in_progress"},"type":"response.created"}',
+            "",
+            'data: {"delta":"hello","response_id":"response-crlf","type":"response.output_text.delta"}',
+            "",
+          ].join("\r\n"),
+        ),
+        { sessionId: "session-crlf" },
+      ),
+    );
+
+    expect(events.map((event) => event.type)).toEqual([
+      "response.created",
+      "response.output_text.delta",
+    ]);
+    expect(events[1]).toEqual(
+      expect.objectContaining({ delta: "hello", turnId: "response-crlf" }),
+    );
+  });
+
   it("parses official v0.4 event families without unknown-event skips", async () => {
     const fixture = loadOmnigentEventFixture("v0-4-noop-events");
     const skipped: string[] = [];

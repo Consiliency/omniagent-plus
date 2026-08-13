@@ -148,6 +148,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly latestTurnIds = new Map<string, string>();
   private readonly latestFailureTurnIds = new Map<string, string>();
   private readonly nextEventSequences = new Map<string, number>();
+  private readonly observedHistoryItemKeys = new Set<string>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
   private readonly nativePendingTurnKeys = new Set<string>();
   private readonly pendingItemTurnIds = new Map<string, string>();
@@ -202,6 +203,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     request: CreateSessionRequest,
   ): Promise<AgentSession> {
     const snapshot = await this.client.createSession(request);
+    for (const item of snapshot.items ?? []) {
+      this.observedHistoryItemKeys.add(`${snapshot.id}:${item.id}`);
+    }
     const session = toSessionInfo(request, snapshot);
     this.sessions.set(session.id, session);
     return session;
@@ -266,6 +270,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           stream.removeFallbackTurnId(ack.pending_id);
         }
       } else if (!ack.item_id && handle.turnId === turnId) {
+        const order = this.provisionalTurnOrder.get(handle.sessionId) ?? [];
+        if (!order.includes(turnId)) {
+          order.push(turnId);
+          this.provisionalTurnOrder.set(handle.sessionId, order);
+        }
         this.queuedOnlyTurnKeys.add(`${handle.sessionId}:${turnId}`);
       }
       return handle;
@@ -787,7 +796,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           ? []
           : [{ ...event, payload: { delta: suffix } } as RuntimeEvent];
       }
-      remainingByTurnId.set(turnKey, "");
       return [event];
     });
   }
@@ -1083,12 +1091,19 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (stillPending.size === 0 &&
             this.queuedOnlyTurnKeys.has(`${sessionId}:${pendingId}`)),
       );
+    if (consumedPending.length === 0) {
+      for (const item of items) {
+        this.observedHistoryItemKeys.add(`${sessionId}:${item.id}`);
+      }
+      return;
+    }
     const candidates = items.filter(
       (item) =>
         item.type === "message" &&
         item.role === "user" &&
         !this.claimedHistoryItemKeys.has(`${sessionId}:${item.id}`) &&
-        !this.pendingItemTurnIds.has(`${sessionId}:${item.id}`),
+        !this.pendingItemTurnIds.has(`${sessionId}:${item.id}`) &&
+        !this.observedHistoryItemKeys.has(`${sessionId}:${item.id}`),
     );
     if (candidates.length !== consumedPending.length) {
       return;
@@ -1104,6 +1119,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         item.response_id,
         new Date(item.created_at * 1000).toISOString(),
       );
+    }
+    if ((this.provisionalTurnOrder.get(sessionId)?.length ?? 0) === 0) {
+      for (const item of items) {
+        this.observedHistoryItemKeys.add(`${sessionId}:${item.id}`);
+      }
     }
   }
 

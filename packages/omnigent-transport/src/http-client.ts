@@ -373,6 +373,7 @@ export class OmnigentHttpClient {
   private readonly fetchImpl: typeof globalThis.fetch;
   private readonly headers: Record<string, string>;
   private readonly now: () => string;
+  private streamOrdinal = 0;
 
   constructor(private readonly options: OmnigentHttpClientOptions) {
     this.fetchImpl = options.fetch ?? globalThis.fetch;
@@ -538,9 +539,11 @@ export class OmnigentHttpClient {
       throw new Error("Omnigent stream response did not include a body.");
     }
     let closed = false;
+    this.streamOrdinal += 1;
     const normalizer = new OmnigentSseNormalizer({
       now: this.now,
       sessionId,
+      syntheticEventIdPrefix: `${sessionId}:stream:${this.streamOrdinal}`,
     });
     return {
       bindResponseId: (responseId, turnId) => {

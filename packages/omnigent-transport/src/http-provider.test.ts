@@ -1845,6 +1845,188 @@ describe("http provider", () => {
     expect(info.state).toBe("turn_active");
   });
 
+  it("ignores observed prior history when reconciling a queued-only turn", async () => {
+    const priorItem = {
+      content: [{ text: "prior prompt", type: "input_text" }],
+      created_at: 1_780_272_000,
+      id: "item-queued-prior",
+      response_id: "response-queued-prior",
+      role: "user",
+      status: "completed",
+      type: "message",
+    };
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-queued-prior",
+      created_at: 1_780_272_000,
+      id: "session-queued-prior",
+      items: [
+        {
+          created_at: priorItem.created_at,
+          data: { content: priorItem.content, role: priorItem.role },
+          id: priorItem.id,
+          response_id: priorItem.response_id,
+          status: priorItem.status,
+          type: priorItem.type,
+        },
+      ],
+      pending_inputs: [],
+      status: "idle",
+      title: "Queued with prior history",
+      updated_at: 1_780_272_001,
+    };
+    const currentItem = {
+      content: [{ text: "current prompt", type: "input_text" }],
+      created_at: 1_780_272_001,
+      id: "item-queued-current",
+      response_id: "response-queued-current",
+      role: "user",
+      status: "completed",
+      type: "message",
+    };
+    const history = [priorItem, currentItem];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify({ ...snapshot, items: [] }));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "queued-prior-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "queued-prior-turn",
+      message: "current prompt",
+      sessionId: session.id,
+    });
+
+    await provider.readHistory(session.id);
+
+    expect(handle.turnId).toBe("response-queued-current");
+  });
+
+  it("restores a queued-only turn retired before its acknowledgement", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-delayed-queued",
+      created_at: 1_780_272_000,
+      id: "session-delayed-queued",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Delayed queued acknowledgement",
+      updated_at: 1_780_272_002,
+    };
+    let history: Record<string, unknown>[] = [];
+    let resolveAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "delayed-queued-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const terminal = iterator.next();
+    await historyReady;
+    const pendingHandle = provider.sendTurn({
+      idempotencyKey: "delayed-queued-turn",
+      message: "persist queued after terminal",
+      sessionId: session.id,
+    });
+    streamController.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          error: { message: "ambiguous setup failure" },
+          status: "failed",
+          type: "session.status",
+        })}\n\n`,
+      ),
+    );
+    await terminal;
+    resolveAck(new Response(JSON.stringify({ queued: true }), { status: 202 }));
+    const handle = await pendingHandle;
+    streamController.close();
+    await iterator.next();
+    history = [
+      {
+        content: [{ text: "persist queued after terminal", type: "input_text" }],
+        created_at: 1_780_272_002,
+        id: "item-delayed-queued",
+        response_id: "response-delayed-queued",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+
+    await provider.readHistory(session.id);
+
+    expect(handle.turnId).toBe("response-delayed-queued");
+  });
+
   it("restores delayed pending acknowledgement correlation after a status terminal", async () => {
     const snapshot = {
       active_response_id: null,
@@ -3445,6 +3627,165 @@ describe("http provider", () => {
     } finally {
       await server.stop();
     }
+  });
+
+  it("namespaces identity-free event ids across reconnects", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-reconnect-identity-free",
+      created_at: 1_780_272_000,
+      id: "session-reconnect-identity-free",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Reconnect identity free",
+      updated_at: 1_780_272_002,
+    };
+    let streamRead = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          streamRead += 1;
+          const responseId = `response-reconnect-${streamRead}`;
+          return new Response(
+            [
+              {
+                response: { id: responseId, status: "in_progress" },
+                type: "response.created",
+              },
+              { delta: `reply ${streamRead}`, type: "response.output_text.delta" },
+              {
+                response: { id: responseId, status: "completed" },
+                type: "response.completed",
+              },
+            ]
+              .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+              .join(""),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "reconnect-identity-free-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const first = await collectAsync(provider.streamEvents(session.id));
+    const cursor = first.at(-1)?.sequence ?? 0;
+    const second = await collectAsync(
+      provider.streamEvents(session.id, { afterSequence: cursor }),
+    );
+
+    expect(
+      second
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["reply 2"]);
+    expect(second.every((event) => event.sequence > cursor)).toBe(true);
+  });
+
+  it("does not replay live identity-free text after earlier history commits", async () => {
+    const snapshot = {
+      active_response_id: "response-history-live",
+      agent_id: "agent-history-live",
+      created_at: 1_780_272_000,
+      id: "session-history-live",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "History then live",
+      updated_at: 1_780_272_002,
+    };
+    const prior: OmnigentConversationItem = {
+      content: [{ text: "A", type: "output_text" }],
+      created_at: 1_780_272_001,
+      id: "message-history-a",
+      response_id: "response-history-live",
+      role: "assistant",
+      status: "completed",
+      type: "message",
+    };
+    let history: OmnigentConversationItem[] = [prior];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            `data: ${JSON.stringify({
+              delta: "B",
+              type: "response.output_text.delta",
+            })}\n\n`,
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "history-live-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const live = await collectAsync(
+      provider.streamEvents(session.id, { afterSequence: 2 }),
+    );
+    const cursor = live.at(-1)?.sequence ?? 2;
+    history = [
+      prior,
+      {
+        content: [{ text: "B", type: "output_text" }],
+        created_at: 1_780_272_002,
+        id: "message-history-b",
+        response_id: "response-history-live",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const replay = await provider.readHistory(session.id, {
+      afterSequence: cursor,
+    });
+
+    expect(
+      live
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["B"]);
+    expect(
+      replay.events.filter((event) => event.type === "runtime.text.delta"),
+    ).toEqual([]);
   });
 
   it("assigns newly persisted lifecycle events after the prior live cursor", async () => {

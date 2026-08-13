@@ -19,6 +19,7 @@ export interface OmnigentSseSkip {
 export interface OmnigentSseNormalizationOptions {
   readonly now?: () => string;
   readonly sessionId: string;
+  readonly syntheticEventIdPrefix?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -298,7 +299,7 @@ export class OmnigentSseNormalizer {
         ? `${messageId}:${messageIndex ?? this.frameOrdinal}`
         : undefined) ??
       (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
-      `${sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
+      `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
     const occurredAt =
       epochToIso(response?.completed_at) ??
       epochToIso(response?.created_at) ??
@@ -468,7 +469,7 @@ export async function* parseOmnigentSseStream(
 
   const parseFrame = (frame: string): OmnigentRawEvent | null => {
     const dataLines = frame
-      .split("\n")
+      .split(/\r?\n/)
       .filter((line) => line.startsWith("data:"))
       .map((line) => line.slice(5).trim());
     if (dataLines.length === 0) {
@@ -482,7 +483,7 @@ export async function* parseOmnigentSseStream(
     while (true) {
       const { done, value } = await reader.read();
       buffer += decoder.decode(value, { stream: !done });
-      const frames = buffer.split("\n\n");
+      const frames = buffer.split(/\r?\n\r?\n/);
       buffer = frames.pop() ?? "";
 
       for (const frame of frames) {
