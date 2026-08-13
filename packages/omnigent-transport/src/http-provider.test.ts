@@ -1169,7 +1169,27 @@ describe("http provider", () => {
           );
         }
         if (url.endsWith("/stream")) {
-          return new Response("", {
+          const streamBody = [
+            {
+              response: {
+                created_at: 1_780_272_001,
+                id: "response-existing",
+                status: "in_progress",
+              },
+              type: "response.created",
+            },
+            {
+              response: {
+                completed_at: 1_780_272_002,
+                id: "response-existing",
+                status: "completed",
+              },
+              type: "response.completed",
+            },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+            .join("");
+          return new Response(streamBody, {
             headers: { "content-type": "text/event-stream" },
           });
         }
@@ -1212,11 +1232,17 @@ describe("http provider", () => {
     });
 
     const beforeStream = await provider.getSessionInfo(session.id);
-    await collectAsync(provider.streamEvents(session.id));
+    const events = await collectAsync(provider.streamEvents(session.id));
     const afterStream = await provider.getSessionInfo(session.id);
 
     expect(handle.turnId).toBe("pending-new");
     expect(beforeStream.activeTurnId).toBe("pending-new");
+    expect(
+      events
+        .filter((event) => event.turnId === "response-existing")
+        .map((event) => event.type),
+    ).toEqual(["runtime.turn.started", "runtime.turn.completed"]);
+    expect(events.every((event) => event.turnId !== "pending-new")).toBe(true);
     expect(afterStream.activeTurnId).toBe("pending-new");
     expect(afterStream.state).toBe("turn_active");
   });

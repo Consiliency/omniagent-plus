@@ -348,6 +348,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         (snapshot.pendingInputs ?? []).some(
           ({ pendingId }) => pendingId === soleUnresolvedTurnId,
         );
+      for (const { pendingId } of snapshot.pendingInputs ?? []) {
+        stream.removeFallbackTurnId(pendingId);
+      }
       const snapshotResponseAlreadyResolved = Boolean(
         snapshot.activeResponseId &&
           this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
@@ -940,6 +943,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         item.response_id,
         new Date(item.created_at * 1000).toISOString(),
       );
+    } else {
+      stream.setFallbackTurnId(event.cleared_pending_id);
     }
   }
 
