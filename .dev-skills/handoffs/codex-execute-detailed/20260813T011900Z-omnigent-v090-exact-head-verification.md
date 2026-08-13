@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `31eeced`, and no source or evidence
+this file. The final implementation parent is `7b5126c`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 103 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 104 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 275 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 276 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -150,6 +150,14 @@ files may change after this receipt is committed without another full run.
 - Cancel and close controls now check the normalized acknowledgement before
   mutating local state. Explicit control denials surface as non-retryable policy
   failures and preserve the active turn.
+- Queued-only acknowledgements are tracked as conservative FIFO candidates when
+  the authoritative snapshot has no pending inputs. Exact-count history
+  reconciliation then binds a disconnected completion to its official response
+  without inventing an acknowledgement ID.
+- Successful HTTP responses with invalid JSON now normalize to non-retryable
+  `malformed_response`. All non-retryable send failures remain cached by
+  idempotency key, and a blank-202 regression proves repeated calls issue one
+  POST.
 - An explicit synchronous policy denial remains authoritative even when a
   lifecycle event reconciles the provisional handle before the acknowledgement
   arrives. Denial fully removes both provisional and official registration,
