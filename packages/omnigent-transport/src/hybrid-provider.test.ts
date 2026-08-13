@@ -87,6 +87,7 @@ describe("hybrid provider", () => {
         cliTransport,
         processManager,
         stopServerOnClose: true,
+        withExclusiveSessionLease: async (_sessionId, operation) => operation(),
       });
       const session = await provider.createSession({
         agentSpec: { kind: "named_agent", value: "agent-hybrid" },

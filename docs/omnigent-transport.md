@@ -21,6 +21,19 @@ does not create an active turn. Accepted sends return a provisional handle from
 `item_id`, `pending_id`, or a namespaced local key until official response
 identity arrives through snapshot or lifecycle evidence.
 
+The neutral provider defaults to one active turn per session. A distinct send
+while local state is active fails with `concurrency_limit`; Omnigent pending-input
+queueing is available only through the explicit `allowQueuedTurns` option and is
+reflected by the returned queued handle.
+
+Omnigent v0.9 interrupt and stop controls are session-scoped and carry no turn
+identity or fencing token. HTTP and hybrid cancellation/close therefore fail
+with `backend_capability_missing` unless `withExclusiveSessionLease` is
+configured. The hook must use one fleet-wide lease authority shared by every
+client that can mutate the session. The provider runs send, cancel, and close
+mutations through that hook, keeping durable lease ownership outside this
+package while preventing an unfenced snapshot-to-interrupt race.
+
 ## Event Boundary
 
 The live allowlist remains exactly 52 tagged types. A stateful SSE normalizer

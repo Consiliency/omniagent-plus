@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createHttpProvider } from "./http-provider.js";
+import {
+  createHttpProvider as createUnleasedHttpProvider,
+} from "./http-provider.js";
+import type { OmnigentHttpClientOptions } from "./types.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import type { OmnigentConversationItem } from "./types.js";
 
@@ -10,6 +13,19 @@ async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
     result.push(value);
   }
   return result;
+}
+
+const withExclusiveSessionLease = async <T>(
+  _sessionId: string,
+  operation: () => Promise<T>,
+): Promise<T> => operation();
+
+function createHttpProvider(options: OmnigentHttpClientOptions) {
+  return createUnleasedHttpProvider({
+    ...options,
+    withExclusiveSessionLease:
+      options.withExclusiveSessionLease ?? withExclusiveSessionLease,
+  });
 }
 
 describe("http provider", () => {
@@ -163,6 +179,7 @@ describe("http provider", () => {
     };
     let messagePosts = 0;
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -223,6 +240,64 @@ describe("http provider", () => {
     expect(info.state).toBe("turn_active");
   });
 
+  it("blocks session-wide controls without an exclusive session lease", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-unleased-control",
+      created_at: 1_780_272_000,
+      id: "session-unleased-control",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Unleased control",
+      updated_at: 1_780_272_001,
+    };
+    let controlPosts = 0;
+    const provider = createUnleasedHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "interrupt" || event.type === "stop_session") {
+            controlPosts += 1;
+          }
+          return new Response(
+            JSON.stringify(
+              event.type === "message"
+                ? { item_id: "item-unleased-control", queued: true }
+                : { queued: false },
+            ),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "unleased-control-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "unleased-control-turn",
+      message: "remain active",
+      sessionId: session.id,
+    });
+
+    await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
+      category: "backend_capability_missing",
+    });
+    await expect(provider.closeSession(session.id)).rejects.toMatchObject({
+      category: "backend_capability_missing",
+    });
+    expect(controlPosts).toBe(0);
+  });
+
   it("rejects queued control acknowledgements without local mutation", async () => {
     const snapshot = {
       active_response_id: "item-queued-control",
@@ -236,6 +311,7 @@ describe("http provider", () => {
       updated_at: 1_780_272_001,
     };
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -677,6 +753,7 @@ describe("http provider", () => {
     };
     let interruptPosts = 0;
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -843,6 +920,120 @@ describe("http provider", () => {
 
     await expect(cancelling).resolves.toMatchObject({ state: "cancelled" });
     expect(interruptPosts).toBe(1);
+  });
+
+  it("holds a shared session lease across snapshot and interrupt acknowledgement", async () => {
+    const snapshot = {
+      active_response_id: null as string | null,
+      agent_id: "agent-shared-cancel-lease",
+      created_at: 1_780_272_000,
+      id: "session-shared-cancel-lease",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Shared cancellation lease",
+      updated_at: 1_780_272_001,
+    };
+    const leaseTails = new Map<string, Promise<void>>();
+    const withSharedLease = async <T>(
+      sessionId: string,
+      operation: () => Promise<T>,
+    ): Promise<T> => {
+      const previous = leaseTails.get(sessionId) ?? Promise.resolve();
+      let release!: () => void;
+      const current = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      leaseTails.set(sessionId, current);
+      await previous;
+      try {
+        return await operation();
+      } finally {
+        release();
+        if (leaseTails.get(sessionId) === current) {
+          leaseTails.delete(sessionId);
+        }
+      }
+    };
+    let resolveInterrupt!: (response: Response) => void;
+    let interruptStarted!: () => void;
+    const interruptReady = new Promise<void>((resolve) => {
+      interruptStarted = resolve;
+    });
+    let messagePosts = 0;
+    const fetch: typeof globalThis.fetch = async (_input, init) => {
+      if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+        return new Response(JSON.stringify(snapshot));
+      }
+      if (init?.method === "POST") {
+        const event = JSON.parse(String(init.body)) as { type?: string };
+        if (event.type === "interrupt") {
+          interruptStarted();
+          return new Promise<Response>((resolve) => {
+            resolveInterrupt = resolve;
+          });
+        }
+        messagePosts += 1;
+        if (messagePosts === 1) {
+          snapshot.active_response_id = "item-shared-lease-a";
+        }
+        return new Response(
+          JSON.stringify({
+            item_id:
+              messagePosts === 1
+                ? "item-shared-lease-a"
+                : "item-shared-lease-b",
+            queued: true,
+          }),
+        );
+      }
+      return new Response(JSON.stringify(snapshot));
+    };
+    const firstProvider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch,
+      withExclusiveSessionLease: withSharedLease,
+    });
+    const secondProvider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch,
+      withExclusiveSessionLease: withSharedLease,
+    });
+    const firstSession = await firstProvider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "shared-cancel-lease-create-a",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const secondSession = await secondProvider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "shared-cancel-lease-create-b",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await firstProvider.sendTurn({
+      idempotencyKey: "shared-cancel-lease-a",
+      message: "A",
+      sessionId: firstSession.id,
+    });
+    const cancelling = firstProvider.cancelTurn(first);
+    await interruptReady;
+
+    const second = secondProvider.sendTurn({
+      idempotencyKey: "shared-cancel-lease-b",
+      message: "B",
+      sessionId: secondSession.id,
+    });
+    await Promise.resolve();
+    expect(messagePosts).toBe(1);
+
+    snapshot.active_response_id = null;
+    resolveInterrupt(new Response(JSON.stringify({ queued: false })));
+    await expect(cancelling).resolves.toMatchObject({ state: "cancelled" });
+    await expect(second).resolves.toMatchObject({ turnId: "item-shared-lease-b" });
+    expect(messagePosts).toBe(2);
   });
 
   it("retains interruption proof that arrives before the control acknowledgement", async () => {
@@ -2158,6 +2349,66 @@ describe("http provider", () => {
     expect(info.state).toBe("idle");
   });
 
+  it("rejects a distinct concurrent send unless queueing is enabled", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-default-concurrency",
+      created_at: 1_780_272_000,
+      id: "session-default-concurrency",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Default concurrency",
+      updated_at: 1_780_272_001,
+    };
+    let resolveFirstSend!: (response: Response) => void;
+    let sendCount = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (_input, init) => {
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          sendCount += 1;
+          return new Promise<Response>((resolve) => {
+            resolveFirstSend = resolve;
+          });
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "default-concurrency-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = provider.sendTurn({
+      idempotencyKey: "default-concurrency-first",
+      message: "first",
+      sessionId: session.id,
+    });
+
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "default-concurrency-second",
+        message: "second",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({
+      category: "concurrency_limit",
+      retryable: true,
+    });
+    expect(sendCount).toBe(1);
+
+    resolveFirstSend(
+      new Response(JSON.stringify({ item_id: "item-first", queued: true })),
+    );
+    await expect(first).resolves.toMatchObject({ turnId: "item-first" });
+  });
+
   it("keeps a newer accepted turn active when an older concurrent send is denied", async () => {
     const snapshot = {
       active_response_id: null,
@@ -2178,6 +2429,7 @@ describe("http provider", () => {
     let resolveOlderSend!: (response: Response) => void;
     let sendCount = 0;
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (_input, init) => {
         if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
@@ -2697,6 +2949,7 @@ describe("http provider", () => {
       resolveHistoryReady = resolve;
     });
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -3413,6 +3666,7 @@ describe("http provider", () => {
       },
     ];
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -3502,6 +3756,7 @@ describe("http provider", () => {
       },
     ];
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);
@@ -4742,6 +4997,7 @@ describe("http provider", () => {
       resolveHistoryReady = resolve;
     });
     const provider = createHttpProvider({
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
         const url = String(input);

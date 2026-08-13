@@ -62,6 +62,17 @@ non-retryable `policy_denied` failure and never creates an active handle.
 Create and send idempotency are process-local because the tagged API provides
 no durable request key.
 
+The neutral default remains one active turn per session. Distinct concurrent
+sends fail with `concurrency_limit`; callers must explicitly set
+`allowQueuedTurns` to consume Omnigent's pending-input queue.
+
+The tagged interrupt and stop events are session-scoped and expose neither a
+target response ID nor a conditional fencing token. The adapter refuses those
+controls unless the caller supplies `withExclusiveSessionLease`, backed by the
+same fleet-wide lease authority used by every writer of that session. Send,
+cancel, and close operations all enter that lease. The package consumes this
+guard but does not implement or own lease/lock authority.
+
 ## History And Stream
 
 Persisted `ConversationItem` history uses the official flat API row shape;
@@ -98,11 +109,12 @@ Production lifecycle remains `omnigent server --background`, with
 `omnigent server start` exists only as a hidden deprecated alias and is never
 invoked here. CLI `{id,event}` resume history retains its legacy mapper.
 
-Supported transport capabilities remain create, send, stream, history, cancel,
-list, and read-only harness catalog. Logical close and terminal uniqueness are
-provider emulations. Child-session creation and public harness override remain
-blocked. Smart routing, imports, projects, hosts, credentials, model discovery,
-lease, lock, approval, and authority are not promoted into the neutral provider.
+Supported transport capabilities remain create, send, stream, history,
+lease-guarded cancel, list, and read-only harness catalog. Logical close and
+terminal uniqueness are provider emulations. Child-session creation and public
+harness override remain blocked. Smart routing, imports, projects, hosts,
+credentials, model discovery, lease, lock, approval, and authority are not
+promoted into the neutral provider.
 
 ## Unreleased Risk
 

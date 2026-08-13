@@ -249,6 +249,7 @@ function isNonRetryableRuntimeFailure(value: unknown): boolean {
 }
 
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
+  private readonly allowQueuedTurns: boolean;
   private readonly client: OmnigentHttpClient;
   private readonly cancellationReservations = new Map<string, string>();
   private readonly cancelledTurnQuarantineKeys = new Set<string>();
@@ -283,9 +284,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly sends = new Map<string, Promise<TurnHandle>>();
   private readonly sessions = new Map<string, AgentSessionInfo>();
   private readonly turns = new Map<string, TurnHandle>();
+  private readonly withExclusiveSessionLease?: OmnigentHttpClientOptions["withExclusiveSessionLease"];
 
   constructor(options: OmnigentHttpClientOptions) {
+    this.allowQueuedTurns = options.allowQueuedTurns ?? false;
     this.client = new OmnigentHttpClient(options);
+    this.withExclusiveSessionLease = options.withExclusiveSessionLease;
   }
 
   async createSession(request: CreateSessionRequest): Promise<AgentSession> {
@@ -328,8 +332,24 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "turn",
       });
     }
+    const session = this.sessions.get(request.sessionId);
+    if (
+      !this.allowQueuedTurns &&
+      session?.state === "turn_active" &&
+      session.activeTurnId
+    ) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "concurrency_limit",
+        message: `Session ${request.sessionId} already has active turn ${session.activeTurnId}.`,
+        retryable: true,
+        scope: "turn",
+      });
+    }
 
-    const pending = this.sendTurnOnce(request);
+    const pending = this.runSessionMutation(request.sessionId, () =>
+      this.sendTurnOnce(request),
+    );
     this.sends.set(key, pending);
     try {
       return await pending;
@@ -742,6 +762,25 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     handle: TurnHandle,
     reason: CancellationReason = "user_request",
   ): Promise<TurnHandle> {
+    if (!this.withExclusiveSessionLease) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message:
+          "Omnigent cancellation requires an exclusive session lease because interrupt is session-scoped.",
+        retryable: false,
+        scope: "turn",
+      });
+    }
+    return this.withExclusiveSessionLease(handle.sessionId, () =>
+      this.cancelTurnWithExclusiveLease(handle, reason),
+    );
+  }
+
+  private async cancelTurnWithExclusiveLease(
+    handle: TurnHandle,
+    reason: CancellationReason,
+  ): Promise<TurnHandle> {
     if (this.cancellationReservations.has(handle.sessionId)) {
       throw createRuntimeFailure({
         actor: "provider",
@@ -837,20 +876,32 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async closeSession(sessionId: string): Promise<void> {
-    const ack = await this.client.sendEvent(sessionId, {
-      data: {},
-      type: "stop_session",
-    });
-    assertControlEventAccepted(ack);
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      this.sessions.set(sessionId, {
-        ...session,
-        activeTurnId: undefined,
-        state: "closed",
-        updatedAt: new Date().toISOString(),
+    if (!this.withExclusiveSessionLease) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "backend_capability_missing",
+        message:
+          "Omnigent close requires an exclusive session lease because stop_session is session-scoped.",
+        retryable: false,
+        scope: "session",
       });
     }
+    await this.withExclusiveSessionLease(sessionId, async () => {
+      const ack = await this.client.sendEvent(sessionId, {
+        data: {},
+        type: "stop_session",
+      });
+      assertControlEventAccepted(ack);
+      const session = this.sessions.get(sessionId);
+      if (session) {
+        this.sessions.set(sessionId, {
+          ...session,
+          activeTurnId: undefined,
+          state: "closed",
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    });
   }
 
   async getSessionInfo(sessionId: string): Promise<AgentSessionInfo> {
@@ -893,12 +944,24 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       backend: "omnigent-http",
       notes: [
         "logical close remains provider-emulated",
+        this.withExclusiveSessionLease
+          ? "session-wide controls require the configured exclusive session lease"
+          : "session-wide controls are blocked without an exclusive session lease",
         "child-session creation stays blocked on the public transport surface",
         "public harness override stays blocked",
       ],
       runtime: "omnigent",
       sessionStateDrift: [],
     };
+  }
+
+  private runSessionMutation<T>(
+    sessionId: string,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.withExclusiveSessionLease
+      ? this.withExclusiveSessionLease(sessionId, operation)
+      : operation();
   }
 
   private refreshTrackedSession(

@@ -123,6 +123,8 @@ export type OmnigentStreamEventType =
   (typeof omnigentStreamEventTypes)[number];
 
 export interface OmnigentHttpClientOptions {
+  /** Explicitly opt into Omnigent's server-side pending-input queue. */
+  readonly allowQueuedTurns?: boolean;
   readonly baseUrl: string;
   readonly headers?: Record<string, string>;
   readonly fetch?: typeof globalThis.fetch;
@@ -130,6 +132,14 @@ export interface OmnigentHttpClientOptions {
   readonly resolveAgentId?: (
     agentSpec: OmnigentAgentSpecRef,
   ) => Promise<string> | string;
+  /**
+   * Run every session mutation under a fleet-wide exclusive lease. All clients
+   * that can write the same Omnigent session must use the same lease authority.
+   */
+  readonly withExclusiveSessionLease?: <T>(
+    sessionId: string,
+    operation: () => Promise<T>,
+  ) => Promise<T>;
 }
 
 export interface OmnigentCommandOptions {

@@ -63,6 +63,7 @@ describe("live Omnigent smoke", () => {
           : {
               authorization: `Bearer ${bearerToken}`,
             },
+      withExclusiveSessionLease: async (_sessionId, operation) => operation(),
     });
     let sessionId: string | undefined;
 

@@ -92,6 +92,7 @@ if (wire.authority.tag !== "v0.9.0") throw new Error("unexpected wire authority"
   writeFileSync(
     join(consumer, "type-smoke.ts"),
     `import type {
+  OmnigentHttpClientOptions,
   OmnigentNativeModelOption,
   OmnigentNativeReasoningEffortOption,
   OmnigentProcessSignal,
@@ -99,6 +100,11 @@ if (wire.authority.tag !== "v0.9.0") throw new Error("unexpected wire authority"
   OmnigentConversationItem,
 } from "@consiliency/omnigent-transport";
 
+const httpOptions = {
+  allowQueuedTurns: false,
+  baseUrl: "http://127.0.0.1:4010",
+  withExclusiveSessionLease: async (_sessionId, operation) => operation(),
+} satisfies OmnigentHttpClientOptions;
 const signal: OmnigentProcessSignal = "SIGTERM";
 const reasoning: OmnigentNativeReasoningEffortOption = {
   reasoningEffort: "medium",
@@ -129,6 +135,7 @@ const item = {
 } satisfies OmnigentConversationItem;
 void snapshot;
 void item;
+void httpOptions;
 void signal;
 `,
   );

@@ -18,7 +18,9 @@ import {
 describe("transport types", () => {
   it("freezes the provider modes, capability states, and stream events", () => {
     const httpOptions: OmnigentHttpClientOptions = {
+      allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
+      withExclusiveSessionLease: async (_sessionId, operation) => operation(),
     };
     const snapshot: OmnigentSessionSnapshot = {
       agentId: "agent-session-1",
@@ -124,6 +126,8 @@ describe("transport types", () => {
     };
 
     expect(httpOptions.baseUrl).toContain("127.0.0.1");
+    expect(httpOptions.allowQueuedTurns).toBe(true);
+    expect(httpOptions.withExclusiveSessionLease).toBeTypeOf("function");
     expect(omnigentProviderModes).toEqual(["http", "cli", "hybrid"]);
     expect(omnigentCapabilityStatuses).toContain("emulated");
     expect(omnigentSessionStatuses).toEqual([
