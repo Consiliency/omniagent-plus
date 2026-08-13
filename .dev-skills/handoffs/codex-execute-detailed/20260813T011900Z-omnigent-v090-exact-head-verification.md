@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `2eb20e0`, and no source or evidence
+this file. The final implementation parent is `6c3a99a`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -120,6 +120,11 @@ files may change after this receipt is committed without another full run.
   still owns the active identity. A concurrent-send regression accepts a newer
   pending turn before denying the older request and proves the newer turn
   remains active.
+- Native pending IDs that remain in the authoritative snapshot pending queue are
+  excluded from the stream normalizer's response-alias candidates. A live-frame
+  regression proves an unrelated active response can start and complete without
+  rebinding or terminalizing the queued handle. A later
+  `session.input.consumed` event makes the pending ID eligible again.
 - An explicit synchronous policy denial remains authoritative even when a
   lifecycle event reconciles the provisional handle before the acknowledgement
   arrives. Denial fully removes both provisional and official registration,
