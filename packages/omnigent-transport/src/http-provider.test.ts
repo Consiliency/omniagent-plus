@@ -2528,6 +2528,115 @@ describe("http provider", () => {
     }
   });
 
+  it("clears a retry tombstone before same-key SSE reconciliation", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-retry-stream",
+      created_at: 1_780_272_000,
+      id: "session-retry-stream",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Retry stream",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          if (postCount === 1) {
+            return new Response(JSON.stringify({ error: "rate limited" }), {
+              status: 429,
+            });
+          }
+          streamController.enqueue(
+            new TextEncoder().encode(
+              [
+                {
+                  response: { id: "response-retry-stream", status: "in_progress" },
+                  type: "response.created",
+                },
+                {
+                  delta: "retry output",
+                  response_id: "response-retry-stream",
+                  type: "response.output_text.delta",
+                },
+                {
+                  response: { id: "response-retry-stream", status: "completed" },
+                  type: "response.completed",
+                },
+              ]
+                .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+                .join(""),
+            ),
+          );
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "retry-stream-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const request = {
+      idempotencyKey: "retry-stream-turn",
+      message: "retry with stream",
+      sessionId: session.id,
+    };
+    await expect(provider.sendTurn(request)).rejects.toEqual(
+      expect.objectContaining({ statusCode: 429 }),
+    );
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const started = iterator.next();
+    await historyReady;
+
+    const handle = await provider.sendTurn(request);
+    const events = [await started, await iterator.next(), await iterator.next()]
+      .flatMap((result) => (result.done ? [] : [result.value]));
+
+    expect(postCount).toBe(2);
+    expect(handle.turnId).toBe("response-retry-stream");
+    expect(events.map((event) => event.type)).toEqual([
+      "runtime.turn.started",
+      "runtime.text.delta",
+      "runtime.turn.completed",
+    ]);
+    expect((await provider.getSessionInfo(session.id)).state).toBe("idle");
+    streamController.close();
+    await iterator.next();
+  });
+
   it("aborts an eagerly opened stream when snapshot acquisition fails", async () => {
     let streamAborted = false;
     let request = 0;

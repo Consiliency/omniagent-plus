@@ -225,6 +225,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       turnId,
       updatedAt: now,
     };
+    this.rejectedTurnKeys.delete(`${request.sessionId}:${turnId}`);
     const previousLatestTurnId = this.latestTurnIds.get(request.sessionId);
     const previousSession = this.sessions.get(request.sessionId);
     this.turns.set(`${handle.sessionId}:${handle.turnId}`, handle);

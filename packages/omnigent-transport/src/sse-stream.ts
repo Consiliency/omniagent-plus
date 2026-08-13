@@ -8,6 +8,7 @@ import {
 
 export type OmnigentSseSkipReason =
   | "invalid_json"
+  | "invalid_event_shape"
   | "non_object_payload"
   | "unknown_event_type";
 
@@ -33,6 +34,26 @@ function isKnownOmnigentEventType(
     typeof value === "string" &&
     (omnigentStreamEventTypes as readonly string[]).includes(value)
   );
+}
+
+function hasValidEventShape(value: Record<string, unknown>): boolean {
+  if (
+    value.type !== "response.created" &&
+    value.type !== "response.completed" &&
+    value.type !== "response.failed" &&
+    value.type !== "response.incomplete" &&
+    value.type !== "response.cancelled"
+  ) {
+    return true;
+  }
+  const response = isRecord(value.response) ? value.response : undefined;
+  const nativeShape = stringValue(response?.id) !== undefined;
+  const legacyNormalizedShape =
+    stringValue(value.id) !== undefined &&
+    stringValue(value.sessionId) !== undefined &&
+    stringValue(value.occurredAt) !== undefined &&
+    typeof value.terminal === "boolean";
+  return nativeShape || legacyNormalizedShape;
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -88,6 +109,10 @@ function parseFramePayload(
 
   if (!isKnownOmnigentEventType(parsed.type)) {
     onSkip?.({ payload, reason: "unknown_event_type" });
+    return null;
+  }
+  if (!hasValidEventShape(parsed)) {
+    onSkip?.({ payload, reason: "invalid_event_shape" });
     return null;
   }
 

@@ -89,6 +89,22 @@ describe("sse stream parser", () => {
     );
   });
 
+  it("skips response lifecycle frames without an authoritative identity", async () => {
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream('data: {"type":"response.completed"}\n\n'),
+        { sessionId: "session-invalid-lifecycle" },
+        ({ reason }) => {
+          skipped.push(reason);
+        },
+      ),
+    );
+
+    expect(events).toEqual([]);
+    expect(skipped).toEqual(["invalid_event_shape"]);
+  });
+
   it("parses official v0.4 event families without unknown-event skips", async () => {
     const fixture = loadOmnigentEventFixture("v0-4-noop-events");
     const skipped: string[] = [];
