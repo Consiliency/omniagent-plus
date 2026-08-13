@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `d9c77fe`, and no source or evidence
+this file. The final implementation parent is `35c25f3`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 113 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 116 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 285 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 288 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -203,6 +203,24 @@ files may change after this receipt is committed without another full run.
   pre-ack identity-free terminal also restores the queued-only provisional to
   FIFO order when the acknowledgement arrives. Regressions prove both prior
   history and delayed acknowledgement paths reconcile to the official response.
+- Authoritative policy-denied and malformed acknowledgements now quarantine both
+  the request provisional and any stream-reconciled official identity. Open
+  normalizers disown the rejected current response, and provider tombstones drop
+  its trailing deltas and terminals before mapping or state mutation. Extended
+  concurrent regressions prove trailing frames cannot resurrect active state,
+  emit output, or trigger another POST.
+- Delivered text is retained as stable event records with sequence numbers, so
+  replay suppression is evaluated only against bytes delivered at or before the
+  caller's cursor. An ordinary prior reader can no longer consume output for a
+  later independent `afterSequence: 0` subscriber.
+- Reconnect live events now use the same cursor-bounded text trimming and final
+  cursor filter as persisted events. A repeated `response.created` remains below
+  the prior cursor and is omitted, while cumulative `Hel` to `Hello` emits only
+  `lo` with a new stable continuation identity and sequence above the cursor.
+- Persisted suffix continuations receive an identity derived from the original
+  event plus consumed-prefix length. Live identified `Hel` followed by committed
+  `Hello` therefore emits `lo` above the live cursor instead of inheriting the
+  colliding original sequence.
 - Reconnect message deduplication now aligns a buffered chunk anywhere within
   the remaining persisted message, so a stream that resumes at a suffix chunk
   cannot replay that suffix. Terminal output-item deduplication uses
