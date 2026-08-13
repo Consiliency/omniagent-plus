@@ -603,6 +603,97 @@ describe("http provider", () => {
     await expect(pending).resolves.toEqual({ done: true, value: undefined });
   });
 
+  it("dedupes a buffered message that commits after stream open", async () => {
+    const snapshot = {
+      active_response_id: "response-shared",
+      agent_id: "agent-message-replay",
+      created_at: 1_780_272_000,
+      id: "session-message-replay",
+      items: [],
+      status: "running",
+      title: "Message replay",
+      updated_at: 1_780_272_002,
+    };
+    const history = [
+      {
+        content: [{ text: "A", type: "output_text" }],
+        created_at: 1_780_272_001,
+        id: "message-a",
+        response_id: "response-shared",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+      {
+        content: [{ text: "B", type: "output_text" }],
+        created_at: 1_780_272_002,
+        id: "message-b",
+        response_id: "response-shared",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            [
+              `data: ${JSON.stringify({
+                response: {
+                  created_at: 1_780_272_000,
+                  id: "response-shared",
+                  status: "in_progress",
+                },
+                type: "response.created",
+              })}`,
+              "",
+              `data: ${JSON.stringify({
+                delta: "B",
+                index: 0,
+                message_id: "message-b",
+                type: "response.output_text.delta",
+              })}`,
+              "",
+            ].join("\n"),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: "message-a",
+              has_more: false,
+              last_id: "message-b",
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "message-replay-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["A", "B"]);
+  });
+
   it("returns a cursor for the limited history slice", async () => {
     const server = await FakeOmnigentServer.start();
     try {

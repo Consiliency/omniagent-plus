@@ -184,7 +184,7 @@ describe("event mapper", () => {
         },
       ],
       {
-        historicalTextByTurnId: [["response-1", "hello"]],
+        historicalTextByMessageId: [["message-1", "hello"]],
         seenItemIds: ["message-1"],
       },
     );

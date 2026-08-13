@@ -25,6 +25,7 @@ function defaultTurnMessage(rawEvent: OmnigentRawEvent): string {
 }
 
 export interface OmnigentEventMapperOptions {
+  readonly historicalTextByMessageId?: Iterable<readonly [string, string]>;
   readonly historicalTextByTurnId?: Iterable<readonly [string, string]>;
   readonly historicalToolCallIds?: Iterable<string>;
   readonly historicalToolResultIds?: Iterable<string>;
@@ -41,6 +42,7 @@ export class OmnigentEventMapper {
   private readonly emittedStartedTurnIds: Set<string>;
   private readonly emittedTerminalTurnIds: Set<string>;
   private readonly historicalItemIds: Set<string>;
+  private readonly historicalTextByMessageId: Map<string, string>;
   private readonly historicalTextRemainders: Map<string, string>;
   private readonly emittedToolCallIds: Set<string>;
   private readonly emittedToolResultIds: Set<string>;
@@ -55,6 +57,9 @@ export class OmnigentEventMapper {
     this.emittedStartedTurnIds = new Set(options.startedTurnIds ?? []);
     this.emittedTerminalTurnIds = new Set(options.terminalTurnIds ?? []);
     this.historicalItemIds = new Set(options.seenItemIds ?? []);
+    this.historicalTextByMessageId = new Map(
+      options.historicalTextByMessageId ?? [],
+    );
     this.historicalTextRemainders = new Map(
       options.historicalTextByTurnId ?? [],
     );
@@ -160,19 +165,23 @@ export class OmnigentEventMapper {
 
   private mapTextDelta(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     let delta = rawEvent.delta ?? "";
-    if (rawEvent.turnId) {
-      const remaining = this.historicalTextRemainders.get(rawEvent.turnId);
+    const historicalKey = rawEvent.message_id ?? rawEvent.turnId;
+    if (historicalKey) {
+      const remainders = rawEvent.message_id
+        ? this.historicalTextByMessageId
+        : this.historicalTextRemainders;
+      const remaining = remainders.get(historicalKey);
       if (remaining !== undefined) {
         if (remaining.startsWith(delta)) {
           const next = remaining.slice(delta.length);
           if (next.length === 0) {
-            this.historicalTextRemainders.delete(rawEvent.turnId);
+            remainders.delete(historicalKey);
           } else {
-            this.historicalTextRemainders.set(rawEvent.turnId, next);
+            remainders.set(historicalKey, next);
           }
           return [];
         }
-        this.historicalTextRemainders.delete(rawEvent.turnId);
+        remainders.delete(historicalKey);
         if (delta.startsWith(remaining)) {
           delta = delta.slice(remaining.length);
           if (delta.length === 0) {

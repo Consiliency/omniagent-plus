@@ -16,6 +16,7 @@ import type {
 
 export interface MappedOmnigentHistory {
   readonly history: SessionHistory;
+  readonly historicalTextByMessageId: Map<string, string>;
   readonly historicalTextByTurnId: Map<string, string>;
   readonly historicalToolCallIds: Set<string>;
   readonly historicalToolResultIds: Set<string>;
@@ -42,6 +43,7 @@ export function mapOmnigentHistory(
       ? runtimeEvents
       : runtimeEvents.filter((event) => event.sequence > afterSequence);
   const historicalTextByTurnId = new Map<string, string>();
+  const historicalTextByMessageId = new Map<string, string>();
   const historicalToolCallIds = new Set<string>();
   const historicalToolResultIds = new Set<string>();
   for (const event of runtimeEvents) {
@@ -58,6 +60,18 @@ export function mapOmnigentHistory(
       historicalToolResultIds.add(event.payload.toolCallId);
     }
   }
+  for (const { event } of items) {
+    if (
+      event.type === "response.output_text.delta" &&
+      event.message_id &&
+      event.delta
+    ) {
+      historicalTextByMessageId.set(
+        event.message_id,
+        `${historicalTextByMessageId.get(event.message_id) ?? ""}${event.delta}`,
+      );
+    }
+  }
 
   return {
     history: {
@@ -65,6 +79,7 @@ export function mapOmnigentHistory(
       nextCursor: filteredEvents.at(-1)?.sequence ?? afterSequence ?? 0,
       sessionId,
     },
+    historicalTextByMessageId,
     historicalTextByTurnId,
     historicalToolCallIds,
     historicalToolResultIds,
@@ -116,6 +131,7 @@ export function mapOmnigentConversationHistory(
   const startedTurnIds = new Set<string>();
   const terminalTurnIds = new Set<string>();
   const historicalTextByTurnId = new Map<string, string>();
+  const historicalTextByMessageId = new Map<string, string>();
   const historicalToolCallIds = new Set<string>();
   const historicalToolResultIds = new Set<string>();
   let sequence = 1;
@@ -179,6 +195,7 @@ export function mapOmnigentConversationHistory(
         turnId,
         `${historicalTextByTurnId.get(turnId) ?? ""}${text.join("")}`,
       );
+      historicalTextByMessageId.set(item.id, text.join(""));
       text.forEach((delta, index) => {
         append({
           eventId: `${item.id}:text:${index}`,
@@ -288,6 +305,7 @@ export function mapOmnigentConversationHistory(
         filteredEvents.at(-1)?.sequence ?? options.afterSequence ?? 0,
       sessionId,
     },
+    historicalTextByMessageId,
     historicalTextByTurnId,
     historicalToolCallIds,
     historicalToolResultIds,

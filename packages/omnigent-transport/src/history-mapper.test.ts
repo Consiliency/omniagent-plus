@@ -96,6 +96,7 @@ describe("history mapper", () => {
     );
 
     const liveMapper = new OmnigentEventMapper("session-v09", {
+      historicalTextByMessageId: mapped.historicalTextByMessageId,
       historicalTextByTurnId: mapped.historicalTextByTurnId,
       historicalToolCallIds: mapped.historicalToolCallIds,
       historicalToolResultIds: mapped.historicalToolResultIds,
@@ -153,6 +154,7 @@ describe("history mapper", () => {
       sessionId: "session-123",
     });
     const liveMapper = new OmnigentEventMapper("session-123", {
+      historicalTextByMessageId: history.historicalTextByMessageId,
       historicalTextByTurnId: history.historicalTextByTurnId,
       historicalToolCallIds: history.historicalToolCallIds,
       historicalToolResultIds: history.historicalToolResultIds,
