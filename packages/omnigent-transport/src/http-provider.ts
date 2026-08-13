@@ -95,6 +95,107 @@ type MutableTurnHandle = {
   -readonly [Key in keyof TurnHandle]: TurnHandle[Key];
 };
 
+type TextRuntimeEvent = Extract<RuntimeEvent, { type: "runtime.text.delta" }>;
+
+interface DeliveredTextGroup {
+  readonly messageId?: string;
+  readonly occurredAt: string;
+  readonly text: string;
+}
+
+interface RuntimeTextGroup extends DeliveredTextGroup {
+  readonly events: TextRuntimeEvent[];
+}
+
+function messageItemId(event: OmnigentRawEvent): string | undefined {
+  return event.item?.type === "message" && typeof event.item.id === "string"
+    ? event.item.id
+    : undefined;
+}
+
+function runtimeTextMessageId(event: TextRuntimeEvent): string | undefined {
+  return event.eventId.match(/^(.*):text:\d+(?::continuation:\d+)?$/)?.[1];
+}
+
+function groupTextEvents(
+  events: readonly RuntimeEvent[],
+  sourceMessageId?: string,
+): Map<string, RuntimeTextGroup[]> {
+  const groupsByTurnId = new Map<string, Map<string, RuntimeTextGroup>>();
+  for (const event of events) {
+    if (event.type !== "runtime.text.delta" || !event.turnId) {
+      continue;
+    }
+    const messageId = sourceMessageId ?? runtimeTextMessageId(event);
+    const groupKey = messageId ?? "__identity_free__";
+    const groups = groupsByTurnId.get(event.turnId) ?? new Map();
+    const existing = groups.get(groupKey);
+    groups.set(groupKey, {
+      events: [...(existing?.events ?? []), event],
+      messageId,
+      occurredAt: existing?.occurredAt ?? event.occurredAt,
+      text: `${existing?.text ?? ""}${event.payload.delta}`,
+    });
+    groupsByTurnId.set(event.turnId, groups);
+  }
+  return new Map(
+    [...groupsByTurnId].map(([turnId, groups]) => [
+      turnId,
+      [...groups.values()],
+    ]),
+  );
+}
+
+function textGroupsCompatible(
+  current: RuntimeTextGroup,
+  delivered: DeliveredTextGroup,
+): boolean {
+  return (
+    current.text.startsWith(delivered.text) ||
+    delivered.text.startsWith(current.text)
+  );
+}
+
+function matchDeliveredTextGroups(
+  currentGroups: readonly RuntimeTextGroup[],
+  deliveredGroups: readonly DeliveredTextGroup[],
+): Map<RuntimeTextGroup, DeliveredTextGroup> {
+  const matched = new Map<RuntimeTextGroup, DeliveredTextGroup>();
+  const remainingCurrent = new Set(currentGroups);
+  const remainingDelivered = new Set(deliveredGroups);
+  const match = (
+    predicate: (
+      current: RuntimeTextGroup,
+      delivered: DeliveredTextGroup,
+    ) => boolean,
+  ): void => {
+    for (const current of remainingCurrent) {
+      const delivered = [...remainingDelivered].find((candidate) =>
+        predicate(current, candidate),
+      );
+      if (delivered) {
+        matched.set(current, delivered);
+        remainingCurrent.delete(current);
+        remainingDelivered.delete(delivered);
+      }
+    }
+  };
+
+  match(
+    (current, delivered) =>
+      current.messageId !== undefined &&
+      current.messageId === delivered.messageId,
+  );
+  match(
+    (current, delivered) =>
+      current.occurredAt === delivered.occurredAt &&
+      textGroupsCompatible(current, delivered),
+  );
+  match((current, delivered) => current.text === delivered.text);
+  match(textGroupsCompatible);
+  return matched;
+}
+
 function runtimeEventSequenceKey(event: RuntimeEvent): string {
   switch (event.type) {
     case "runtime.turn.started":
@@ -145,7 +246,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly creates = new Map<string, Promise<AgentSession>>();
   private readonly deliveredTextEventsByTurnIds = new Map<
     string,
-    Map<string, { readonly delta: string; readonly sequence: number }>
+    Map<
+      string,
+      {
+        readonly delta: string;
+        readonly messageId?: string;
+        readonly occurredAt: string;
+        readonly sequence: number;
+      }
+    >
   >();
   private readonly eventSequences = new Map<string, Map<string, number>>();
   private readonly latestTurnIds = new Map<string, string>();
@@ -334,7 +443,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.reconcileTurnsFromHistory(sessionId, items);
     this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items);
     const mapped = mapOmnigentConversationHistory(sessionId, items);
-    this.refreshTrackedSession(sessionId, snapshot);
+    this.refreshTrackedSession(
+      sessionId,
+      snapshot,
+      this.shouldPreserveActiveIdentity(sessionId, snapshot),
+    );
     this.applyMappedHistoryState(sessionId, mapped.runtimeEvents);
     const replayEvents =
       options?.afterSequence === undefined
@@ -443,30 +556,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       if (soleUnresolvedTurnId && soleUnresolvedTurnStillPending) {
         stream.removeFallbackTurnId(soleUnresolvedTurnId);
       }
-      const snapshotResponseAlreadyResolved = Boolean(
-        snapshot.activeResponseId &&
-          this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
-      );
-      const snapshotResponseRejected = Boolean(
-        snapshot.activeResponseId &&
-          this.rejectedTurnKeys.has(`${sessionId}:${snapshot.activeResponseId}`),
-      );
       if (
         snapshot.activeResponseId &&
-        soleUnresolvedTurnId &&
-        !soleUnresolvedTurnStillPending &&
-        !snapshotResponseAlreadyResolved &&
-        !snapshotResponseRejected
+        this.turns.has(`${sessionId}:${snapshot.activeResponseId}`)
       ) {
-        stream.bindResponseId(snapshot.activeResponseId, soleUnresolvedTurnId);
-        this.reconcileTurn(
-          sessionId,
-          soleUnresolvedTurnId,
-          snapshot.activeResponseId,
-          snapshot.updatedAt,
-        );
-      }
-      if (snapshot.activeResponseId && snapshotResponseAlreadyResolved) {
         stream.bindResponseId(
           snapshot.activeResponseId,
           snapshot.activeResponseId,
@@ -493,11 +586,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.refreshTrackedSession(
         sessionId,
         snapshot,
-        Boolean(snapshot.activeResponseId) &&
-          (unresolvedTurnIds.length > 1 ||
-            snapshotResponseAlreadyResolved ||
-            soleUnresolvedTurnStillPending ||
-            snapshotResponseRejected),
+        this.shouldPreserveActiveIdentity(sessionId, snapshot),
       );
       this.applyMappedHistoryState(sessionId, mappedSnapshot.runtimeEvents);
       for (const event of mappedHistoryEvents) {
@@ -539,6 +628,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
                 sessionId,
                 mappedEvents,
                 options.afterSequence,
+                rawEvent.message_id ?? messageItemId(rawEvent),
               );
         const events = this.resequenceRuntimeEvents(
           sessionId,
@@ -604,7 +694,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           }
         }
         for (const event of events) {
-          this.recordDeliveredText(sessionId, [event]);
+          this.recordDeliveredText(
+            sessionId,
+            [event],
+            rawEvent.message_id ?? messageItemId(rawEvent),
+          );
           yield event;
         }
       }
@@ -624,6 +718,19 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         actor: "provider",
         category: "state_conflict",
         message: `Turn ${handle.turnId} is not the active turn for session ${handle.sessionId}.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
+    const snapshot = await this.client.getSession(handle.sessionId);
+    if (
+      snapshot.activeResponseId &&
+      snapshot.activeResponseId !== handle.turnId
+    ) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Turn ${handle.turnId} is not the upstream active response for session ${handle.sessionId}.`,
         retryable: false,
         scope: "turn",
       });
@@ -685,39 +792,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "session",
       });
     }
-    const provisionalTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
-    const soleProvisionalTurnId =
-      provisionalTurnIds.length === 1 ? provisionalTurnIds[0] : undefined;
-    const soleProvisionalTurnStillPending =
-      soleProvisionalTurnId !== undefined &&
-      ((snapshot.pendingInputs ?? []).some(
-        ({ pendingId }) => pendingId === soleProvisionalTurnId,
-      ) ||
-        (this.queuedOnlyTurnKeys.has(`${sessionId}:${soleProvisionalTurnId}`) &&
-          (snapshot.pendingInputs?.length ?? 0) > 0));
-    const snapshotResponseAlreadyResolved = Boolean(
-      snapshot.activeResponseId &&
-        this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
-    );
-    const snapshotResponseRejected = Boolean(
-      snapshot.activeResponseId &&
-        this.rejectedTurnKeys.has(`${sessionId}:${snapshot.activeResponseId}`),
-    );
-    if (
-      soleProvisionalTurnId &&
-      snapshot.activeResponseId &&
-      !soleProvisionalTurnStillPending &&
-      !snapshotResponseAlreadyResolved &&
-      !snapshotResponseRejected
-    ) {
-      this.reconcileTurn(
-        sessionId,
-        soleProvisionalTurnId,
-        snapshot.activeResponseId,
-        snapshot.updatedAt,
-      );
-    }
-
     const reconciled = this.sessions.get(sessionId) ?? existing;
     const next = toSessionInfo(reconciled, snapshot, reconciled);
     const resolved =
@@ -727,11 +801,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
             activeTurnId: undefined,
             state: "closed" as const,
           }
-        : snapshot.activeResponseId &&
-            (provisionalTurnIds.length > 1 ||
-              snapshotResponseAlreadyResolved ||
-              soleProvisionalTurnStillPending ||
-              snapshotResponseRejected)
+        : this.shouldPreserveActiveIdentity(sessionId, snapshot)
           ? {
               ...next,
               activeTurnId: existing.activeTurnId,
@@ -777,6 +847,20 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           : next,
       );
     }
+  }
+
+  private shouldPreserveActiveIdentity(
+    sessionId: string,
+    snapshot: OmnigentSessionSnapshot,
+  ): boolean {
+    return (
+      (this.provisionalTurnOrder.get(sessionId)?.length ?? 0) > 0 ||
+      Boolean(
+        snapshot.activeResponseId &&
+          (this.turns.has(`${sessionId}:${snapshot.activeResponseId}`) ||
+            this.rejectedTurnKeys.has(`${sessionId}:${snapshot.activeResponseId}`)),
+      )
+    );
   }
 
   private setActiveTurn(
@@ -867,44 +951,58 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     events: readonly RuntimeEvent[],
     afterSequence: number,
+    sourceMessageId?: string,
   ): RuntimeEvent[] {
-    const remainingByTurnId = new Map<string, string>();
+    const textGroups = groupTextEvents(events, sourceMessageId);
+    const remainingByEvent = new Map<RuntimeEvent, string>();
+    for (const [turnId, groups] of textGroups) {
+      const delivered = this.deliveredTextForCursor(
+        `${sessionId}:${turnId}`,
+        afterSequence,
+      );
+      for (const [group, deliveredGroup] of matchDeliveredTextGroups(
+        groups,
+        delivered,
+      )) {
+        let remaining = deliveredGroup.text;
+        for (const event of group.events) {
+          const delta = event.payload.delta;
+          if (remaining.startsWith(delta)) {
+            remainingByEvent.set(event, "");
+            remaining = remaining.slice(delta.length);
+          } else if (delta.startsWith(remaining)) {
+            remainingByEvent.set(event, delta.slice(remaining.length));
+            remaining = "";
+          }
+        }
+      }
+    }
+
     return events.flatMap((event) => {
       if (event.type !== "runtime.text.delta" || !event.turnId) {
         return [event];
       }
-      const turnKey = `${sessionId}:${event.turnId}`;
-      const remaining = remainingByTurnId.has(turnKey)
-        ? remainingByTurnId.get(turnKey)!
-        : this.deliveredTextForCursor(turnKey, afterSequence);
-      if (remaining.length === 0) {
+      const delta = remainingByEvent.get(event);
+      if (delta === undefined) {
         return [event];
       }
-      const delta = event.payload.delta;
-      if (remaining.startsWith(delta)) {
-        remainingByTurnId.set(turnKey, remaining.slice(delta.length));
+      if (delta.length === 0) {
         return [];
       }
-      if (delta.startsWith(remaining)) {
-        remainingByTurnId.set(turnKey, "");
-        const suffix = delta.slice(remaining.length);
-        return suffix.length === 0
-          ? []
-          : [
-              {
-                ...event,
-                eventId: `${event.eventId}:continuation:${remaining.length}`,
-                payload: { delta: suffix },
-              } as RuntimeEvent,
-            ];
-      }
-      return [event];
+      return [
+        {
+          ...event,
+          eventId: `${event.eventId}:continuation:${event.payload.delta.length - delta.length}`,
+          payload: { delta },
+        } as RuntimeEvent,
+      ];
     });
   }
 
   private recordDeliveredText(
     sessionId: string,
     events: readonly RuntimeEvent[],
+    sourceMessageId?: string,
   ): void {
     for (const event of events) {
       if (event.type === "runtime.text.delta" && event.turnId) {
@@ -917,6 +1015,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         }
         delivered.set(eventKey, {
           delta: event.payload.delta,
+          messageId: sourceMessageId ?? runtimeTextMessageId(event),
+          occurredAt: event.occurredAt,
           sequence: event.sequence,
         });
         this.deliveredTextEventsByTurnIds.set(turnKey, delivered);
@@ -924,12 +1024,25 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
-  private deliveredTextForCursor(turnKey: string, cursor: number): string {
-    return [...(this.deliveredTextEventsByTurnIds.get(turnKey)?.values() ?? [])]
+  private deliveredTextForCursor(
+    turnKey: string,
+    cursor: number,
+  ): DeliveredTextGroup[] {
+    const groups = new Map<string, DeliveredTextGroup>();
+    for (const delivered of [
+      ...(this.deliveredTextEventsByTurnIds.get(turnKey)?.values() ?? []),
+    ]
       .filter(({ sequence }) => sequence <= cursor)
-      .sort((left, right) => left.sequence - right.sequence)
-      .map(({ delta }) => delta)
-      .join("");
+      .sort((left, right) => left.sequence - right.sequence)) {
+      const key = delivered.messageId ?? "__identity_free__";
+      const group = groups.get(key);
+      groups.set(key, {
+        messageId: delivered.messageId,
+        occurredAt: group?.occurredAt ?? delivered.occurredAt,
+        text: `${group?.text ?? ""}${delivered.delta}`,
+      });
+    }
+    return [...groups.values()];
   }
 
   private rollbackTurnRegistration(

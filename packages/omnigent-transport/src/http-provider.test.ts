@@ -582,9 +582,9 @@ describe("http provider", () => {
     await iterator.return?.();
   });
 
-  it("rejects stale-handle cancellation before sending a session interrupt", async () => {
+  it("rejects queued-handle cancellation while another response is active", async () => {
     const snapshot = {
-      active_response_id: null,
+      active_response_id: "response-upstream-active",
       agent_id: "agent-stale-cancel",
       created_at: 1_780_272_000,
       id: "session-stale-cancel",
@@ -607,7 +607,13 @@ describe("http provider", () => {
           if (event.type === "interrupt") {
             interruptPosts += 1;
           }
-          return new Response(JSON.stringify({ queued: true }));
+          return new Response(
+            JSON.stringify(
+              event.type === "message"
+                ? { pending_id: "pending-b", queued: true }
+                : { queued: true },
+            ),
+          );
         }
         return new Response(JSON.stringify(snapshot));
       },
@@ -619,24 +625,19 @@ describe("http provider", () => {
       targetHarness: "codex",
       title: snapshot.title,
     });
-    const first = await provider.sendTurn({
-      idempotencyKey: "stale-cancel-first",
-      message: "first",
-      sessionId: session.id,
-    });
-    await provider.sendTurn({
+    const queued = await provider.sendTurn({
       idempotencyKey: "stale-cancel-second",
       message: "second",
       sessionId: session.id,
     });
 
-    await expect(provider.cancelTurn(first)).rejects.toMatchObject({
+    await expect(provider.cancelTurn(queued)).rejects.toMatchObject({
       category: "state_conflict",
     });
     expect(interruptPosts).toBe(0);
   });
 
-  it("reconciles a provisional handle from snapshot-only evidence", async () => {
+  it("does not bind a provisional handle from snapshot-only evidence", async () => {
     const snapshot = {
       active_response_id: null as string | null,
       agent_id: "agent-snapshot-reconcile",
@@ -650,7 +651,8 @@ describe("http provider", () => {
     let turnAccepted = false;
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
-      fetch: async (_input, init) => {
+      fetch: async (input, init) => {
+        const url = String(input);
         if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
           return new Response(JSON.stringify(snapshot));
         }
@@ -660,6 +662,14 @@ describe("http provider", () => {
             JSON.stringify({ item_id: "item-provisional", queued: true }),
             { status: 202 },
           );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(JSON.stringify({ data: [], has_more: false }));
         }
         return new Response(
           JSON.stringify({
@@ -685,8 +695,11 @@ describe("http provider", () => {
     expect(handle.turnId).toBe("item-provisional");
 
     const info = await provider.getSessionInfo(session.id);
-    expect(handle.turnId).toBe("response-official");
-    expect(info.activeTurnId).toBe("response-official");
+    expect(handle.turnId).toBe("item-provisional");
+    expect(info.activeTurnId).toBe("item-provisional");
+    const events = await collectAsync(provider.streamEvents(session.id));
+    expect(handle.turnId).toBe("item-provisional");
+    expect(events).toEqual([]);
   });
 
   it("reconciles stream events that arrive before the send acknowledgement", async () => {
@@ -1310,6 +1323,10 @@ describe("http provider", () => {
     });
 
     staleRejectedSnapshot = true;
+    await provider.readHistory(session.id);
+    const rejectedInfo = await provider.getSessionInfo(session.id);
+    expect(rejectedInfo.activeTurnId).toBeUndefined();
+    expect(rejectedInfo.state).toBe("idle");
     const accepted = await provider.sendTurn({
       idempotencyKey: "rejected-reconnect-b",
       message: "accept B",
@@ -5251,6 +5268,99 @@ describe("http provider", () => {
     expect(
       replay.events.filter((event) => event.type === "runtime.text.delta"),
     ).toEqual([]);
+  });
+
+  it("matches delivered text to the correct persisted message", async () => {
+    const snapshot = {
+      active_response_id: "response-shared-text",
+      agent_id: "agent-shared-text",
+      created_at: 1_780_272_000,
+      id: "session-shared-text",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Shared response text",
+      updated_at: 1_780_272_003,
+    };
+    let history: OmnigentConversationItem[] = [];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            [
+              {
+                response: { id: "response-shared-text", status: "in_progress" },
+                type: "response.created",
+              },
+              {
+                delta: "same more",
+                message_id: "stream-message-b",
+                response_id: "response-shared-text",
+                type: "response.output_text.delta",
+              },
+            ]
+              .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+              .join(""),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "shared-text-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const live = await collectAsync(provider.streamEvents(session.id));
+    const cursor = live.at(-1)?.sequence ?? 0;
+    history = [
+      {
+        content: [{ text: "same", type: "output_text" }],
+        created_at: 1_780_272_001,
+        id: "persisted-message-a",
+        response_id: "response-shared-text",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+      {
+        content: [{ text: "same more", type: "output_text" }],
+        created_at: 1_780_272_002,
+        id: "persisted-message-b",
+        response_id: "response-shared-text",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+
+    const replay = await provider.readHistory(session.id, {
+      afterSequence: cursor,
+    });
+
+    expect(
+      replay.events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["same"]);
   });
 
   it("assigns newly persisted lifecycle events after the prior live cursor", async () => {

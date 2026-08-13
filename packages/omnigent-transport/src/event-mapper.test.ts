@@ -288,6 +288,36 @@ describe("event mapper", () => {
     expect(runtimeEvents).toEqual([]);
   });
 
+  it("prefers an exact persisted message over an earlier compatible prefix", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: "same more",
+          id: "delta-exact-cross-namespace",
+          message_id: "stream-message-b",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          turnId: "response-cross-namespace",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalMessagesByTurnId: [
+          [
+            "response-cross-namespace",
+            [
+              { messageId: "ap-item-a", text: "same" },
+              { messageId: "ap-item-b", text: "same more" },
+            ],
+          ],
+        ],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([]);
+  });
+
   it("preserves new identifier-free text that repeats a historical prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

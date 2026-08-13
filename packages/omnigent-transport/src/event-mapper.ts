@@ -206,16 +206,21 @@ export class OmnigentEventMapper {
         const exactMessageIndex = historicalMessages.findIndex(
           ({ messageId }) => messageId === rawEvent.message_id,
         );
+        const exactTextIndex = historicalMessages.findIndex(
+          ({ text }) => delta.length > 0 && text === delta,
+        );
         const compatibleMessageIndex =
           exactMessageIndex >= 0
             ? exactMessageIndex
-            : historicalMessages.findIndex(
-                ({ text }) =>
-                  delta.length > 0 &&
-                  (text.startsWith(delta) ||
-                    text.endsWith(delta) ||
-                    delta.startsWith(text)),
-              );
+            : exactTextIndex >= 0
+              ? exactTextIndex
+              : historicalMessages.findIndex(
+                  ({ text }) =>
+                    delta.length > 0 &&
+                    (text.startsWith(delta) ||
+                      text.endsWith(delta) ||
+                      delta.startsWith(text)),
+                );
         if (compatibleMessageIndex >= 0) {
           const [historicalMessage] = historicalMessages.splice(
             compatibleMessageIndex,
