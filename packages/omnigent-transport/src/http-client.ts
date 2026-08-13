@@ -419,6 +419,9 @@ export class OmnigentHttpClient {
       sessionId,
     });
     return {
+      bindResponseId: (responseId, turnId) => {
+        normalizer.bindResponseId(responseId, turnId);
+      },
       close: async () => {
         if (!closed) {
           closed = true;

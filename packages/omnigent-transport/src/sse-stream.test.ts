@@ -403,6 +403,7 @@ describe("sse stream parser", () => {
       sessionId: "session-snapshot-reconcile",
     });
     normalizer.setFallbackTurnId("provisional-snapshot");
+    normalizer.bindResponseId("response-snapshot", "provisional-snapshot");
     normalizer.setActiveResponseId("response-snapshot");
 
     expect(
@@ -447,6 +448,73 @@ describe("sse stream parser", () => {
         turnId: "response-two",
       }),
     );
+  });
+
+  it("confirms a deferred multi-turn snapshot binding on terminal evidence", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-snapshot-terminal",
+    });
+    normalizer.setFallbackTurnId("provisional-one");
+    normalizer.setFallbackTurnId("provisional-two");
+    normalizer.setActiveResponseId("response-one");
+
+    expect(
+      normalizer.normalize({
+        response: { id: "response-one", status: "failed" },
+        type: "response.failed",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasConfirmed: true,
+        turnAliasId: "provisional-one",
+      }),
+    );
+    expect(
+      normalizer.normalize({
+        response: { id: "response-two", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasConfirmed: true,
+        turnAliasId: "provisional-two",
+      }),
+    );
+  });
+
+  it("does not confirm ambiguous reversed terminals for status-only failures", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-reversed-terminals",
+    });
+    normalizer.setFallbackTurnId("provisional-one");
+    const firstStatus = normalizer.normalize({
+      status: "failed",
+      type: "session.status",
+    });
+    normalizer.setFallbackTurnId("provisional-two");
+    const secondStatus = normalizer.normalize({
+      status: "failed",
+      type: "session.status",
+    });
+    const officialTwo = normalizer.normalize({
+      response: { id: "response-two", status: "failed" },
+      type: "response.failed",
+    });
+    const officialOne = normalizer.normalize({
+      response: { id: "response-one", status: "failed" },
+      type: "response.failed",
+    });
+
+    expect(officialTwo.turnAliasConfirmed).toBe(false);
+    expect(officialOne.turnAliasConfirmed).toBe(false);
+    expect(
+      mapOmnigentEventSequence("session-reversed-terminals", [
+        firstStatus,
+        secondStatus,
+        officialTwo,
+        officialOne,
+      ]).filter((event) => event.type === "runtime.turn.failed"),
+    ).toHaveLength(2);
   });
 
   it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {

@@ -815,6 +815,7 @@ describe("http provider", () => {
       updated_at: 1_780_272_000,
     };
     let sendCount = 0;
+    let snapshotReads = 0;
     let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
     let resolveHistoryReady: (() => void) | undefined;
     const historyReady = new Promise<void>((resolve) => {
@@ -855,7 +856,18 @@ describe("http provider", () => {
             }),
           );
         }
-        return new Response(JSON.stringify(snapshot));
+        snapshotReads += 1;
+        return new Response(
+          JSON.stringify(
+            snapshotReads === 1 && sendCount === 2
+              ? {
+                  ...snapshot,
+                  active_response_id: "response-one",
+                  status: "running",
+                }
+              : snapshot,
+          ),
+        );
       },
     });
     const session = await provider.createSession({
@@ -865,9 +877,6 @@ describe("http provider", () => {
       targetHarness: "codex",
       title: snapshot.title,
     });
-    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
-    const firstEvent = iterator.next();
-    await historyReady;
     const firstHandle = await provider.sendTurn({
       idempotencyKey: "rapid-one",
       message: "one",
@@ -878,6 +887,9 @@ describe("http provider", () => {
       message: "two",
       sessionId: session.id,
     });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
 
     streamController?.enqueue(
       new TextEncoder().encode(

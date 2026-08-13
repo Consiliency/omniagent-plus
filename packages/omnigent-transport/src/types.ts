@@ -361,6 +361,7 @@ export interface OmnigentRawEvent {
   readonly response_id?: string;
   readonly itemId?: string;
   readonly terminal?: boolean;
+  readonly turnAliasConfirmed?: boolean;
   readonly turnAliasId?: string;
   readonly status?: OmnigentSessionEventStatus | OmnigentResponseStatus;
   readonly reason?: string;
@@ -402,6 +403,7 @@ export interface OmnigentTaggedSseEvent {
 
 export interface OmnigentOpenStream {
   readonly events: AsyncIterable<OmnigentRawEvent>;
+  bindResponseId(responseId: string, turnId: string): void;
   close(): Promise<void>;
   setActiveResponseId(responseId: string | null | undefined): void;
   setFallbackTurnId(turnId: string | undefined): void;

@@ -99,6 +99,7 @@ export class OmnigentSseNormalizer {
   private readonly knownResponseIds = new Set<string>();
   private readonly pendingTerminalTurnIds: string[] = [];
   private readonly responseAliases = new Map<string, string>();
+  private readonly tentativeResponseAliases = new Map<string, string>();
   private readonly unboundTurnIds: string[] = [];
   private frameOrdinal = 0;
   private readonly now: () => string;
@@ -111,10 +112,22 @@ export class OmnigentSseNormalizer {
     this.currentResponseId = responseId ?? undefined;
     if (this.currentResponseId) {
       this.knownResponseIds.add(this.currentResponseId);
-      if (this.fallbackTurnId) {
-        this.bindResponseAlias(this.currentResponseId, this.fallbackTurnId);
+      const oldestUnboundTurnId = this.unboundTurnIds[0];
+      if (
+        oldestUnboundTurnId !== undefined &&
+        !this.responseAliases.has(this.currentResponseId)
+      ) {
+        this.tentativeResponseAliases.set(
+          this.currentResponseId,
+          oldestUnboundTurnId,
+        );
       }
     }
+  }
+
+  bindResponseId(responseId: string, turnId: string): void {
+    this.knownResponseIds.add(responseId);
+    this.bindResponseAlias(responseId, turnId);
   }
 
   setFallbackTurnId(turnId: string | undefined): void {
@@ -162,15 +175,42 @@ export class OmnigentSseNormalizer {
       : previousResponseId
         ? this.responseAliases.get(previousResponseId)
         : undefined;
+    let turnAliasConfirmed = turnAliasId !== undefined;
+    const tentativeTurnAliasId = officialTurnId
+      ? this.tentativeResponseAliases.get(officialTurnId)
+      : undefined;
     if (
       officialTurnId !== undefined &&
       turnAliasId === undefined &&
-      !this.knownResponseIds.has(officialTurnId)
+      tentativeTurnAliasId !== undefined
     ) {
-      turnAliasId = terminal
-        ? this.pendingTerminalTurnIds.shift() ?? this.unboundTurnIds.shift()
-        : this.unboundTurnIds.shift();
-      if (turnAliasId !== undefined) {
+      turnAliasId = tentativeTurnAliasId;
+      turnAliasConfirmed = true;
+      this.bindResponseAlias(officialTurnId, tentativeTurnAliasId);
+    }
+    if (
+      officialTurnId !== undefined &&
+      turnAliasId === undefined &&
+      (!this.knownResponseIds.has(officialTurnId) ||
+      tagged.type === "response.created")
+    ) {
+      if (!terminal) {
+        turnAliasId = this.unboundTurnIds.shift();
+        turnAliasConfirmed = turnAliasId !== undefined;
+      } else if (
+        this.pendingTerminalTurnIds.length > 0 &&
+        this.unboundTurnIds.length === 0
+      ) {
+        turnAliasId = this.pendingTerminalTurnIds[0];
+        turnAliasConfirmed = this.pendingTerminalTurnIds.length === 1;
+      } else if (
+        this.pendingTerminalTurnIds.length === 0 &&
+        this.unboundTurnIds.length > 0
+      ) {
+        turnAliasId = this.unboundTurnIds[0];
+        turnAliasConfirmed = true;
+      }
+      if (turnAliasId !== undefined && turnAliasConfirmed) {
         this.bindResponseAlias(officialTurnId, turnAliasId);
       }
     }
@@ -260,6 +300,7 @@ export class OmnigentSseNormalizer {
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
       turnId,
+      turnAliasConfirmed,
       turnAliasId,
       type: tagged.type,
       usage_by_model: isRecord(raw.usage_by_model)
@@ -278,7 +319,7 @@ export class OmnigentSseNormalizer {
           this.pendingTerminalTurnIds.push(turnId);
         }
       }
-      if (turnAliasId !== undefined) {
+      if (turnAliasId !== undefined && turnAliasConfirmed) {
         this.removeUnboundTurnId(turnAliasId);
         this.removePendingTerminalTurnId(turnAliasId);
       }
@@ -299,6 +340,7 @@ export class OmnigentSseNormalizer {
 
   private bindResponseAlias(responseId: string, turnId: string): void {
     this.responseAliases.set(responseId, turnId);
+    this.tentativeResponseAliases.delete(responseId);
     this.removeUnboundTurnId(turnId);
     this.removePendingTerminalTurnId(turnId);
   }
