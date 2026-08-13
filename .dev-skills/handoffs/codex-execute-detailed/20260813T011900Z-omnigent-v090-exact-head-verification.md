@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`f07c0e0736f969692cb1bde83ebd002d72a3907e`, and no source or evidence files
+`94d66d0c036f097b14b5d7d522eb6e5f18565457`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 134 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 136 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 306 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 308 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -38,6 +38,25 @@ may change after this receipt is committed without another full run.
 
 ## Review Reconciliation
 
+- Session-wide cancellation now performs a fresh snapshot preflight before the
+  interrupt POST. A non-empty upstream `active_response_id` must equal the
+  supplied handle, so a queued B cannot interrupt an already-running A. The
+  regression proves a typed `state_conflict` and zero interrupt requests.
+- Session snapshots no longer correlate a sole unresolved local handle to an
+  unknown active response. Only exact persisted-history joins or live lifecycle
+  aliases/FIFO evidence may mutate the handle. Both `getSessionInfo()` and
+  stream initialization regressions prove snapshot-only external response state
+  leaves the provisional handle unchanged.
+- All snapshot refresh surfaces share one active-identity preservation rule.
+  Rejected response IDs, already-known stale response IDs, and unresolved local
+  provisionals cannot overwrite the current provider state through
+  `readHistory()`, `getSessionInfo()`, or stream setup.
+- Reconnect text accounting is message-aware. Delivered chunks are grouped by
+  message identity and matched one-to-one against persisted messages by exact
+  identity, compatible timestamp, exact text, then prefix continuation. The
+  A=`same`, B=`same more`, live-B regression emits unseen A exactly once and
+  suppresses B; cross-namespace mapper matching also prefers exact B over A's
+  compatible prefix.
 - Status-only terminalized provisional IDs leave the reconnect FIFO but retain
   exact-history reconciliation keys. The provider integration test closes the
   first stream, binds turn three on a new stream, then supplies persisted rows
