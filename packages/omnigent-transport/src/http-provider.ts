@@ -904,23 +904,49 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     events: readonly RuntimeEvent[],
   ): void {
-    for (const event of events) {
-      if (!event.terminal || !event.turnId) {
-        continue;
-      }
-      const activeTurnId =
-        this.sessions.get(sessionId)?.activeTurnId ??
-        this.latestTurnIds.get(sessionId);
-      if (activeTurnId !== undefined && activeTurnId !== event.turnId) {
-        continue;
-      }
-      if (event.type === "runtime.turn.failed") {
-        this.failActiveTurn(sessionId, event.occurredAt, event.payload.failure);
-      } else if (
-        event.type === "runtime.turn.completed" ||
-        event.type === "runtime.turn.cancelled"
+    let latestLifecycle: RuntimeEvent | undefined;
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index]!;
+      if (
+        event.turnId !== undefined &&
+        (event.type === "runtime.turn.started" || event.terminal)
       ) {
-        this.clearActiveTurn(sessionId, event.occurredAt);
+        latestLifecycle = event;
+        break;
+      }
+    }
+    if (!latestLifecycle?.turnId) {
+      return;
+    }
+    const activeTurnId = this.sessions.get(sessionId)?.activeTurnId;
+    if (activeTurnId !== undefined && activeTurnId !== latestLifecycle.turnId) {
+      return;
+    }
+    if (latestLifecycle.type === "runtime.turn.started") {
+      this.setActiveTurn(
+        sessionId,
+        latestLifecycle.turnId,
+        latestLifecycle.occurredAt,
+      );
+    } else if (latestLifecycle.type === "runtime.turn.failed") {
+      this.failActiveTurn(
+        sessionId,
+        latestLifecycle.occurredAt,
+        latestLifecycle.payload.failure,
+      );
+    } else if (
+      latestLifecycle.type === "runtime.turn.completed" ||
+      latestLifecycle.type === "runtime.turn.cancelled"
+    ) {
+      const session = this.sessions.get(sessionId);
+      if (session) {
+        this.sessions.set(sessionId, {
+          ...session,
+          activeTurnId: undefined,
+          lastError: undefined,
+          state: "idle",
+          updatedAt: latestLifecycle.occurredAt,
+        });
       }
     }
   }

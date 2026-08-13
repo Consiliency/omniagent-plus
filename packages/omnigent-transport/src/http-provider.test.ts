@@ -816,6 +816,109 @@ describe("http provider", () => {
     expect(info.state).toBe("failed");
   });
 
+  it("uses the newest persisted terminal when replay includes an older failure", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-persisted-terminal-order",
+      created_at: 1_780_272_000,
+      id: "session-persisted-terminal-order",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Persisted terminal order",
+      updated_at: 1_780_272_004,
+    };
+    const history = [
+      {
+        content: [{ text: "old failed turn", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-old-failure",
+        response_id: "response-old-failure",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+      {
+        created_at: 1_780_272_002,
+        id: "error-old-failure",
+        message: "older persisted failure",
+        response_id: "response-old-failure",
+        status: "failed",
+        type: "error",
+      },
+      {
+        content: [{ text: "new cancelled turn", type: "input_text" }],
+        created_at: 1_780_272_003,
+        id: "item-new-cancelled-user",
+        response_id: "response-new-cancelled",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+      {
+        content: [{ text: "partial output", type: "output_text" }],
+        created_at: 1_780_272_004,
+        id: "item-new-cancelled-assistant",
+        interrupted: true,
+        response_id: "response-new-cancelled",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "persisted-terminal-order-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        turnId: "response-old-failure",
+        type: "runtime.turn.failed",
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        turnId: "response-new-cancelled",
+        type: "runtime.turn.cancelled",
+      }),
+    );
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.lastError).toBeUndefined();
+    expect(info.state).toBe("idle");
+  });
+
   it("suppresses duplicate creates and sends within one provider process", async () => {
     const server = await FakeOmnigentServer.start();
     try {
