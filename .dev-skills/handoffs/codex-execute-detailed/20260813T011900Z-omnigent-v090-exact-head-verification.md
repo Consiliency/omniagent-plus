@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`7373356e64fe4d4456703b6c092ba25a7caba476`, and no source or evidence files
+`f07c0e0736f969692cb1bde83ebd002d72a3907e`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -313,8 +313,9 @@ may change after this receipt is committed without another full run.
 - A successfully cancelled provisional handle is retired from queued/native
   pending sets, correlation aliases, pending-item joins, every open stream
   fallback, and the reconnect FIFO while its cancelled handle record remains
-  available. A queued-only A, accepted cancellation, queued-only B regression
-  proves B alone receives the next official response identity and output.
+  available. A queued-only A regression proves a same-key retry returns that
+  cached cancelled handle while a distinct B remains blocked without lifecycle
+  evidence.
 - Persisted AP item IDs and buffered Antigravity message IDs no longer need to
   share a namespace for history-first deduplication. Persisted assistant messages
   retain a per-turn FIFO of item identity and text; identified live chunks claim
@@ -338,16 +339,11 @@ may change after this receipt is committed without another full run.
 - Cancellation no longer guesses whether the next uncorrelated official response
   is late A or new B. While a cancelled-turn quarantine is unresolved, new sends
   fail closed with `state_conflict` before registration or HTTP. The barrier
-  clears only when A's lifecycle consumes it or an authoritative idle snapshot
-  confirms no active response or pending inputs. Replacement streams inherit the
-  quarantine. Regressions prove B cannot be stolen in either B-first or late-A
-  ordering and can proceed after lifecycle or snapshot reconciliation.
-- An idle snapshot may release a cancellation barrier only when no stream remains
-  open, because snapshot idle does not drain buffered SSE. Open and replacement
-  streams retain their one-shot placeholder until A's lifecycle arrives or the
-  stream closes. A regression calls `getSessionInfo()` against an idle snapshot
-  while the replacement stream is open and proves B remains blocked until A is
-  absorbed.
+  clears only when A's correlated lifecycle or the session-scoped
+  `session.interrupted` event consumes it. Replacement streams inherit the
+  quarantine. Snapshot idle is deliberately insufficient because it cannot prove
+  a future stream will not replay late A. Regressions prove B cannot be stolen in
+  either B-first or late-A ordering and proceeds after lifecycle reconciliation.
 - Replayed `response.created` for a response already known to the normalizer no
   longer consumes a newer fallback turn. A normalizer regression seeds known A
   and fallback B, replays A, then proves new response B alone claims the fallback.
