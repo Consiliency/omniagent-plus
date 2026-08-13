@@ -162,6 +162,14 @@ export class OmnigentSseNormalizer {
     }
   }
 
+  rejectTurnId(turnId: string): void {
+    this.removeFallbackTurnId(turnId);
+    this.knownResponseIds.delete(turnId);
+    if (this.currentResponseId === turnId) {
+      this.currentResponseId = undefined;
+    }
+  }
+
   replaceFallbackTurnId(previousTurnId: string, nextTurnId: string): void {
     if (previousTurnId === nextTurnId) {
       return;

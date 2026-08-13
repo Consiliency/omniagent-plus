@@ -727,8 +727,29 @@ describe("http provider", () => {
     );
     expect(postCount).toBe(1);
     expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+    streamController.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            delta: "must stay quarantined",
+            response_id: "response-denied",
+            type: "response.output_text.delta",
+          },
+          {
+            response: { id: "response-denied", status: "completed" },
+            type: "response.completed",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
     streamController.close();
-    await iterator.return?.();
+    await expect(iterator.next()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
   });
 
   it("keeps malformed acknowledgement failure authoritative after lifecycle", async () => {
@@ -817,8 +838,29 @@ describe("http provider", () => {
     );
     expect(postCount).toBe(1);
     expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+    streamController.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            delta: "must stay malformed",
+            response_id: "response-malformed-ack",
+            type: "response.output_text.delta",
+          },
+          {
+            response: { id: "response-malformed-ack", status: "completed" },
+            type: "response.completed",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
     streamController.close();
-    await iterator.return?.();
+    await expect(iterator.next()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
   });
 
   it("reconciles from persisted history before yielding its first event", async () => {
@@ -3697,6 +3739,227 @@ describe("http provider", () => {
         .map((event) => event.payload.delta),
     ).toEqual(["reply 2"]);
     expect(second.every((event) => event.sequence > cursor)).toBe(true);
+  });
+
+  it("dedupes cumulative text when the same response reconnects", async () => {
+    const snapshot = {
+      active_response_id: "response-cumulative",
+      agent_id: "agent-cumulative-reconnect",
+      created_at: 1_780_272_000,
+      id: "session-cumulative-reconnect",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Cumulative reconnect",
+      updated_at: 1_780_272_002,
+    };
+    let streamRead = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          streamRead += 1;
+          return new Response(
+            [
+              {
+                response: { id: "response-cumulative", status: "in_progress" },
+                type: "response.created",
+              },
+              {
+                delta: streamRead === 1 ? "Hel" : "Hello",
+                response_id: "response-cumulative",
+                type: "response.output_text.delta",
+              },
+            ]
+              .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+              .join(""),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cumulative-reconnect-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    const first = await collectAsync(provider.streamEvents(session.id));
+    const cursor = first.at(-1)?.sequence ?? 0;
+    const second = await collectAsync(
+      provider.streamEvents(session.id, { afterSequence: cursor }),
+    );
+
+    expect(
+      second
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["lo"]);
+    expect(second.every((event) => event.sequence > cursor)).toBe(true);
+  });
+
+  it("keeps history cursor zero independent from an earlier reader", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-independent-history",
+      created_at: 1_780_272_000,
+      id: "session-independent-history",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Independent history",
+      updated_at: 1_780_272_001,
+    };
+    const history = [
+      {
+        content: [{ text: "answer", type: "output_text" }],
+        created_at: 1_780_272_001,
+        id: "message-independent-history",
+        response_id: "response-independent-history",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "independent-history-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    await provider.readHistory(session.id);
+    const fromStart = await provider.readHistory(session.id, {
+      afterSequence: 0,
+    });
+
+    expect(
+      fromStart.events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["answer"]);
+  });
+
+  it("emits an identified persisted continuation after its live cursor", async () => {
+    const snapshot = {
+      active_response_id: "response-identified-continuation",
+      agent_id: "agent-identified-continuation",
+      created_at: 1_780_272_000,
+      id: "session-identified-continuation",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Identified continuation",
+      updated_at: 1_780_272_002,
+    };
+    let history: OmnigentConversationItem[] = [];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            [
+              {
+                response: {
+                  id: "response-identified-continuation",
+                  status: "in_progress",
+                },
+                type: "response.created",
+              },
+              {
+                delta: "Hel",
+                index: 0,
+                message_id: "message-identified-continuation",
+                response_id: "response-identified-continuation",
+                type: "response.output_text.delta",
+              },
+            ]
+              .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+              .join(""),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id ?? null,
+              has_more: false,
+              last_id: history.at(-1)?.id ?? null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "identified-continuation-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const live = await collectAsync(provider.streamEvents(session.id));
+    const cursor = live.at(-1)?.sequence ?? 0;
+    history = [
+      {
+        content: [{ text: "Hello", type: "output_text" }],
+        created_at: 1_780_272_002,
+        id: "message-identified-continuation",
+        response_id: "response-identified-continuation",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+
+    const replay = await provider.readHistory(session.id, {
+      afterSequence: cursor,
+    });
+
+    expect(
+      replay.events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["lo"]);
+    expect(replay.events.every((event) => event.sequence > cursor)).toBe(true);
   });
 
   it("does not replay live identity-free text after earlier history commits", async () => {

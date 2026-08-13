@@ -563,6 +563,9 @@ export class OmnigentHttpClient {
         normalizer,
         controller.signal,
       ),
+      rejectTurnId: (turnId) => {
+        normalizer.rejectTurnId(turnId);
+      },
       removeFallbackTurnId: (turnId) => {
         normalizer.removeFallbackTurnId(turnId);
       },
