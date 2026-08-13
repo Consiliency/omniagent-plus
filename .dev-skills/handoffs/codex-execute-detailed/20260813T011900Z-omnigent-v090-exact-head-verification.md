@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`bbd732651c6d163bf6703abc6565062b27f6ac30`, and no source or evidence files
+`83d0fdcce6c6140c2beae4b12b00136e0a331b97`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 149 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 150 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 321 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 322 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -462,6 +462,18 @@ may change after this receipt is committed without another full run.
   store failure leaves the conservative fence in place. Cross-provider
   regressions reproduce malformed and disconnected acknowledgements and prove a
   replacement writer cannot issue a message POST.
+- Non-retryable or stream-proven send failures persist every known provisional
+  and official rejected identity while the session lease is held. Replacement
+  history, session-info, send, and stream paths install those tombstones before
+  reconciliation. The denial regression now creates a second provider sharing
+  only the lease/fence authority, replays A before B, and proves B alone receives
+  identity, output, and completion. Retryable unaccepted failures remain local so
+  the existing same-key retry contract is unchanged.
+- Default leased admission now treats authoritative `running` and `waiting`
+  snapshot status as active work even when both `active_response_id` and
+  `pending_inputs` are empty. A fresh-snapshot regression starts from locally
+  idle state, returns identity-free `waiting` during admission, and proves a
+  retryable `concurrency_limit` with zero message POSTs.
 
 ## Boundaries
 
