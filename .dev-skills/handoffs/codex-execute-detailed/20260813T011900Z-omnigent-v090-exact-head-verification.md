@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`b8001295b4c61a878d67bda457b9baff58833d30`, and no source or evidence files
+`7988e1c8b9476528d6fd60fb57ae9a7e2767b078`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 138 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 140 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 310 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 312 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -366,6 +366,16 @@ may change after this receipt is committed without another full run.
   the supplied handle to own the active session identity before any control POST.
   A stale A followed by active B regression proves cancelling A fails with
   `state_conflict`, sends no interrupt, and cannot clear or interrupt B.
+- A fresh cancellation snapshot must positively attribute session-wide interrupt
+  authority to the supplied handle through an exact `active_response_id` or exact
+  native `pending_id`. A bare queued-only handle cannot borrow authority from an
+  unrelated pending input; the regression proves `state_conflict` and zero
+  interrupt requests. Replacement-stream setup also preserves cancellation
+  quarantine when a stale snapshot still lists the cancelled pending ID.
+- Control events accept only the official synchronous `{queued:false}` response.
+  A `{queued:true}` interrupt or close acknowledgement is a non-retryable
+  `malformed_response`, leaves local state unchanged, and releases the cancellation
+  reservation so later work is not stranded.
 - Cancellation no longer guesses whether the next uncorrelated official response
   is late A or new B. While a cancelled-turn quarantine is unresolved, new sends
   fail closed with `state_conflict` before registration or HTTP. The barrier
