@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`60ca1154d5f6d7a579e2b449f7ed5f1176300ee9`, and no source or evidence files
+`3771f0e1b4067222b59948c6f321ccd11ab1f0b2`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 129 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 132 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 301 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 304 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -321,6 +321,20 @@ may change after this receipt is committed without another full run.
   one content-compatible message before exact prefix/suffix consumption.
   Mapper and provider regressions persist `Hello world` under an AP item ID,
   buffer `Hello` and ` world` under a different stream ID, and emit the text once.
+- Cursor-filtered nonterminal runtime events no longer mutate provider state.
+  Identity reconciliation and metadata-only status handling remain active, while
+  a replayed `response.created` below the cursor cannot reactivate its completed
+  turn. A two-stream regression proves the replay yields no event, leaves the
+  turn inactive, and cannot authorize a subsequent cancellation.
+- Cancellation on an already-open stream leaves a one-shot quarantined FIFO
+  placeholder for the cancelled provisional. Its late official lifecycle binds
+  to that placeholder, is tombstoned with trailing identity-free output, and
+  consumes the quarantine before the next response can bind. A late A then valid
+  B regression proves only B receives identity, output, and completion.
+- Because upstream interrupt is session-scoped, `cancelTurn(handle)` now requires
+  the supplied handle to own the active session identity before any control POST.
+  A stale A followed by active B regression proves cancelling A fails with
+  `state_conflict`, sends no interrupt, and cannot clear or interrupt B.
 
 ## Boundaries
 
