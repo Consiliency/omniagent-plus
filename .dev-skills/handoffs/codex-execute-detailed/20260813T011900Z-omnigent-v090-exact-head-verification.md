@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`a96b63ff87e15ff499abc1176f041572018c02b6`, and no source or evidence files
+`7373356e64fe4d4456703b6c092ba25a7caba476`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 132 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 134 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 304 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 306 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -342,6 +342,19 @@ may change after this receipt is committed without another full run.
   confirms no active response or pending inputs. Replacement streams inherit the
   quarantine. Regressions prove B cannot be stolen in either B-first or late-A
   ordering and can proceed after lifecycle or snapshot reconciliation.
+- An idle snapshot may release a cancellation barrier only when no stream remains
+  open, because snapshot idle does not drain buffered SSE. Open and replacement
+  streams retain their one-shot placeholder until A's lifecycle arrives or the
+  stream closes. A regression calls `getSessionInfo()` against an idle snapshot
+  while the replacement stream is open and proves B remains blocked until A is
+  absorbed.
+- Replayed `response.created` for a response already known to the normalizer no
+  longer consumes a newer fallback turn. A normalizer regression seeds known A
+  and fallback B, replays A, then proves new response B alone claims the fallback.
+- Official-handle cancellation lifecycle now consumes quarantine by either the
+  provisional alias or official turn ID. A send-to-official, cancel, official
+  `response.cancelled`, then send-B regression proves the barrier clears and B
+  receives its own official response.
 
 ## Boundaries
 
