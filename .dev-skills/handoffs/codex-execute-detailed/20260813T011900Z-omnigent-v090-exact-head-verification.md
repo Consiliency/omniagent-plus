@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`f9df1af4186068aa877628d1c16b284ee2d8b4db`, and no source or evidence files
+`bbd732651c6d163bf6703abc6565062b27f6ac30`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 146 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 149 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 318 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 321 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -449,6 +449,19 @@ may change after this receipt is committed without another full run.
   outcomes retain the fence conservatively, while explicit policy denial restores
   the prior state. A replacement-provider close regression also proves the shared
   terminal marker blocks sends without relying on process-local session state.
+- A late `session.input.consumed` event can no longer revive a rejected pending
+  ID through ordinary fallback registration. It reopens the shared cancellation
+  fence and installs only a quarantined placeholder, so B remains blocked until
+  A's correlated lifecycle is tombstoned. The regression interrupts A, receives
+  late consumption, proves B cannot post, identifies and drops A, then proves
+  only B receives identity, output, and completion. Tombstone restoration is an
+  explicit method used solely by the existing deterministic same-key retry path.
+- Logical close writes a shared `closing` fence before sending `stop_session`.
+  Successful acknowledgement promotes it to `closed`; explicit policy denial
+  restores the prior state; malformed JSON, response-body disconnect, or final
+  store failure leaves the conservative fence in place. Cross-provider
+  regressions reproduce malformed and disconnected acknowledgements and prove a
+  replacement writer cannot issue a message POST.
 
 ## Boundaries
 
