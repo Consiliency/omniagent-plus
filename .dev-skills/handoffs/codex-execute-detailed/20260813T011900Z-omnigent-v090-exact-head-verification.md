@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `ccb0d03`, and no source or evidence
+this file. The final implementation parent is `65f6e21`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 80 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 82 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 252 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 254 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -66,6 +66,13 @@ files may change after this receipt is committed without another full run.
   streams. A provider race test opens the stream with message B in-flight, then
   reads history after A and B share one response and B has committed. The
   resulting neutral text is exactly A then B; buffered B is not emitted twice.
+- Native `pending_id` acknowledgements retain their submitted message and the
+  snapshot's ordered `pending_inputs`. The nested `session.input.consumed`
+  `cleared_pending_id -> item_id` join is preserved until history supplies the
+  item's response ID. If consumption happened before stream subscription, the
+  remaining snapshot pending IDs plus ordered exact-message history reconcile
+  consumed handles without positional cross-assignment. Single live-join and
+  two-turn reconnect tests prove both paths.
 
 ## Boundaries
 
