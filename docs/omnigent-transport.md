@@ -36,7 +36,10 @@ cancellation, rejected response IDs, pending close, and logical close visible
 across clients. Ambiguous stop acknowledgements retain the pending close fence;
 only explicit policy denial rolls it back. Late consumption of a cancelled
 pending input similarly restores its cancellation fence until correlated
-lifecycle arrives. Durable lease and fence ownership remain outside this package.
+lifecycle arrives. Non-retryable or stream-proven send rejection identities are
+persisted for replacement providers, including polling paths. A fresh upstream
+`running` or `waiting` snapshot blocks default admission even without identity
+fields. Durable lease and fence ownership remain outside this package.
 
 ## Event Boundary
 

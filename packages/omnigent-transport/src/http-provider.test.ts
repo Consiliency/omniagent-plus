@@ -2230,63 +2230,66 @@ describe("http provider", () => {
           historyResolvers[index] = resolve;
         }),
     );
+    const fenceStore = createSessionMutationFenceStore();
+    const fetch: typeof globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+        return new Response(JSON.stringify(snapshot));
+      }
+      if (init?.method === "POST") {
+        postCount += 1;
+        if (postCount === 1) {
+          streamControllers[0]?.enqueue(
+            new TextEncoder().encode(
+              `data: ${JSON.stringify({
+                response: { id: "response-rejected-a", status: "in_progress" },
+                type: "response.created",
+              })}\n\n`,
+            ),
+          );
+          return new Promise<Response>((resolve) => {
+            resolveDeniedAck = resolve;
+          });
+        }
+        return new Response(
+          JSON.stringify({ item_id: "item-accepted-b", queued: true }),
+          { status: 202 },
+        );
+      }
+      if (url.endsWith("/stream")) {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              streamControllers.push(controller);
+            },
+          }),
+          { headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      if (url.includes("/items")) {
+        historyResolvers[historyReadCount]?.();
+        historyReadCount += 1;
+        return new Response(
+          JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+        );
+      }
+      return new Response(
+        JSON.stringify(
+          staleRejectedSnapshot
+            ? {
+                ...snapshot,
+                active_response_id: "response-rejected-a",
+                status: "running",
+              }
+            : snapshot,
+        ),
+      );
+    };
     const provider = createHttpProvider({
       allowQueuedTurns: true,
       baseUrl: "http://127.0.0.1:4010",
-      fetch: async (input, init) => {
-        const url = String(input);
-        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
-          return new Response(JSON.stringify(snapshot));
-        }
-        if (init?.method === "POST") {
-          postCount += 1;
-          if (postCount === 1) {
-            streamControllers[0]?.enqueue(
-              new TextEncoder().encode(
-                `data: ${JSON.stringify({
-                  response: { id: "response-rejected-a", status: "in_progress" },
-                  type: "response.created",
-                })}\n\n`,
-              ),
-            );
-            return new Promise<Response>((resolve) => {
-              resolveDeniedAck = resolve;
-            });
-          }
-          return new Response(
-            JSON.stringify({ item_id: "item-accepted-b", queued: true }),
-            { status: 202 },
-          );
-        }
-        if (url.endsWith("/stream")) {
-          return new Response(
-            new ReadableStream<Uint8Array>({
-              start(controller) {
-                streamControllers.push(controller);
-              },
-            }),
-            { headers: { "content-type": "text/event-stream" } },
-          );
-        }
-        if (url.includes("/items")) {
-          historyResolvers[historyReadCount]?.();
-          historyReadCount += 1;
-          return new Response(
-            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
-          );
-        }
-        return new Response(
-          JSON.stringify(
-            staleRejectedSnapshot
-              ? {
-                  ...snapshot,
-                  active_response_id: "response-rejected-a",
-                  status: "running",
-                }
-              : snapshot,
-          ),
-        );
-      },
+      fetch,
+      sessionMutationFenceStore: fenceStore,
     });
     const session = await provider.createSession({
       agentSpec: { kind: "named_agent", value: snapshot.agent_id },
@@ -2320,6 +2323,11 @@ describe("http provider", () => {
     await expect(denied).rejects.toEqual(
       expect.objectContaining({ category: "policy_denied" }),
     );
+    await expect(fenceStore.read(session.id)).resolves.toMatchObject({
+      rejectedTurnIds: expect.arrayContaining([
+        "response-rejected-a",
+      ]),
+    });
     streamControllers[0]?.close();
     await expect(firstIterator.next()).resolves.toEqual({
       done: true,
@@ -2327,19 +2335,35 @@ describe("http provider", () => {
     });
 
     staleRejectedSnapshot = true;
-    await provider.readHistory(session.id);
-    const rejectedInfo = await provider.getSessionInfo(session.id);
+    const replacementProvider = createHttpProvider({
+      allowQueuedTurns: true,
+      baseUrl: "http://127.0.0.1:4010",
+      fetch,
+      sessionMutationFenceStore: fenceStore,
+    });
+    const replacementSession = await replacementProvider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "rejected-reconnect-replacement-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    await replacementProvider.readHistory(replacementSession.id);
+    const rejectedInfo = await replacementProvider.getSessionInfo(
+      replacementSession.id,
+    );
     expect(rejectedInfo.activeTurnId).toBeUndefined();
     expect(rejectedInfo.state).toBe("idle");
-    const accepted = await provider.sendTurn({
+    const accepted = await replacementProvider.sendTurn({
       idempotencyKey: "rejected-reconnect-b",
       message: "accept B",
       sessionId: session.id,
     });
-    const staleInfo = await provider.getSessionInfo(session.id);
+    const staleInfo = await replacementProvider.getSessionInfo(session.id);
     expect(accepted.turnId).toBe("item-accepted-b");
     expect(staleInfo.activeTurnId).toBe("item-accepted-b");
-    const secondIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const secondIterator = replacementProvider
+      .streamEvents(session.id)[Symbol.asyncIterator]();
     const firstReplacementEvent = secondIterator.next();
     await historyReady[1];
     streamControllers[1]?.enqueue(
@@ -2389,7 +2413,7 @@ describe("http provider", () => {
     expect(replacementEvents.every(({ turnId }) => turnId === "response-accepted-b"))
       .toBe(true);
     expect(accepted.turnId).toBe("response-accepted-b");
-    const info = await provider.getSessionInfo(session.id);
+    const info = await replacementProvider.getSessionInfo(session.id);
     expect(info.activeTurnId).toBeUndefined();
     expect(info.state).toBe("idle");
   });
@@ -2983,6 +3007,57 @@ describe("http provider", () => {
       provider.sendTurn({
         idempotencyKey: "active-without-id-turn",
         message: "must not overlap",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({
+      category: "concurrency_limit",
+      retryable: true,
+    });
+    expect(messagePosts).toBe(0);
+  });
+
+  it("rejects a fresh running snapshot without active identity", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-fresh-running-without-id",
+      created_at: 1_780_272_000,
+      id: "session-fresh-running-without-id",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Fresh running without identity",
+      updated_at: 1_780_272_001,
+    };
+    let messagePosts = 0;
+    let created = false;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (_input, init) => {
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          created = true;
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          messagePosts += 1;
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        return new Response(
+          JSON.stringify({ ...snapshot, status: created ? "waiting" : "idle" }),
+        );
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "fresh-running-without-id-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "fresh-running-without-id-turn",
+        message: "must not overlap upstream work",
         sessionId: session.id,
       }),
     ).rejects.toMatchObject({

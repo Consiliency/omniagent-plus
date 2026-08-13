@@ -411,7 +411,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       const snapshot = await this.client.getSession(request.sessionId);
       if (
         snapshot.activeResponseId ||
-        (snapshot.pendingInputs?.length ?? 0) > 0
+        (snapshot.pendingInputs?.length ?? 0) > 0 ||
+        mapSessionState(snapshot.status) === "turn_active"
       ) {
         throw createRuntimeFailure({
           actor: "provider",
@@ -521,6 +522,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     } catch (error) {
       if (isPolicyDenied(error) || !(error instanceof OmnigentNetworkError)) {
         this.rejectTurnIdentities(request.sessionId, turnId, handle.turnId);
+        if (
+          isNonRetryableRuntimeFailure(error) ||
+          handle.turnId !== turnId
+        ) {
+          await this.persistRejectedTurnIdentities(
+            request.sessionId,
+            turnId,
+            handle.turnId,
+          );
+        }
         this.rollbackTurnRegistration(
           request.sessionId,
           turnId,
@@ -548,6 +559,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     options?: HistoryOptions,
   ): Promise<SessionHistory> {
+    await this.refreshSharedSessionMutationState(sessionId);
     const items = await this.client.getHistory(sessionId);
     const snapshot = await this.client.getSession(sessionId);
     this.reconcileTurnsFromHistory(sessionId, items);
@@ -1075,6 +1087,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   }
 
   async getSessionInfo(sessionId: string): Promise<AgentSessionInfo> {
+    await this.refreshSharedSessionMutationState(sessionId);
     const snapshot = await this.client.getSession(sessionId);
     const existing = this.sessions.get(sessionId);
     if (!existing) {
@@ -1146,6 +1159,36 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
     }
     return this.sessionMutationFenceStore;
+  }
+
+  private async persistRejectedTurnIdentities(
+    sessionId: string,
+    ...turnIds: readonly string[]
+  ): Promise<void> {
+    if (!this.withExclusiveSessionLease || !this.sessionMutationFenceStore) {
+      return;
+    }
+    const state = await this.sessionMutationFenceStore.read(sessionId);
+    const rejectedTurnIds = new Set(state.rejectedTurnIds);
+    for (const turnId of turnIds) {
+      rejectedTurnIds.add(turnId);
+    }
+    await this.sessionMutationFenceStore.write(sessionId, {
+      ...state,
+      rejectedTurnIds: [...rejectedTurnIds],
+    });
+  }
+
+  private async refreshSharedSessionMutationState(
+    sessionId: string,
+  ): Promise<void> {
+    if (!this.withExclusiveSessionLease) {
+      return;
+    }
+    const state = await this.withExclusiveSessionLease(sessionId, () =>
+      this.requireSessionMutationFenceStore().read(sessionId),
+    );
+    this.installSharedSessionMutationState(sessionId, state);
   }
 
   private installSharedSessionMutationState(

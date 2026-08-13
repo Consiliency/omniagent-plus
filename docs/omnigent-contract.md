@@ -77,8 +77,13 @@ close remain visible to replacement clients. Close records a pending terminal
 fence before sending `stop_session`; only an explicit policy denial removes it,
 so malformed or disconnected acknowledgements remain fail-closed. A late
 consumed-input event for a cancelled pending turn reopens cancellation fencing
-until that turn's lifecycle is correlated. The package consumes these guards but
-does not implement or own lease, lock, or durable fence authority.
+until that turn's lifecycle is correlated. Non-retryable or stream-proven send
+rejections persist every known provisional and official identity, and replacement
+history, session-info, stream, and send paths install those tombstones before
+reconciliation. Default leased admission also treats upstream `running` and
+`waiting` status as active work even when no response or pending ID is present.
+The package consumes these guards but does not implement or own lease, lock, or
+durable fence authority.
 
 ## History And Stream
 
