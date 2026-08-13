@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `6c3a99a`, and no source or evidence
+this file. The final implementation parent is `c1c437e`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 100 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 102 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 272 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 274 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -125,6 +125,21 @@ files may change after this receipt is committed without another full run.
   regression proves an unrelated active response can start and complete without
   rebinding or terminalizing the queued handle. A later
   `session.input.consumed` event makes the pending ID eligible again.
+- History-synthesized starts no longer activate provider state; active identity
+  comes from provisional registration, authoritative snapshots, or live
+  lifecycle. Regressions prove both `readHistory()` and an empty-live reconnect
+  leave a successfully completed session idle.
+- Provider-local delivered text is tracked by official turn and trimmed from
+  later committed history before replay sequencing. Identity-free deltas and
+  item-only live output therefore do not replay after their cursor. The event
+  mapper also bridges identity-free deltas to a later identified terminal item
+  without weakening distinct identified-message output.
+- `readHistory()` now combines the session snapshot with persisted rows, so it
+  can reconcile a consumed native pending handle without requiring an SSE
+  subscription.
+- Failure state records its turn identity. A trailing idle status for that same
+  failed response preserves the error, while a different newer successful turn
+  clears the stale error and leaves the session idle.
 - An explicit synchronous policy denial remains authoritative even when a
   lifecycle event reconciles the provisional handle before the acknowledgement
   arrives. Denial fully removes both provisional and official registration,
