@@ -124,6 +124,7 @@ export type OmnigentStreamEventType =
 
 export interface OmnigentCancellationFence {
   readonly awaitingIdentity: boolean;
+  readonly officialTurnIds?: readonly string[];
   readonly turnId: string;
 }
 

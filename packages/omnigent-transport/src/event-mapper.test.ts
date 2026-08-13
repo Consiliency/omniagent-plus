@@ -318,6 +318,53 @@ describe("event mapper", () => {
     expect(runtimeEvents).toEqual([]);
   });
 
+  it("preserves a distinct longer message after a persisted prefix", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: "Hello again",
+          id: "delta-distinct-longer-message",
+          message_id: "stream-message-b",
+          occurredAt,
+          sessionId: "session-1",
+          turnId: "response-shared",
+          type: "response.output_text.delta",
+        },
+        {
+          id: "item-distinct-longer-message",
+          item: {
+            content: [{ text: "Hello again", type: "output_text" }],
+            id: "ap-item-b",
+            response_id: "response-shared",
+            role: "assistant",
+            type: "message",
+          },
+          itemId: "ap-item-b",
+          occurredAt,
+          sessionId: "session-1",
+          turnId: "response-shared",
+          type: "response.output_item.done",
+        },
+      ],
+      {
+        historicalMessagesByTurnId: [
+          [
+            "response-shared",
+            [{ messageId: "ap-item-a", text: "Hello" }],
+          ],
+        ],
+      },
+    );
+
+    expect(
+      runtimeEvents
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["Hello again"]);
+  });
+
   it("preserves new identifier-free text that repeats a historical prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

@@ -1542,6 +1542,244 @@ describe("http provider", () => {
     ).toEqual(["B output"]);
   });
 
+  it("freezes cancellation identity while lifecycle reconciliation is in flight", async () => {
+    const snapshot = {
+      active_response_id: null as string | null,
+      agent_id: "agent-frozen-cancel-identity",
+      created_at: 1_780_272_000,
+      id: "session-frozen-cancel-identity",
+      items: [],
+      pending_inputs: [{ content: [], pending_id: "pending-frozen-cancel" }],
+      status: "idle",
+      title: "Frozen cancellation identity",
+      updated_at: 1_780_272_001,
+    };
+    const states = new Map<string, OmnigentSessionMutationFenceState>();
+    const stateWaiters: Array<{
+      predicate: (state: OmnigentSessionMutationFenceState) => boolean;
+      resolve: () => void;
+    }> = [];
+    const fenceStore: OmnigentSessionMutationFenceStore = {
+      read: async (sessionId) =>
+        states.get(sessionId) ?? { rejectedTurnIds: [] },
+      write: async (sessionId, state) => {
+        states.set(sessionId, state);
+        for (const waiter of [...stateWaiters]) {
+          if (waiter.predicate(state)) {
+            stateWaiters.splice(stateWaiters.indexOf(waiter), 1);
+            waiter.resolve();
+          }
+        }
+      },
+    };
+    const waitForState = (
+      predicate: (state: OmnigentSessionMutationFenceState) => boolean,
+    ) => {
+      const current = states.get(snapshot.id) ?? { rejectedTurnIds: [] };
+      if (predicate(current)) {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve) => {
+        stateWaiters.push({ predicate, resolve });
+      });
+    };
+    let messagePosts = 0;
+    let resolveInterrupt!: (response: Response) => void;
+    let interruptStarted!: () => void;
+    const interruptReady = new Promise<void>((resolve) => {
+      interruptStarted = resolve;
+    });
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    let streamStarted!: () => void;
+    const streamReady = new Promise<void>((resolve) => {
+      streamStarted = resolve;
+    });
+    let holdCancellationLease = false;
+    let cancellationLeaseStarted!: () => void;
+    const cancellationLeaseReady = new Promise<void>((resolve) => {
+      cancellationLeaseStarted = resolve;
+    });
+    let releaseCancellationLease!: () => void;
+    const cancellationLeaseGate = new Promise<void>((resolve) => {
+      releaseCancellationLease = resolve;
+    });
+    const withGatedCancellationLease = async <T>(
+      _sessionId: string,
+      operation: () => Promise<T>,
+    ): Promise<T> => {
+      if (holdCancellationLease) {
+        holdCancellationLease = false;
+        cancellationLeaseStarted();
+        await cancellationLeaseGate;
+      }
+      return operation();
+    };
+    const provider = createHttpProvider({
+      allowQueuedTurns: true,
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "message") {
+            messagePosts += 1;
+            return new Response(
+              JSON.stringify(
+                messagePosts === 1
+                  ? { pending_id: "pending-frozen-cancel", queued: true }
+                  : { item_id: "item-after-frozen-cancel", queued: true },
+              ),
+              { status: 202 },
+            );
+          }
+          interruptStarted();
+          return new Promise<Response>((resolve) => {
+            resolveInterrupt = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+                streamStarted();
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+      sessionMutationFenceStore: fenceStore,
+      withExclusiveSessionLease: withGatedCancellationLease,
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "frozen-cancel-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "frozen-cancel-a",
+      message: "cancel A",
+      sessionId: session.id,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstLifecycle = iterator.next();
+    await streamReady;
+    holdCancellationLease = true;
+    const cancelling = provider.cancelTurn(first);
+    await cancellationLeaseReady;
+    streamController.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            data: {
+              cleared_pending_id: "pending-frozen-cancel",
+              item_id: "item-frozen-cancel",
+            },
+            type: "session.input.consumed",
+          },
+          {
+            response: { id: "response-frozen-cancel", status: "in_progress" },
+            type: "response.created",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
+    await expect(firstLifecycle).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-frozen-cancel",
+        }),
+      }),
+    );
+    snapshot.active_response_id = "response-frozen-cancel";
+    snapshot.pending_inputs = [];
+    releaseCancellationLease();
+    await interruptReady;
+    resolveInterrupt(new Response(JSON.stringify({ queued: false })));
+    const cancelled = await cancelling;
+    expect(cancelled).toMatchObject({
+      state: "cancelled",
+      turnId: "pending-frozen-cancel",
+    });
+    await expect(fenceStore.read(session.id)).resolves.toMatchObject({
+      cancellation: {
+        officialTurnIds: ["response-frozen-cancel"],
+        turnId: "pending-frozen-cancel",
+      },
+      rejectedTurnIds: expect.arrayContaining([
+        "pending-frozen-cancel",
+        "response-frozen-cancel",
+      ]),
+    });
+    await expect(
+      provider.sendTurn({
+        idempotencyKey: "frozen-cancel-b",
+        message: "B must wait",
+        sessionId: session.id,
+      }),
+    ).rejects.toMatchObject({ category: "state_conflict" });
+
+    const remainingPromise = collectAsync({
+      [Symbol.asyncIterator]: () => iterator,
+    });
+    streamController.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-frozen-cancel", status: "cancelled" },
+          type: "response.cancelled",
+        })}\n\n`,
+      ),
+    );
+    await waitForState((state) => state.cancellation === undefined);
+    const second = await provider.sendTurn({
+      idempotencyKey: "frozen-cancel-b",
+      message: "B may proceed",
+      sessionId: session.id,
+    });
+    for (const event of [
+      {
+        response: { id: "response-after-frozen-cancel", status: "in_progress" },
+        type: "response.created",
+      },
+      {
+        delta: "B output",
+        response_id: "response-after-frozen-cancel",
+        type: "response.output_text.delta",
+      },
+      {
+        response: { id: "response-after-frozen-cancel", status: "completed" },
+        type: "response.completed",
+      },
+    ]) {
+      streamController.enqueue(
+        new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`),
+      );
+    }
+    streamController.close();
+
+    const remaining = await remainingPromise;
+    expect(second.turnId).toBe("response-after-frozen-cancel");
+    expect(
+      remaining
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["B output"]);
+  });
+
   it("retains interruption proof that arrives before the control acknowledgement", async () => {
     const snapshot = {
       active_response_id: null,

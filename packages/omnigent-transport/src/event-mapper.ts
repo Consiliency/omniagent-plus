@@ -218,8 +218,7 @@ export class OmnigentEventMapper {
                   ({ text }) =>
                     delta.length > 0 &&
                     (text.startsWith(delta) ||
-                      text.endsWith(delta) ||
-                      delta.startsWith(text)),
+                      text.endsWith(delta)),
                 );
         if (compatibleMessageIndex >= 0) {
           const [historicalMessage] = historicalMessages.splice(

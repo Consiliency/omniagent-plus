@@ -141,6 +141,7 @@ export class OmnigentSseNormalizer {
     if (responseId !== null && responseId !== undefined) {
       if (this.rejectedTurnIds.has(responseId)) {
         this.currentResponseId = undefined;
+        this.identityFreeQuarantineTurnId = responseId;
         return;
       }
       this.identityFreeQuarantineTurnId = undefined;

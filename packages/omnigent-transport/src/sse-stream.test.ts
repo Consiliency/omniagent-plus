@@ -659,6 +659,38 @@ describe("sse stream parser", () => {
     );
   });
 
+  it("keeps rejected snapshot identity as identity-free quarantine", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-rejected-snapshot",
+    });
+    normalizer.rejectTurnId("response-rejected-a");
+    normalizer.setFallbackTurnId("pending-b");
+    normalizer.setActiveResponseId("response-rejected-a");
+
+    expect(
+      normalizer.normalize({
+        delta: "late A",
+        type: "response.output_text.delta",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: undefined,
+        turnId: "response-rejected-a",
+      }),
+    );
+    expect(
+      normalizer.normalize({
+        response: { id: "response-b", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "pending-b",
+        turnId: "response-b",
+      }),
+    );
+  });
+
   it("binds rapid accepted turns to official responses in lifecycle order", () => {
     const normalizer = new OmnigentSseNormalizer({
       sessionId: "session-rapid-turns",

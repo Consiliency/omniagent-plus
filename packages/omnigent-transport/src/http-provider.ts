@@ -264,6 +264,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly allowQueuedTurns: boolean;
   private readonly client: OmnigentHttpClient;
   private readonly cancellationReservations = new Map<string, string>();
+  private readonly cancellationOfficialTurnIds = new Map<string, Set<string>>();
   private readonly cancelledTurnAwaitingIdentityKeys = new Set<string>();
   private readonly cancelledTurnQuarantineKeys = new Set<string>();
   private readonly claimedHistoryItemKeys = new Set<string>();
@@ -875,14 +876,40 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "turn",
       });
     }
-    return this.withExclusiveSessionLease(handle.sessionId, () =>
-      this.cancelTurnWithExclusiveLease(handle, reason),
-    );
+    const sessionId = handle.sessionId;
+    const cancelTurnId = handle.turnId;
+    if (this.cancellationReservations.has(sessionId)) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${sessionId} already has a cancellation in progress.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
+    const turnKey = `${sessionId}:${cancelTurnId}`;
+    this.cancellationReservations.set(sessionId, cancelTurnId);
+    try {
+      return await this.withExclusiveSessionLease(sessionId, () =>
+        this.cancelTurnWithExclusiveLease(
+          handle,
+          reason,
+          cancelTurnId,
+          turnKey,
+        ),
+      );
+    } finally {
+      this.cancellationReservations.delete(sessionId);
+      this.cancellationOfficialTurnIds.delete(turnKey);
+      this.earlyCancellationProofKeys.delete(turnKey);
+    }
   }
 
   private async cancelTurnWithExclusiveLease(
     handle: TurnHandle,
     reason: CancellationReason,
+    cancelTurnId: string,
+    turnKey: string,
   ): Promise<TurnHandle> {
     const store = this.requireSessionMutationFenceStore();
     const sharedState = await store.read(handle.sessionId);
@@ -905,122 +932,176 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "turn",
       });
     }
-    if (this.cancellationReservations.has(handle.sessionId)) {
-      throw createRuntimeFailure({
-        actor: "provider",
-        category: "state_conflict",
-        message: `Session ${handle.sessionId} already has a cancellation in progress.`,
-        retryable: false,
-        scope: "turn",
-      });
-    }
+    let observedOfficialTurnIds =
+      this.cancellationOfficialTurnIds.get(turnKey) ?? new Set<string>();
+    let cancellationTurnIds = new Set([
+      cancelTurnId,
+      ...observedOfficialTurnIds,
+    ]);
     const activeTurnId = this.sessions.get(handle.sessionId)?.activeTurnId;
-    if (activeTurnId !== handle.turnId) {
+    if (activeTurnId === undefined || !cancellationTurnIds.has(activeTurnId)) {
       throw createRuntimeFailure({
         actor: "provider",
         category: "state_conflict",
-        message: `Turn ${handle.turnId} is not the active turn for session ${handle.sessionId}.`,
+        message: `Turn ${cancelTurnId} is not the active turn for session ${handle.sessionId}.`,
         retryable: false,
         scope: "turn",
       });
     }
-    const turnKey = `${handle.sessionId}:${handle.turnId}`;
-    this.cancellationReservations.set(handle.sessionId, handle.turnId);
-    try {
-      const snapshot = await this.client.getSession(handle.sessionId);
-      if (
-        snapshot.activeResponseId &&
-        snapshot.activeResponseId !== handle.turnId
-      ) {
-        throw createRuntimeFailure({
-          actor: "provider",
-          category: "state_conflict",
-          message: `Turn ${handle.turnId} is not the upstream active response for session ${handle.sessionId}.`,
-          retryable: false,
-          scope: "turn",
-        });
-      }
-      const snapshotOwnsHandle =
-        snapshot.activeResponseId === handle.turnId ||
-        (snapshot.pendingInputs ?? []).some(
-          ({ pendingId }) => pendingId === handle.turnId,
-        );
-      if (!snapshotOwnsHandle) {
-        throw createRuntimeFailure({
-          actor: "provider",
-          category: "state_conflict",
-          message: `Session ${handle.sessionId} does not positively attribute interrupt authority to turn ${handle.turnId}.`,
-          retryable: false,
-          scope: "turn",
-        });
-      }
-      if (this.sessions.get(handle.sessionId)?.activeTurnId !== handle.turnId) {
-        throw createRuntimeFailure({
-          actor: "provider",
-          category: "state_conflict",
-          message: `Turn ${handle.turnId} stopped owning session ${handle.sessionId} before cancellation.`,
-          retryable: false,
-          scope: "turn",
-        });
-      }
-      const rejectedTurnIds = new Set(sharedState.rejectedTurnIds);
-      rejectedTurnIds.add(handle.turnId);
-      await store.write(handle.sessionId, {
-        ...sharedState,
-        cancellation: {
-          awaitingIdentity: !this.officialResponseTurnKeys.has(turnKey),
-          turnId: handle.turnId,
-        },
-        rejectedTurnIds: [...rejectedTurnIds],
+    const snapshot = await this.client.getSession(handle.sessionId);
+    observedOfficialTurnIds =
+      this.cancellationOfficialTurnIds.get(turnKey) ?? new Set<string>();
+    cancellationTurnIds = new Set([cancelTurnId, ...observedOfficialTurnIds]);
+    if (
+      snapshot.activeResponseId &&
+      !cancellationTurnIds.has(snapshot.activeResponseId)
+    ) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Turn ${cancelTurnId} is not the upstream active response for session ${handle.sessionId}.`,
+        retryable: false,
+        scope: "turn",
       });
-      try {
-        const ack = await this.client.sendEvent(handle.sessionId, {
-          data: { reason },
-          type: "interrupt",
-        });
-        assertControlEventAccepted(ack);
-        const cancellationProofObserved =
-          this.earlyCancellationProofKeys.has(turnKey);
-        if (cancellationProofObserved) {
-          await store.write(handle.sessionId, {
-            ...(sharedState.closed ? { closed: true as const } : {}),
-            rejectedTurnIds: [...rejectedTurnIds],
-          });
+    }
+    const snapshotOwnsHandle =
+      (snapshot.activeResponseId != null &&
+        cancellationTurnIds.has(snapshot.activeResponseId)) ||
+      (snapshot.pendingInputs ?? []).some(({ pendingId }) =>
+        cancellationTurnIds.has(pendingId),
+      );
+    if (!snapshotOwnsHandle) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Session ${handle.sessionId} does not positively attribute interrupt authority to turn ${cancelTurnId}.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
+    const currentActiveTurnId = this.sessions.get(handle.sessionId)?.activeTurnId;
+    if (
+      currentActiveTurnId === undefined ||
+      !cancellationTurnIds.has(currentActiveTurnId)
+    ) {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "state_conflict",
+        message: `Turn ${cancelTurnId} stopped owning session ${handle.sessionId} before cancellation.`,
+        retryable: false,
+        scope: "turn",
+      });
+    }
+    const rejectedTurnIds = new Set(sharedState.rejectedTurnIds);
+    rejectedTurnIds.add(cancelTurnId);
+    for (const officialTurnId of observedOfficialTurnIds) {
+      rejectedTurnIds.add(officialTurnId);
+    }
+    await store.write(handle.sessionId, {
+      ...sharedState,
+      cancellation: {
+        awaitingIdentity:
+          !this.officialResponseTurnKeys.has(turnKey) &&
+          observedOfficialTurnIds.size === 0,
+        ...(observedOfficialTurnIds.size > 0
+          ? { officialTurnIds: [...observedOfficialTurnIds] }
+          : {}),
+        turnId: cancelTurnId,
+      },
+      rejectedTurnIds: [...rejectedTurnIds],
+    });
+    try {
+      const ack = await this.client.sendEvent(handle.sessionId, {
+        data: { reason },
+        type: "interrupt",
+      });
+      assertControlEventAccepted(ack);
+      observedOfficialTurnIds =
+        this.cancellationOfficialTurnIds.get(turnKey) ?? new Set<string>();
+      for (const officialTurnId of observedOfficialTurnIds) {
+        rejectedTurnIds.add(officialTurnId);
+        this.rejectedTurnKeys.add(`${handle.sessionId}:${officialTurnId}`);
+        for (const stream of this.openStreams.get(handle.sessionId) ?? []) {
+          stream.rejectTurnId(officialTurnId);
         }
-        const cancelled: TurnHandle = {
-          ...handle,
-          state: "cancelled",
-          updatedAt: new Date().toISOString(),
-        };
-        this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
-        this.sends.set(
-          `${handle.sessionId}:${handle.idempotencyKey}`,
-          Promise.resolve(cancelled),
-        );
-        this.retireCancelledTurn(
-          handle.sessionId,
-          handle.turnId,
-          cancellationProofObserved,
-        );
-        const session = this.sessions.get(handle.sessionId);
-        if (session?.activeTurnId === handle.turnId) {
-          this.sessions.set(handle.sessionId, {
-            ...session,
-            activeTurnId: undefined,
-            state: "idle",
-            updatedAt: cancelled.updatedAt,
-          });
-        }
-        return cancelled;
-      } catch (error) {
-        if (isPolicyDenied(error)) {
-          await store.write(handle.sessionId, sharedState);
-        }
-        throw error;
       }
-    } finally {
-      this.cancellationReservations.delete(handle.sessionId);
-      this.earlyCancellationProofKeys.delete(turnKey);
+      const cancellationProofObserved =
+        this.earlyCancellationProofKeys.has(turnKey);
+      if (cancellationProofObserved) {
+        await store.write(handle.sessionId, {
+          ...(sharedState.closed ? { closed: true as const } : {}),
+          rejectedTurnIds: [...rejectedTurnIds],
+        });
+      } else if (observedOfficialTurnIds.size > 0) {
+        await store.write(handle.sessionId, {
+          ...sharedState,
+          cancellation: {
+            awaitingIdentity: false,
+            officialTurnIds: [...observedOfficialTurnIds],
+            turnId: cancelTurnId,
+          },
+          rejectedTurnIds: [...rejectedTurnIds],
+        });
+      }
+      const cancelled: TurnHandle = {
+        ...handle,
+        state: "cancelled",
+        turnId: cancelTurnId,
+        updatedAt: new Date().toISOString(),
+      };
+      this.turns.set(`${handle.sessionId}:${cancelTurnId}`, cancelled);
+      this.sends.set(
+        `${handle.sessionId}:${handle.idempotencyKey}`,
+        Promise.resolve(cancelled),
+      );
+      this.retireCancelledTurn(
+        handle.sessionId,
+        cancelTurnId,
+        cancellationProofObserved,
+      );
+      const session = this.sessions.get(handle.sessionId);
+      if (session?.activeTurnId === cancelTurnId) {
+        this.sessions.set(handle.sessionId, {
+          ...session,
+          activeTurnId: undefined,
+          state: "idle",
+          updatedAt: cancelled.updatedAt,
+        });
+      }
+      return cancelled;
+    } catch (error) {
+      if (isPolicyDenied(error)) {
+        observedOfficialTurnIds =
+          this.cancellationOfficialTurnIds.get(turnKey) ?? new Set<string>();
+        await store.write(handle.sessionId, sharedState);
+        this.cancellationReservations.delete(handle.sessionId);
+        for (const officialTurnId of observedOfficialTurnIds) {
+          this.reconcileTurn(
+            handle.sessionId,
+            cancelTurnId,
+            officialTurnId,
+            new Date().toISOString(),
+          );
+        }
+      } else {
+        observedOfficialTurnIds =
+          this.cancellationOfficialTurnIds.get(turnKey) ?? new Set<string>();
+        for (const officialTurnId of observedOfficialTurnIds) {
+          rejectedTurnIds.add(officialTurnId);
+        }
+        await store.write(handle.sessionId, {
+          ...sharedState,
+          cancellation: {
+            awaitingIdentity: observedOfficialTurnIds.size === 0,
+            ...(observedOfficialTurnIds.size > 0
+              ? { officialTurnIds: [...observedOfficialTurnIds] }
+              : {}),
+            turnId: cancelTurnId,
+          },
+          rejectedTurnIds: [...rejectedTurnIds],
+        });
+      }
+      throw error;
     }
   }
 
@@ -1203,6 +1284,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const cancellationKey = state.cancellation
       ? `${sessionId}:${state.cancellation.turnId}`
       : undefined;
+    if (state.cancellation) {
+      for (const officialTurnId of state.cancellation.officialTurnIds ?? []) {
+        for (const target of streams) {
+          target.bindResponseId(officialTurnId, state.cancellation.turnId);
+        }
+      }
+    }
     for (const turnKey of this.cancelledTurnQuarantineKeys) {
       if (turnKey.startsWith(`${sessionId}:`) && turnKey !== cancellationKey) {
         this.cancelledTurnQuarantineKeys.delete(turnKey);
@@ -1211,6 +1299,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
     for (const turnId of state.rejectedTurnIds) {
       this.rejectedTurnKeys.add(`${sessionId}:${turnId}`);
+      if (turnId === state.cancellation?.turnId) {
+        continue;
+      }
       for (const target of streams) {
         target.rejectTurnId(turnId);
       }
@@ -1660,6 +1751,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.officialResponseTurnKeys.add(`${sessionId}:${officialTurnId}`);
     const currentProvisionalTurnId =
       this.provisionalTurnAliases.get(suppliedProvisionalKey) ?? provisionalTurnId;
+    const reservedTurnId = this.cancellationReservations.get(sessionId);
+    if (reservedTurnId === currentProvisionalTurnId) {
+      const turnKey = `${sessionId}:${reservedTurnId}`;
+      const officialTurnIds =
+        this.cancellationOfficialTurnIds.get(turnKey) ?? new Set<string>();
+      officialTurnIds.add(officialTurnId);
+      this.cancellationOfficialTurnIds.set(turnKey, officialTurnIds);
+      return;
+    }
     if (
       currentProvisionalTurnId === officialTurnId ||
       !this.provisionalTurnKeys.has(`${sessionId}:${currentProvisionalTurnId}`)
