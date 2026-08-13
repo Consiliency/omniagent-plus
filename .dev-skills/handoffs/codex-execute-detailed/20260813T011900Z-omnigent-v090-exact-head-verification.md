@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `9a8a8c9`, and no source or evidence
+this file. The final implementation parent is `a2783a9`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 124 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 125 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 296 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 297 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -285,6 +285,16 @@ files may change after this receipt is committed without another full run.
   prefix or word. Regressions prove both partial and exact historical repeats are
   emitted; message-identified buffered suffix suppression remains intact, while
   provider cursor trimming still suppresses bytes this process actually delivered.
+- Provider snapshot reconciliation now treats a tombstoned active response as
+  blocked in both stream setup and `getSessionInfo()`. It cannot bind a sole
+  provisional or refresh local state back to the rejected identity. The
+  replacement-stream regression now keeps a stale rejected A in the snapshot
+  while B is accepted and proves both read-model and stream paths preserve B.
+- A native `pending_id` acknowledgement now removes that ID from every open
+  normalizer even when SSE already reconciled the handle to an official response.
+  A stream-first regression consumes pending A before its delayed acknowledgement,
+  then sends B and proves the old pending fallback cannot capture B's response;
+  B reconciles, emits, completes, and leaves the session idle.
 
 ## Boundaries
 
