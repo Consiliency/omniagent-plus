@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `92fa678`, and no source or evidence
+this file. The final implementation parent is `fb7d226`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 95 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 97 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 267 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 269 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -120,6 +120,16 @@ files may change after this receipt is committed without another full run.
   messages sharing one response each retain their full text. Regressions prove a
   persisted `Hello world` suppresses buffered ` world`, while separate `Hello`
   and `Hello again` messages both emit completely.
+- Snapshot active-response fallback now excludes a sole provisional ID that is
+  still present in `pending_inputs`, both during stream setup and
+  `getSessionInfo()`. A regression proves an unrelated active response cannot
+  replace a newly pending handle through either path.
+- Request-level network failures are now wrapped separately from received HTTP
+  responses and acknowledgement validation. Only genuine network loss may rely
+  on stream-proven acceptance; a malformed acknowledgement remains fail-closed
+  even after lifecycle reconciliation. A concurrent regression proves the
+  malformed failure and cleared active identity. HTTP error bodies are also read
+  once before optional JSON parsing so non-JSON responses retain typed status.
 
 ## Boundaries
 
