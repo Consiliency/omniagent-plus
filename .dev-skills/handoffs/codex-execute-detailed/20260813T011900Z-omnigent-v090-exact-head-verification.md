@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `5007415`, and no source or evidence
+this file. The final implementation parent is `d60ed68`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 119 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 121 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 291 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 293 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -252,6 +252,17 @@ files may change after this receipt is committed without another full run.
   even after lifecycle reconciliation. A concurrent regression proves the
   malformed failure and cleared active identity. HTTP error bodies are also read
   once before optional JSON parsing so non-JSON responses retain typed status.
+- Rejected official response identities now remain tombstoned inside each open
+  stream normalizer. A trailing rejected response therefore cannot consume the
+  next provisional FIFO candidate before the provider drops the frame. Unit and
+  provider regressions reject turn A, register turn B, deliver late A frames,
+  then prove B alone receives its official identity, output, and completion.
+- History is fetched before the session snapshot, narrowing the pending-input
+  consumption race, and newly visible rows are not marked permanently observed
+  while a local provisional remains unresolved. A stale-snapshot regression
+  exposes the committed user row while the first snapshot still reports its
+  pending ID, then proves the next read reconciles the handle to the official
+  response rather than losing the row.
 
 ## Boundaries
 
