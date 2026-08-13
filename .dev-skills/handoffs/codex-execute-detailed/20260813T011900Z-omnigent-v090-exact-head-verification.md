@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`7988e1c8b9476528d6fd60fb57ae9a7e2767b078`, and no source or evidence files
+`7988e1c5b4c9db69254d497270bd3cf1148b2456`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
