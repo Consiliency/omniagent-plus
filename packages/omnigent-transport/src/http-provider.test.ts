@@ -660,6 +660,12 @@ describe("http provider", () => {
         }
         if (init?.method === "POST") {
           postCount += 1;
+          if (postCount > 1) {
+            return new Response(
+              JSON.stringify({ item_id: "item-accepted", queued: true }),
+              { status: 202 },
+            );
+          }
           streamController.enqueue(
             new TextEncoder().encode(
               `data: ${JSON.stringify({
@@ -727,6 +733,11 @@ describe("http provider", () => {
     );
     expect(postCount).toBe(1);
     expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+    const accepted = await provider.sendTurn({
+      idempotencyKey: "streamed-accepted-turn",
+      message: "accept after denial",
+      sessionId: session.id,
+    });
     streamController.enqueue(
       new TextEncoder().encode(
         [
@@ -739,16 +750,45 @@ describe("http provider", () => {
             response: { id: "response-denied", status: "completed" },
             type: "response.completed",
           },
+          {
+            response: { id: "response-accepted", status: "in_progress" },
+            type: "response.created",
+          },
+          {
+            delta: "accepted output",
+            response_id: "response-accepted",
+            type: "response.output_text.delta",
+          },
+          {
+            response: { id: "response-accepted", status: "completed" },
+            type: "response.completed",
+          },
         ]
           .map((event) => `data: ${JSON.stringify(event)}\n\n`)
           .join(""),
       ),
     );
     streamController.close();
-    await expect(iterator.next()).resolves.toEqual({
-      done: true,
-      value: undefined,
-    });
+    const remaining = [];
+    for (;;) {
+      const next = await iterator.next();
+      if (next.done) {
+        break;
+      }
+      remaining.push(next.value);
+    }
+    expect(remaining.map(({ type }) => type)).toEqual([
+      "runtime.turn.started",
+      "runtime.text.delta",
+      "runtime.turn.completed",
+    ]);
+    expect(remaining[1]).toEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({ delta: "accepted output" }),
+        turnId: "response-accepted",
+      }),
+    );
+    expect(accepted.turnId).toBe("response-accepted");
     expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
   });
 
@@ -1371,7 +1411,7 @@ describe("http provider", () => {
     }
   });
 
-  it("opens the tagged stream before snapshot and paginated history", async () => {
+  it("opens the tagged stream before history and reads snapshot last", async () => {
     const server = await FakeOmnigentServer.start();
     try {
       const provider = createHttpProvider({ baseUrl: server.baseUrl });
@@ -1387,8 +1427,8 @@ describe("http provider", () => {
       const stream = paths.lastIndexOf(`/v1/sessions/${session.id}/stream`);
       const snapshot = paths.lastIndexOf(`/v1/sessions/${session.id}`);
       const items = paths.lastIndexOf(`/v1/sessions/${session.id}/items`);
-      expect(stream).toBeLessThan(snapshot);
-      expect(snapshot).toBeLessThan(items);
+      expect(stream).toBeLessThan(items);
+      expect(items).toBeLessThan(snapshot);
     } finally {
       await server.stop();
     }
@@ -1818,6 +1858,85 @@ describe("http provider", () => {
     expect(handle.turnId).toBe("response-pending-offline");
     expect(info.activeTurnId).toBe("response-pending-offline");
     expect(info.state).toBe("turn_active");
+  });
+
+  it("reconciles pending input consumed between history and snapshot reads", async () => {
+    const baseSnapshot = {
+      active_response_id: null,
+      agent_id: "agent-pending-read-race",
+      created_at: 1_780_272_000,
+      id: "session-pending-read-race",
+      items: [],
+      status: "idle",
+      title: "Pending read race",
+      updated_at: 1_780_272_001,
+    };
+    const historyItem = {
+      content: [{ text: "race prompt", type: "input_text" }],
+      created_at: 1_780_272_002,
+      id: "item-pending-read-race",
+      response_id: "response-pending-read-race",
+      role: "user",
+      status: "completed",
+      type: "message",
+    };
+    let sessionReadsAfterSend = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(baseSnapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(
+            JSON.stringify({ pending_id: "pending-read-race", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: [historyItem],
+              first_id: historyItem.id,
+              has_more: false,
+              last_id: historyItem.id,
+            }),
+          );
+        }
+        sessionReadsAfterSend += 1;
+        return new Response(
+          JSON.stringify({
+            ...baseSnapshot,
+            pending_inputs: sessionReadsAfterSend === 1
+              ? [
+                  {
+                    content: [{ text: "race prompt", type: "input_text" }],
+                    pending_id: "pending-read-race",
+                  },
+                ]
+              : [],
+          }),
+        );
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: baseSnapshot.agent_id },
+      idempotencyKey: "pending-read-race-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: baseSnapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "pending-read-race-turn",
+      message: "race prompt",
+      sessionId: session.id,
+    });
+
+    await provider.readHistory(session.id);
+    await provider.readHistory(session.id);
+
+    expect(handle.turnId).toBe("response-pending-read-race");
   });
 
   it("reconciles a queued-only acknowledgement from disconnected history", async () => {

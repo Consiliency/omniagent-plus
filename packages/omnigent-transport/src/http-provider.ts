@@ -317,8 +317,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     options?: HistoryOptions,
   ): Promise<SessionHistory> {
-    const snapshot = await this.client.getSession(sessionId);
     const items = await this.client.getHistory(sessionId);
+    const snapshot = await this.client.getSession(sessionId);
     this.reconcileTurnsFromHistory(sessionId, items);
     this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items);
     const mapped = mapOmnigentConversationHistory(sessionId, items);
@@ -393,7 +393,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     );
     this.addOpenStream(sessionId, stream);
     try {
-      const snapshot = await this.client.getSession(sessionId);
       const activeTurnId = this.sessions.get(sessionId)?.activeTurnId;
       const provisionalTurnIds = [
         ...(this.provisionalTurnOrder.get(sessionId) ?? []),
@@ -402,6 +401,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         stream.setFallbackTurnId(turnId);
       }
       const items = await this.client.getHistory(sessionId);
+      const snapshot = await this.client.getSession(sessionId);
       this.reconcileTurnsFromHistory(sessionId, items, stream);
       this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items, stream);
       const unresolvedTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
@@ -1162,8 +1162,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
             this.queuedOnlyTurnKeys.has(`${sessionId}:${pendingId}`)),
       );
     if (consumedPending.length === 0) {
-      for (const item of items) {
-        this.observedHistoryItemKeys.add(`${sessionId}:${item.id}`);
+      if ((this.provisionalTurnOrder.get(sessionId)?.length ?? 0) === 0) {
+        for (const item of items) {
+          this.observedHistoryItemKeys.add(`${sessionId}:${item.id}`);
+        }
       }
       return;
     }

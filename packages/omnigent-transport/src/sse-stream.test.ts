@@ -550,6 +550,51 @@ describe("sse stream parser", () => {
     );
   });
 
+  it("does not let a rejected response capture the next fallback turn", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-rejected-response",
+    });
+    normalizer.setFallbackTurnId("request-rejected");
+    expect(
+      normalizer.normalize({
+        response: { id: "response-rejected", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "request-rejected",
+        turnId: "response-rejected",
+      }),
+    );
+    normalizer.rejectTurnId("request-rejected");
+    normalizer.rejectTurnId("response-rejected");
+    normalizer.setFallbackTurnId("request-accepted");
+
+    expect(
+      normalizer.normalize({
+        delta: "late rejected output",
+        response_id: "response-rejected",
+        type: "response.output_text.delta",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: undefined,
+        turnId: "response-rejected",
+      }),
+    );
+    expect(
+      normalizer.normalize({
+        response: { id: "response-accepted", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "request-accepted",
+        turnId: "response-accepted",
+      }),
+    );
+  });
+
   it("binds rapid accepted turns to official responses in lifecycle order", () => {
     const normalizer = new OmnigentSseNormalizer({
       sessionId: "session-rapid-turns",

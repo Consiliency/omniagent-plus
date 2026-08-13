@@ -125,6 +125,7 @@ export class OmnigentSseNormalizer {
   private readonly knownResponseIds = new Set<string>();
   private pendingTerminalAmbiguous = false;
   private readonly pendingTerminalTurnIds: string[] = [];
+  private readonly rejectedTurnIds = new Set<string>();
   private readonly responseAliases = new Map<string, string>();
   private readonly tentativeResponseAliases = new Map<string, string>();
   private readonly unboundTurnIds: string[] = [];
@@ -159,6 +160,9 @@ export class OmnigentSseNormalizer {
 
   setFallbackTurnId(turnId: string | undefined): void {
     this.fallbackTurnId = turnId;
+    if (turnId !== undefined) {
+      this.rejectedTurnIds.delete(turnId);
+    }
     if (
       turnId !== undefined &&
       !this.unboundTurnIds.includes(turnId) &&
@@ -188,6 +192,7 @@ export class OmnigentSseNormalizer {
   }
 
   rejectTurnId(turnId: string): void {
+    this.rejectedTurnIds.add(turnId);
     this.removeFallbackTurnId(turnId);
     this.knownResponseIds.delete(turnId);
     if (this.currentResponseId === turnId) {
@@ -237,6 +242,8 @@ export class OmnigentSseNormalizer {
       stringValue(item?.response_id);
     const previousResponseId = this.currentResponseId;
     const officialTurnId = nestedResponseId ?? explicitResponseId;
+    const officialTurnRejected =
+      officialTurnId !== undefined && this.rejectedTurnIds.has(officialTurnId);
     const status = statusValue(raw.status) ?? statusValue(response?.status);
     const terminal =
       tagged.type === "response.completed" ||
@@ -272,6 +279,7 @@ export class OmnigentSseNormalizer {
       : undefined;
     if (
       officialTurnId !== undefined &&
+      !officialTurnRejected &&
       turnAliasId === undefined &&
       tentativeTurnAliasId !== undefined
     ) {
@@ -281,6 +289,7 @@ export class OmnigentSseNormalizer {
     }
     if (
       officialTurnId !== undefined &&
+      !officialTurnRejected &&
       turnAliasId === undefined &&
       (!this.knownResponseIds.has(officialTurnId) ||
       tagged.type === "response.created")
@@ -310,7 +319,7 @@ export class OmnigentSseNormalizer {
         this.bindResponseAlias(officialTurnId, turnAliasId);
       }
     }
-    if (officialTurnId !== undefined) {
+    if (officialTurnId !== undefined && !officialTurnRejected) {
       this.knownResponseIds.add(officialTurnId);
     }
     const sessionId =
@@ -436,7 +445,7 @@ export class OmnigentSseNormalizer {
       if (turnId === this.fallbackTurnId || turnAliasId === this.fallbackTurnId) {
         this.fallbackTurnId = undefined;
       }
-    } else if (officialTurnId !== undefined) {
+    } else if (officialTurnId !== undefined && !officialTurnRejected) {
       this.currentResponseId = officialTurnId;
     }
     return normalized;
