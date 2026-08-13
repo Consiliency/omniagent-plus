@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`75c6bb0afaa5e9506a3d0fae7a19f693b6168b5f`, and no source or evidence files
+`60ca1154d5f6d7a579e2b449f7ed5f1176300ee9`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 127 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 129 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 299 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 301 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -310,6 +310,17 @@ may change after this receipt is committed without another full run.
   order as well as suffix-only reconnect chunks. A history-first provider race
   buffers `Hello` and ` world` while the same `Hello world` message commits, and
   proves the persisted message is delivered exactly once.
+- A successfully cancelled provisional handle is retired from queued/native
+  pending sets, correlation aliases, pending-item joins, every open stream
+  fallback, and the reconnect FIFO while its cancelled handle record remains
+  available. A queued-only A, accepted cancellation, queued-only B regression
+  proves B alone receives the next official response identity and output.
+- Persisted AP item IDs and buffered Antigravity message IDs no longer need to
+  share a namespace for history-first deduplication. Persisted assistant messages
+  retain a per-turn FIFO of item identity and text; identified live chunks claim
+  one content-compatible message before exact prefix/suffix consumption.
+  Mapper and provider regressions persist `Hello world` under an AP item ID,
+  buffer `Hello` and ` world` under a different stream ID, and emit the text once.
 
 ## Boundaries
 
