@@ -706,7 +706,17 @@ export class OmnigentHttpClient {
     if (response.status === 204) {
       return undefined as T;
     }
-    return (await response.json()) as T;
+    try {
+      return (await response.json()) as T;
+    } catch {
+      throw createRuntimeFailure({
+        actor: "provider",
+        category: "malformed_response",
+        message: `Omnigent returned invalid JSON for ${method} ${path}.`,
+        retryable: false,
+        scope: "request",
+      });
+    }
   }
 
   private async toHttpError(

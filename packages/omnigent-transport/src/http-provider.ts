@@ -127,6 +127,17 @@ function assertControlEventAccepted(ack: OmnigentEventAck): void {
   }
 }
 
+function isNonRetryableRuntimeFailure(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "schema" in value &&
+    value.schema === "runtime_failure.v0.1" &&
+    "retryable" in value &&
+    value.retryable === false
+  );
+}
+
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly claimedHistoryItemKeys = new Set<string>();
@@ -142,6 +153,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly provisionalTurnOrder = new Map<string, string[]>();
   private readonly provisionalTurnAliases = new Map<string, string>();
   private readonly provisionalTurnKeys = new Set<string>();
+  private readonly queuedOnlyTurnKeys = new Set<string>();
   private readonly sends = new Map<string, Promise<TurnHandle>>();
   private readonly sessions = new Map<string, AgentSessionInfo>();
   private readonly turns = new Map<string, TurnHandle>();
@@ -178,7 +190,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     try {
       return await pending;
     } catch (error) {
-      if (!isPolicyDenied(error)) {
+      if (!isNonRetryableRuntimeFailure(error)) {
         this.sends.delete(key);
       }
       throw error;
@@ -249,6 +261,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         this.nativePendingTurnKeys.add(
           `${handle.sessionId}:${ack.pending_id}`,
         );
+      } else if (!ack.item_id && handle.turnId === turnId) {
+        this.queuedOnlyTurnKeys.add(`${handle.sessionId}:${turnId}`);
       }
       return handle;
     } catch (error) {
@@ -804,6 +818,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.provisionalTurnKeys.delete(currentKey);
     this.nativePendingTurnKeys.delete(originalKey);
     this.nativePendingTurnKeys.delete(currentKey);
+    this.queuedOnlyTurnKeys.delete(originalKey);
+    this.queuedOnlyTurnKeys.delete(currentKey);
     this.provisionalTurnAliases.delete(originalKey);
     for (const [aliasKey, aliasedTurnId] of this.provisionalTurnAliases) {
       if (
@@ -925,6 +941,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
     this.provisionalTurnKeys.delete(provisionalKey);
     this.nativePendingTurnKeys.delete(provisionalKey);
+    this.queuedOnlyTurnKeys.delete(provisionalKey);
     this.provisionalTurnAliases.delete(suppliedProvisionalKey);
     for (const [aliasKey, aliasedTurnId] of this.provisionalTurnAliases) {
       if (
@@ -1052,8 +1069,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const consumedPending = [...(this.provisionalTurnOrder.get(sessionId) ?? [])]
       .filter(
         (pendingId) =>
-          this.nativePendingTurnKeys.has(`${sessionId}:${pendingId}`) &&
-          !stillPending.has(pendingId),
+          (this.nativePendingTurnKeys.has(`${sessionId}:${pendingId}`) &&
+            !stillPending.has(pendingId)) ||
+          (stillPending.size === 0 &&
+            this.queuedOnlyTurnKeys.has(`${sessionId}:${pendingId}`)),
       );
     const candidates = items.filter(
       (item) =>

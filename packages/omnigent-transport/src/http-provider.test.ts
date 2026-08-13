@@ -700,9 +700,12 @@ describe("http provider", () => {
     };
     const rejected = provider.sendTurn(request);
     await lifecycle;
-    resolveAck(new Response(JSON.stringify({}), { status: 202 }));
+    resolveAck(new Response("", { status: 202 }));
 
     await expect(rejected).rejects.toEqual(
+      expect.objectContaining({ category: "malformed_response", retryable: false }),
+    );
+    await expect(provider.sendTurn(request)).rejects.toEqual(
       expect.objectContaining({ category: "malformed_response", retryable: false }),
     );
     expect(postCount).toBe(1);
@@ -1560,6 +1563,73 @@ describe("http provider", () => {
 
     expect(handle.turnId).toBe("response-pending-offline");
     expect(info.activeTurnId).toBe("response-pending-offline");
+    expect(info.state).toBe("turn_active");
+  });
+
+  it("reconciles a queued-only acknowledgement from disconnected history", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-queued-only-history",
+      created_at: 1_780_272_000,
+      id: "session-queued-only-history",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Queued only history",
+      updated_at: 1_780_272_001,
+    };
+    const history = [
+      {
+        content: [{ text: "queued prompt", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-queued-only",
+        response_id: "response-queued-only",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "queued-only-history-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "queued-only-history-turn",
+      message: "queued prompt",
+      sessionId: session.id,
+    });
+
+    await provider.readHistory(session.id);
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(handle.turnId).toBe("response-queued-only");
+    expect(info.activeTurnId).toBe("response-queued-only");
     expect(info.state).toBe("turn_active");
   });
 
