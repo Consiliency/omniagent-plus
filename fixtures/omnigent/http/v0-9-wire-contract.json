@@ -9,7 +9,9 @@
       "omnigent/server/schemas.py",
       "omnigent/server/routes/sessions/routes_events.py",
       "omnigent/server/routes/sessions/routes_items.py",
+      "omnigent/server/routes/_sessions/orchestration.py",
       "omnigent/entities/conversation.py",
+      "tests/server/integration/test_sessions_endpoints.py",
       "openapi.json"
     ],
     "note": "conformance evidence, not a source of truth"
@@ -43,7 +45,19 @@
     "parent_session_id": null,
     "project_id": null,
     "subagent_routing_override": "smart",
-    "items": []
+    "items": [
+      {
+        "id": "snapshot-message-assistant",
+        "type": "message",
+        "status": "completed",
+        "response_id": "snapshot-response-1",
+        "created_at": 1780272001,
+        "data": {
+          "role": "assistant",
+          "content": [{ "type": "output_text", "text": "snapshot answer" }]
+        }
+      }
+    ]
   },
   "session_pages": [
     {

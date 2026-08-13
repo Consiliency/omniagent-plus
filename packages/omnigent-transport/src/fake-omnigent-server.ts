@@ -9,6 +9,7 @@ import type {
   OmnigentSendEventInput,
   OmnigentSessionListItem,
   OmnigentTaggedSseEvent,
+  OmnigentWireConversationItem,
   OmnigentWirePage,
   OmnigentWireSessionResponse,
 } from "./types.js";
@@ -133,6 +134,29 @@ function conversationItem(
   return { ...common, ...data };
 }
 
+function snapshotConversationItem(
+  value: OmnigentConversationItem,
+): OmnigentWireConversationItem {
+  const {
+    created_at,
+    created_by,
+    id,
+    response_id,
+    status,
+    type,
+    ...data
+  } = value;
+  return {
+    created_at,
+    ...(created_by === undefined ? {} : { created_by }),
+    data,
+    id,
+    response_id,
+    status,
+    type,
+  };
+}
+
 export class FakeOmnigentServer {
   readonly requestLog: FakeOmnigentRequestLogEntry[] = [];
   readonly scenarioCatalog = loadOmnigentFakeServerScenarios();
@@ -239,7 +263,7 @@ export class FakeOmnigentServer {
         background_task_count: 0,
         created_at: timestamp(),
         id: sessionId,
-        items: clone(items),
+        items: items.map(snapshotConversationItem),
         kind: "agent",
         mcp_startup: null,
         metadata: {
@@ -308,7 +332,7 @@ export class FakeOmnigentServer {
         items:
           url.searchParams.get("include_items") === "false"
             ? []
-            : clone(record.items),
+            : record.items.map(snapshotConversationItem),
       };
       writeJson(response, 200, snapshot);
       return;
@@ -320,7 +344,7 @@ export class FakeOmnigentServer {
         ...record.snapshot,
         ...changes,
         id: record.snapshot.id,
-        items: clone(record.items),
+        items: record.items.map(snapshotConversationItem),
         updated_at: timestamp(1),
       };
       writeJson(response, 200, clone(record.snapshot));
@@ -464,7 +488,7 @@ export class FakeOmnigentServer {
       record.snapshot = {
         ...record.snapshot,
         active_response_id: null,
-        items: clone(record.items),
+        items: record.items.map(snapshotConversationItem),
         status: "idle",
         updated_at: timestamp(ordinal * 10 + 2),
       };

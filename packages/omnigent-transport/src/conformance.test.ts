@@ -67,6 +67,15 @@ describe("official Omnigent v0.9 conformance", () => {
       }),
     );
     expect(routingDecision).not.toHaveProperty("data");
+    const snapshotItem = (
+      wire.session_response as { items: Array<Record<string, unknown>> }
+    ).items[0];
+    expect(snapshotItem).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({ role: "assistant" }),
+      }),
+    );
+    expect(snapshotItem).not.toHaveProperty("role");
     expect(wire.acknowledgements).toContainEqual({ queued: false });
     expect(omnigentStreamEventTypes).toHaveLength(52);
     expect(cli.documented_commands).toContain("omnigent server --background");
@@ -156,6 +165,19 @@ describe("official Omnigent v0.9 conformance", () => {
         }),
       );
       expect(history.data[0]).not.toHaveProperty("data");
+
+      const refreshedSnapshot = (await (
+        await fetch(`${server.baseUrl}/v1/sessions/${sessionId}`)
+      ).json()) as { items: Array<Record<string, unknown>> };
+      expect(refreshedSnapshot.items[0]).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            content: [{ text: "hello", type: "input_text" }],
+            role: "user",
+          }),
+        }),
+      );
+      expect(refreshedSnapshot.items[0]).not.toHaveProperty("role");
 
       const interrupt = await fetch(
         `${server.baseUrl}/v1/sessions/${sessionId}/events`,

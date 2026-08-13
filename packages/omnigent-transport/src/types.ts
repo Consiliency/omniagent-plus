@@ -209,7 +209,7 @@ export interface OmnigentWireSessionResponse {
   readonly background_task_count?: number | null;
   readonly created_at: number;
   readonly id: string;
-  readonly items?: OmnigentConversationItem[];
+  readonly items?: OmnigentWireConversationItem[];
   readonly kind?: string;
   readonly mcp_startup?: Readonly<Record<string, OmnigentMcpServerStartup>> | null;
   readonly model_options?: readonly OmnigentNativeModelOption[];
@@ -330,6 +330,16 @@ export interface OmnigentConversationItem {
   readonly [key: string]: unknown;
   readonly created_at: number;
   readonly created_by?: string | null;
+  readonly id: string;
+  readonly response_id: string;
+  readonly status: string;
+  readonly type: OmnigentConversationItemType;
+}
+
+export interface OmnigentWireConversationItem {
+  readonly created_at: number;
+  readonly created_by?: string | null;
+  readonly data: OmnigentConversationItemData;
   readonly id: string;
   readonly response_id: string;
   readonly status: string;

@@ -533,6 +533,76 @@ describe("http provider", () => {
     expect(streamAborted).toBe(true);
   });
 
+  it("aborts an idle stream when the iterator exits before the first frame", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-idle-cancel",
+      created_at: 1_780_272_000,
+      id: "session-idle-cancel",
+      items: [],
+      status: "idle",
+      title: "Idle cancel",
+      updated_at: 1_780_272_000,
+    };
+    let streamAborted = false;
+    let resolveHistoryReady: (() => void) | undefined;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          init?.signal?.addEventListener("abort", () => {
+            streamAborted = true;
+          });
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start() {},
+            }),
+            { status: 200 },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady?.();
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "idle-cancel-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const pending = iterator.next();
+    await historyReady;
+
+    await Promise.race([
+      iterator.return?.(),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("idle iterator return timed out")), 250);
+      }),
+    ]);
+
+    expect(streamAborted).toBe(true);
+    await expect(pending).resolves.toEqual({ done: true, value: undefined });
+  });
+
   it("returns a cursor for the limited history slice", async () => {
     const server = await FakeOmnigentServer.start();
     try {

@@ -231,6 +231,23 @@ function normalizeConversationItem(value: unknown): OmnigentConversationItem {
   return value as OmnigentConversationItem;
 }
 
+function normalizeSnapshotConversationItem(
+  value: unknown,
+): OmnigentConversationItem {
+  normalizeConversationItem(value);
+  if (!isRecord(value) || !isRecord(value.data)) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent session snapshot item field data must be an object.",
+      retryable: false,
+      scope: "session",
+    });
+  }
+  const { data, ...common } = value;
+  return { ...common, ...data } as unknown as OmnigentConversationItem;
+}
+
 function normalizeSession(
   value: unknown,
   fallbackTitle?: string,
@@ -281,7 +298,7 @@ function normalizeSession(
     createdAt,
     id,
     items: Array.isArray(value.items)
-      ? value.items.map(normalizeConversationItem)
+      ? value.items.map(normalizeSnapshotConversationItem)
       : [],
     kind: typeof wire.kind === "string" ? wire.kind : undefined,
     mcpStartup: wire.mcp_startup,
@@ -447,20 +464,35 @@ export class OmnigentHttpClient {
   async openSessionStream(
     sessionId: string,
     onSkip?: (skip: OmnigentSseSkip) => void,
+    signal?: AbortSignal,
   ): Promise<OmnigentOpenStream> {
     const path = `/v1/sessions/${encodeURIComponent(sessionId)}/stream`;
     const controller = new AbortController();
-    const response = await this.fetchImpl(this.url(path), {
-      headers: this.headers,
-      method: "GET",
-      signal: controller.signal,
-    });
+    const abort = () => controller.abort(signal?.reason);
+    if (signal?.aborted) {
+      abort();
+    } else {
+      signal?.addEventListener("abort", abort, { once: true });
+    }
+    let response: Response;
+    try {
+      response = await this.fetchImpl(this.url(path), {
+        headers: this.headers,
+        method: "GET",
+        signal: controller.signal,
+      });
+    } catch (error) {
+      signal?.removeEventListener("abort", abort);
+      throw error;
+    }
     if (!response.ok) {
       const error = await this.toHttpError(response, "GET", path);
+      signal?.removeEventListener("abort", abort);
       controller.abort();
       throw error;
     }
     if (!response.body) {
+      signal?.removeEventListener("abort", abort);
       controller.abort();
       throw new Error("Omnigent stream response did not include a body.");
     }
@@ -476,6 +508,7 @@ export class OmnigentHttpClient {
       close: async () => {
         if (!closed) {
           closed = true;
+          signal?.removeEventListener("abort", abort);
           controller.abort();
         }
       },
@@ -484,6 +517,7 @@ export class OmnigentHttpClient {
         { now: this.now, sessionId },
         onSkip,
         normalizer,
+        controller.signal,
       ),
       setActiveResponseId: (responseId) => {
         normalizer.setActiveResponseId(responseId);

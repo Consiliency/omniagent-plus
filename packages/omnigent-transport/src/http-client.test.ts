@@ -361,25 +361,27 @@ describe("http client", () => {
     expect(items[0]).not.toHaveProperty("data");
   });
 
-  it("normalizes flat conversation items embedded in a session response", async () => {
+  it("normalizes nested conversation items embedded in a session response", async () => {
     const wire = loadOmnigentV09WireContract();
-    const sessionResponse = {
-      ...(wire.session_response as Record<string, unknown>),
-      items: wire.conversation_items,
-    };
+    const sessionResponse = wire.session_response as Record<string, unknown>;
+    expect((sessionResponse.items as unknown[])[0]).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({ role: "assistant" }),
+      }),
+    );
     const client = new OmnigentHttpClient({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async () => new Response(JSON.stringify(sessionResponse)),
     });
 
     const session = await client.getSession("session-123");
-    expect(session.items[1]).toEqual(
+    expect(session.items[0]).toEqual(
       expect.objectContaining({
-        content: [{ text: "answer", type: "output_text" }],
+        content: [{ text: "snapshot answer", type: "output_text" }],
         role: "assistant",
       }),
     );
-    expect(session.items[1]).not.toHaveProperty("data");
+    expect(session.items[0]).not.toHaveProperty("data");
   });
 
   it("rejects malformed session and child page rows", async () => {

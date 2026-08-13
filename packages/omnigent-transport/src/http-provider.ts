@@ -223,11 +223,46 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     };
   }
 
-  async *streamEvents(
+  streamEvents(
     sessionId: string,
     options?: StreamOptions,
   ): AsyncIterable<RuntimeEvent> {
-    const stream = await this.client.openSessionStream(sessionId);
+    const controller = new AbortController();
+    const iterator = this.streamEventsUntilCancelled(
+      sessionId,
+      options,
+      controller.signal,
+    )[Symbol.asyncIterator]();
+    const wrapped: AsyncIterableIterator<RuntimeEvent> = {
+      [Symbol.asyncIterator]: () => wrapped,
+      next: () => iterator.next(),
+      return: async () => {
+        controller.abort();
+        return iterator.return
+          ? iterator.return()
+          : { done: true, value: undefined };
+      },
+      throw: async (error?: unknown) => {
+        controller.abort();
+        if (iterator.throw) {
+          return iterator.throw(error);
+        }
+        throw error;
+      },
+    };
+    return wrapped;
+  }
+
+  private async *streamEventsUntilCancelled(
+    sessionId: string,
+    options: StreamOptions | undefined,
+    signal: AbortSignal,
+  ): AsyncIterable<RuntimeEvent> {
+    const stream = await this.client.openSessionStream(
+      sessionId,
+      undefined,
+      signal,
+    );
     this.addOpenStream(sessionId, stream);
     try {
       const snapshot = await this.client.getSession(sessionId);

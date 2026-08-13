@@ -54,12 +54,46 @@ export class OmnigentHybridProvider implements AgentRuntimeProvider {
     return this.httpProvider.readHistory(sessionId, options);
   }
 
-  async *streamEvents(
+  streamEvents(
     sessionId: string,
     options?: StreamOptions,
   ): AsyncIterable<RuntimeEvent> {
-    await this.ensureReady();
-    yield* this.httpProvider.streamEvents(sessionId, options);
+    let cancelled = false;
+    let iterator: AsyncIterator<RuntimeEvent> | undefined;
+    let ready: Promise<AsyncIterator<RuntimeEvent> | undefined> | undefined;
+    const getIterator = () => {
+      if (cancelled) {
+        return Promise.resolve(undefined);
+      }
+      ready ??= this.ensureReady().then(() => {
+        if (cancelled) {
+          return undefined;
+        }
+        const events = this.httpProvider.streamEvents(sessionId, options);
+        iterator = events[Symbol.asyncIterator]();
+        return iterator;
+      });
+      return ready;
+    };
+    const wrapped: AsyncIterableIterator<RuntimeEvent> = {
+      [Symbol.asyncIterator]: () => wrapped,
+      next: async () =>
+        (await getIterator())?.next() ?? { done: true, value: undefined },
+      return: async () => {
+        cancelled = true;
+        return iterator?.return
+          ? iterator.return()
+          : { done: true, value: undefined };
+      },
+      throw: async (error?: unknown) => {
+        cancelled = true;
+        if (iterator?.throw) {
+          return iterator.throw(error);
+        }
+        throw error;
+      },
+    };
+    return wrapped;
   }
 
   async cancelTurn(

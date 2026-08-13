@@ -374,10 +374,21 @@ export async function* parseOmnigentSseStream(
   options: OmnigentSseNormalizationOptions,
   onSkip?: (skip: OmnigentSseSkip) => void,
   normalizer = new OmnigentSseNormalizer(options),
+  signal?: AbortSignal,
 ): AsyncIterable<OmnigentRawEvent> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let cancelled = false;
+  const cancelReader = () => {
+    cancelled = true;
+    void reader.cancel().catch(() => undefined);
+  };
+  if (signal?.aborted) {
+    cancelReader();
+  } else {
+    signal?.addEventListener("abort", cancelReader, { once: true });
+  }
 
   const parseFrame = (frame: string): OmnigentRawEvent | null => {
     const dataLines = frame
@@ -416,7 +427,12 @@ export async function* parseOmnigentSseStream(
         yield event;
       }
     }
+  } catch (error) {
+    if (!cancelled) {
+      throw error;
+    }
   } finally {
+    signal?.removeEventListener("abort", cancelReader);
     reader.releaseLock();
   }
 }
