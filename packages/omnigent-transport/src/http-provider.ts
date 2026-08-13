@@ -18,7 +18,7 @@ import {
 
 import { OmnigentEventMapper } from "./event-mapper.js";
 import { mapOmnigentConversationHistory } from "./history-mapper.js";
-import { OmnigentHttpClient } from "./http-client.js";
+import { OmnigentHttpClient, OmnigentNetworkError } from "./http-client.js";
 import type {
   OmnigentHttpClientOptions,
   OmnigentOpenStream,
@@ -215,7 +215,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       }
       return handle;
     } catch (error) {
-      if (isPolicyDenied(error)) {
+      if (isPolicyDenied(error) || !(error instanceof OmnigentNetworkError)) {
         this.rollbackTurnRegistration(
           request.sessionId,
           turnId,
@@ -319,6 +319,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       const unresolvedTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
       const soleUnresolvedTurnId =
         unresolvedTurnIds.length === 1 ? unresolvedTurnIds[0] : undefined;
+      const soleUnresolvedTurnStillPending =
+        soleUnresolvedTurnId !== undefined &&
+        (snapshot.pendingInputs ?? []).some(
+          ({ pendingId }) => pendingId === soleUnresolvedTurnId,
+        );
       const snapshotResponseAlreadyResolved = Boolean(
         snapshot.activeResponseId &&
           this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
@@ -326,6 +331,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       if (
         snapshot.activeResponseId &&
         soleUnresolvedTurnId &&
+        !soleUnresolvedTurnStillPending &&
         !snapshotResponseAlreadyResolved
       ) {
         stream.bindResponseId(snapshot.activeResponseId, soleUnresolvedTurnId);
@@ -354,7 +360,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         sessionId,
         snapshot,
         Boolean(snapshot.activeResponseId) &&
-          (unresolvedTurnIds.length > 1 || snapshotResponseAlreadyResolved),
+          (unresolvedTurnIds.length > 1 ||
+            snapshotResponseAlreadyResolved ||
+            soleUnresolvedTurnStillPending),
       );
       this.applyMappedHistoryState(sessionId, mappedSnapshot.runtimeEvents);
       for (const event of mappedSnapshot.history.events) {
@@ -492,6 +500,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     const provisionalTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
     const soleProvisionalTurnId =
       provisionalTurnIds.length === 1 ? provisionalTurnIds[0] : undefined;
+    const soleProvisionalTurnStillPending =
+      soleProvisionalTurnId !== undefined &&
+      (snapshot.pendingInputs ?? []).some(
+        ({ pendingId }) => pendingId === soleProvisionalTurnId,
+      );
     const snapshotResponseAlreadyResolved = Boolean(
       snapshot.activeResponseId &&
         this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),
@@ -499,6 +512,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (
       soleProvisionalTurnId &&
       snapshot.activeResponseId &&
+      !soleProvisionalTurnStillPending &&
       !snapshotResponseAlreadyResolved
     ) {
       this.reconcileTurn(
@@ -519,7 +533,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
             state: "closed" as const,
           }
         : snapshot.activeResponseId &&
-            (provisionalTurnIds.length > 1 || snapshotResponseAlreadyResolved)
+            (provisionalTurnIds.length > 1 ||
+              snapshotResponseAlreadyResolved ||
+              soleProvisionalTurnStillPending)
           ? {
               ...next,
               activeTurnId: existing.activeTurnId,

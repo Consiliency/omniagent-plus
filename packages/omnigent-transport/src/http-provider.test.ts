@@ -557,6 +557,93 @@ describe("http provider", () => {
     await iterator.return?.();
   });
 
+  it("keeps malformed acknowledgement failure authoritative after lifecycle", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-streamed-malformed-ack",
+      created_at: 1_780_272_000,
+      id: "session-streamed-malformed-ack",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Streamed malformed acknowledgement",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let resolveAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          streamController.enqueue(
+            new TextEncoder().encode(
+              `data: ${JSON.stringify({
+                response: { id: "response-malformed-ack", status: "in_progress" },
+                type: "response.created",
+              })}\n\n`,
+            ),
+          );
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "streamed-malformed-ack-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const lifecycle = iterator.next();
+    await historyReady;
+    const request = {
+      idempotencyKey: "streamed-malformed-ack-turn",
+      message: "malformed after lifecycle",
+      sessionId: session.id,
+    };
+    const rejected = provider.sendTurn(request);
+    await lifecycle;
+    resolveAck(new Response(JSON.stringify({}), { status: 202 }));
+
+    await expect(rejected).rejects.toEqual(
+      expect.objectContaining({ category: "malformed_response", retryable: false }),
+    );
+    expect(postCount).toBe(1);
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+    streamController.close();
+    await iterator.return?.();
+  });
+
   it("reconciles from persisted history before yielding its first event", async () => {
     const snapshot = {
       active_response_id: null,
@@ -870,6 +957,86 @@ describe("http provider", () => {
       });
       expect(handle.turnId).toBe(expected);
     }
+  });
+
+  it("does not bind a still-pending turn to an unrelated active response", async () => {
+    const initialSnapshot = {
+      active_response_id: null as string | null,
+      agent_id: "agent-still-pending",
+      created_at: 1_780_272_000,
+      id: "session-still-pending",
+      items: [],
+      pending_inputs: [] as Record<string, unknown>[],
+      status: "idle",
+      title: "Still pending",
+      updated_at: 1_780_272_000,
+    };
+    let accepted = false;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(initialSnapshot));
+        }
+        if (init?.method === "POST") {
+          accepted = true;
+          return new Response(
+            JSON.stringify({ pending_id: "pending-new", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(
+          JSON.stringify(
+            accepted
+              ? {
+                  ...initialSnapshot,
+                  active_response_id: "response-existing",
+                  pending_inputs: [
+                    {
+                      content: [{ text: "new turn", type: "input_text" }],
+                      pending_id: "pending-new",
+                    },
+                  ],
+                  status: "running",
+                  updated_at: 1_780_272_001,
+                }
+              : initialSnapshot,
+          ),
+        );
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: initialSnapshot.agent_id },
+      idempotencyKey: "still-pending-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: initialSnapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "still-pending-turn",
+      message: "new turn",
+      sessionId: session.id,
+    });
+
+    const beforeStream = await provider.getSessionInfo(session.id);
+    await collectAsync(provider.streamEvents(session.id));
+    const afterStream = await provider.getSessionInfo(session.id);
+
+    expect(handle.turnId).toBe("pending-new");
+    expect(beforeStream.activeTurnId).toBe("pending-new");
+    expect(afterStream.activeTurnId).toBe("pending-new");
+    expect(afterStream.state).toBe("turn_active");
   });
 
   it("reconciles a pending acknowledgement through input-consumed and history", async () => {

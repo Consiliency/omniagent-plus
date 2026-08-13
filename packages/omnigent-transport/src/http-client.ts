@@ -54,6 +54,16 @@ export class OmnigentHttpError extends Error {
   }
 }
 
+export class OmnigentNetworkError extends Error {
+  readonly cause: unknown;
+
+  constructor(cause: unknown) {
+    super("Omnigent network request failed.");
+    this.name = "OmnigentNetworkError";
+    this.cause = cause;
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -677,14 +687,19 @@ export class OmnigentHttpClient {
     path: string,
     body?: unknown,
   ): Promise<T> {
-    const response = await this.fetchImpl(this.url(path), {
-      body: body === undefined ? undefined : JSON.stringify(body),
-      headers: {
-        ...this.headers,
-        ...(body === undefined ? {} : { "content-type": "application/json" }),
-      },
-      method,
-    });
+    let response: Response;
+    try {
+      response = await this.fetchImpl(this.url(path), {
+        body: body === undefined ? undefined : JSON.stringify(body),
+        headers: {
+          ...this.headers,
+          ...(body === undefined ? {} : { "content-type": "application/json" }),
+        },
+        method,
+      });
+    } catch (error) {
+      throw new OmnigentNetworkError(error);
+    }
     if (!response.ok) {
       throw await this.toHttpError(response, method, path);
     }
@@ -699,11 +714,12 @@ export class OmnigentHttpClient {
     method: string,
     path: string,
   ): Promise<OmnigentHttpError> {
-    let body: unknown;
+    const text = await response.text();
+    let body: unknown = text;
     try {
-      body = await response.json();
+      body = JSON.parse(text);
     } catch {
-      body = await response.text();
+      body = text;
     }
     return new OmnigentHttpError({
       body,
