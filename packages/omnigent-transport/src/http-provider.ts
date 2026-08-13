@@ -173,7 +173,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       createdAt: now,
       idempotencyKey: request.idempotencyKey,
       sessionId: request.sessionId,
-      state: ack.queued ? "queued" : "running",
+      state: "queued",
       turnId,
       updatedAt: now,
     };

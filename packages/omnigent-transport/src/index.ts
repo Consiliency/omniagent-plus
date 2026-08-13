@@ -55,4 +55,5 @@ export type {
   OmnigentServerStatus,
   OmnigentSessionSnapshot,
   OmnigentSessionListItem,
+  OmnigentTurnAck,
 } from "./types.js";

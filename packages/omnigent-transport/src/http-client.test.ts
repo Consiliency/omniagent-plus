@@ -336,6 +336,52 @@ describe("http client", () => {
     );
   });
 
+  it("normalizes official flat conversation item rows", async () => {
+    const wire = loadOmnigentV09WireContract();
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            data: wire.conversation_items,
+            first_id: "message-user",
+            has_more: false,
+            last_id: "error",
+          }),
+        ),
+    });
+
+    const items = await client.getHistory("session-123");
+    expect(items[0]).toEqual(
+      expect.objectContaining({
+        content: [{ text: "question", type: "input_text" }],
+        role: "user",
+      }),
+    );
+    expect(items[0]).not.toHaveProperty("data");
+  });
+
+  it("normalizes flat conversation items embedded in a session response", async () => {
+    const wire = loadOmnigentV09WireContract();
+    const sessionResponse = {
+      ...(wire.session_response as Record<string, unknown>),
+      items: wire.conversation_items,
+    };
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () => new Response(JSON.stringify(sessionResponse)),
+    });
+
+    const session = await client.getSession("session-123");
+    expect(session.items[1]).toEqual(
+      expect.objectContaining({
+        content: [{ text: "answer", type: "output_text" }],
+        role: "assistant",
+      }),
+    );
+    expect(session.items[1]).not.toHaveProperty("data");
+  });
+
   it("rejects malformed session and child page rows", async () => {
     for (const [path, row] of [
       [
@@ -439,7 +485,6 @@ describe("http client", () => {
   it("rejects malformed event acknowledgement shapes", async () => {
     for (const ack of [
       {},
-      { queued: false },
       { denied: true, queued: false },
       { item_id: "", queued: true },
       { pending_id: 42, queued: true },
@@ -462,5 +507,29 @@ describe("http client", () => {
         }),
       );
     }
+  });
+
+  it("accepts queued-false control acknowledgements but not for send-turn", async () => {
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(JSON.stringify({ queued: false }), { status: 202 }),
+    });
+
+    await expect(
+      client.sendEvent("session-control-ack", {
+        data: {},
+        type: "interrupt",
+      }),
+    ).resolves.toEqual({ queued: false });
+    await expect(
+      client.sendTurn({
+        idempotencyKey: "turn-control-ack",
+        message: "hello",
+        sessionId: "session-control-ack",
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({ category: "malformed_response" }),
+    );
   });
 });

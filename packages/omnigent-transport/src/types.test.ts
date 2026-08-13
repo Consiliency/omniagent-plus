@@ -52,13 +52,11 @@ describe("transport types", () => {
       ],
       items: [
         {
+          content: [{ text: "hello", type: "output_text" }],
           created_at: 1_780_000_000,
-          data: {
-            content: [{ text: "hello", type: "output_text" }],
-            role: "assistant",
-          },
           id: "item-1",
           response_id: "response-1",
+          role: "assistant",
           status: "completed",
           type: "message",
         },

@@ -54,16 +54,19 @@ Send-turn uses exactly:
 {"type":"message","data":{"role":"user","content":[{"type":"input_text","text":"..."}]}}
 ```
 
-Accepted acknowledgements contain `queued` plus optional `item_id` or
-`pending_id`; they do not contain session or response identity. HTTP 202 may
-instead return `{queued:false, denied:true, reason}`. That result is a cached,
+Accepted message acknowledgements contain `queued: true` plus optional
+`item_id` or `pending_id`; they do not contain session or response identity.
+Control events complete synchronously with `queued: false`. HTTP 202 may instead
+return `{queued:false, denied:true, reason}`. That result is a cached,
 non-retryable `policy_denied` failure and never creates an active handle.
 Create and send idempotency are process-local because the tagged API provides
 no durable request key.
 
 ## History And Stream
 
-Persisted `ConversationItem` history and tagged SSE are separate contracts.
+Persisted `ConversationItem` history uses the official flat API row shape;
+type-specific fields are spread beside the common item fields. Tagged SSE is a
+separate contract.
 History maps messages, function calls, function outputs, explicit errors, and
 explicit interruption. Reasoning, compaction, `native_tool`, resource, routing,
 slash-command, terminal-command, and meta-message rows remain metadata-only.

@@ -257,13 +257,11 @@ describe("http provider", () => {
             JSON.stringify({
               data: [
                 {
+                  content: [{ text: "start", type: "input_text" }],
                   created_at: 1_780_272_001,
-                  data: {
-                    content: [{ text: "start", type: "input_text" }],
-                    role: "user",
-                  },
                   id: "item-provisional",
                   response_id: "response-official",
+                  role: "user",
                   status: "completed",
                   type: "message",
                 },
@@ -861,24 +859,20 @@ describe("http provider", () => {
               ? []
               : [
                   {
+                    content: [{ text: "one", type: "input_text" }],
                     created_at: 1_780_272_001,
-                    data: {
-                      content: [{ text: "one", type: "input_text" }],
-                      role: "user",
-                    },
                     id: "item-1",
                     response_id: "response-one",
+                    role: "user",
                     status: "completed",
                     type: "message",
                   },
                   {
+                    content: [{ text: "two", type: "input_text" }],
                     created_at: 1_780_272_002,
-                    data: {
-                      content: [{ text: "two", type: "input_text" }],
-                      role: "user",
-                    },
                     id: "item-2",
                     response_id: "response-two",
+                    role: "user",
                     status: "completed",
                     type: "message",
                   },

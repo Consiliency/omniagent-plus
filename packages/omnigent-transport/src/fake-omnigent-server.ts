@@ -119,6 +119,20 @@ function listItem(snapshot: OmnigentWireSessionResponse): OmnigentSessionListIte
   };
 }
 
+function conversationItem(
+  value: {
+    readonly created_at: number;
+    readonly data: Readonly<Record<string, unknown>>;
+    readonly id: string;
+    readonly response_id: string;
+    readonly status: string;
+    readonly type: OmnigentConversationItem["type"];
+  },
+): OmnigentConversationItem {
+  const { data, ...common } = value;
+  return { ...common, ...data };
+}
+
 export class FakeOmnigentServer {
   readonly requestLog: FakeOmnigentRequestLogEntry[] = [];
   readonly scenarioCatalog = loadOmnigentFakeServerScenarios();
@@ -210,9 +224,9 @@ export class FakeOmnigentServer {
       const sessionId = `session-${this.nextSession++}`;
       const title = typeof payload.title === "string" ? payload.title : null;
       const items = (payload.initial_items as Array<Record<string, unknown>>).map(
-        (initial, index): OmnigentConversationItem => ({
+        (initial, index): OmnigentConversationItem => conversationItem({
           created_at: timestamp(index),
-          data: (initial.data ?? {}) as OmnigentConversationItem["data"],
+          data: (initial.data ?? {}) as Readonly<Record<string, unknown>>,
           id: `${sessionId}-initial-${index + 1}`,
           response_id: `${sessionId}-initial-response`,
           status: "completed",
@@ -394,14 +408,14 @@ export class FakeOmnigentServer {
       const responseId = `response-${ordinal}`;
       const userItemId = `message-user-${ordinal}`;
       const message = textFromMessage(event);
-      record.items.push({
+      record.items.push(conversationItem({
         created_at: timestamp(ordinal * 10),
-        data: event.data as OmnigentConversationItem["data"],
+        data: event.data,
         id: userItemId,
         response_id: responseId,
         status: "completed",
         type: "message",
-      });
+      }));
       record.stream.push(
         {
           response: {
@@ -469,12 +483,12 @@ export class FakeOmnigentServer {
         },
         type: "response.cancelled",
       });
-      writeJson(response, 202, { queued: true });
+      writeJson(response, 202, { queued: false });
       return;
     }
 
     if (event.type === "stop_session") {
-      writeJson(response, 202, { queued: true });
+      writeJson(response, 202, { queued: false });
       return;
     }
 

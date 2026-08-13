@@ -327,9 +327,9 @@ export type OmnigentConversationItemData =
   | Readonly<Record<string, unknown>>;
 
 export interface OmnigentConversationItem {
+  readonly [key: string]: unknown;
   readonly created_at: number;
   readonly created_by?: string | null;
-  readonly data: OmnigentConversationItemData;
   readonly id: string;
   readonly response_id: string;
   readonly status: string;
@@ -432,6 +432,11 @@ export interface OmnigentAcceptedEventAck {
   readonly queued: true;
 }
 
+export interface OmnigentHandledEventAck {
+  readonly denied?: false;
+  readonly queued: false;
+}
+
 export interface OmnigentDeniedEventAck {
   readonly denied: true;
   readonly queued: false;
@@ -439,6 +444,11 @@ export interface OmnigentDeniedEventAck {
 }
 
 export type OmnigentEventAck =
+  | OmnigentAcceptedEventAck
+  | OmnigentHandledEventAck
+  | OmnigentDeniedEventAck;
+
+export type OmnigentTurnAck =
   | OmnigentAcceptedEventAck
   | OmnigentDeniedEventAck;
 

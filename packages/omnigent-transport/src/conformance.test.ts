@@ -56,14 +56,18 @@ describe("official Omnigent v0.9 conformance", () => {
         item !== null &&
         "type" in item &&
         item.type === "routing_decision",
-    ) as { data: unknown };
-    expect(routingDecision.data).toEqual({
-      applied: true,
-      decision_id: "route-1",
-      model: "model-routed",
-      rationale: "Selected for the task.",
-      scope: "turn",
-    });
+    ) as Record<string, unknown>;
+    expect(routingDecision).toEqual(
+      expect.objectContaining({
+        applied: true,
+        decision_id: "route-1",
+        model: "model-routed",
+        rationale: "Selected for the task.",
+        scope: "turn",
+      }),
+    );
+    expect(routingDecision).not.toHaveProperty("data");
+    expect(wire.acknowledgements).toContainEqual({ queued: false });
     expect(omnigentStreamEventTypes).toHaveLength(52);
     expect(cli.documented_commands).toContain("omnigent server --background");
     expect(cli.documented_commands).not.toContain("omnigent server start");
@@ -141,6 +145,27 @@ describe("official Omnigent v0.9 conformance", () => {
       });
       expect(turn.status).toBe(202);
       expect(await turn.json()).toEqual({ item_id: "message-user-1", queued: true });
+
+      const history = (await (
+        await fetch(`${server.baseUrl}/v1/sessions/${sessionId}/items`)
+      ).json()) as { data: Array<Record<string, unknown>> };
+      expect(history.data[0]).toEqual(
+        expect.objectContaining({
+          content: [{ text: "hello", type: "input_text" }],
+          role: "user",
+        }),
+      );
+      expect(history.data[0]).not.toHaveProperty("data");
+
+      const interrupt = await fetch(
+        `${server.baseUrl}/v1/sessions/${sessionId}/events`,
+        {
+          body: JSON.stringify({ data: {}, type: "interrupt" }),
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      );
+      expect(await interrupt.json()).toEqual({ queued: false });
 
       const rawStream = await (
         await fetch(`${server.baseUrl}/v1/sessions/${sessionId}/stream`)

@@ -23,6 +23,7 @@ import type {
   OmnigentSessionListItem,
   OmnigentSessionSnapshot,
   OmnigentSessionStatus,
+  OmnigentTurnAck,
   OmnigentWirePage,
   OmnigentWireSessionResponse,
 } from "./types.js";
@@ -103,7 +104,10 @@ function sessionStatus(value: unknown): OmnigentSessionStatus {
   return value as OmnigentSessionStatus;
 }
 
-function normalizeEventAck(value: unknown): OmnigentEventAck {
+function normalizeEventAck(
+  value: unknown,
+  requireQueued: boolean,
+): OmnigentEventAck {
   if (!isRecord(value)) {
     throw malformedEventAck();
   }
@@ -121,7 +125,7 @@ function normalizeEventAck(value: unknown): OmnigentEventAck {
   }
   if (
     (value.denied === undefined || value.denied === false) &&
-    value.queued === true &&
+    (value.queued === true || (!requireQueued && value.queued === false)) &&
     (value.item_id === undefined ||
       (typeof value.item_id === "string" && value.item_id.length > 0)) &&
     (value.pending_id === undefined ||
@@ -131,8 +135,8 @@ function normalizeEventAck(value: unknown): OmnigentEventAck {
       denied: value.denied,
       item_id: value.item_id,
       pending_id: value.pending_id,
-      queued: true,
-    };
+      queued: value.queued,
+    } as OmnigentEventAck;
   }
   throw malformedEventAck();
 }
@@ -224,16 +228,7 @@ function normalizeConversationItem(value: unknown): OmnigentConversationItem {
   requiredString(value, "status");
   requiredString(value, "type");
   epochToIso(value.created_at, "created_at");
-  if (!isRecord(value.data)) {
-    throw createRuntimeFailure({
-      actor: "provider",
-      category: "malformed_response",
-      message: "Omnigent conversation item field data must be an object.",
-      retryable: false,
-      scope: "session",
-    });
-  }
-  return value as unknown as OmnigentConversationItem;
+  return value as OmnigentConversationItem;
 }
 
 function normalizeSession(
@@ -285,7 +280,9 @@ function normalizeSession(
         : null,
     createdAt,
     id,
-    items: wire.items ?? [],
+    items: Array.isArray(value.items)
+      ? value.items.map(normalizeConversationItem)
+      : [],
     kind: typeof wire.kind === "string" ? wire.kind : undefined,
     mcpStartup: wire.mcp_startup,
     metadata: isRecord(value.metadata) ? value.metadata : undefined,
@@ -416,14 +413,21 @@ export class OmnigentHttpClient {
     );
   }
 
-  async sendTurn(request: SendTurnRequest): Promise<OmnigentEventAck> {
-    return this.sendEvent(request.sessionId, {
-      data: {
-        content: [{ text: request.message, type: "input_text" }],
-        role: "user",
-      },
-      type: "message",
-    });
+  async sendTurn(request: SendTurnRequest): Promise<OmnigentTurnAck> {
+    return normalizeEventAck(
+      await this.requestJson(
+        "POST",
+        `/v1/sessions/${encodeURIComponent(request.sessionId)}/events`,
+        {
+          data: {
+            content: [{ text: request.message, type: "input_text" }],
+            role: "user",
+          },
+          type: "message",
+        },
+      ),
+      true,
+    ) as OmnigentTurnAck;
   }
 
   async sendEvent(
@@ -436,6 +440,7 @@ export class OmnigentHttpClient {
         `/v1/sessions/${encodeURIComponent(sessionId)}/events`,
         event,
       ),
+      false,
     );
   }
 

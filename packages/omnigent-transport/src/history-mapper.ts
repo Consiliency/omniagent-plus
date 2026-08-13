@@ -96,7 +96,7 @@ function itemTimestamp(item: OmnigentConversationItem): string {
 }
 
 function contentText(item: OmnigentConversationItem): string[] {
-  const data = asRecord(item.data);
+  const data = asRecord(item);
   if (!Array.isArray(data.content) || data.is_meta === true) {
     return [];
   }
@@ -162,7 +162,7 @@ export function mapOmnigentConversationHistory(
 
   for (const item of items) {
     seenItemIds.add(item.id);
-    const data = asRecord(item.data);
+    const data = asRecord(item);
     const turnId = item.response_id;
     const occurredAt = itemTimestamp(item);
     const text = contentText(item);
