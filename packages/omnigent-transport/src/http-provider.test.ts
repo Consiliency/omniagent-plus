@@ -15,7 +15,7 @@ async function collectAsync<T>(values: AsyncIterable<T>): Promise<T[]> {
 describe("http provider", () => {
   it("preserves v0.5 MCP startup metadata without synthesizing empty metadata", async () => {
     const snapshot = {
-      active_response_id: null,
+      active_response_id: "item-control-1",
       agent_id: "agent-mcp-startup",
       created_at: 1_780_272_000,
       id: "session-mcp-startup",
@@ -151,7 +151,7 @@ describe("http provider", () => {
 
   it("keeps local state unchanged when cancel and close controls are denied", async () => {
     const snapshot = {
-      active_response_id: null,
+      active_response_id: "item-control-1",
       agent_id: "agent-control-denial",
       created_at: 1_780_272_000,
       id: "session-control-denial",
@@ -223,6 +223,62 @@ describe("http provider", () => {
     expect(info.state).toBe("turn_active");
   });
 
+  it("rejects queued control acknowledgements without local mutation", async () => {
+    const snapshot = {
+      active_response_id: "item-queued-control",
+      agent_id: "agent-queued-control",
+      created_at: 1_780_272_000,
+      id: "session-queued-control",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Queued control acknowledgement",
+      updated_at: 1_780_272_001,
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          return new Response(
+            JSON.stringify(
+              event.type === "message"
+                ? { item_id: "item-queued-control", queued: true }
+                : { queued: true },
+            ),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "queued-control-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "queued-control-turn",
+      message: "remain active",
+      sessionId: session.id,
+    });
+
+    await expect(provider.cancelTurn(handle)).rejects.toMatchObject({
+      category: "malformed_response",
+    });
+    await expect(provider.closeSession(session.id)).rejects.toMatchObject({
+      category: "malformed_response",
+    });
+    const info = await provider.getSessionInfo(session.id);
+    expect(info.activeTurnId).toBe("item-queued-control");
+    expect(info.state).toBe("turn_active");
+  });
+
   it("maps active_response_id snapshots into active turn identity", async () => {
     const server = await FakeOmnigentServer.start({
       activeResponseId: "turn-active-response",
@@ -255,7 +311,7 @@ describe("http provider", () => {
       created_at: 1_780_272_000,
       id: "session-cancelled-queued",
       items: [],
-      pending_inputs: [],
+      pending_inputs: [{ content: [], pending_id: "pending-cancelled-queued" }],
       status: "idle",
       title: "Cancelled queued handle",
       updated_at: 1_780_272_001,
@@ -271,7 +327,9 @@ describe("http provider", () => {
           const event = JSON.parse(String(init.body)) as { type?: string };
           return new Response(
             JSON.stringify(
-              event.type === "message" ? { queued: true } : { queued: false },
+              event.type === "message"
+                ? { pending_id: "pending-cancelled-queued", queued: true }
+                : { queued: false },
             ),
           );
         }
@@ -354,13 +412,14 @@ describe("http provider", () => {
       created_at: 1_780_272_000,
       id: "session-cancelled-late",
       items: [],
-      pending_inputs: [],
+      pending_inputs: [{ content: [], pending_id: "pending-cancelled-late" }],
       status: "idle",
       title: "Cancelled late lifecycle",
       updated_at: 1_780_272_001,
     };
     const encoder = new TextEncoder();
     let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    let messagePosts = 0;
     let resolveHistoryReady!: () => void;
     const historyReady = new Promise<void>((resolve) => {
       resolveHistoryReady = resolve;
@@ -374,9 +433,16 @@ describe("http provider", () => {
         }
         if (init?.method === "POST" && url.endsWith("/events")) {
           const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "message") {
+            messagePosts += 1;
+          }
           return new Response(
             JSON.stringify(
-              event.type === "message" ? { queued: true } : { queued: false },
+              event.type === "message"
+                ? messagePosts === 1
+                  ? { pending_id: "pending-cancelled-late", queued: true }
+                  : { queued: true }
+                : { queued: false },
             ),
           );
         }
@@ -493,6 +559,7 @@ describe("http provider", () => {
       updated_at: 1_780_272_001,
     };
     const encoder = new TextEncoder();
+    let activeResponseId: string | null = null;
     let streamController!: ReadableStreamDefaultController<Uint8Array>;
     let messagePosts = 0;
     const provider = createHttpProvider({
@@ -529,7 +596,9 @@ describe("http provider", () => {
         if (url.includes("/items")) {
           return new Response(JSON.stringify({ data: [], has_more: false }));
         }
-        return new Response(JSON.stringify(snapshot));
+        return new Response(
+          JSON.stringify({ ...snapshot, active_response_id: activeResponseId }),
+        );
       },
     });
     const session = await provider.createSession({
@@ -560,6 +629,7 @@ describe("http provider", () => {
       value: expect.objectContaining({ type: "runtime.turn.started" }),
     });
     expect(first.turnId).toBe("response-a");
+    activeResponseId = "response-a";
     await provider.cancelTurn(first);
     const secondStarted = iterator.next();
     streamController.enqueue(
@@ -648,6 +718,56 @@ describe("http provider", () => {
     expect(interruptPosts).toBe(0);
   });
 
+  it("rejects queued-only cancellation when another pending input is uncorrelated", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-ambiguous-pending-cancel",
+      created_at: 1_780_272_000,
+      id: "session-ambiguous-pending-cancel",
+      items: [],
+      pending_inputs: [{ content: [], pending_id: "pending-external-a" }],
+      status: "running",
+      title: "Ambiguous pending cancellation",
+      updated_at: 1_780_272_001,
+    };
+    let interruptPosts = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "interrupt") {
+            interruptPosts += 1;
+            return new Response(JSON.stringify({ queued: false }));
+          }
+          return new Response(JSON.stringify({ queued: true }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "ambiguous-pending-cancel-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const queued = await provider.sendTurn({
+      idempotencyKey: "ambiguous-pending-cancel-b",
+      message: "B",
+      sessionId: session.id,
+    });
+
+    await expect(provider.cancelTurn(queued)).rejects.toMatchObject({
+      category: "state_conflict",
+    });
+    expect(interruptPosts).toBe(0);
+  });
+
   it("blocks a newer send while cancellation preflight is in flight", async () => {
     const snapshot = {
       active_response_id: null,
@@ -655,7 +775,7 @@ describe("http provider", () => {
       created_at: 1_780_272_000,
       id: "session-cancel-reservation",
       items: [],
-      pending_inputs: [],
+      pending_inputs: [{ content: [], pending_id: "pending-reservation-a" }],
       status: "running",
       title: "Cancellation reservation",
       updated_at: 1_780_272_001,
@@ -682,7 +802,9 @@ describe("http provider", () => {
             return new Response(JSON.stringify({ queued: false }));
           }
           messagePosts += 1;
-          return new Response(JSON.stringify({ queued: true }));
+          return new Response(
+            JSON.stringify({ pending_id: "pending-reservation-a", queued: true }),
+          );
         }
         if (deferSnapshot) {
           snapshotRequested();
@@ -730,7 +852,7 @@ describe("http provider", () => {
       created_at: 1_780_272_000,
       id: "session-early-interrupt",
       items: [],
-      pending_inputs: [],
+      pending_inputs: [{ content: [], pending_id: "pending-early-interrupt-a" }],
       status: "running",
       title: "Early interruption proof",
       updated_at: 1_780_272_001,
@@ -758,7 +880,13 @@ describe("http provider", () => {
             });
           }
           messagePosts += 1;
-          return new Response(JSON.stringify({ queued: true }));
+          return new Response(
+            JSON.stringify(
+              messagePosts === 1
+                ? { pending_id: "pending-early-interrupt-a", queued: true }
+                : { queued: true },
+            ),
+          );
         }
         if (url.endsWith("/stream")) {
           return new Response(

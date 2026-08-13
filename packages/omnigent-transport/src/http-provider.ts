@@ -226,6 +226,15 @@ function assertControlEventAccepted(ack: OmnigentEventAck): void {
       scope: "turn",
     });
   }
+  if (ack.queued !== false) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message: "Omnigent control acknowledgement must be handled synchronously.",
+      retryable: false,
+      scope: "turn",
+    });
+  }
 }
 
 function isNonRetryableRuntimeFailure(value: unknown): boolean {
@@ -562,9 +571,19 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (this.queuedOnlyTurnKeys.has(`${sessionId}:${soleUnresolvedTurnId}`) &&
             (snapshot.pendingInputs?.length ?? 0) > 0));
       for (const { pendingId } of snapshot.pendingInputs ?? []) {
-        stream.removeFallbackTurnId(pendingId);
+        if (
+          !this.cancelledTurnQuarantineKeys.has(`${sessionId}:${pendingId}`)
+        ) {
+          stream.removeFallbackTurnId(pendingId);
+        }
       }
-      if (soleUnresolvedTurnId && soleUnresolvedTurnStillPending) {
+      if (
+        soleUnresolvedTurnId &&
+        soleUnresolvedTurnStillPending &&
+        !this.cancelledTurnQuarantineKeys.has(
+          `${sessionId}:${soleUnresolvedTurnId}`,
+        )
+      ) {
         stream.removeFallbackTurnId(soleUnresolvedTurnId);
       }
       if (
@@ -754,6 +773,20 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           actor: "provider",
           category: "state_conflict",
           message: `Turn ${handle.turnId} is not the upstream active response for session ${handle.sessionId}.`,
+          retryable: false,
+          scope: "turn",
+        });
+      }
+      const snapshotOwnsHandle =
+        snapshot.activeResponseId === handle.turnId ||
+        (snapshot.pendingInputs ?? []).some(
+          ({ pendingId }) => pendingId === handle.turnId,
+        );
+      if (!snapshotOwnsHandle) {
+        throw createRuntimeFailure({
+          actor: "provider",
+          category: "state_conflict",
+          message: `Session ${handle.sessionId} does not positively attribute interrupt authority to turn ${handle.turnId}.`,
           retryable: false,
           scope: "turn",
         });
