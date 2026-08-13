@@ -627,15 +627,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.reconcileTurnsFromHistory(sessionId, items, stream);
       this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items, stream);
       const unresolvedTurnIds = this.provisionalTurnOrder.get(sessionId) ?? [];
-      const soleUnresolvedTurnId =
-        unresolvedTurnIds.length === 1 ? unresolvedTurnIds[0] : undefined;
-      const soleUnresolvedTurnStillPending =
-        soleUnresolvedTurnId !== undefined &&
-        ((snapshot.pendingInputs ?? []).some(
-          ({ pendingId }) => pendingId === soleUnresolvedTurnId,
-        ) ||
-          (this.queuedOnlyTurnKeys.has(`${sessionId}:${soleUnresolvedTurnId}`) &&
-            (snapshot.pendingInputs?.length ?? 0) > 0));
       for (const { pendingId } of snapshot.pendingInputs ?? []) {
         if (
           !this.cancelledTurnQuarantineKeys.has(`${sessionId}:${pendingId}`)
@@ -643,14 +634,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           stream.removeFallbackTurnId(pendingId);
         }
       }
-      if (
-        soleUnresolvedTurnId &&
-        soleUnresolvedTurnStillPending &&
-        !this.cancelledTurnQuarantineKeys.has(
-          `${sessionId}:${soleUnresolvedTurnId}`,
-        )
-      ) {
-        stream.removeFallbackTurnId(soleUnresolvedTurnId);
+      if ((snapshot.pendingInputs?.length ?? 0) > 0) {
+        for (const turnId of unresolvedTurnIds) {
+          const turnKey = `${sessionId}:${turnId}`;
+          if (
+            this.queuedOnlyTurnKeys.has(turnKey) &&
+            !this.cancelledTurnQuarantineKeys.has(turnKey)
+          ) {
+            stream.removeFallbackTurnId(turnId);
+          }
+        }
       }
       if (
         snapshot.activeResponseId &&

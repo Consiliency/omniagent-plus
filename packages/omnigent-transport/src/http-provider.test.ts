@@ -2966,6 +2966,114 @@ describe("http provider", () => {
     expect(afterStream.state).toBe("turn_active");
   });
 
+  it("does not bind multiple queued-only turns to an unrelated active response", async () => {
+    const initialSnapshot = {
+      active_response_id: null as string | null,
+      agent_id: "agent-multiple-still-pending",
+      created_at: 1_780_272_000,
+      id: "session-multiple-still-pending",
+      items: [],
+      pending_inputs: [] as Record<string, unknown>[],
+      status: "idle",
+      title: "Multiple still pending",
+      updated_at: 1_780_272_000,
+    };
+    let accepted = 0;
+    const provider = createHttpProvider({
+      allowQueuedTurns: true,
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(initialSnapshot));
+        }
+        if (init?.method === "POST") {
+          accepted += 1;
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            [
+              {
+                response: {
+                  created_at: 1_780_272_001,
+                  id: "response-external",
+                  status: "in_progress",
+                },
+                type: "response.created",
+              },
+              {
+                response: {
+                  completed_at: 1_780_272_002,
+                  id: "response-external",
+                  status: "completed",
+                },
+                type: "response.completed",
+              },
+            ]
+              .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+              .join(""),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(
+          JSON.stringify(
+            accepted === 2
+              ? {
+                  ...initialSnapshot,
+                  active_response_id: "response-external",
+                  pending_inputs: [
+                    { content: [], pending_id: "pending-external-a" },
+                    { content: [], pending_id: "pending-external-b" },
+                  ],
+                  status: "running",
+                  updated_at: 1_780_272_001,
+                }
+              : initialSnapshot,
+          ),
+        );
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: initialSnapshot.agent_id },
+      idempotencyKey: "multiple-still-pending-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: initialSnapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "multiple-still-pending-a",
+      message: "A",
+      sessionId: session.id,
+    });
+    const second = await provider.sendTurn({
+      idempotencyKey: "multiple-still-pending-b",
+      message: "B",
+      sessionId: session.id,
+    });
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(first.turnId).toBe(
+      `omnigent:${session.id}:multiple-still-pending-a`,
+    );
+    expect(second.turnId).toBe(
+      `omnigent:${session.id}:multiple-still-pending-b`,
+    );
+    expect(events.map((event) => event.turnId)).toEqual([
+      "response-external",
+      "response-external",
+    ]);
+    expect(info.activeTurnId).toBe(second.turnId);
+    expect(info.state).toBe("turn_active");
+  });
+
   it("removes a mid-stream pending acknowledgement from response fallback", async () => {
     const snapshot = {
       active_response_id: null,
