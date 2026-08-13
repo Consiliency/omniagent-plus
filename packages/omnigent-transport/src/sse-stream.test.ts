@@ -415,6 +415,29 @@ describe("sse stream parser", () => {
     ).toBeUndefined();
   });
 
+  it("does not let a replayed known response consume a newer fallback", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-known-response",
+    });
+    normalizer.setActiveResponseId("response-a");
+    normalizer.setFallbackTurnId("turn-b");
+
+    const replayed = normalizer.normalize({
+      response: { id: "response-a", status: "in_progress" },
+      type: "response.created",
+    });
+    const next = normalizer.normalize({
+      response: { id: "response-b", status: "in_progress" },
+      type: "response.created",
+    });
+
+    expect(replayed.turnAliasId).toBeUndefined();
+    expect(next).toMatchObject({
+      turnAliasId: "turn-b",
+      turnId: "response-b",
+    });
+  });
+
   it("does not attribute an identity-free terminal across multiple pending turns", () => {
     const normalizer = new OmnigentSseNormalizer({
       sessionId: "session-ambiguous-status",

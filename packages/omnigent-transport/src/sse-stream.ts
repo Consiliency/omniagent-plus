@@ -323,8 +323,7 @@ export class OmnigentSseNormalizer {
       officialTurnId !== undefined &&
       !officialTurnRejected &&
       turnAliasId === undefined &&
-      (!this.knownResponseIds.has(officialTurnId) ||
-      tagged.type === "response.created")
+      !this.knownResponseIds.has(officialTurnId)
     ) {
       if (!terminal) {
         turnAliasId = this.unboundTurnIds.shift();

@@ -1171,15 +1171,19 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     event: OmnigentRawEvent,
   ): void {
-    if (!event.turnAliasId) {
+    const cancelledTurnId = [event.turnAliasId, event.turnId].find(
+      (turnId) =>
+        turnId !== undefined &&
+        this.cancelledTurnQuarantineKeys.has(`${sessionId}:${turnId}`),
+    );
+    if (!cancelledTurnId) {
       return;
     }
-    const cancelledKey = `${sessionId}:${event.turnAliasId}`;
-    if (!this.cancelledTurnQuarantineKeys.delete(cancelledKey)) {
-      return;
-    }
+    this.cancelledTurnQuarantineKeys.delete(
+      `${sessionId}:${cancelledTurnId}`,
+    );
     for (const stream of this.openStreams.get(sessionId) ?? []) {
-      stream.removeFallbackTurnId(event.turnAliasId);
+      stream.removeFallbackTurnId(cancelledTurnId);
     }
     if (event.turnId) {
       this.rejectedTurnKeys.add(`${sessionId}:${event.turnId}`);
@@ -1203,7 +1207,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (
       snapshot.status !== "idle" ||
       snapshot.activeResponseId !== null ||
-      (snapshot.pendingInputs?.length ?? 0) > 0
+      (snapshot.pendingInputs?.length ?? 0) > 0 ||
+      (this.openStreams.get(sessionId)?.size ?? 0) > 0
     ) {
       return;
     }

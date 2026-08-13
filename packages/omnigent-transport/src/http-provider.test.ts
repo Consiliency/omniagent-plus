@@ -344,7 +344,7 @@ describe("http provider", () => {
       id: "session-cancelled-late",
       items: [],
       pending_inputs: [],
-      status: "running",
+      status: "idle",
       title: "Cancelled late lifecycle",
       updated_at: 1_780_272_001,
     };
@@ -402,6 +402,7 @@ describe("http provider", () => {
     const cancelled = await provider.cancelTurn(first);
     const eventsPromise = collectAsync(provider.streamEvents(session.id));
     await historyReady;
+    await provider.getSessionInfo(session.id);
     await expect(
       provider.sendTurn({
         idempotencyKey: "cancelled-late-second",
@@ -466,6 +467,119 @@ describe("http provider", () => {
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
     ).toEqual(["next response"]);
+  });
+
+  it("consumes official cancellation lifecycle before accepting the next turn", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-official-cancel",
+      created_at: 1_780_272_000,
+      id: "session-official-cancel",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Official cancellation",
+      updated_at: 1_780_272_001,
+    };
+    const encoder = new TextEncoder();
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    let messagePosts = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          if (event.type === "message") {
+            messagePosts += 1;
+            return new Response(
+              JSON.stringify(
+                messagePosts === 1
+                  ? { item_id: "item-a", queued: true }
+                  : { queued: true },
+              ),
+            );
+          }
+          return new Response(JSON.stringify({ queued: false }));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(JSON.stringify({ data: [], has_more: false }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "official-cancel-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "official-cancel-first",
+      message: "cancel me",
+      sessionId: session.id,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstStarted = iterator.next();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    streamController.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-a", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    await expect(firstStarted).resolves.toMatchObject({
+      done: false,
+      value: expect.objectContaining({ type: "runtime.turn.started" }),
+    });
+    expect(first.turnId).toBe("response-a");
+    await provider.cancelTurn(first);
+    const secondStarted = iterator.next();
+    streamController.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-a", status: "cancelled" },
+          type: "response.cancelled",
+        })}\n\n`,
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const second = await provider.sendTurn({
+      idempotencyKey: "official-cancel-second",
+      message: "run me",
+      sessionId: session.id,
+    });
+    streamController.enqueue(
+      encoder.encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-b", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    await expect(secondStarted).resolves.toMatchObject({
+      done: false,
+      value: expect.objectContaining({ type: "runtime.turn.started" }),
+    });
+    expect(second.turnId).toBe("response-b");
+    await iterator.return?.();
   });
 
   it("rejects stale-handle cancellation before sending a session interrupt", async () => {
