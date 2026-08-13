@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `f7f1c5e`, and no source or evidence
+this file. The final implementation parent is `d9c77fe`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 108 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 113 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 280 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 285 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -186,6 +186,23 @@ files may change after this receipt is committed without another full run.
   metadata-only for turn correlation, and the next official response still
   claims the oldest turn through the authoritative FIFO. A normalizer regression
   proves the newest pending turn cannot be terminalized without identity.
+- SSE framing now accepts both LF and RFC-compatible CRLF separators, including
+  multiple frames in one body. A CRLF regression proves response lifecycle and
+  text frames parse independently rather than collapsing into invalid JSON.
+- Synthetic event IDs are namespaced by HTTP stream connection while upstream
+  item, message, response, and sequence identities remain stable. Identity-free
+  events on a later connection therefore cannot reuse a prior sequence below
+  the reconnect cursor. A two-stream regression proves the second reply remains
+  visible and every event is strictly above the first cursor.
+- Delivered-text trimming retains unmatched bytes while scanning later
+  persisted events for already-delivered live text. A regression starts from an
+  external cursor after persisted A, delivers identity-free B live, commits A+B,
+  and proves B is not replayed.
+- Queued-only recovery excludes conversation items observed before the send,
+  while preserving exact-count fail-closed matching for newly eligible rows. A
+  pre-ack identity-free terminal also restores the queued-only provisional to
+  FIFO order when the acknowledgement arrives. Regressions prove both prior
+  history and delayed acknowledgement paths reconcile to the official response.
 - Reconnect message deduplication now aligns a buffered chunk anywhere within
   the remaining persisted message, so a stream that resumes at a suffix chunk
   cannot replay that suffix. Terminal output-item deduplication uses
