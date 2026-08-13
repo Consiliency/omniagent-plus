@@ -143,7 +143,7 @@ describe("history mapper", () => {
     ).toEqual([]);
   });
 
-  it("dedupes identity-free fixture overlap while preserving continued text", () => {
+  it("preserves ambiguous identity-free fixture overlap and continued text", () => {
     const fixture = loadOmnigentV09WireContract();
     const history = mapOmnigentConversationHistory(
       "session-123",
@@ -171,7 +171,7 @@ describe("history mapper", () => {
         .concat(liveEvents)
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
-    ).toEqual(["answer"]);
+    ).toEqual(["answer", "answer"]);
     expect(
       history.runtimeEvents
         .concat(liveEvents)
@@ -193,7 +193,7 @@ describe("history mapper", () => {
       }),
     ).toEqual([
       expect.objectContaining({
-        payload: { delta: " continued" },
+        payload: { delta: "answer continued" },
         type: "runtime.text.delta",
       }),
     ]);

@@ -220,6 +220,60 @@ describe("event mapper", () => {
     expect(runtimeEvents).toEqual([]);
   });
 
+  it("preserves new identifier-free text that repeats a historical prefix", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: "He",
+          id: "delta-repeated-prefix",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          turnId: "response-prefix",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalTextByTurnId: [["response-prefix", "Hello"]],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([
+      expect.objectContaining({
+        payload: { delta: "He" },
+        turnId: "response-prefix",
+        type: "runtime.text.delta",
+      }),
+    ]);
+  });
+
+  it("preserves identifier-free text that exactly repeats a historical suffix", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: " world",
+          id: "delta-identifier-free-suffix",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          turnId: "response-suffix",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalTextByTurnId: [["response-suffix", "Hello world"]],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([
+      expect.objectContaining({
+        payload: { delta: " world" },
+        turnId: "response-suffix",
+        type: "runtime.text.delta",
+      }),
+    ]);
+  });
+
   it("emits assistant output items when no text delta preceded them", () => {
     const events = mapOmnigentEventSequence("session-1", [
       {

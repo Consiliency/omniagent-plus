@@ -397,6 +397,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       const provisionalTurnIds = [
         ...(this.provisionalTurnOrder.get(sessionId) ?? []),
       ];
+      const rejectedKeyPrefix = `${sessionId}:`;
+      for (const rejectedKey of this.rejectedTurnKeys) {
+        if (rejectedKey.startsWith(rejectedKeyPrefix)) {
+          stream.rejectTurnId(rejectedKey.slice(rejectedKeyPrefix.length));
+        }
+      }
       for (const turnId of provisionalTurnIds) {
         stream.setFallbackTurnId(turnId);
       }
@@ -409,11 +415,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         unresolvedTurnIds.length === 1 ? unresolvedTurnIds[0] : undefined;
       const soleUnresolvedTurnStillPending =
         soleUnresolvedTurnId !== undefined &&
-        (snapshot.pendingInputs ?? []).some(
+        ((snapshot.pendingInputs ?? []).some(
           ({ pendingId }) => pendingId === soleUnresolvedTurnId,
-        );
+        ) ||
+          (this.queuedOnlyTurnKeys.has(`${sessionId}:${soleUnresolvedTurnId}`) &&
+            (snapshot.pendingInputs?.length ?? 0) > 0));
       for (const { pendingId } of snapshot.pendingInputs ?? []) {
         stream.removeFallbackTurnId(pendingId);
+      }
+      if (soleUnresolvedTurnId && soleUnresolvedTurnStillPending) {
+        stream.removeFallbackTurnId(soleUnresolvedTurnId);
       }
       const snapshotResponseAlreadyResolved = Boolean(
         snapshot.activeResponseId &&
@@ -632,9 +643,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       provisionalTurnIds.length === 1 ? provisionalTurnIds[0] : undefined;
     const soleProvisionalTurnStillPending =
       soleProvisionalTurnId !== undefined &&
-      (snapshot.pendingInputs ?? []).some(
+      ((snapshot.pendingInputs ?? []).some(
         ({ pendingId }) => pendingId === soleProvisionalTurnId,
-      );
+      ) ||
+        (this.queuedOnlyTurnKeys.has(`${sessionId}:${soleProvisionalTurnId}`) &&
+          (snapshot.pendingInputs?.length ?? 0) > 0));
     const snapshotResponseAlreadyResolved = Boolean(
       snapshot.activeResponseId &&
         this.turns.has(`${sessionId}:${snapshot.activeResponseId}`),

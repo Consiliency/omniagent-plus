@@ -122,6 +122,7 @@ function parseFramePayload(
 export class OmnigentSseNormalizer {
   private currentResponseId: string | undefined;
   private fallbackTurnId: string | undefined;
+  private identityFreeQuarantineTurnId: string | undefined;
   private readonly knownResponseIds = new Set<string>();
   private pendingTerminalAmbiguous = false;
   private readonly pendingTerminalTurnIds: string[] = [];
@@ -137,6 +138,13 @@ export class OmnigentSseNormalizer {
   }
 
   setActiveResponseId(responseId: string | null | undefined): void {
+    if (responseId !== null && responseId !== undefined) {
+      if (this.rejectedTurnIds.has(responseId)) {
+        this.currentResponseId = undefined;
+        return;
+      }
+      this.identityFreeQuarantineTurnId = undefined;
+    }
     this.currentResponseId = responseId ?? undefined;
     if (this.currentResponseId) {
       this.knownResponseIds.add(this.currentResponseId);
@@ -154,6 +162,9 @@ export class OmnigentSseNormalizer {
   }
 
   bindResponseId(responseId: string, turnId: string): void {
+    if (this.rejectedTurnIds.has(responseId)) {
+      return;
+    }
     this.knownResponseIds.add(responseId);
     this.bindResponseAlias(responseId, turnId);
   }
@@ -162,6 +173,9 @@ export class OmnigentSseNormalizer {
     this.fallbackTurnId = turnId;
     if (turnId !== undefined) {
       this.rejectedTurnIds.delete(turnId);
+      if (this.identityFreeQuarantineTurnId === turnId) {
+        this.identityFreeQuarantineTurnId = undefined;
+      }
     }
     if (
       turnId !== undefined &&
@@ -196,6 +210,7 @@ export class OmnigentSseNormalizer {
     this.removeFallbackTurnId(turnId);
     this.knownResponseIds.delete(turnId);
     if (this.currentResponseId === turnId) {
+      this.identityFreeQuarantineTurnId = turnId;
       this.currentResponseId = undefined;
     }
   }
@@ -244,6 +259,9 @@ export class OmnigentSseNormalizer {
     const officialTurnId = nestedResponseId ?? explicitResponseId;
     const officialTurnRejected =
       officialTurnId !== undefined && this.rejectedTurnIds.has(officialTurnId);
+    if (officialTurnId !== undefined && !officialTurnRejected) {
+      this.identityFreeQuarantineTurnId = undefined;
+    }
     const status = statusValue(raw.status) ?? statusValue(response?.status);
     const terminal =
       tagged.type === "response.completed" ||
@@ -267,7 +285,10 @@ export class OmnigentSseNormalizer {
         : this.fallbackTurnId;
     const turnId = isBareTurn
       ? explicitResponseId
-      : officialTurnId ?? previousResponseId ?? fallbackTurnId;
+      : officialTurnId ??
+        previousResponseId ??
+        this.identityFreeQuarantineTurnId ??
+        fallbackTurnId;
     let turnAliasId = officialTurnId
       ? this.responseAliases.get(officialTurnId)
       : previousResponseId

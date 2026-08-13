@@ -62,7 +62,6 @@ export class OmnigentEventMapper {
   private readonly emittedUnidentifiedTextByTurnId = new Map<string, string>();
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
-  private readonly historicalTextRemainders: Map<string, string>;
   private readonly emittedToolCallIds: Set<string>;
   private readonly emittedToolResultIds: Set<string>;
   private emittedSessionCreated = false;
@@ -78,9 +77,6 @@ export class OmnigentEventMapper {
     this.historicalItemIds = new Set(options.seenItemIds ?? []);
     this.historicalTextByMessageId = new Map(
       options.historicalTextByMessageId ?? [],
-    );
-    this.historicalTextRemainders = new Map(
-      options.historicalTextByTurnId ?? [],
     );
     this.emittedToolCallIds = new Set(options.historicalToolCallIds ?? []);
     this.emittedToolResultIds = new Set(options.historicalToolResultIds ?? []);
@@ -184,24 +180,24 @@ export class OmnigentEventMapper {
 
   private mapTextDelta(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     let delta = rawEvent.delta ?? "";
-    const historicalKey = rawEvent.message_id ?? rawEvent.turnId;
-    if (historicalKey) {
-      const remainders = rawEvent.message_id
-        ? this.historicalTextByMessageId
-        : this.historicalTextRemainders;
-      const remaining = remainders.get(historicalKey);
+    if (rawEvent.message_id) {
+      const remaining = this.historicalTextByMessageId.get(rawEvent.message_id);
       if (remaining !== undefined) {
         const replayOffset = remaining.indexOf(delta);
-        if (delta.length > 0 && replayOffset >= 0) {
+        if (
+          delta.length > 0 &&
+          replayOffset >= 0 &&
+          replayOffset + delta.length === remaining.length
+        ) {
           const next = remaining.slice(replayOffset + delta.length);
           if (next.length === 0) {
-            remainders.delete(historicalKey);
+            this.historicalTextByMessageId.delete(rawEvent.message_id);
           } else {
-            remainders.set(historicalKey, next);
+            this.historicalTextByMessageId.set(rawEvent.message_id, next);
           }
           return [];
         }
-        remainders.delete(historicalKey);
+        this.historicalTextByMessageId.delete(rawEvent.message_id);
         if (delta.startsWith(remaining)) {
           delta = delta.slice(remaining.length);
           if (delta.length === 0) {

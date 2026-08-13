@@ -743,7 +743,6 @@ describe("http provider", () => {
         [
           {
             delta: "must stay quarantined",
-            response_id: "response-denied",
             type: "response.output_text.delta",
           },
           {
@@ -790,6 +789,174 @@ describe("http provider", () => {
     );
     expect(accepted.turnId).toBe("response-accepted");
     expect((await provider.getSessionInfo(session.id)).activeTurnId).toBeUndefined();
+  });
+
+  it("seeds rejected response identities into replacement streams", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-rejected-reconnect",
+      created_at: 1_780_272_000,
+      id: "session-rejected-reconnect",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Rejected reconnect",
+      updated_at: 1_780_272_001,
+    };
+    let postCount = 0;
+    let historyReadCount = 0;
+    let resolveDeniedAck!: (response: Response) => void;
+    const streamControllers: ReadableStreamDefaultController<Uint8Array>[] = [];
+    const historyResolvers: Array<() => void> = [];
+    const historyReady = [0, 1].map(
+      (index) =>
+        new Promise<void>((resolve) => {
+          historyResolvers[index] = resolve;
+        }),
+    );
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          postCount += 1;
+          if (postCount === 1) {
+            streamControllers[0]?.enqueue(
+              new TextEncoder().encode(
+                `data: ${JSON.stringify({
+                  response: { id: "response-rejected-a", status: "in_progress" },
+                  type: "response.created",
+                })}\n\n`,
+              ),
+            );
+            return new Promise<Response>((resolve) => {
+              resolveDeniedAck = resolve;
+            });
+          }
+          return new Response(
+            JSON.stringify({ item_id: "item-accepted-b", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamControllers.push(controller);
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          historyResolvers[historyReadCount]?.();
+          historyReadCount += 1;
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "rejected-reconnect-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const firstIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstLifecycle = firstIterator.next();
+    await historyReady[0];
+    const denied = provider.sendTurn({
+      idempotencyKey: "rejected-reconnect-a",
+      message: "reject A",
+      sessionId: session.id,
+    });
+    await expect(firstLifecycle).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({ turnId: "response-rejected-a" }),
+      }),
+    );
+    resolveDeniedAck(
+      new Response(
+        JSON.stringify({
+          denied: true,
+          queued: false,
+          reason: "reject A after lifecycle",
+        }),
+      ),
+    );
+    await expect(denied).rejects.toEqual(
+      expect.objectContaining({ category: "policy_denied" }),
+    );
+    streamControllers[0]?.close();
+    await expect(firstIterator.next()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+
+    const secondIterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstReplacementEvent = secondIterator.next();
+    await historyReady[1];
+    const accepted = await provider.sendTurn({
+      idempotencyKey: "rejected-reconnect-b",
+      message: "accept B",
+      sessionId: session.id,
+    });
+    streamControllers[1]?.enqueue(
+      new TextEncoder().encode(
+        [
+          {
+            response: { id: "response-rejected-a", status: "in_progress" },
+            type: "response.created",
+          },
+          {
+            response: { id: "response-accepted-b", status: "in_progress" },
+            type: "response.created",
+          },
+          {
+            delta: "accepted B output",
+            response_id: "response-accepted-b",
+            type: "response.output_text.delta",
+          },
+          {
+            response: { id: "response-accepted-b", status: "completed" },
+            type: "response.completed",
+          },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join(""),
+      ),
+    );
+    streamControllers[1]?.close();
+    const replacementEvents = [];
+    const first = await firstReplacementEvent;
+    if (!first.done) {
+      replacementEvents.push(first.value);
+    }
+    for (;;) {
+      const next = await secondIterator.next();
+      if (next.done) {
+        break;
+      }
+      replacementEvents.push(next.value);
+    }
+
+    expect(replacementEvents.map(({ type }) => type)).toEqual([
+      "runtime.turn.started",
+      "runtime.text.delta",
+      "runtime.turn.completed",
+    ]);
+    expect(replacementEvents.every(({ turnId }) => turnId === "response-accepted-b"))
+      .toBe(true);
+    expect(accepted.turnId).toBe("response-accepted-b");
+    const info = await provider.getSessionInfo(session.id);
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.state).toBe("idle");
   });
 
   it("keeps malformed acknowledgement failure authoritative after lifecycle", async () => {
@@ -1498,10 +1665,7 @@ describe("http provider", () => {
         }
         if (init?.method === "POST") {
           accepted = true;
-          return new Response(
-            JSON.stringify({ pending_id: "pending-new", queued: true }),
-            { status: 202 },
-          );
+          return new Response(JSON.stringify({ queued: true }), { status: 202 });
         }
         if (url.endsWith("/stream")) {
           const streamBody = [
@@ -1570,15 +1734,16 @@ describe("http provider", () => {
     const events = await collectAsync(provider.streamEvents(session.id));
     const afterStream = await provider.getSessionInfo(session.id);
 
-    expect(handle.turnId).toBe("pending-new");
-    expect(beforeStream.activeTurnId).toBe("pending-new");
+    const provisionalTurnId = `omnigent:${session.id}:still-pending-turn`;
+    expect(handle.turnId).toBe(provisionalTurnId);
+    expect(beforeStream.activeTurnId).toBe(provisionalTurnId);
     expect(
       events
         .filter((event) => event.turnId === "response-existing")
         .map((event) => event.type),
     ).toEqual(["runtime.turn.started", "runtime.turn.completed"]);
-    expect(events.every((event) => event.turnId !== "pending-new")).toBe(true);
-    expect(afterStream.activeTurnId).toBe("pending-new");
+    expect(events.every((event) => event.turnId !== provisionalTurnId)).toBe(true);
+    expect(afterStream.activeTurnId).toBe(provisionalTurnId);
     expect(afterStream.state).toBe("turn_active");
   });
 
