@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`bec200281e00301e3ee2d5ab34d79d04e088fdbb`, and no source or evidence files
+`5977ed8c7d724685af0db33382cfd4e65fb742ff`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -388,6 +388,22 @@ may change after this receipt is committed without another full run.
   default regression proves the second call returns retryable
   `concurrency_limit` with one POST, while queue/reordering regressions now opt
   in through `allowQueuedTurns` and retain queued handles.
+- Send admission now occurs inside the acquired session lease. A yielding-lease
+  regression starts distinct A and B concurrently with queueing disabled, proves
+  one POST, then proves B receives retryable `concurrency_limit` after A exits
+  the critical section. Admission failures are evicted from the idempotency map
+  so the same key can proceed after the conflict clears.
+- A cancelled turn without official response identity keeps a separate
+  awaiting-identity marker. Identity-free trailing deltas stay attributed to the
+  rejected quarantine placeholder and cannot emit output or release the send
+  barrier. Only `session.interrupted` or a confirmed provisional-to-official
+  response join identifies A and clears the barrier; the replacement-stream
+  regression proves B remains blocked after an identity-free delta, then proceeds
+  after A's `response.created` without receiving A's output or terminal.
+- Control acknowledgements are exact by role: successful `{queued:false}`
+  controls may not contain `item_id` or `pending_id`. Both the HTTP boundary and
+  provider integration regressions reject message-only IDs as non-retryable
+  `malformed_response` without local state mutation.
 - Cancellation no longer guesses whether the next uncorrelated official response
   is late A or new B. While a cancelled-turn quarantine is unresolved, new sends
   fail closed with `state_conflict` before registration or HTTP. The barrier
