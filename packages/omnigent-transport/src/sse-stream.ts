@@ -96,8 +96,10 @@ function parseFramePayload(
 export class OmnigentSseNormalizer {
   private currentResponseId: string | undefined;
   private fallbackTurnId: string | undefined;
-  private readonly pendingTerminalTurnIds = new Set<string>();
+  private readonly knownResponseIds = new Set<string>();
+  private readonly pendingTerminalTurnIds: string[] = [];
   private readonly responseAliases = new Map<string, string>();
+  private readonly unboundTurnIds: string[] = [];
   private frameOrdinal = 0;
   private readonly now: () => string;
 
@@ -107,15 +109,23 @@ export class OmnigentSseNormalizer {
 
   setActiveResponseId(responseId: string | null | undefined): void {
     this.currentResponseId = responseId ?? undefined;
-    if (this.currentResponseId && this.fallbackTurnId) {
-      this.responseAliases.set(this.currentResponseId, this.fallbackTurnId);
+    if (this.currentResponseId) {
+      this.knownResponseIds.add(this.currentResponseId);
+      if (this.fallbackTurnId) {
+        this.bindResponseAlias(this.currentResponseId, this.fallbackTurnId);
+      }
     }
   }
 
   setFallbackTurnId(turnId: string | undefined): void {
     this.fallbackTurnId = turnId;
-    if (turnId !== undefined) {
-      this.currentResponseId = undefined;
+    if (
+      turnId !== undefined &&
+      !this.unboundTurnIds.includes(turnId) &&
+      !this.pendingTerminalTurnIds.includes(turnId) &&
+      ![...this.responseAliases.values()].includes(turnId)
+    ) {
+      this.unboundTurnIds.push(turnId);
     }
   }
 
@@ -147,26 +157,25 @@ export class OmnigentSseNormalizer {
     const turnId = isBareTurn
       ? explicitResponseId
       : officialTurnId ?? previousResponseId ?? this.fallbackTurnId;
-    let turnAliasId =
-      officialTurnId === undefined
-        ? previousResponseId === undefined
-          ? undefined
-          : this.responseAliases.get(previousResponseId)
-        : this.responseAliases.get(officialTurnId);
-    if (officialTurnId !== undefined && turnAliasId === undefined) {
-      if (!terminal && this.fallbackTurnId !== undefined) {
-        turnAliasId = this.fallbackTurnId;
-      } else if (terminal) {
-        const pendingTerminalTurnId =
-          this.pendingTerminalTurnIds.values().next().value;
-        turnAliasId =
-          officialTurnId === previousResponseId
-            ? this.fallbackTurnId
-            : pendingTerminalTurnId ?? this.fallbackTurnId;
-      }
+    let turnAliasId = officialTurnId
+      ? this.responseAliases.get(officialTurnId)
+      : previousResponseId
+        ? this.responseAliases.get(previousResponseId)
+        : undefined;
+    if (
+      officialTurnId !== undefined &&
+      turnAliasId === undefined &&
+      !this.knownResponseIds.has(officialTurnId)
+    ) {
+      turnAliasId = terminal
+        ? this.pendingTerminalTurnIds.shift() ?? this.unboundTurnIds.shift()
+        : this.unboundTurnIds.shift();
       if (turnAliasId !== undefined) {
-        this.responseAliases.set(officialTurnId, turnAliasId);
+        this.bindResponseAlias(officialTurnId, turnAliasId);
       }
+    }
+    if (officialTurnId !== undefined) {
+      this.knownResponseIds.add(officialTurnId);
     }
     const sessionId =
       stringValue(raw.conversation_id) ??
@@ -264,10 +273,14 @@ export class OmnigentSseNormalizer {
         turnId !== undefined &&
         turnId === this.fallbackTurnId
       ) {
-        this.pendingTerminalTurnIds.add(turnId);
+        this.removeUnboundTurnId(turnId);
+        if (!this.pendingTerminalTurnIds.includes(turnId)) {
+          this.pendingTerminalTurnIds.push(turnId);
+        }
       }
       if (turnAliasId !== undefined) {
-        this.pendingTerminalTurnIds.delete(turnAliasId);
+        this.removeUnboundTurnId(turnAliasId);
+        this.removePendingTerminalTurnId(turnAliasId);
       }
       if (
         officialTurnId === previousResponseId ||
@@ -282,6 +295,26 @@ export class OmnigentSseNormalizer {
       this.currentResponseId = officialTurnId;
     }
     return normalized;
+  }
+
+  private bindResponseAlias(responseId: string, turnId: string): void {
+    this.responseAliases.set(responseId, turnId);
+    this.removeUnboundTurnId(turnId);
+    this.removePendingTerminalTurnId(turnId);
+  }
+
+  private removePendingTerminalTurnId(turnId: string): void {
+    const index = this.pendingTerminalTurnIds.indexOf(turnId);
+    if (index >= 0) {
+      this.pendingTerminalTurnIds.splice(index, 1);
+    }
+  }
+
+  private removeUnboundTurnId(turnId: string): void {
+    const index = this.unboundTurnIds.indexOf(turnId);
+    if (index >= 0) {
+      this.unboundTurnIds.splice(index, 1);
+    }
   }
 }
 

@@ -97,7 +97,9 @@ type MutableTurnHandle = {
 export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly creates = new Map<string, Promise<AgentSession>>();
+  private readonly latestTurnIds = new Map<string, string>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
+  private readonly provisionalTurnKeys = new Set<string>();
   private readonly sends = new Map<string, Promise<TurnHandle>>();
   private readonly sessions = new Map<string, AgentSessionInfo>();
   private readonly turns = new Map<string, TurnHandle>();
@@ -175,6 +177,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       updatedAt: now,
     };
     this.turns.set(`${handle.sessionId}:${handle.turnId}`, handle);
+    this.provisionalTurnKeys.add(`${handle.sessionId}:${handle.turnId}`);
+    this.latestTurnIds.set(handle.sessionId, handle.turnId);
 
     const session = this.sessions.get(request.sessionId);
     if (session) {
@@ -197,6 +201,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     options?: HistoryOptions,
   ): Promise<SessionHistory> {
     const items = await this.client.getHistory(sessionId);
+    this.reconcileTurnsFromHistory(sessionId, items);
     const mapped = mapOmnigentConversationHistory(sessionId, items, {
       afterSequence: options?.afterSequence,
     });
@@ -222,9 +227,32 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.addOpenStream(sessionId, stream);
     try {
       const snapshot = await this.client.getSession(sessionId);
-      stream.setFallbackTurnId(this.sessions.get(sessionId)?.activeTurnId);
-      stream.setActiveResponseId(snapshot.activeResponseId);
+      const activeTurnId = this.sessions.get(sessionId)?.activeTurnId;
+      const provisionalTurnId =
+        activeTurnId &&
+        this.provisionalTurnKeys.has(`${sessionId}:${activeTurnId}`)
+          ? activeTurnId
+          : undefined;
+      stream.setFallbackTurnId(provisionalTurnId);
+      stream.setActiveResponseId(
+        snapshot.activeResponseId ?? (provisionalTurnId ? undefined : activeTurnId),
+      );
+      if (provisionalTurnId && snapshot.activeResponseId) {
+        this.reconcileTurn(
+          sessionId,
+          provisionalTurnId,
+          snapshot.activeResponseId,
+          snapshot.updatedAt,
+        );
+      }
       const items = await this.client.getHistory(sessionId);
+      this.reconcileTurnsFromHistory(sessionId, items);
+      const historyResponseId = provisionalTurnId
+        ? items.find((item) => item.id === provisionalTurnId)?.response_id
+        : undefined;
+      if (historyResponseId && !snapshot.activeResponseId) {
+        stream.setActiveResponseId(historyResponseId);
+      }
       const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items, {
         afterSequence: options?.afterSequence,
       });
@@ -255,29 +283,38 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (event): event is Extract<RuntimeEvent, { type: "runtime.turn.failed" }> =>
             event.type === "runtime.turn.failed",
         )?.payload.failure;
-        const staleAliasedTerminal = this.isStaleAliasedTerminal(
-          sessionId,
-          rawEvent,
-        );
         if (rawEvent.turnAliasId && rawEvent.turnId) {
-          this.reconcileActiveTurn(
+          this.reconcileTurn(
             sessionId,
             rawEvent.turnAliasId,
             rawEvent.turnId,
             rawEvent.occurredAt,
           );
         }
+        if (
+          rawEvent.turnId &&
+          rawEvent.turnAliasId === undefined &&
+          this.sessions.get(sessionId)?.activeTurnId === undefined &&
+          (rawEvent.type === "response.created" ||
+            rawEvent.type === "turn.started")
+        ) {
+          this.latestTurnIds.set(sessionId, rawEvent.turnId);
+        }
+        const eventConcernsActiveTurn = this.eventConcernsActiveTurn(
+          sessionId,
+          rawEvent,
+        );
         if (rawEvent.terminal) {
-          if (!staleAliasedTerminal && isFailureTerminal(rawEvent)) {
+          if (eventConcernsActiveTurn && isFailureTerminal(rawEvent)) {
             this.failActiveTurn(
               sessionId,
               rawEvent.occurredAt,
               mappedFailure ?? failureFromRawEvent(rawEvent),
             );
-          } else if (!staleAliasedTerminal) {
+          } else if (eventConcernsActiveTurn) {
             this.clearActiveTurn(sessionId, rawEvent.occurredAt);
           }
-        } else if (rawEvent.turnId) {
+        } else if (rawEvent.turnId && eventConcernsActiveTurn) {
           this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
         }
         for (const event of events) {
@@ -344,8 +381,21 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         scope: "session",
       });
     }
+    if (
+      existing.activeTurnId &&
+      this.provisionalTurnKeys.has(`${sessionId}:${existing.activeTurnId}`) &&
+      snapshot.activeResponseId
+    ) {
+      this.reconcileTurn(
+        sessionId,
+        existing.activeTurnId,
+        snapshot.activeResponseId,
+        snapshot.updatedAt,
+      );
+    }
 
-    const next = toSessionInfo(existing, snapshot, existing);
+    const reconciled = this.sessions.get(sessionId) ?? existing;
+    const next = toSessionInfo(reconciled, snapshot, reconciled);
     const resolved =
       existing.state === "closed"
         ? {
@@ -389,6 +439,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     turnId: string,
     updatedAt: string,
   ): void {
+    this.latestTurnIds.set(sessionId, turnId);
     const session = this.sessions.get(sessionId);
     if (session) {
       this.sessions.set(sessionId, {
@@ -414,31 +465,29 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
-  private isStaleAliasedTerminal(
+  private eventConcernsActiveTurn(
     sessionId: string,
     event: OmnigentRawEvent,
   ): boolean {
-    const activeTurnId = this.sessions.get(sessionId)?.activeTurnId;
+    const activeTurnId =
+      this.sessions.get(sessionId)?.activeTurnId ??
+      this.latestTurnIds.get(sessionId);
     return (
-      event.terminal === true &&
-      event.turnAliasId !== undefined &&
-      activeTurnId !== undefined &&
-      event.turnAliasId !== activeTurnId &&
-      event.turnId !== activeTurnId
+      activeTurnId === undefined ||
+      event.turnAliasId === activeTurnId ||
+      event.turnId === activeTurnId
     );
   }
 
-  private reconcileActiveTurn(
+  private reconcileTurn(
     sessionId: string,
     provisionalTurnId: string,
     officialTurnId: string,
     updatedAt: string,
   ): void {
-    const session = this.sessions.get(sessionId);
     if (
-      !session ||
-      session.activeTurnId !== provisionalTurnId ||
-      provisionalTurnId === officialTurnId
+      provisionalTurnId === officialTurnId ||
+      !this.provisionalTurnKeys.has(`${sessionId}:${provisionalTurnId}`)
     ) {
       return;
     }
@@ -452,11 +501,38 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       mutableHandle.updatedAt = updatedAt;
       this.turns.set(`${sessionId}:${officialTurnId}`, handle);
     }
-    this.sessions.set(sessionId, {
-      ...session,
-      activeTurnId: officialTurnId,
-      updatedAt,
-    });
+    this.provisionalTurnKeys.delete(`${sessionId}:${provisionalTurnId}`);
+    if (this.latestTurnIds.get(sessionId) === provisionalTurnId) {
+      this.latestTurnIds.set(sessionId, officialTurnId);
+    }
+    const session = this.sessions.get(sessionId);
+    if (session?.activeTurnId === provisionalTurnId) {
+      this.sessions.set(sessionId, {
+        ...session,
+        activeTurnId: officialTurnId,
+        updatedAt,
+      });
+    }
+  }
+
+  private reconcileTurnsFromHistory(
+    sessionId: string,
+    items: readonly {
+      readonly created_at: number;
+      readonly id: string;
+      readonly response_id: string;
+    }[],
+  ): void {
+    for (const item of items) {
+      if (this.turns.has(`${sessionId}:${item.id}`)) {
+        this.reconcileTurn(
+          sessionId,
+          item.id,
+          item.response_id,
+          new Date(item.created_at * 1000).toISOString(),
+        );
+      }
+    }
   }
 
   private clearActiveTurn(sessionId: string, updatedAt: string): void {

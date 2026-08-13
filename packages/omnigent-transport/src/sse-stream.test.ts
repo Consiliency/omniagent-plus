@@ -418,6 +418,37 @@ describe("sse stream parser", () => {
     );
   });
 
+  it("binds rapid accepted turns to official responses in lifecycle order", () => {
+    const normalizer = new OmnigentSseNormalizer({
+      sessionId: "session-rapid-turns",
+    });
+    normalizer.setFallbackTurnId("provisional-one");
+    normalizer.setFallbackTurnId("provisional-two");
+
+    expect(
+      normalizer.normalize({
+        response: { id: "response-one", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "provisional-one",
+        turnId: "response-one",
+      }),
+    );
+    expect(
+      normalizer.normalize({
+        response: { id: "response-two", status: "in_progress" },
+        type: "response.created",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        turnAliasId: "provisional-two",
+        turnId: "response-two",
+      }),
+    );
+  });
+
   it("keeps bare turn frames metadata-only and clears after a correlated terminal", () => {
     const normalizer = new OmnigentSseNormalizer({
       now: () => "2026-08-12T19:00:00.000Z",

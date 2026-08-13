@@ -170,6 +170,143 @@ describe("http provider", () => {
     }
   });
 
+  it("reconciles a provisional handle from snapshot-only evidence", async () => {
+    const snapshot = {
+      active_response_id: null as string | null,
+      agent_id: "agent-snapshot-reconcile",
+      created_at: 1_780_272_000,
+      id: "session-snapshot-reconcile",
+      items: [],
+      status: "idle",
+      title: "Snapshot reconcile",
+      updated_at: 1_780_272_000,
+    };
+    let turnAccepted = false;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (_input, init) => {
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          turnAccepted = true;
+          return new Response(
+            JSON.stringify({ item_id: "item-provisional", queued: true }),
+            { status: 202 },
+          );
+        }
+        return new Response(
+          JSON.stringify({
+            ...snapshot,
+            active_response_id: turnAccepted ? "response-official" : null,
+            status: turnAccepted ? "running" : "idle",
+          }),
+        );
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "snapshot-reconcile-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "snapshot-reconcile-turn",
+      message: "start",
+      sessionId: session.id,
+    });
+    expect(handle.turnId).toBe("item-provisional");
+
+    const info = await provider.getSessionInfo(session.id);
+    expect(handle.turnId).toBe("response-official");
+    expect(info.activeTurnId).toBe("response-official");
+  });
+
+  it("reconciles from persisted history before yielding its first event", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-history-reconcile",
+      created_at: 1_780_272_000,
+      id: "session-history-reconcile",
+      items: [],
+      status: "idle",
+      title: "History reconcile",
+      updated_at: 1_780_272_000,
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(
+            JSON.stringify({ item_id: "item-provisional", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response("", {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  created_at: 1_780_272_001,
+                  data: {
+                    content: [{ text: "start", type: "input_text" }],
+                    role: "user",
+                  },
+                  id: "item-provisional",
+                  response_id: "response-official",
+                  status: "completed",
+                  type: "message",
+                },
+              ],
+              first_id: "item-provisional",
+              has_more: false,
+              last_id: "item-provisional",
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "history-reconcile-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "history-reconcile-turn",
+      message: "start",
+      sessionId: session.id,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const first = await iterator.next();
+
+    expect(first).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-official",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    expect(handle.turnId).toBe("response-official");
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBe(
+      "response-official",
+    );
+    await iterator.return?.();
+  });
+
   it("suppresses duplicate creates and sends within one provider process", async () => {
     const server = await FakeOmnigentServer.start();
     try {
@@ -517,6 +654,7 @@ describe("http provider", () => {
       message: "start",
       sessionId: session.id,
     });
+    const provisionalTurnId = handle.turnId;
     const idleSnapshotInfo = await provider.getSessionInfo(session.id);
     expect(idleSnapshotInfo.activeTurnId).toBe(handle.turnId);
     expect(idleSnapshotInfo.state).toBe("turn_active");
@@ -526,7 +664,7 @@ describe("http provider", () => {
       expect.arrayContaining([
         expect.objectContaining({
           payload: { delta: "continued after idle" },
-          turnId: handle.turnId,
+          turnId: provisionalTurnId,
           type: "runtime.text.delta",
         }),
         expect.objectContaining({
@@ -534,7 +672,7 @@ describe("http provider", () => {
             failure: expect.objectContaining({ message: "turn setup failed" }),
             outcome: "failed",
           }),
-          turnId: handle.turnId,
+          turnId: provisionalTurnId,
           type: "runtime.turn.failed",
         }),
       ]),
@@ -542,6 +680,7 @@ describe("http provider", () => {
     expect(
       events.filter((event) => event.type === "runtime.turn.failed"),
     ).toHaveLength(1);
+    expect(handle.turnId).toBe("response-official-failure");
     const info = await provider.getSessionInfo(session.id);
     expect(info.activeTurnId).toBeUndefined();
     expect(info.lastError?.message).toBe("turn setup failed");
@@ -662,6 +801,154 @@ describe("http provider", () => {
     const info = await provider.getSessionInfo(session.id);
     expect(info.lastError?.message).toBe("late setup failed");
     expect(info.state).toBe("failed");
+  });
+
+  it("keeps rapid accepted turns separate when prior lifecycle arrives late", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-rapid-turns",
+      created_at: 1_780_272_000,
+      id: "session-rapid-turns",
+      items: [],
+      status: "idle",
+      title: "Rapid turns",
+      updated_at: 1_780_272_000,
+    };
+    let sendCount = 0;
+    let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+    let resolveHistoryReady: (() => void) | undefined;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          sendCount += 1;
+          return new Response(
+            JSON.stringify({ item_id: `item-${sendCount}`, queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady?.();
+          return new Response(
+            JSON.stringify({
+              data: [],
+              first_id: null,
+              has_more: false,
+              last_id: null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "rapid-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
+    const firstHandle = await provider.sendTurn({
+      idempotencyKey: "rapid-one",
+      message: "one",
+      sessionId: session.id,
+    });
+    const secondHandle = await provider.sendTurn({
+      idempotencyKey: "rapid-two",
+      message: "two",
+      sessionId: session.id,
+    });
+
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-one", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    expect(await firstEvent).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-one",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    expect(firstHandle.turnId).toBe("response-one");
+    expect(secondHandle.turnId).toBe("item-2");
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBe(
+      "item-2",
+    );
+
+    const failedEvent = iterator.next();
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: {
+            error: { message: "first failed" },
+            id: "response-one",
+            status: "failed",
+          },
+          type: "response.failed",
+        })}\n\n`,
+      ),
+    );
+    expect(await failedEvent).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-one",
+          type: "runtime.turn.failed",
+        }),
+      }),
+    );
+    const afterPriorFailure = await provider.getSessionInfo(session.id);
+    expect(afterPriorFailure.activeTurnId).toBe("item-2");
+    expect(afterPriorFailure.state).toBe("turn_active");
+
+    const secondStarted = iterator.next();
+    streamController?.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { id: "response-two", status: "in_progress" },
+          type: "response.created",
+        })}\n\n`,
+      ),
+    );
+    expect(await secondStarted).toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: "response-two",
+          type: "runtime.turn.started",
+        }),
+      }),
+    );
+    expect(secondHandle.turnId).toBe("response-two");
+    expect((await provider.getSessionInfo(session.id)).activeTurnId).toBe(
+      "response-two",
+    );
+    streamController?.close();
+    await iterator.return?.();
   });
 
   it("reconciles a new turn before ignoring a late prior-turn terminal", async () => {
