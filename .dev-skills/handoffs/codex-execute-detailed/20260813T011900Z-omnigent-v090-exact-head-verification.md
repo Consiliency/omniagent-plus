@@ -3,7 +3,7 @@
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
 this file. The final implementation parent is
-`83d0fdcce6c6140c2beae4b12b00136e0a331b97`, and no source or evidence files
+`b3905e2d657423f21cd7204b35e8939df5db4258`, and no source or evidence files
 may change after this receipt is committed without another full run.
 
 ## Scope
@@ -18,7 +18,7 @@ may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 150 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 153 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -27,7 +27,7 @@ may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 322 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 325 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -474,6 +474,22 @@ may change after this receipt is committed without another full run.
   `pending_inputs` are empty. A fresh-snapshot regression starts from locally
   idle state, returns identity-free `waiting` during admission, and proves a
   retryable `concurrency_limit` with zero message POSTs.
+- Cancellation freezes the caller's turn identity before waiting for the shared
+  session lease. A provisional-to-official lifecycle join observed while the
+  cancellation is waiting or while interrupt is in flight is retained as an
+  alias rather than mutating the caller's handle, accepted by the fresh authority
+  check, and persisted with both identities in the fleet fence. The regression
+  waits cancellation behind the lease, advances upstream from pending to the
+  official response, proves the returned cancelled handle remains provisional,
+  then proves the official terminal clears the fence without contaminating B.
+- Cross-namespace persisted/live matching no longer consumes a prior shorter
+  message merely because a distinct live message extends it. A persisted
+  `Hello` followed by live `Hello again` now emits the latter in full, while the
+  existing same-message prefix and suffix reconnect cases remain deduplicated.
+- A rejected active response discovered during stream snapshot setup remains the
+  identity-free quarantine owner until a new accepted official lifecycle arrives.
+  Late identity-free A output therefore cannot fall through to B's fallback; the
+  normalizer regression proves A stays tombstoned and B alone claims its response.
 
 ## Boundaries
 
