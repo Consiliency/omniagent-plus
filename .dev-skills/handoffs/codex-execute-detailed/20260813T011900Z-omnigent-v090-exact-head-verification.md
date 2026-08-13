@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `51d0939`, and no source or evidence
+this file. The final implementation parent is `0c528d1`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 92 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 93 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 264 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 265 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -106,6 +106,13 @@ files may change after this receipt is committed without another full run.
 - Persisted terminal history now updates tracked provider state after snapshot
   refresh. A persisted error regression proves the emitted failure also clears
   active identity and leaves the session failed with the mapped error.
+- An explicit synchronous policy denial remains authoritative even when a
+  lifecycle event reconciles the provisional handle before the acknowledgement
+  arrives. Denial fully removes both provisional and official registration,
+  restores prior session state, and remains cached as non-retryable. A
+  concurrent-stream regression proves the denial, one POST, and cleared active
+  identity while the separate lost-connection regression still returns the
+  stream-proven accepted handle.
 
 ## Boundaries
 
