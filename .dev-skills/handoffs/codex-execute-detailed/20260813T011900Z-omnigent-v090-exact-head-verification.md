@@ -2,7 +2,7 @@
 
 Summary: PRE-PUBLICATION PASS. This receipt supersedes the original execution
 receipt for merge consideration and applies to the exact PR commit containing
-this file. The final implementation parent is `d60ed68`, and no source or evidence
+this file. The final implementation parent is `9a8a8c9`, and no source or evidence
 files may change after this receipt is committed without another full run.
 
 ## Scope
@@ -17,7 +17,7 @@ files may change after this receipt is committed without another full run.
 
 ## Exact-Head Gates
 
-- Focused transport suite: PASS, 15 files and 121 tests passed; one credentialed
+- Focused transport suite: PASS, 15 files and 124 tests passed; one credentialed
   live smoke skipped by default. Coverage includes malformed acknowledgement
   rejection, exact snapshot/history wire normalization, idle-stream iterator
   cancellation, cross-stream terminal-candidate retirement, late persisted-history
@@ -26,7 +26,7 @@ files may change after this receipt is committed without another full run.
 - `pnpm build`: PASS
 - `pnpm lint`: PASS
 - `pnpm typecheck`: PASS
-- `pnpm test`: PASS, 100 files and 293 tests passed; one credentialed live smoke
+- `pnpm test`: PASS, 100 files and 296 tests passed; one credentialed live smoke
   skipped by default.
 - `pnpm --filter @consiliency/omnigent-transport test:pack`: PASS
 - Omnigent fixture JSON validation: PASS
@@ -263,6 +263,28 @@ files may change after this receipt is committed without another full run.
   exposes the committed user row while the first snapshot still reports its
   pending ID, then proves the next read reconciles the handle to the official
   response rather than losing the row.
+- Provider tombstones are seeded into every replacement stream normalizer before
+  provisional fallbacks. Rejected IDs also remain blocked from snapshot active
+  response and exact binding paths. A two-stream regression rejects response A,
+  reconnects, registers B, delivers late A before B, and proves only B receives
+  identity, output, completion, and final idle state.
+- When a current response is rejected, identity-free frames remain attributed to
+  that quarantined response until a new non-rejected official identity arrives.
+  This drops ambiguous trailing deltas and status frames instead of assigning
+  them to the next provisional turn; the same-stream denial regression covers
+  the identity-free case.
+- Bare `{queued:true}` acknowledgements use synthetic local IDs that cannot match
+  native snapshot pending IDs. A queued-only provisional is therefore treated as
+  unresolved whenever any native pending input remains, and is removed from
+  active-response fallback seeding. The existing unrelated-active-response
+  regression now uses a bare acknowledgement and proves both `getSessionInfo()`
+  and stream setup preserve the synthetic handle.
+- Persisted-history text deduplication now requires message identity. The v0.9
+  wire permits identifier-free deltas while multiple messages share one response,
+  so response-wide substring matching could silently discard a genuine repeated
+  prefix or word. Regressions prove both partial and exact historical repeats are
+  emitted; message-identified buffered suffix suppression remains intact, while
+  provider cursor trimming still suppresses bytes this process actually delivered.
 
 ## Boundaries
 
