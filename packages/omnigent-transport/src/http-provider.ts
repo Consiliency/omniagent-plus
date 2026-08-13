@@ -118,8 +118,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   private readonly client: OmnigentHttpClient;
   private readonly claimedHistoryItemKeys = new Set<string>();
   private readonly creates = new Map<string, Promise<AgentSession>>();
+  private readonly deliveredTextByTurnIds = new Map<string, string>();
   private readonly eventSequences = new Map<string, Map<string, number>>();
   private readonly latestTurnIds = new Map<string, string>();
+  private readonly latestFailureTurnIds = new Map<string, string>();
   private readonly nextEventSequences = new Map<string, number>();
   private readonly openStreams = new Map<string, Set<OmnigentOpenStream>>();
   private readonly nativePendingTurnKeys = new Set<string>();
@@ -265,19 +267,27 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     options?: HistoryOptions,
   ): Promise<SessionHistory> {
+    const snapshot = await this.client.getSession(sessionId);
     const items = await this.client.getHistory(sessionId);
     this.reconcileTurnsFromHistory(sessionId, items);
+    this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items);
     const mapped = mapOmnigentConversationHistory(sessionId, items);
+    this.refreshTrackedSession(sessionId, snapshot);
     this.applyMappedHistoryState(sessionId, mapped.runtimeEvents);
-    const mappedEvents = this.resequenceRuntimeEvents(
+    const replayEvents = this.trimDeliveredHistoryText(
       sessionId,
       mapped.runtimeEvents,
+    );
+    const mappedEvents = this.resequenceRuntimeEvents(
+      sessionId,
+      replayEvents,
     ).filter((event) => event.sequence > (options?.afterSequence ?? 0));
 
     const events =
       options?.limit === undefined
         ? mappedEvents
         : mappedEvents.slice(0, options.limit);
+    this.recordDeliveredText(sessionId, events);
 
     return {
       events,
@@ -380,9 +390,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (provisionalTurnIds.length === 0 ? activeTurnId : undefined),
       );
       const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items);
-      const mappedHistoryEvents = this.resequenceRuntimeEvents(
+      const replayEvents = this.trimDeliveredHistoryText(
         sessionId,
         mappedSnapshot.runtimeEvents,
+      );
+      const mappedHistoryEvents = this.resequenceRuntimeEvents(
+        sessionId,
+        replayEvents,
       );
 
       this.refreshTrackedSession(
@@ -396,6 +410,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       this.applyMappedHistoryState(sessionId, mappedSnapshot.runtimeEvents);
       for (const event of mappedHistoryEvents) {
         if (event.sequence > (options?.afterSequence ?? 0)) {
+          this.recordDeliveredText(sessionId, [event]);
           yield event;
         }
       }
@@ -461,14 +476,20 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
               sessionId,
               rawEvent.occurredAt,
               mappedFailure ?? failureFromRawEvent(rawEvent),
+              rawEvent.turnId,
             );
           } else if (eventConcernsActiveTurn) {
-            this.clearActiveTurn(sessionId, rawEvent.occurredAt);
+            this.clearActiveTurn(
+              sessionId,
+              rawEvent.occurredAt,
+              rawEvent.turnId,
+            );
           }
         } else if (rawEvent.turnId && eventConcernsActiveTurn) {
           this.setActiveTurn(sessionId, rawEvent.turnId, rawEvent.occurredAt);
         }
         for (const event of events) {
+          this.recordDeliveredText(sessionId, [event]);
           yield event;
         }
       }
@@ -700,6 +721,54 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.eventSequences.set(sessionId, sequences);
     this.nextEventSequences.set(sessionId, nextSequence);
     return resequenced;
+  }
+
+  private trimDeliveredHistoryText(
+    sessionId: string,
+    events: readonly RuntimeEvent[],
+  ): RuntimeEvent[] {
+    const remainingByTurnId = new Map<string, string>();
+    return events.flatMap((event) => {
+      if (event.type !== "runtime.text.delta" || !event.turnId) {
+        return [event];
+      }
+      const turnKey = `${sessionId}:${event.turnId}`;
+      const remaining = remainingByTurnId.has(turnKey)
+        ? remainingByTurnId.get(turnKey)!
+        : (this.deliveredTextByTurnIds.get(turnKey) ?? "");
+      if (remaining.length === 0) {
+        return [event];
+      }
+      const delta = event.payload.delta;
+      if (remaining.startsWith(delta)) {
+        remainingByTurnId.set(turnKey, remaining.slice(delta.length));
+        return [];
+      }
+      if (delta.startsWith(remaining)) {
+        remainingByTurnId.set(turnKey, "");
+        const suffix = delta.slice(remaining.length);
+        return suffix.length === 0
+          ? []
+          : [{ ...event, payload: { delta: suffix } } as RuntimeEvent];
+      }
+      remainingByTurnId.set(turnKey, "");
+      return [event];
+    });
+  }
+
+  private recordDeliveredText(
+    sessionId: string,
+    events: readonly RuntimeEvent[],
+  ): void {
+    for (const event of events) {
+      if (event.type === "runtime.text.delta" && event.turnId) {
+        const turnKey = `${sessionId}:${event.turnId}`;
+        this.deliveredTextByTurnIds.set(
+          turnKey,
+          `${this.deliveredTextByTurnIds.get(turnKey) ?? ""}${event.payload.delta}`,
+        );
+      }
+    }
   }
 
   private rollbackTurnRegistration(
@@ -1014,17 +1083,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     if (activeTurnId !== undefined && activeTurnId !== latestLifecycle.turnId) {
       return;
     }
-    if (latestLifecycle.type === "runtime.turn.started") {
-      this.setActiveTurn(
-        sessionId,
-        latestLifecycle.turnId,
-        latestLifecycle.occurredAt,
-      );
-    } else if (latestLifecycle.type === "runtime.turn.failed") {
+    if (latestLifecycle.type === "runtime.turn.failed") {
       this.failActiveTurn(
         sessionId,
         latestLifecycle.occurredAt,
         latestLifecycle.payload.failure,
+        latestLifecycle.turnId,
       );
     } else if (
       latestLifecycle.type === "runtime.turn.completed" ||
@@ -1032,6 +1096,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     ) {
       const session = this.sessions.get(sessionId);
       if (session) {
+        this.latestFailureTurnIds.delete(sessionId);
         this.sessions.set(sessionId, {
           ...session,
           activeTurnId: undefined,
@@ -1043,13 +1108,23 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     }
   }
 
-  private clearActiveTurn(sessionId: string, updatedAt: string): void {
+  private clearActiveTurn(
+    sessionId: string,
+    updatedAt: string,
+    turnId?: string,
+  ): void {
     const session = this.sessions.get(sessionId);
     if (session) {
+      const preserveFailure =
+        turnId !== undefined && this.latestFailureTurnIds.get(sessionId) === turnId;
+      if (!preserveFailure) {
+        this.latestFailureTurnIds.delete(sessionId);
+      }
       this.sessions.set(sessionId, {
         ...session,
         activeTurnId: undefined,
-        state: session.state === "failed" ? "failed" : "idle",
+        lastError: preserveFailure ? session.lastError : undefined,
+        state: preserveFailure ? "failed" : "idle",
         updatedAt,
       });
     }
@@ -1059,9 +1134,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     updatedAt: string,
     lastError?: RuntimeFailure,
+    turnId?: string,
   ): void {
     const session = this.sessions.get(sessionId);
     if (session) {
+      if (turnId !== undefined) {
+        this.latestFailureTurnIds.set(sessionId, turnId);
+      }
       this.sessions.set(sessionId, {
         ...session,
         activeTurnId: undefined,

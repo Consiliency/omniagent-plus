@@ -59,6 +59,7 @@ export class OmnigentEventMapper {
   private readonly emittedTerminalTurnIds: Set<string>;
   private readonly emittedTextByMessageId = new Map<string, string>();
   private readonly emittedTextByTurnId = new Map<string, string>();
+  private readonly emittedUnidentifiedTextByTurnId = new Map<string, string>();
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
   private readonly historicalTextRemainders: Map<string, string>;
@@ -221,6 +222,12 @@ export class OmnigentEventMapper {
         rawEvent.turnId,
         `${this.emittedTextByTurnId.get(rawEvent.turnId) ?? ""}${delta}`,
       );
+      if (!rawEvent.message_id) {
+        this.emittedUnidentifiedTextByTurnId.set(
+          rawEvent.turnId,
+          `${this.emittedUnidentifiedTextByTurnId.get(rawEvent.turnId) ?? ""}${delta}`,
+        );
+      }
     }
     return [
       this.createEvent({
@@ -247,7 +254,9 @@ export class OmnigentEventMapper {
       }
       const messageId = typeof item.id === "string" ? item.id : undefined;
       const emitted = messageId
-        ? (this.emittedTextByMessageId.get(messageId) ?? "")
+        ? (this.emittedTextByMessageId.get(messageId) ??
+          this.emittedUnidentifiedTextByTurnId.get(rawEvent.turnId) ??
+          "")
         : (this.emittedTextByTurnId.get(rawEvent.turnId) ?? "");
       const delta = text.startsWith(emitted)
         ? text.slice(emitted.length)
@@ -259,6 +268,7 @@ export class OmnigentEventMapper {
       }
       if (messageId) {
         this.emittedTextByMessageId.set(messageId, text);
+        this.emittedUnidentifiedTextByTurnId.delete(rawEvent.turnId);
       }
       this.emittedTextByTurnId.set(
         rawEvent.turnId,

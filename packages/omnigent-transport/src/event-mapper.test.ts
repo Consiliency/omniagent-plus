@@ -248,13 +248,12 @@ describe("event mapper", () => {
     ]);
   });
 
-  it("does not repeat assistant output already delivered as text deltas", () => {
+  it("does not repeat identified assistant output after an identity-free delta", () => {
     const occurredAt = "2026-06-30T00:00:00.000Z";
     const events = mapOmnigentEventSequence("session-1", [
       {
         delta: "streamed reply",
-        id: "message-streamed:0",
-        message_id: "message-streamed",
+        id: "delta-streamed:0",
         occurredAt,
         sessionId: "session-1",
         turnId: "response-streamed",

@@ -97,6 +97,7 @@ describe("http provider", () => {
       });
       const history = await provider.readHistory(session.id);
       const streamed = await collectAsync(provider.streamEvents(session.id));
+      await provider.readHistory(session.id);
       const info = await provider.getSessionInfo(session.id);
 
       expect(handle.state).toBe("queued");
@@ -920,6 +921,83 @@ describe("http provider", () => {
     expect(info.state).toBe("idle");
   });
 
+  it("clears an older live failure after a newer turn completes", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-newer-live-success",
+      created_at: 1_780_272_000,
+      id: "session-newer-live-success",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Newer live success",
+      updated_at: 1_780_272_003,
+    };
+    const streamBody = [
+      {
+        response: {
+          completed_at: 1_780_272_001,
+          error: { message: "older live failure" },
+          id: "response-old-failure",
+          status: "failed",
+        },
+        type: "response.failed",
+      },
+      {
+        response: {
+          created_at: 1_780_272_002,
+          id: "response-new-success",
+          status: "in_progress",
+        },
+        type: "response.created",
+      },
+      {
+        response: {
+          completed_at: 1_780_272_003,
+          id: "response-new-success",
+          status: "completed",
+        },
+        type: "response.completed",
+      },
+    ]
+      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+      .join("");
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(streamBody, {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "newer-live-success-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+
+    await collectAsync(provider.streamEvents(session.id));
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.lastError).toBeUndefined();
+    expect(info.state).toBe("idle");
+  });
+
   it("keeps a newer accepted turn active when an older concurrent send is denied", async () => {
     const snapshot = {
       active_response_id: null,
@@ -1334,6 +1412,76 @@ describe("http provider", () => {
     await provider.readHistory(session.id);
 
     expect(handle.turnId).toBe("response-native-1");
+  });
+
+  it("reconciles a consumed pending acknowledgement from readHistory alone", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-pending-offline",
+      created_at: 1_780_272_000,
+      id: "session-pending-offline",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Pending offline",
+      updated_at: 1_780_272_001,
+    };
+    const history = [
+      {
+        content: [{ text: "offline prompt", type: "input_text" }],
+        created_at: 1_780_272_001,
+        id: "item-pending-offline",
+        response_id: "response-pending-offline",
+        role: "user",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && String(init.body).includes('"agent_id"')) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST") {
+          return new Response(
+            JSON.stringify({ pending_id: "pending-offline", queued: true }),
+            { status: 202 },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({
+              data: history,
+              first_id: history[0]?.id,
+              has_more: false,
+              last_id: history.at(-1)?.id,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "pending-offline-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const handle = await provider.sendTurn({
+      idempotencyKey: "pending-offline-turn",
+      message: "offline prompt",
+      sessionId: session.id,
+    });
+
+    await provider.readHistory(session.id);
+    const info = await provider.getSessionInfo(session.id);
+
+    expect(handle.turnId).toBe("response-pending-offline");
+    expect(info.activeTurnId).toBe("response-pending-offline");
+    expect(info.state).toBe("turn_active");
   });
 
   it("restores delayed pending acknowledgement correlation after a status terminal", async () => {
@@ -1888,10 +2036,12 @@ describe("http provider", () => {
       id: "session-item-only",
       items: [],
       pending_inputs: [],
-      status: "running",
+      status: "idle",
       title: "Item only",
       updated_at: 1_780_272_001,
     };
+    let history: OmnigentConversationItem[] = [];
+    let streamReads = 0;
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
@@ -1900,6 +2050,12 @@ describe("http provider", () => {
           return new Response(JSON.stringify(snapshot));
         }
         if (url.endsWith("/stream")) {
+          streamReads += 1;
+          if (streamReads > 1) {
+            return new Response("", {
+              headers: { "content-type": "text/event-stream" },
+            });
+          }
           return new Response(
             [
               `data: ${JSON.stringify({
@@ -1939,10 +2095,10 @@ describe("http provider", () => {
         if (url.includes("/items")) {
           return new Response(
             JSON.stringify({
-              data: [],
-              first_id: null,
+              data: history,
+              first_id: history[0]?.id ?? null,
               has_more: false,
-              last_id: null,
+              last_id: history.at(-1)?.id ?? null,
             }),
           );
         }
@@ -1958,6 +2114,25 @@ describe("http provider", () => {
     });
 
     const events = await collectAsync(provider.streamEvents(session.id));
+    const cursor = events.at(-1)?.sequence ?? 0;
+    history = [
+      {
+        content: [{ text: "terminal-backed reply", type: "output_text" }],
+        created_at: 1_780_272_001,
+        id: "message-item-only",
+        response_id: "response-item-only",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+    ];
+    const replay = await provider.readHistory(session.id, {
+      afterSequence: cursor,
+    });
+    const reconnect = await collectAsync(
+      provider.streamEvents(session.id, { afterSequence: cursor }),
+    );
+    const info = await provider.getSessionInfo(session.id);
 
     expect(
       events
@@ -1970,6 +2145,14 @@ describe("http provider", () => {
         type: "runtime.turn.completed",
       }),
     );
+    expect(
+      replay.events.filter((event) => event.type === "runtime.text.delta"),
+    ).toEqual([]);
+    expect(
+      reconnect.filter((event) => event.type === "runtime.text.delta"),
+    ).toEqual([]);
+    expect(info.activeTurnId).toBeUndefined();
+    expect(info.state).toBe("idle");
   });
 
   it("returns a cursor for the limited history slice", async () => {
@@ -2852,8 +3035,6 @@ describe("http provider", () => {
     const streamBody = [
       {
         delta: "old live output",
-        index: 0,
-        message_id: "message-old-assistant",
         response_id: "response-old",
         type: "response.output_text.delta",
       },
@@ -2906,6 +3087,15 @@ describe("http provider", () => {
     history = [
       oldUserItem,
       {
+        content: [{ text: "old live output", type: "output_text" }],
+        created_at: 1_780_272_002,
+        id: "message-old-assistant",
+        response_id: "response-old",
+        role: "assistant",
+        status: "completed",
+        type: "message",
+      },
+      {
         content: [{ text: "new turn", type: "input_text" }],
         created_at: 1_780_272_003,
         id: "message-new-user",
@@ -2938,5 +3128,10 @@ describe("http provider", () => {
         type: "runtime.turn.failed",
       }),
     );
+    expect(
+      replay.events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual([]);
   });
 });
