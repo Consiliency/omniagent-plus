@@ -498,6 +498,8 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           options?.afterSequence ?? 0,
         ) + 1;
       const mapper = new OmnigentEventMapper(sessionId, {
+        historicalMessagesByTurnId:
+          mappedSnapshot.historicalMessagesByTurnId,
         historicalTextByMessageId: mappedSnapshot.historicalTextByMessageId,
         historicalTextByTurnId: mappedSnapshot.historicalTextByTurnId,
         historicalToolCallIds: mappedSnapshot.historicalToolCallIds,
@@ -605,6 +607,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       updatedAt: new Date().toISOString(),
     };
     this.turns.set(`${handle.sessionId}:${handle.turnId}`, cancelled);
+    this.retireCancelledTurn(handle.sessionId, handle.turnId);
     const session = this.sessions.get(handle.sessionId);
     if (session) {
       this.sessions.set(handle.sessionId, {
@@ -1101,6 +1104,31 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       if (provisionalOrder.length === 0) {
         this.provisionalTurnOrder.delete(sessionId);
       }
+    }
+  }
+
+  private retireCancelledTurn(sessionId: string, turnId: string): void {
+    const turnKey = `${sessionId}:${turnId}`;
+    this.retireProvisionalTurnCandidate(sessionId, turnId);
+    this.provisionalTurnKeys.delete(turnKey);
+    this.nativePendingTurnKeys.delete(turnKey);
+    this.queuedOnlyTurnKeys.delete(turnKey);
+    this.provisionalTurnAliases.delete(turnKey);
+    for (const [aliasKey, aliasedTurnId] of this.provisionalTurnAliases) {
+      if (aliasKey.startsWith(`${sessionId}:`) && aliasedTurnId === turnId) {
+        this.provisionalTurnAliases.delete(aliasKey);
+      }
+    }
+    for (const [itemKey, pendingTurnId] of this.pendingItemTurnIds) {
+      if (itemKey.startsWith(`${sessionId}:`) && pendingTurnId === turnId) {
+        this.pendingItemTurnIds.delete(itemKey);
+      }
+    }
+    if (this.latestTurnIds.get(sessionId) === turnId) {
+      this.latestTurnIds.delete(sessionId);
+    }
+    for (const stream of this.openStreams.get(sessionId) ?? []) {
+      stream.removeFallbackTurnId(turnId);
     }
   }
 

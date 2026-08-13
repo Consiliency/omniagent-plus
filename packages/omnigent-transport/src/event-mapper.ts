@@ -41,6 +41,9 @@ function assistantItemText(item: Readonly<Record<string, unknown>>): string {
 }
 
 export interface OmnigentEventMapperOptions {
+  readonly historicalMessagesByTurnId?: Iterable<
+    readonly [string, readonly OmnigentHistoricalMessage[]]
+  >;
   readonly historicalTextByMessageId?: Iterable<readonly [string, string]>;
   readonly historicalTextByTurnId?: Iterable<readonly [string, string]>;
   readonly historicalToolCallIds?: Iterable<string>;
@@ -52,6 +55,11 @@ export interface OmnigentEventMapperOptions {
   readonly terminalTurnIds?: Iterable<string>;
 }
 
+export interface OmnigentHistoricalMessage {
+  readonly messageId: string;
+  readonly text: string;
+}
+
 export class OmnigentEventMapper {
   readonly seenItemIds: Set<string>;
 
@@ -61,6 +69,10 @@ export class OmnigentEventMapper {
   private readonly emittedTextByTurnId = new Map<string, string>();
   private readonly emittedUnidentifiedTextByTurnId = new Map<string, string>();
   private readonly pendingMessageIdsByTurnId = new Map<string, string[]>();
+  private readonly historicalMessagesByTurnId: Map<
+    string,
+    OmnigentHistoricalMessage[]
+  >;
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
   private readonly emittedToolCallIds: Set<string>;
@@ -76,6 +88,11 @@ export class OmnigentEventMapper {
     this.emittedStartedTurnIds = new Set(options.startedTurnIds ?? []);
     this.emittedTerminalTurnIds = new Set(options.terminalTurnIds ?? []);
     this.historicalItemIds = new Set(options.seenItemIds ?? []);
+    this.historicalMessagesByTurnId = new Map(
+      [...(options.historicalMessagesByTurnId ?? [])].map(
+        ([turnId, messages]) => [turnId, [...messages]],
+      ),
+    );
     this.historicalTextByMessageId = new Map(
       options.historicalTextByMessageId ?? [],
     );
@@ -182,7 +199,40 @@ export class OmnigentEventMapper {
   private mapTextDelta(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     let delta = rawEvent.delta ?? "";
     if (rawEvent.message_id) {
-      const remaining = this.historicalTextByMessageId.get(rawEvent.message_id);
+      let remaining = this.historicalTextByMessageId.get(rawEvent.message_id);
+      if (rawEvent.turnId) {
+        const historicalMessages =
+          this.historicalMessagesByTurnId.get(rawEvent.turnId) ?? [];
+        const exactMessageIndex = historicalMessages.findIndex(
+          ({ messageId }) => messageId === rawEvent.message_id,
+        );
+        const compatibleMessageIndex =
+          exactMessageIndex >= 0
+            ? exactMessageIndex
+            : historicalMessages.findIndex(
+                ({ text }) =>
+                  delta.length > 0 &&
+                  (text.startsWith(delta) ||
+                    text.endsWith(delta) ||
+                    delta.startsWith(text)),
+              );
+        if (compatibleMessageIndex >= 0) {
+          const [historicalMessage] = historicalMessages.splice(
+            compatibleMessageIndex,
+            1,
+          );
+          if (historicalMessages.length === 0) {
+            this.historicalMessagesByTurnId.delete(rawEvent.turnId);
+          }
+          if (remaining === undefined && historicalMessage) {
+            remaining = historicalMessage.text;
+            this.historicalTextByMessageId.set(
+              rawEvent.message_id,
+              historicalMessage.text,
+            );
+          }
+        }
+      }
       if (remaining !== undefined) {
         if (delta.length > 0 && remaining.startsWith(delta)) {
           const next = remaining.slice(delta.length);

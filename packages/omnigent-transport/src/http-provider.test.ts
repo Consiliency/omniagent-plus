@@ -237,6 +237,104 @@ describe("http provider", () => {
     }
   });
 
+  it("retires a cancelled queued handle before correlating the next response", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-cancelled-queued",
+      created_at: 1_780_272_000,
+      id: "session-cancelled-queued",
+      items: [],
+      pending_inputs: [],
+      status: "running",
+      title: "Cancelled queued handle",
+      updated_at: 1_780_272_001,
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          const event = JSON.parse(String(init.body)) as { type?: string };
+          return new Response(
+            JSON.stringify(
+              event.type === "message" ? { queued: true } : { queued: false },
+            ),
+          );
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            [
+              `data: ${JSON.stringify({
+                response: {
+                  created_at: 1_780_272_002,
+                  id: "response-after-cancel",
+                  status: "in_progress",
+                },
+                type: "response.created",
+              })}`,
+              "",
+              `data: ${JSON.stringify({
+                delta: "next response",
+                index: 0,
+                message_id: "message-after-cancel",
+                type: "response.output_text.delta",
+              })}`,
+              "",
+              `data: ${JSON.stringify({
+                response: {
+                  completed_at: 1_780_272_003,
+                  id: "response-after-cancel",
+                  status: "completed",
+                },
+                type: "response.completed",
+              })}`,
+              "",
+            ].join("\n"),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          return new Response(
+            JSON.stringify({ data: [], has_more: false }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "cancelled-queued-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const first = await provider.sendTurn({
+      idempotencyKey: "cancelled-queued-first",
+      message: "cancel me",
+      sessionId: session.id,
+    });
+    const firstTurnId = first.turnId;
+    const cancelled = await provider.cancelTurn(first);
+    const second = await provider.sendTurn({
+      idempotencyKey: "cancelled-queued-second",
+      message: "run me",
+      sessionId: session.id,
+    });
+
+    const events = await collectAsync(provider.streamEvents(session.id));
+
+    expect(cancelled).toMatchObject({ state: "cancelled", turnId: firstTurnId });
+    expect(second.turnId).toBe("response-after-cancel");
+    expect(
+      events
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["next response"]);
+  });
+
   it("reconciles a provisional handle from snapshot-only evidence", async () => {
     const snapshot = {
       active_response_id: null as string | null,
@@ -3284,14 +3382,14 @@ describe("http provider", () => {
               `data: ${JSON.stringify({
                 delta: "Hello",
                 index: 0,
-                message_id: "message-b",
+                message_id: "stream-message-b",
                 type: "response.output_text.delta",
               })}`,
               "",
               `data: ${JSON.stringify({
                 delta: " world",
                 index: 0,
-                message_id: "message-b",
+                message_id: "stream-message-b",
                 type: "response.output_text.delta",
               })}`,
               "",

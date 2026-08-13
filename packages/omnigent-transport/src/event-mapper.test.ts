@@ -251,6 +251,43 @@ describe("event mapper", () => {
     expect(runtimeEvents).toEqual([]);
   });
 
+  it("correlates buffered message chunks with persisted items from another id namespace", () => {
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-1",
+      [
+        {
+          delta: "Hello",
+          id: "delta-cross-namespace-1",
+          message_id: "stream-message",
+          occurredAt: "2026-06-30T00:00:00.000Z",
+          sessionId: "session-1",
+          turnId: "response-cross-namespace",
+          type: "response.output_text.delta",
+        },
+        {
+          delta: " world",
+          id: "delta-cross-namespace-2",
+          message_id: "stream-message",
+          occurredAt: "2026-06-30T00:00:01.000Z",
+          sessionId: "session-1",
+          turnId: "response-cross-namespace",
+          type: "response.output_text.delta",
+        },
+      ],
+      {
+        historicalMessagesByTurnId: [
+          [
+            "response-cross-namespace",
+            [{ messageId: "ap-item", text: "Hello world" }],
+          ],
+        ],
+        historicalTextByMessageId: [["ap-item", "Hello world"]],
+      },
+    );
+
+    expect(runtimeEvents).toEqual([]);
+  });
+
   it("preserves new identifier-free text that repeats a historical prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",
