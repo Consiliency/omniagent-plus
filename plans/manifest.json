@@ -432,6 +432,34 @@
       "updated_at": "2026-08-12T19:41:33Z"
     },
     {
+      "acceptance_criteria_count": 15,
+      "created_at": "2026-08-24T05:12:11Z",
+      "file": "plans/detailed-omnigent-v0-10-accommodation-20260824-0512.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260824T051211Z-omnigent-v010-plan.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-08-24T05:12:11Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260824T051211Z-omnigent-v010-plan.md",
+            "plan": "plans/detailed-omnigent-v0-10-accommodation-20260824-0512.md"
+          },
+          "transition": "committed"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/aadc284e/codex-plan-omnigent-v0-10/20260824T051211Z-omnigent-v010-plan.md",
+      "roadmap_ref": null,
+      "slug": "omnigent-v0-10-accommodation-20260824-0512",
+      "status": "committed",
+      "task_summary": "Plan official Omnigent v0.10.0 authority, additive transport conformance, and transport-only 0.6.0 release.",
+      "type": "detailed",
+      "updated_at": "2026-08-24T05:12:11Z"
+    },
+    {
       "acceptance_criteria_count": 7,
       "created_at": "2026-06-30T20:45:23Z",
       "file": "plans/phase-plan-v1-ADAPTERS.md",
