@@ -1,7 +1,7 @@
 {
   "name": "@consiliency/omnigent-transport",
   "author": "ViperJuice <viperjuice@users.noreply.github.com>",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Consiliency/omniagent-plus.git",

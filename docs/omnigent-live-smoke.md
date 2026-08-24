@@ -1,8 +1,8 @@
 # Live Omnigent Smoke
 
 The live Omnigent smoke contract targets official Omnigent `v0.10.0` and is
-optional and skipped by default. CI and default local verification keep the
-gate off, so no credentials are needed for the normal repo test path.
+optional and skip by default. CI and default local verification keep the gate
+off, with no credentials required for the normal repo test path.
 
 ## Environment Gate
 

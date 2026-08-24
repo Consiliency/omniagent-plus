@@ -49,7 +49,7 @@ try {
       "utf8",
     ),
   );
-  if (installedPackage.version !== "0.5.0") {
+  if (installedPackage.version !== "0.6.0") {
     throw new Error("unexpected packed package version");
   }
   execFileSync(
@@ -70,6 +70,7 @@ try {
       "--input-type=module",
       "-e",
       `import {
+  loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
   snapshotFromHealth,
 } from "@consiliency/omnigent-transport";
@@ -80,12 +81,38 @@ const snapshot = snapshotFromHealth({
   runtime: "omnigent",
   sessionStateDrift: [],
 });
-const wire = loadOmnigentV09WireContract();
-if (snapshot.version !== "0.9.0") throw new Error("unexpected fixture version");
-if (snapshot.gitSha !== "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2") {
+const currentWire = loadOmnigentV010WireContract();
+const historicalWire = loadOmnigentV09WireContract();
+if (snapshot.version !== "0.10.0") throw new Error("unexpected fixture version");
+if (snapshot.gitSha !== "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b") {
   throw new Error("unexpected fixture git sha");
 }
-if (wire.authority.tag !== "v0.9.0") throw new Error("unexpected wire authority");`,
+if (
+  currentWire.authority.tag !== "v0.10.0" ||
+  currentWire.authority.commit !== "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b"
+) {
+  throw new Error("unexpected current wire authority");
+}
+if (
+  currentWire.child_page.data[0]?.task_summary !==
+    "Inspect the tagged v0.10 transport contract." ||
+  currentWire.child_page.data[1]?.task_summary !== null
+) {
+  throw new Error("unexpected v0.10 task summary fixture");
+}
+const currentDeltas = currentWire.sse_frames.filter(
+  (frame) => frame.type === "response.output_text.delta",
+);
+if (currentDeltas.length !== 2) {
+  throw new Error("unexpected v0.10 lossless SSE regression fixture");
+}
+if (
+  historicalWire.authority.tag !== "v0.9.0" ||
+  historicalWire.authority.commit !== "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2" ||
+  !historicalWire.sse_frames.some((frame) => frame.type === "response.completed")
+) {
+  throw new Error("unexpected historical v0.9 wire fixture");
+}`,
     ],
     { cwd: consumer, stdio: "pipe" },
   );
@@ -97,6 +124,7 @@ if (wire.authority.tag !== "v0.9.0") throw new Error("unexpected wire authority"
   OmnigentNativeReasoningEffortOption,
   OmnigentProcessSignal,
   OmnigentSessionSnapshot,
+  OmnigentChildSessionSummary,
   OmnigentConversationItem,
 } from "@consiliency/omnigent-transport";
 
@@ -125,6 +153,17 @@ const snapshot = {
   title: "packed type smoke",
   updatedAt: "2026-07-30T00:00:00.000Z",
 } satisfies OmnigentSessionSnapshot;
+const child = {
+  agent_id: "agent-child-1",
+  busy: false,
+  created_at: 1780272010,
+  current_task_status: "completed",
+  id: "child-1",
+  parent_session_id: "session-1",
+  task_summary: "Inspect the tagged v0.10 transport contract.",
+  title: "Child",
+  updated_at: 1780272011,
+} satisfies OmnigentChildSessionSummary;
 const item = {
   created_at: 1780272000,
   data: { content: [], role: "assistant" },
@@ -134,6 +173,7 @@ const item = {
   type: "message",
 } satisfies OmnigentConversationItem;
 void snapshot;
+void child;
 void item;
 void httpOptions;
 void signal;
