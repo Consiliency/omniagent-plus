@@ -1,19 +1,22 @@
 # Omnigent Contract Freeze
 
-`IF-0-CONTRACT-1` is frozen to official Omnigent `v0.9.0` at commit
-`cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2`, published 2026-08-11. PyPI
-reports `omnigent==0.9.0` with Python `>=3.12`.
+`IF-0-CONTRACT-1` is frozen to official Omnigent `v0.10.0` at commit
+`40755dd8dddb07e1eb6e4055d1d9936e184ceb9b`, published 2026-08-19. PyPI
+reports `omnigent==0.10.0` with Python `>=3.12`.
 
-The direct `v0.7.0` to `v0.9.0` comparison retains 97 OpenAPI operations and
-all 52 tagged stream event discriminators. There are no path, schema, or event
-set additions or removals. Six schemas changed additively:
+The direct `v0.9.0` to `v0.10.0` comparison is additive: operations increase
+from 97 to 100, paths from 69 to 72, and schemas from 134 to 139. No path or
+schema is removed, and all 52 tagged stream event discriminators remain
+unchanged. The three added paths are:
 
-- `ChildSessionSummary`
-- `ImportSessionRequest`
-- `RoutingDecisionData`
-- `SessionResponse`
-- `SessionStatusEvent`
-- `UpdateSessionRequest`
+- `/.well-known/omnigent.json`
+- `/v1/branding/logo/{variant}`
+- `/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}`
+
+The five added schemas are `BrandingInfo`, `BrandingLogosInfo`, `DailyCost`,
+`ServerInfoResponse`, and `SmartRoutingSourcesInfo`. Six existing schemas
+changed: `AgentObject`, `ChildSessionSummary`, `ErrorDetail`,
+`OutputTextDeltaEvent`, `SessionUsage`, and `UsageReport`.
 
 Tagged `openapi.json`, `omnigent/server/API.md`, and
 `omnigent/server/schemas.py` are the authority. The checked-in fixtures are
@@ -40,6 +43,8 @@ The session, history, and child-list surfaces use official wire shapes:
 - child summaries require `parent_session_id` and epoch timestamps; their
   lifecycle is represented by optional busy/task fields rather than session
   `status`
+- child `task_summary` is optional nullable, read-only descriptive metadata;
+  it grants neither child creation nor route-decision authority
 - `/items` returns cursor-paginated `ConversationItem` rows
 - every page is requested ascending at limit 1000 and a non-advancing cursor
   is rejected as malformed
@@ -61,6 +66,15 @@ return `{queued:false, denied:true, reason}`. That result is a cached,
 non-retryable `policy_denied` failure and never creates an active handle.
 Create and send idempotency are process-local because the tagged API provides
 no durable request key.
+
+The v0.10 `ErrorDetail` contract requires machine fields `code` and `message`
+and adds nullable descriptive `title`, `cause`, and `remediation`. HTTP error
+bodies remain lossless `unknown` values. Failure classification reads only a
+plain-string body or canonical `code`, `message`, and legacy `error` fields,
+including those fields under the supported FastAPI `detail` envelope.
+Descriptive and unknown additive fields can contain billing, authentication,
+quota, monthly, or usage-cap language without changing retryability, policy,
+billing/auth classification, approval, or authority.
 
 The neutral default remains one active turn per session. Distinct concurrent
 sends fail with `concurrency_limit`; callers must explicitly set
@@ -117,9 +131,11 @@ uncorrelated `turn.*` frames are metadata-only.
 ## CLI And Capabilities
 
 Production lifecycle remains `omnigent server --background`, with
-`omnigent server status --json` and `omnigent server stop`. In v0.9,
-`omnigent server start` exists only as a hidden deprecated alias and is never
-invoked here. CLI `{id,event}` resume history retains its legacy mapper.
+`omnigent server status --json` and `omnigent server stop`. The hidden
+deprecated `omnigent server start` alias is evidence only and is never invoked
+here. v0.10 also exposes `omnigent start` and `omnigent host --background` as
+operator commands; neither replaces the process-manager command. CLI
+`{id,event}` resume history retains its legacy mapper.
 
 Supported transport capabilities remain create, send, stream, history,
 lease-guarded cancel, list, and read-only harness catalog. Logical close and
@@ -128,9 +144,21 @@ harness override remain blocked. Smart routing, imports, projects, hosts,
 credentials, model discovery, lease, lock, approval, and authority are not
 promoted into the neutral provider.
 
-## Unreleased Risk
+Usage reporting (`SessionUsage.agent_name`, `harness`, and `llm_model`, plus
+`UsageReport.daily_costs`), branding, server discovery, smart-routing source,
+and environment-search additions are observed operator/admin surfaces. They do
+not add transport endpoints or neutral runtime-provider capabilities.
 
-Upstream development `main` is `0.10.0.dev0` and is not frozen. It contains a
-post-v0.9 fix that roots sub-agent skills and tools at each sub-agent bundle
-instead of inheriting the parent bundle root. Deployments must not claim v0.9
-security parity with that unreleased fix.
+Sub-agent bundle-root isolation is an upstream stable v0.10 guarantee. The
+transport records that guarantee but does not implement or re-enforce it.
+v0.10 also reverts upstream shared-session approval attribution so any shared
+editor can approve. That is upstream collaboration behavior only and grants no
+Consiliency approval, authority, lease, lock, child-create, harness-override,
+or route-decision capability.
+
+## Development Watch List
+
+The 2026-08-24 upstream development `main` probe observed `0.11.0.dev0` at
+`46b1ce13fef0a3ea1d208ec8a2f79951023f643c`. It adds
+`session.permission_mode` and `session.title` to the stream schema. They are a
+watch list only: neither event is part of the frozen 52-event v0.10 vocabulary.

@@ -1,20 +1,37 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-12T19:00:00Z",
+  "captured_at": "2026-08-24T06:00:29Z",
   "openapi_delta": {
-    "operation_count": 97,
-    "added_paths": [],
+    "from_tag": "v0.9.0",
+    "to_tag": "v0.10.0",
+    "previous_operation_count": 97,
+    "operation_count": 100,
+    "previous_path_count": 69,
+    "path_count": 72,
+    "previous_schema_count": 134,
+    "schema_count": 139,
+    "added_paths": [
+      "/.well-known/omnigent.json",
+      "/v1/branding/logo/{variant}",
+      "/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}"
+    ],
     "removed_paths": [],
-    "added_schemas": [],
+    "added_schemas": [
+      "BrandingInfo",
+      "BrandingLogosInfo",
+      "DailyCost",
+      "ServerInfoResponse",
+      "SmartRoutingSourcesInfo"
+    ],
     "removed_schemas": [],
     "changed_schemas": [
+      "AgentObject",
       "ChildSessionSummary",
-      "ImportSessionRequest",
-      "RoutingDecisionData",
-      "SessionResponse",
-      "SessionStatusEvent",
-      "UpdateSessionRequest"
+      "ErrorDetail",
+      "OutputTextDeltaEvent",
+      "SessionUsage",
+      "UsageReport"
     ]
   },
   "session_endpoints": [
@@ -50,7 +67,17 @@
     "observe": ["GET /v1/sessions/{session_id}/child_sessions", "session.created", "session.child_session.updated"],
     "create_under_parent": false,
     "fork_available": true,
-    "read_only_fields": ["routed_model", "routing_decision_id"]
+    "task_summary": "optional nullable read-only descriptive metadata",
+    "read_only_fields": ["routed_model", "routing_decision_id", "task_summary"]
+  },
+  "structured_error_contract": {
+    "required_machine_fields": ["code", "message"],
+    "optional_nullable_descriptive_fields": ["title", "cause", "remediation"],
+    "classification_fields": ["code", "message", "error", "detail.code", "detail.message", "detail.error", "plain_string_body"],
+    "excluded_from_classification": ["title", "cause", "remediation", "unknown_additive_fields"],
+    "body_type": "unknown",
+    "pass_through": "lossless",
+    "authority_effect": "none"
   },
   "conversation_item_contract": {
     "envelope_fields": ["id", "type", "status", "response_id", "created_at", "created_by", "data"],
@@ -67,6 +94,14 @@
     "release_event_types": []
   },
   "optional_release_surfaces": [
+    { "field": "SessionUsage.agent_name", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
+    { "field": "SessionUsage.harness", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
+    { "field": "SessionUsage.llm_model", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
+    { "field": "UsageReport.daily_costs", "status": "observed_not_provider_required", "reason": "cost reporting does not grant billing or routing authority" },
+    { "path": "/.well-known/omnigent.json", "method": "GET", "status": "observed_not_provider_required", "reason": "server discovery is an operator and administration surface" },
+    { "path": "/v1/branding/logo/{variant}", "method": "GET", "status": "observed_not_provider_required", "reason": "branding is an operator and administration surface" },
+    { "field": "ServerInfoResponse.smart_routing_sources", "status": "observed_not_provider_required", "reason": "source availability does not create a neutral route decision" },
+    { "path": "/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}", "method": "GET", "status": "observed_not_provider_required", "reason": "environment search is an operator and administration surface" },
     { "field": "ImportSessionRequest.force", "status": "observed_not_provider_required", "reason": "import remains an operator surface" },
     { "field": "UpdateSessionRequest.subagent_routing_override", "status": "observed_not_provider_required", "reason": "routing metadata does not grant coordinator authority" },
     { "field": "RoutingDecisionData", "status": "observed_not_provider_required", "reason": "smart routing does not create a neutral route decision" },
@@ -78,11 +113,11 @@
     "provider_sends_removed_fields": false
   },
   "endpoint_provenance": [
-    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "source": "omnigent/server/API.md and tagged route source", "ref": "v0.9.0", "note": "required route omitted from generated OpenAPI" }
+    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "source": "omnigent/server/API.md and tagged route source", "ref": "v0.10.0", "note": "required route omitted from generated OpenAPI" }
   ],
   "provenance": [
-    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.9.0" },
-    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.9.0" },
-    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.9.0" }
+    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.10.0" },
+    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.10.0" },
+    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.10.0" }
   ]
 }

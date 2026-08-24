@@ -14,8 +14,11 @@ and scenario boundaries instead of raw provider payload dumps.
 ## provenance
 
 - Every fixture points back to the tagged upstream source that justified it.
-- The freeze target is `omnigent` `v0.9.0` at
-  `cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2`.
+- The current freeze target is `omnigent` `v0.10.0` at
+  `40755dd8dddb07e1eb6e4055d1d9936e184ceb9b`.
+- The `v0.9.0` fixture at
+  `cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2` remains historical regression
+  evidence and must not be rewritten as v0.10.
 - `main` observations are metadata only and are not authoritative for the fake
   server unless a later contract freeze re-pins them.
 - The fake server emits official tagged request, epoch response, cursor page,
@@ -32,6 +35,11 @@ and scenario boundaries instead of raw provider payload dumps.
 
 - Each scenario in `scenarios.json` maps required provider capabilities to the
   minimum fixtures needed to simulate or normalize that case.
+- `v0_10_official_wire` is the current tagged authority scenario. It serves
+  the tagged snake-case/epoch wire shapes, nullable child `task_summary`, and
+  lossless structured errors. Descriptive error fields are not canonical
+  failure or authority signals.
+- `v0_9_official_wire` remains available for historical wire regression.
 - Downstream transport tests should treat `blocked` capabilities as typed
   blocked or unavailable results, not as missing fixture bugs.
 - The `v0_4_harness_catalog_and_read_state` scenario covers the official

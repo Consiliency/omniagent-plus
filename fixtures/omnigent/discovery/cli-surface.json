@@ -1,7 +1,12 @@
 {
   "schema": "omnigent.cli_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-12T19:00:00Z",
+  "captured_at": "2026-08-24T06:00:29Z",
+  "release": {
+    "tag": "v0.10.0",
+    "commit": "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b",
+    "version_output": "omnigent 0.10.0 (built 2026-08-19T00:52:00Z)"
+  },
   "entrypoints": [
     { "name": "omnigent", "target": "omnigent.cli:main" },
     { "name": "omni", "target": "omnigent.cli:main" }
@@ -13,9 +18,15 @@
     "omnigent server --background",
     "omnigent server status --json",
     "omnigent server stop",
+    "omnigent start",
+    "omnigent host --background",
     "omnigent run --profile"
   ],
-  "non_provider_required_commands": ["omnigent run --profile"],
+  "non_provider_required_commands": [
+    "omnigent start",
+    "omnigent host --background",
+    "omnigent run --profile"
+  ],
   "deprecated_aliases": [
     {
       "command": "omnigent server start",
@@ -28,17 +39,21 @@
   "exit_code_contract": {
     "success_code": 0,
     "nonzero_codes_are_stable_abi": false,
-    "note": "v0.9.0 does not publish a stable non-zero exit-code table"
+    "note": "v0.10.0 does not publish a stable non-zero exit-code table"
   },
   "compatibility_notes": [
     "v0.8 extra_args is not used by this repository",
     "v0.8 env_passthrough must remain explicit and is not used locally",
     "v0.8 recursive dotfile scanning is not used locally",
+    "v0.10 omnigent start and omnigent host --background are operator lifecycle commands",
     "production lifecycle invokes only omnigent server --background"
   ],
   "provenance": [
-    { "kind": "tagged_source", "path": "pyproject.toml", "ref": "v0.9.0" },
-    { "kind": "tagged_source", "path": "README.md", "ref": "v0.9.0" },
-    { "kind": "tagged_source", "path": "omnigent/cli.py", "ref": "v0.9.0" }
+    { "kind": "tagged_source", "path": "pyproject.toml", "ref": "v0.10.0" },
+    { "kind": "tagged_source", "path": "README.md", "ref": "v0.10.0" },
+    { "kind": "tagged_source", "path": "omnigent/cli.py", "ref": "v0.10.0" },
+    { "kind": "isolated_probe", "command": "uvx --from omnigent==0.10.0 omnigent --help", "ref": "v0.10.0" },
+    { "kind": "isolated_probe", "command": "uvx --from omnigent==0.10.0 omnigent server --help", "ref": "v0.10.0" },
+    { "kind": "isolated_probe", "command": "uvx --from omnigent==0.10.0 omnigent host --help", "ref": "v0.10.0" }
   ]
 }

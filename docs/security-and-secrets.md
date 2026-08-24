@@ -58,17 +58,21 @@ evidence, and status persistence.
 - Do not persist telemetry payloads, raw Omnigent config, or environment values
   in fixtures, ledgers, handoffs, or diagnostics.
 
-## Omnigent v0.9 Deployment Posture
+## Omnigent v0.10 Deployment Posture
 
-- Official v0.9 predates an upstream fix that roots sub-agent skills and tools
-  at each sub-agent's own bundle directory. Do not claim v0.9 security parity
-  with that unreleased development-main fix.
+- Official v0.10 roots sub-agent skills and tools at each sub-agent's own
+  bundle directory. This is an upstream runtime guarantee at the frozen tag;
+  the transport records it but does not implement or re-enforce isolation.
 - v0.8 added explicit `env_passthrough`, harness `extra_args`, and recursive
   dotfile scanning. This repository does not enable those surfaces. Any future
   use requires a separate credential, command, and workspace-boundary review.
 - Smart routing, session routing overrides, and child routing metadata do not
   grant approval, authority, lease, lock, child-create, or harness-override
   capability in this repository.
+- v0.10 permits any upstream shared-session editor to approve. That is
+  Omnigent collaboration behavior only: it grants no Consiliency approval,
+  coordinator authority, lease, lock, child-create, harness-override, or route
+  decision.
 
 ## Coordination Backend Secrets
 
