@@ -7,6 +7,12 @@ import type {
 } from "./types.js";
 
 export interface OmnigentSourceMetadataFixture {
+  readonly approval_posture?: {
+    readonly authority: string;
+    readonly consiliency_authority_granted: boolean;
+    readonly forbidden_capability_expansion: string[];
+    readonly shared_editors_can_approve: boolean;
+  };
   readonly freeze_target: {
     readonly commit: string;
     readonly package_version: string;
@@ -14,16 +20,43 @@ export interface OmnigentSourceMetadataFixture {
     readonly requires_python: string;
     readonly tag: string;
   };
+  readonly preflight_confirmation?: {
+    readonly added_paths: string[];
+    readonly added_schemas: string[];
+    readonly added_stream_events: string[];
+    readonly changed_schemas: string[];
+    readonly newer_stable_release: boolean;
+    readonly official_release_event_count: number;
+    readonly openapi_operation_count: number;
+    readonly openapi_path_count: number;
+    readonly openapi_schema_count: number;
+    readonly removed_paths: string[];
+    readonly removed_schemas: string[];
+    readonly removed_stream_events: string[];
+    readonly server_background_command: string;
+  };
+  readonly security_posture?: {
+    readonly stable_guarantee: string;
+    readonly transport_enforces_bundle_isolation: boolean;
+    readonly v0_10_bundle_root_isolation: boolean;
+  };
 }
 
 export interface OmnigentHttpSurfaceFixture {
   readonly openapi_delta?: {
     readonly operation_count: number;
+    readonly path_count?: number;
+    readonly schema_count?: number;
     readonly added_paths: string[];
     readonly removed_paths: string[];
     readonly added_schemas: string[];
     readonly removed_schemas: string[];
     readonly changed_schemas?: string[];
+  };
+  readonly child_session_public_surface?: {
+    readonly create_under_parent: boolean;
+    readonly read_only_fields: string[];
+    readonly task_summary: string;
   };
   readonly endpoint_provenance?: Array<{
     readonly method: string;
@@ -66,6 +99,12 @@ export interface OmnigentHttpSurfaceFixture {
     readonly official_release_event_count?: number;
     readonly release_event_types?: string[];
   };
+  readonly structured_error_contract?: {
+    readonly body_type: string;
+    readonly classification_fields: string[];
+    readonly excluded_from_classification: string[];
+    readonly pass_through: string;
+  };
 }
 
 export interface OmnigentV09WireFixture {
@@ -82,6 +121,34 @@ export interface OmnigentV09WireFixture {
   readonly session_pages: unknown[];
   readonly session_response: unknown;
   readonly sse_frames: unknown[];
+}
+
+interface OmnigentStructuredHttpErrorFixture {
+  readonly body: Readonly<Record<string, unknown>>;
+  readonly expected_failure: {
+    readonly category: string;
+    readonly limit_type: string;
+    readonly retryable: boolean;
+  };
+  readonly headers: Readonly<Record<string, string>>;
+  readonly status_code: number;
+}
+
+export interface OmnigentV010WireFixture extends OmnigentV09WireFixture {
+  readonly child_page: {
+    readonly data: Array<
+      Readonly<
+        Record<string, unknown> & {
+          readonly task_summary?: string | null;
+        }
+      >
+    >;
+    readonly first_id: string | null;
+    readonly has_more: boolean;
+    readonly last_id: string | null;
+  };
+  readonly structured_error: OmnigentStructuredHttpErrorFixture;
+  readonly structured_policy_error: OmnigentStructuredHttpErrorFixture;
 }
 
 export interface OmnigentCliSurfaceFixture {
@@ -102,6 +169,11 @@ export interface OmnigentCliSurfaceFixture {
     readonly nonzero_codes_are_stable_abi: boolean;
     readonly success_code: number;
   };
+  readonly release?: {
+    readonly commit: string;
+    readonly tag: string;
+    readonly version_output: string;
+  };
 }
 
 export interface OmnigentCapabilityProbeFixture {
@@ -110,6 +182,15 @@ export interface OmnigentCapabilityProbeFixture {
     readonly status: OmnigentCapabilityStatus;
     readonly evidence: string[];
   }>;
+  readonly observed_non_capabilities?: Array<{
+    readonly name: string;
+    readonly provider_capability: boolean;
+    readonly [key: string]: unknown;
+  }>;
+  readonly release?: {
+    readonly commit: string;
+    readonly tag: string;
+  };
 }
 
 export interface OmnigentEventFixture {
@@ -187,6 +268,12 @@ export function loadOmnigentHttpSurface(): OmnigentHttpSurfaceFixture {
 export function loadOmnigentV09WireContract(): OmnigentV09WireFixture {
   return readOmnigentFixture<OmnigentV09WireFixture>(
     "http/v0-9-wire-contract.json",
+  );
+}
+
+export function loadOmnigentV010WireContract(): OmnigentV010WireFixture {
+  return readOmnigentFixture<OmnigentV010WireFixture>(
+    "http/v0-10-wire-contract.json",
   );
 }
 

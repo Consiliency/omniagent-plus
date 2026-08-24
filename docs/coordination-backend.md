@@ -91,8 +91,12 @@ pnpm exec vite-node scripts/coordination-smoke-test.ts
 
 ## Upstream Omnigent State
 
-Official Omnigent `v0.9.0` is the supported release target. Smart routing,
-child routing metadata, session routing override, imports, projects, hosts,
-credentials, and model discovery are transport or administration surfaces;
-they do not expose lease, lock, coordination, approval, or inbox semantics.
-CS-2.2 continues to own this control-plane layer in `omniagent-plus`.
+Official Omnigent `v0.10.0` is the supported release target. Smart routing,
+smart-routing sources, child routing and task-summary metadata, usage
+reporting, branding, server discovery, environment search, session routing
+override, imports, projects, hosts, credentials, and model discovery are
+transport or administration surfaces. Upstream shared-editor approval behavior
+also remains upstream-only. None of these surfaces can acquire, renew, release,
+transfer, or override a CS-2.2 lease or lock, create a neutral route decision,
+or grant coordinator authority. The lease store remains the sole source of
+truth for this control-plane layer in `omniagent-plus`.

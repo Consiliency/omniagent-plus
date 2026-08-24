@@ -59,20 +59,25 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-The official Omnigent `v0.9.0` freeze retains 52 stream event types. Reconnect
-opens SSE before fetching the snapshot and all cursor-paginated history. The
-persisted-item mapper never manufactures successful completion from an idle
-snapshot; success requires tagged response lifecycle evidence. Stream item IDs
+The official Omnigent `v0.10.0` freeze retains exactly 52 stream event types.
+Reconnect opens SSE before fetching the snapshot and all cursor-paginated
+history. The persisted-item mapper never manufactures successful completion
+from an idle snapshot; success requires tagged response lifecycle evidence. Stream item IDs
 dedupe overlap with persisted history. When an official buffered text delta has
 no identity, only its matching persisted text prefix is consumed; mismatched or
 continued output remains live. Tool overlap uses call identity even when the
 persisted and streamed item IDs differ. Metadata-only history rows never create
 a neutral turn lifecycle.
 
+The v0.10 `OutputTextDeltaEvent` edits are descriptive only. Identity-free
+equal text remains undecidable and lossless; replay deduplication still
+requires item/message identity or process-local cursor evidence.
+
 `session.created` on a parent stream describes a child session and does not
 create a neutral root-session lifecycle event. The canonical CLI start remains
-`omnigent server --background`; v0.9's hidden `omnigent server start` alias is
-never invoked.
+`omnigent server --background`; the hidden `omnigent server start` alias is
+never invoked. `omnigent start` and `omnigent host --background` are operator
+commands and do not replace the provider lifecycle command.
 
 The v0.5.1 `session.mcp_startup` and `response.policy_denied` events preserve
 their metadata through parsing and intentionally emit no normalized runtime
@@ -83,3 +88,10 @@ The v0.6.0 `browser.action_request` and
 `response.function_call_output.delta` events follow the same observational
 rule: they preserve raw transport metadata, emit no normalized runtime event,
 and cannot create or terminate a turn.
+
+## Development Watch List
+
+The 2026-08-24 upstream `v0.11.0.dev0` probe adds
+`session.permission_mode` and `session.title`. These development-only events
+are not members of the v0.10 allowlist and follow existing unknown-frame
+behavior until a later stable freeze explicitly accepts them.

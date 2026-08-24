@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { loadOmnigentEventFixture } from "./contract-fixtures.js";
+import {
+  loadOmnigentEventFixture,
+  loadOmnigentV010WireContract,
+} from "./contract-fixtures.js";
 import { mapOmnigentEventSequence } from "./event-mapper.js";
 import type { OmnigentRawEvent } from "./types.js";
 
@@ -582,6 +585,33 @@ describe("event mapper", () => {
         turnId: undefined,
       }),
     );
+  });
+
+  it("preserves repeated identity-free output deltas from the v0.10 fixture", () => {
+    const deltas = loadOmnigentV010WireContract().sse_frames.filter(
+      (frame): frame is Record<string, unknown> =>
+        typeof frame === "object" &&
+        frame !== null &&
+        "type" in frame &&
+        frame.type === "response.output_text.delta",
+    );
+    const runtimeEvents = mapOmnigentEventSequence(
+      "session-v0-10",
+      deltas.map((frame, index) => ({
+        delta: String(frame.delta),
+        id: `v0-10-delta-${index}`,
+        occurredAt: "2026-08-24T06:00:29.000Z",
+        sessionId: "session-v0-10",
+        turnId: "response-1",
+        type: "response.output_text.delta",
+      })),
+    );
+
+    expect(
+      runtimeEvents
+        .filter((event) => event.type === "runtime.text.delta")
+        .map((event) => event.payload.delta),
+    ).toEqual(["answer", "answer"]);
   });
 
   it("accepts v0.6 browser and tool-output events as safe no-ops", () => {

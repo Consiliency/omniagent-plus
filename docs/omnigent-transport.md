@@ -1,17 +1,19 @@
 # Omnigent Transport
 
-`@consiliency/omnigent-transport@0.5.0` implements the official Omnigent
-`v0.9.0` boundary while preserving the neutral runtime-provider contract.
+`@consiliency/omnigent-transport@0.6.0` implements the official Omnigent
+`v0.10.0` boundary while preserving the neutral runtime-provider contract.
 
 ## Modes
 
 - HTTP accepts an existing named agent, or uses an explicit agent-id resolver.
   It serializes official create/message JSON, normalizes epoch/snake-case
   responses, consumes complete cursor pagination, and maps persisted
-  `ConversationItem` history separately from tagged SSE.
+  `ConversationItem` history separately from tagged SSE. Child summaries
+  preserve optional nullable `task_summary` as read-only metadata.
 - CLI retains `omnigent run`, resume/attach, and the canonical
   `omnigent server --background` lifecycle. The hidden `server start` alias is
-  evidence only and is not invoked.
+  evidence only and is not invoked. `omnigent start` and
+  `omnigent host --background` remain non-provider operator commands.
 - Hybrid retains CLI process readiness and HTTP session/history delegation.
 
 Create and send idempotency are intentionally process-local. Duplicate keys in
@@ -26,7 +28,7 @@ while local state is active fails with `concurrency_limit`; Omnigent pending-inp
 queueing is available only through the explicit `allowQueuedTurns` option and is
 reflected by the returned queued handle.
 
-Omnigent v0.9 interrupt and stop controls are session-scoped and carry no turn
+Omnigent v0.10 interrupt and stop controls are session-scoped and carry no turn
 identity or fencing token. HTTP and hybrid cancellation/close therefore fail
 with `backend_capability_missing` unless `withExclusiveSessionLease` and
 `sessionMutationFenceStore` are configured. Both hooks must use the same
@@ -41,12 +43,19 @@ persisted for replacement providers, including polling paths. A fresh upstream
 `running` or `waiting` snapshot blocks default admission even without identity
 fields. Durable lease and fence ownership remain outside this package.
 
+HTTP error bodies remain lossless `unknown` values, including v0.10 `title`,
+`cause`, `remediation`, and unknown additive fields. Failure mapping classifies
+only a plain-string body or canonical `code`, `message`, and legacy `error`
+fields, including supported `detail` envelopes. Descriptive fields containing
+billing, auth, quota, monthly, or usage-cap words cannot alter retryability or
+failure policy.
+
 ## Event Boundary
 
-The live allowlist remains exactly 52 tagged types. A stateful SSE normalizer
-handles nested response objects, route/session identifiers, missing timestamps,
-stable item IDs, and response context before calling the neutral mapper.
-Reconnect completes the stream handshake before snapshot/history reads and
+The v0.10 live allowlist remains exactly 52 tagged types. A stateful SSE
+normalizer handles nested response objects, route/session identifiers, missing
+timestamps, stable item IDs, and response context before calling the neutral
+mapper. Reconnect completes the stream handshake before snapshot/history reads and
 closes the stream on every exit.
 
 Persisted history maps messages, tool calls/results, errors, and interruptions.
@@ -55,9 +64,15 @@ events remain no-ops unless they carry an existing neutral lifecycle meaning.
 Child `session.created`, routing decisions, browser actions, and uncorrelated
 bare turns do not broaden the neutral vocabulary.
 
+`response.output_text.delta` is behaviorally unchanged. Equal identity-free
+text remains undecidable and is emitted losslessly; replay is deduplicated only
+when item/message identity or process-local cursor evidence supports it.
+
 ## Boundary
 
 Logical close and terminal uniqueness remain provider emulations. Child spawn,
 public harness override, smart-routing authority, approval delegation, lease,
 and lock remain outside this package. No XG-1 authority or coordinator behavior
-is changed.
+is changed. Stable upstream bundle-root isolation and shared-editor approval
+behavior are recorded facts, not capabilities implemented or granted by this
+transport.

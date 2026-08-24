@@ -48,11 +48,30 @@ function classifyHttpBody(body: unknown): string {
     return body.toLowerCase();
   }
 
-  if (typeof body === "object" && body !== null) {
-    return JSON.stringify(body).toLowerCase();
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return "";
   }
 
-  return "";
+  const record = body as Record<string, unknown>;
+  const signals = [record.code, record.message, record.error].filter(
+    (value): value is string => typeof value === "string",
+  );
+  if (typeof record.detail === "string") {
+    signals.push(record.detail);
+  } else if (
+    typeof record.detail === "object" &&
+    record.detail !== null &&
+    !Array.isArray(record.detail)
+  ) {
+    const detail = record.detail as Record<string, unknown>;
+    signals.push(
+      ...[detail.code, detail.message, detail.error].filter(
+        (value): value is string => typeof value === "string",
+      ),
+    );
+  }
+
+  return signals.join(" ").toLowerCase();
 }
 
 export function mapCapabilityGap(

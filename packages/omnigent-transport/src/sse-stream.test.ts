@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadOmnigentEventFixture,
+  loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
 import { mapOmnigentEventSequence } from "./event-mapper.js";
@@ -282,6 +283,49 @@ describe("sse stream parser", () => {
     expect(
       runtimeEvents.filter((event) => event.type === "runtime.turn.completed"),
     ).toHaveLength(1);
+  });
+
+  it("normalizes v0.10 frames without changing identity-free output", async () => {
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          loadOmnigentV010WireContract()
+            .sse_frames.map((frame) => `data: ${JSON.stringify(frame)}`)
+            .join("\n\n"),
+        ),
+        {
+          now: () => "2026-08-24T06:00:29.000Z",
+          sessionId: "session-v0-10",
+        },
+        (skip) => skipped.push(skip.reason),
+      ),
+    );
+
+    expect(skipped).toEqual([]);
+    expect(
+      events
+        .filter((event) => event.type === "response.output_text.delta")
+        .map((event) => event.delta),
+    ).toEqual(["answer", "answer"]);
+  });
+
+  it("keeps v0.11-only event types outside the stable parser", async () => {
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          ["session.permission_mode", "session.title"]
+            .map((type) => `data: ${JSON.stringify({ type })}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-v0-11-watch-list" },
+        (skip) => skipped.push(skip.reason),
+      ),
+    );
+
+    expect(events).toEqual([]);
+    expect(skipped).toEqual(["unknown_event_type", "unknown_event_type"]);
   });
 
   it("maps a fixture assistant item when the harness emitted no text deltas", async () => {

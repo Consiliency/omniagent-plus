@@ -298,6 +298,7 @@ export interface OmnigentChildSessionSummary {
   readonly routed_model?: string | null;
   readonly routing_decision_id?: string | null;
   readonly session_name?: string | null;
+  readonly task_summary?: string | null;
   readonly title?: string | null;
   readonly tool?: string | null;
   readonly updated_at: number;

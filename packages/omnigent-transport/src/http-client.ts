@@ -222,6 +222,20 @@ function normalizeChildSessionSummary(value: unknown): OmnigentChildSessionSumma
       scope: "session",
     });
   }
+  if (
+    value.task_summary !== undefined &&
+    value.task_summary !== null &&
+    typeof value.task_summary !== "string"
+  ) {
+    throw createRuntimeFailure({
+      actor: "provider",
+      category: "malformed_response",
+      message:
+        "Omnigent child session page row field task_summary must be a string or null.",
+      retryable: false,
+      scope: "session",
+    });
+  }
   return value as unknown as OmnigentChildSessionSummary;
 }
 

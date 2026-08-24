@@ -3,6 +3,28 @@
 All notable changes to the public `@consiliency/*` seam packages are documented
 here. These packages were never published under any other scope.
 
+## [0.6.0] - 2026-08-24 - Omnigent v0.10 compatibility
+
+### Changed
+- Freeze official Omnigent `v0.10.0` at
+  `40755dd8dddb07e1eb6e4055d1d9936e184ceb9b` and preserve the historical
+  v0.9 tagged-wire fixture and loader as regression evidence.
+- Type and validate nullable child-session `task_summary` as read-only upstream
+  metadata, without adding child-creation or routing authority.
+- Preserve structured HTTP error bodies losslessly while limiting failure
+  classification to plain strings and canonical `code`, `message`, and legacy
+  `error` fields, including their supported `detail` envelopes.
+- Preserve the exact 52-event vocabulary and existing lossless,
+  identity-aware SSE replay and deduplication behavior.
+
+### Notes
+- Stable upstream bundle-root isolation and shared-editor approval behavior do
+  not expand Consiliency approval, routing, lease, lock, or runtime authority.
+- Usage, branding, server-discovery, smart-routing, and environment-search
+  additions remain non-provider surfaces; v0.11 development events are not
+  adopted.
+- Only `@consiliency/omnigent-transport` advances to `0.6.0`.
+
 ## [0.5.0] - 2026-08-12 - Omnigent v0.9 tagged-wire correction
 
 ### Changed
