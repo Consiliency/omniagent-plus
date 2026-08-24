@@ -39,7 +39,10 @@ the dry run.
 - PASS: lifecycle, approval, lease, lock, routing, and runtime-provider authority boundaries remain unchanged.
 - PASS: only transport advances to 0.6.0; sibling package versions and the publish workflow are unchanged.
 - PASS: package build, packed-consumer smoke, and npm dry-run prove release readiness.
-- PENDING: exact-head implementation panel and CI must pass before merge.
+- RECONCILED: the repository has no pull-request CI workflow. The governing
+  merge proof is the rerun exact-head local suite, live GitHub PR head and
+  mergeability, and a usable exact-head cross-vendor panel; a skipped external
+  check is not counted as CI.
 - NOT EXECUTED: npm publication, tag, and GitHub release; those require a separate post-merge action.
 
 ## Dirty path classification

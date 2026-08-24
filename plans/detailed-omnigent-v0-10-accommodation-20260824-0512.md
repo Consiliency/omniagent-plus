@@ -429,7 +429,10 @@ publish workflow and unrelated package documentation do not change.
 8. Push one implementation branch and open one PR. Run the requested
    cross-vendor panel against the exact PR head, reconcile every concrete
    finding, and rerun all gates after the final commit.
-9. Merge only with current coordinator authorization and green exact-head CI.
+9. Merge only with current coordinator authorization, a green exact-head local
+   automation suite, a usable exact-head panel, and a live PR head/mergeability
+   check. This repository has no pull-request CI workflow; inventory that
+   absence explicitly rather than describing a nonexistent CI check as green.
    Publish only after merge authorization through the existing release
    workflow, then verify registry metadata and a fresh consumer import.
 
@@ -577,8 +580,10 @@ planning convenience.
   v0.9 fixtures, and compiles declarations with `types: []` and
   `skipLibCheck: false`; proven by `test:pack`.
 - [ ] Full build, lint, typecheck, tests, JSON validation, diff check, and roadmap
-  validation pass at the exact reviewed PR head; proven by the effective
-  automation suite and CI receipt.
+  validation pass at the exact reviewed PR head; proven by the effective local
+  automation suite, the live GitHub PR head/mergeability check, and an explicit
+  workflow inventory confirming that this repository has no pull-request CI
+  workflow. Do not substitute a skipped external check for CI evidence.
 - [ ] The PR receives the required exact-head cross-vendor review, all concrete
   findings are reconciled, and any repair commit triggers a fresh suite/review
   receipt before merge consideration; proven by the implementation handoff and
