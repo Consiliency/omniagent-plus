@@ -10,7 +10,10 @@ export {
   createCommandBackedCliTransport,
   OmnigentCliProvider,
 } from "./cli-client.js";
-export { loadOmnigentV09WireContract } from "./contract-fixtures.js";
+export {
+  loadOmnigentV010WireContract,
+  loadOmnigentV09WireContract,
+} from "./contract-fixtures.js";
 export {
   mapCapabilityGap,
   mapCliFailure,

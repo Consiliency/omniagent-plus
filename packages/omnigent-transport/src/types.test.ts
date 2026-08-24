@@ -9,6 +9,7 @@ import {
   omnigentSessionStatuses,
   omnigentStreamEventTypes,
   type OmnigentHarnessCatalogResponse,
+  type OmnigentChildSessionSummary,
   type OmnigentHttpClientOptions,
   type OmnigentNativeModelOption,
   type OmnigentRawEvent,
@@ -72,6 +73,13 @@ describe("transport types", () => {
     };
     const harnessCatalog: OmnigentHarnessCatalogResponse = {
       local: [{ name: "codex", public_session_override: false }],
+    };
+    const childSummary: OmnigentChildSessionSummary = {
+      created_at: 1_780_272_010,
+      id: "child-v0-10",
+      parent_session_id: "session-1",
+      task_summary: "Inspect the tagged v0.10 transport contract.",
+      updated_at: 1_780_272_011,
     };
     const modelOption: OmnigentNativeModelOption | undefined =
       snapshot.modelOptions?.[0];
@@ -174,6 +182,11 @@ describe("transport types", () => {
       "response.function_call_output.delta",
     );
     expect(omnigentStreamEventTypes).toHaveLength(52);
+    expect(omnigentStreamEventTypes).not.toContain("session.permission_mode");
+    expect(omnigentStreamEventTypes).not.toContain("session.title");
+    expect(childSummary.task_summary).toBe(
+      "Inspect the tagged v0.10 transport contract.",
+    );
     expect(snapshot.items[0]?.id).toBe("item-1");
     expect(snapshot.activeResponseId).toBe("response-1");
     expect(snapshot.backgroundTaskCount).toBe(1);

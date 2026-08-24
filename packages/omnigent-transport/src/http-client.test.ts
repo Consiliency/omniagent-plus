@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { loadOmnigentV09WireContract } from "./contract-fixtures.js";
+import {
+  loadOmnigentV010WireContract,
+  loadOmnigentV09WireContract,
+} from "./contract-fixtures.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import { OmnigentHttpClient, OmnigentHttpError } from "./http-client.js";
 
@@ -319,6 +322,79 @@ describe("http client", () => {
     expect(children[0]).not.toHaveProperty("status");
   });
 
+  it("accepts absent, null, and string task summaries across child pages", async () => {
+    const wire = loadOmnigentV010WireContract();
+    const firstPage = {
+      ...wire.child_page,
+      has_more: true,
+    };
+    const omittedSummary = {
+      agent_id: "agent-child-omitted",
+      busy: false,
+      created_at: 1_780_272_014,
+      id: "child-task-summary-omitted",
+      parent_session_id: "session-123",
+      title: "Child With Omitted Summary",
+      updated_at: 1_780_272_015,
+    };
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input) =>
+        new Response(
+          JSON.stringify(
+            String(input).includes("after=")
+              ? {
+                  data: [omittedSummary],
+                  first_id: omittedSummary.id,
+                  has_more: false,
+                  last_id: omittedSummary.id,
+                }
+              : firstPage,
+          ),
+        ),
+    });
+
+    const children = await client.listChildSessions("session-123");
+
+    expect(children.map(({ task_summary }) => task_summary)).toEqual([
+      "Inspect the tagged v0.10 transport contract.",
+      null,
+      undefined,
+    ]);
+  });
+
+  it("rejects malformed task summaries at the HTTP boundary", async () => {
+    for (const taskSummary of [42, false, {}, []]) {
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              data: [
+                {
+                  created_at: 1_780_272_010,
+                  id: "child-malformed-task-summary",
+                  parent_session_id: "session-123",
+                  task_summary: taskSummary,
+                  updated_at: 1_780_272_011,
+                },
+              ],
+              first_id: "child-malformed-task-summary",
+              has_more: false,
+              last_id: "child-malformed-task-summary",
+            }),
+          ),
+      });
+
+      await expect(client.listChildSessions("session-123")).rejects.toEqual(
+        expect.objectContaining({
+          category: "malformed_response",
+          retryable: false,
+        }),
+      );
+    }
+  });
+
   it("accepts an official session response without optional items", async () => {
     const wire = loadOmnigentV09WireContract();
     const sessionResponse = wire.session_response as Record<string, unknown>;
@@ -488,6 +564,27 @@ describe("http client", () => {
     } finally {
       await server.stop();
     }
+  });
+
+  it("preserves every structured v0.10 HTTP error field", async () => {
+    const fixture = loadOmnigentV010WireContract().structured_error;
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(JSON.stringify(fixture.body), {
+          headers: fixture.headers,
+          status: fixture.status_code,
+        }),
+    });
+
+    const request = client.getSession("session-structured-error");
+    await expect(request).rejects.toEqual(
+      expect.objectContaining({
+        body: fixture.body,
+        headers: expect.objectContaining(fixture.headers),
+        statusCode: fixture.status_code,
+      }),
+    );
   });
 
   it("rejects malformed event acknowledgement shapes", async () => {
