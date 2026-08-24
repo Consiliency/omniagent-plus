@@ -457,6 +457,34 @@
             "worktree": "/mnt/workspace/worktrees/omniagent-plus-implement-omnigent-v0-10"
           },
           "transition": "executing"
+        },
+        {
+          "at": "2026-08-24T06:53:58Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "dirty_path_classification": {
+              "non_plan_output": [],
+              "plan_owned": [
+                "plans/manifest.json"
+              ],
+              "pre_existing_unrelated": []
+            },
+            "doc_delta_decision": "docs_updated",
+            "initial_exact_head_review": "usable_4_seat_board_no_blocking_findings",
+            "initial_exact_head_review_oid": "47c22f25fbaaeb83ea8f76a9969f6c9a0ab2fcf4",
+            "publication_status": "not_published",
+            "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/7bb6f5b1/codex-implement-omnigent-v0-10/20260824T064046Z.md",
+            "run_id": "20260824T064046Z",
+            "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260824T064046Z-omnigent-v010-verification.md",
+            "verification_status": "passed",
+            "verification_summary": "PASS - official Omnigent v0.10.0 is frozen at the tagged authority, transport 0.6.0 is packable and dry-run publishable, and no package was published.",
+            "worker_commits": [
+              "0ff4c821d11ffe03ccc666f049338e12e47cc498",
+              "0955ef102f6a05ba85508f1ec9ab41245a04c23a",
+              "1b408834e6d012387ec7becb4eef10ad711ae679"
+            ]
+          },
+          "transition": "completed"
         }
       ],
       "owner_skill": "codex-plan-detailed",
@@ -464,10 +492,10 @@
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/aadc284e/codex-plan-omnigent-v0-10/20260824T051211Z-omnigent-v010-plan.md",
       "roadmap_ref": null,
       "slug": "omnigent-v0-10-accommodation-20260824-0512",
-      "status": "executing",
+      "status": "completed",
       "task_summary": "Plan official Omnigent v0.10.0 authority, additive transport conformance, and transport-only 0.6.0 release.",
       "type": "detailed",
-      "updated_at": "2026-08-24T05:56:31Z"
+      "updated_at": "2026-08-24T06:53:58Z"
     },
     {
       "acceptance_criteria_count": 7,
