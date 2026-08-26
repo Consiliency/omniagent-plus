@@ -1911,10 +1911,12 @@ describe("http provider", () => {
               {
                 conversation_id: snapshot.id,
                 permission_mode: "plan",
+                response_id: "forged-response",
                 type: "session.permission_mode",
               },
               {
                 conversation_id: snapshot.id,
+                response_id: "forged-response",
                 title: "Metadata rename",
                 type: "session.title",
               },
@@ -1960,8 +1962,10 @@ describe("http provider", () => {
     const events = await collectAsync(provider.streamEvents(session.id));
     const after = await provider.getSessionInfo(session.id);
     expect(events).toEqual([]);
+    expect(handle.turnId).toBe("item-provisional");
     expect(after.activeTurnId).toBe("item-provisional");
     expect(after.state).toBe(info.state);
+    expect(after.updatedAt).toBe(info.updatedAt);
     expect(await fenceStore.read(session.id)).toEqual(fenceBefore);
   });
 

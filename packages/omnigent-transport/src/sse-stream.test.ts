@@ -320,10 +320,12 @@ describe("sse stream parser", () => {
             {
               conversation_id: "session-v0-11",
               permission_mode: "plan",
+              response_id: "forged-response",
               type: "session.permission_mode",
             },
             {
               conversation_id: "session-v0-11",
+              response_id: "forged-response",
               title: "Renamed",
               type: "session.title",
             },
@@ -341,9 +343,18 @@ describe("sse stream parser", () => {
     expect(events).toEqual([
       expect.objectContaining({
         permission_mode: "plan",
+        response_id: undefined,
+        turnAliasId: undefined,
+        turnId: undefined,
         type: "session.permission_mode",
       }),
-      expect.objectContaining({ title: "Renamed", type: "session.title" }),
+      expect.objectContaining({
+        response_id: undefined,
+        title: "Renamed",
+        turnAliasId: undefined,
+        turnId: undefined,
+        type: "session.title",
+      }),
     ]);
     expect(mapOmnigentEventSequence("session-v0-11", events)).toEqual([]);
     expect(skipped).toEqual(["invalid_event_shape", "invalid_event_shape"]);

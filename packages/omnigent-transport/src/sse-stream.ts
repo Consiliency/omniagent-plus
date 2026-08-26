@@ -314,11 +314,16 @@ export class OmnigentSseNormalizer {
     const response = isRecord(raw.response) ? raw.response : undefined;
     const data = isRecord(raw.data) ? raw.data : undefined;
     const item = isRecord(raw.item) ? raw.item : undefined;
-    const nestedResponseId = stringValue(response?.id);
-    const explicitResponseId =
-      stringValue(raw.response_id) ??
-      stringValue(data?.response_id) ??
-      stringValue(item?.response_id);
+    const isPassiveSessionMetadata =
+      tagged.type === "session.permission_mode" || tagged.type === "session.title";
+    const nestedResponseId = isPassiveSessionMetadata
+      ? undefined
+      : stringValue(response?.id);
+    const explicitResponseId = isPassiveSessionMetadata
+      ? undefined
+      : stringValue(raw.response_id) ??
+        stringValue(data?.response_id) ??
+        stringValue(item?.response_id);
     const previousResponseId = this.currentResponseId;
     const officialTurnId = nestedResponseId ?? explicitResponseId;
     const officialTurnRejected =
@@ -349,17 +354,21 @@ export class OmnigentSseNormalizer {
       this.unboundTurnIds.length !== 1
         ? undefined
         : this.fallbackTurnId;
-    const turnId = isBareTurn
-      ? explicitResponseId
-      : officialTurnId ??
-        previousResponseId ??
-        this.identityFreeQuarantineTurnId ??
-        fallbackTurnId;
-    let turnAliasId = officialTurnId
-      ? this.responseAliases.get(officialTurnId)
-      : previousResponseId
-        ? this.responseAliases.get(previousResponseId)
-        : undefined;
+    const turnId = isPassiveSessionMetadata
+      ? undefined
+      : isBareTurn
+        ? explicitResponseId
+        : officialTurnId ??
+          previousResponseId ??
+          this.identityFreeQuarantineTurnId ??
+          fallbackTurnId;
+    let turnAliasId = isPassiveSessionMetadata
+      ? undefined
+      : officialTurnId
+        ? this.responseAliases.get(officialTurnId)
+        : previousResponseId
+          ? this.responseAliases.get(previousResponseId)
+          : undefined;
     let turnAliasConfirmed = turnAliasId !== undefined;
     const tentativeTurnAliasId = officialTurnId
       ? this.tentativeResponseAliases.get(officialTurnId)

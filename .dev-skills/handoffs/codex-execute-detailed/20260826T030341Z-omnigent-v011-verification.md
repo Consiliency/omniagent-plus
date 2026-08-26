@@ -33,16 +33,33 @@ summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transpo
 - PASS: `git diff --check`.
 
 The dry-run tarball was `@consiliency/omnigent-transport@0.6.0`, 82 files,
-91.3 kB packed and 516.8 kB unpacked. It includes emitted declarations and the
+91.4 kB packed and 517.4 kB unpacked. It includes emitted declarations and the
 current v0.11 plus historical v0.10/v0.9 fixtures. No npm publication, tag,
 release, merge, or deployment occurred.
+
+## Panel reconciliation
+
+The first exact-head review of `Consiliency/omniagent-plus#16` delivered four
+usable independent seats, including Fable through the Claude subscription TUI
+adapter. Grok, Fable, and Gemini agreed. Sol disagreed after reproducing an
+authority-boundary defect: an otherwise metadata-only v0.11 event carrying an
+extra `response_id` could enter generic SSE correlation and mutate a provisional
+turn identity and active session state.
+
+The parser now strips response identity, alias, and fallback-turn correlation
+from `session.permission_mode` and `session.title`. Regression evidence injects
+a forged response identity and proves the raw events remain unattributed while
+the provider leaves the turn handle, active turn, session state, timestamp, and
+shared fence unchanged. The targeted parser/provider suite passed 103 tests,
+then the full verification sequence above passed again. A final exact-head
+advisor-board review remains required after this reconciliation commit.
 
 ## Acceptance reduction
 
 - PASS: live and checked-in authority identify v0.11.0 at the exact tag commit.
 - PASS: exactly 54 event literals include only the two v0.11 additions.
 - PASS: permission/title events are validated metadata-only no-ops, including
-  with an active provisional turn and fence state.
+  with a forged response identity, active provisional turn, and fence state.
 - PASS: status-bearing id-less failures preserve typed terminal behavior,
   synthetic event identity, and conservative attribution.
 - PASS: background-task detail is availability-preserving on HTTP and SSE.
@@ -53,7 +70,7 @@ release, merge, or deployment occurred.
 - PASS: only the still-unpublished transport 0.6.0 changelog entry changed;
   sibling versions and the publish workflow are unchanged.
 - PASS: full suite, build, pack, and dry-run publication gates passed.
-- PENDING: open PR and exact-head advisor-board review. This is the next gate.
+- PENDING: final exact-head advisor-board review of the reconciliation commit.
 
 ## Dirty path classification
 
@@ -66,4 +83,3 @@ paths and no non-plan output.
 `doc_delta_decision=docs_updated`: authority, transport, lifecycle,
 coordination, readiness, live-smoke, fixture, and release documentation now
 describe v0.11 and its explicit non-authority boundaries.
-
