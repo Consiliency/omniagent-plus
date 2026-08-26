@@ -70,6 +70,7 @@ try {
       "--input-type=module",
       "-e",
       `import {
+  loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
   snapshotFromHealth,
@@ -81,35 +82,38 @@ const snapshot = snapshotFromHealth({
   runtime: "omnigent",
   sessionStateDrift: [],
 });
-const currentWire = loadOmnigentV010WireContract();
-const historicalWire = loadOmnigentV09WireContract();
-if (snapshot.version !== "0.10.0") throw new Error("unexpected fixture version");
-if (snapshot.gitSha !== "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b") {
+const currentWire = loadOmnigentV011WireContract();
+const historicalV010Wire = loadOmnigentV010WireContract();
+const historicalV09Wire = loadOmnigentV09WireContract();
+if (snapshot.version !== "0.11.0") throw new Error("unexpected fixture version");
+if (snapshot.gitSha !== "496b7b13f6af3ed5330b957df408fc91290b6307") {
   throw new Error("unexpected fixture git sha");
 }
 if (
-  currentWire.authority.tag !== "v0.10.0" ||
-  currentWire.authority.commit !== "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b"
+  currentWire.authority.tag !== "v0.11.0" ||
+  currentWire.authority.commit !== "496b7b13f6af3ed5330b957df408fc91290b6307"
 ) {
   throw new Error("unexpected current wire authority");
 }
 if (
   currentWire.child_page.data[0]?.task_summary !==
-    "Inspect the tagged v0.10 transport contract." ||
+    "Inspect the tagged v0.11 transport contract." ||
   currentWire.child_page.data[1]?.task_summary !== null
 ) {
-  throw new Error("unexpected v0.10 task summary fixture");
+  throw new Error("unexpected v0.11 task summary fixture");
 }
 const currentDeltas = currentWire.sse_frames.filter(
   (frame) => frame.type === "response.output_text.delta",
 );
 if (currentDeltas.length !== 2) {
-  throw new Error("unexpected v0.10 lossless SSE regression fixture");
+  throw new Error("unexpected v0.11 lossless SSE regression fixture");
 }
 if (
-  historicalWire.authority.tag !== "v0.9.0" ||
-  historicalWire.authority.commit !== "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2" ||
-  !historicalWire.sse_frames.some((frame) => frame.type === "response.completed")
+  historicalV010Wire.authority.tag !== "v0.10.0" ||
+  historicalV010Wire.authority.commit !== "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b" ||
+  historicalV09Wire.authority.tag !== "v0.9.0" ||
+  historicalV09Wire.authority.commit !== "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2" ||
+  !historicalV09Wire.sse_frames.some((frame) => frame.type === "response.completed")
 ) {
   throw new Error("unexpected historical v0.9 wire fixture");
 }`,
@@ -119,6 +123,7 @@ if (
   writeFileSync(
     join(consumer, "type-smoke.ts"),
     `import type {
+  OmnigentBackgroundTaskInfo,
   OmnigentHttpClientOptions,
   OmnigentNativeModelOption,
   OmnigentNativeReasoningEffortOption,
@@ -153,6 +158,11 @@ const snapshot = {
   title: "packed type smoke",
   updatedAt: "2026-07-30T00:00:00.000Z",
 } satisfies OmnigentSessionSnapshot;
+const backgroundTask = {
+  command: "sleep 120",
+  id: "shell-1",
+  status: "running",
+} satisfies OmnigentBackgroundTaskInfo;
 const child = {
   agent_id: "agent-child-1",
   busy: false,
@@ -173,6 +183,7 @@ const item = {
   type: "message",
 } satisfies OmnigentConversationItem;
 void snapshot;
+void backgroundTask;
 void child;
 void item;
 void httpOptions;

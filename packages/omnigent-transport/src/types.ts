@@ -77,6 +77,8 @@ export const omnigentStreamEventTypes = [
   "session.model_options",
   "session.reasoning_effort",
   "session.collaboration_mode",
+  "session.permission_mode",
+  "session.title",
   "session.agent_changed",
   "session.todos",
   "session.terminal_pending",
@@ -208,6 +210,15 @@ export interface OmnigentPendingInput {
   readonly pendingId: string;
 }
 
+export interface OmnigentBackgroundTaskInfo {
+  readonly [key: string]: unknown;
+  readonly command?: string | null;
+  readonly description?: string | null;
+  readonly id?: string | null;
+  readonly status?: string | null;
+  readonly type?: string | null;
+}
+
 export interface OmnigentSessionSnapshot {
   readonly agentId: string;
   readonly id: string;
@@ -220,6 +231,7 @@ export interface OmnigentSessionSnapshot {
   readonly activeTurnId?: string;
   readonly activeResponseId?: string | null;
   readonly backgroundTaskCount?: number | null;
+  readonly backgroundTasks?: readonly OmnigentBackgroundTaskInfo[] | null;
   readonly kind?: string;
   readonly metadata?: Record<string, unknown>;
   readonly mcpStartup?:
@@ -246,6 +258,7 @@ export interface OmnigentWireSessionResponse {
   readonly active_response_id?: string | null;
   readonly agent_id: string;
   readonly background_task_count?: number | null;
+  readonly background_tasks?: readonly OmnigentBackgroundTaskInfo[] | null;
   readonly created_at: number;
   readonly id: string;
   readonly items?: OmnigentWireConversationItem[];
@@ -406,6 +419,7 @@ export interface OmnigentRawEvent {
   readonly occurredAt: string;
   readonly backgroundTaskCount?: number | null;
   readonly background_task_count?: number | null;
+  readonly background_tasks?: readonly OmnigentBackgroundTaskInfo[] | null;
   readonly blocked_on?: string | null;
   readonly sequence_number?: number | null;
   readonly agent_id?: string | null;
@@ -436,6 +450,8 @@ export interface OmnigentRawEvent {
   readonly model?: string | null;
   readonly reasoning_effort?: string | null;
   readonly mode?: string | null;
+  readonly permission_mode?: string;
+  readonly title?: string;
   readonly total_cost_usd?: number | null;
   readonly usage_by_model?: Record<string, unknown> | null;
   readonly error?: unknown;

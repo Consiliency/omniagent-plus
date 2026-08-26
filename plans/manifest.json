@@ -498,6 +498,69 @@
       "updated_at": "2026-08-24T06:53:58Z"
     },
     {
+      "acceptance_criteria_count": 10,
+      "created_at": "2026-08-26T02:47:18Z",
+      "file": "plans/detailed-omnigent-v0-11-accommodation-20260826-015846.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260826T015846Z-omnigent-v011-plan.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-08-26T02:47:18Z",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/20260826T015846Z-omnigent-v011-plan.md",
+            "plan": "plans/detailed-omnigent-v0-11-accommodation-20260826-015846.md"
+          },
+          "transition": "committed"
+        },
+        {
+          "at": "2026-08-26T03:04:09Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "plan": "plans/detailed-omnigent-v0-11-accommodation-20260826-015846.md",
+            "run_id": "20260826T030341Z-omnigent-v011-execute",
+            "worktree": "/mnt/HC_Volume_105438154/worktrees/omniagent-plus-implement-omnigent-v0-11"
+          },
+          "transition": "executing"
+        },
+        {
+          "at": "2026-08-26T04:22:19Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "acceptance_criteria_met": 10,
+            "acceptance_criteria_total": 10,
+            "dirty_path_classification": "all tracked changes are plan-owned; ignored build output only",
+            "doc_delta_decision": "docs_updated",
+            "exact_head_review_oid": "3fd6881ecb1f6cd3466e8dee5b9baf0f53c554a3",
+            "exact_head_review_status": "passed_three_independent_agree_fable_degraded",
+            "panel_seats": {
+              "fable_tui": "DEGRADED_after_two_bounded_attempts",
+              "gemini": "AGREE",
+              "grok": "AGREE",
+              "sol": "AGREE"
+            },
+            "pr_url": "https://github.com/Consiliency/omniagent-plus/pull/16",
+            "publication_status": "not_published_dry_run_only",
+            "reflection_ref": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/4a584dbb/codex-implement-omnigent-v0-11/20260826T030341Z-omnigent-v011-execute.md",
+            "run_id": "20260826T030341Z-omnigent-v011-execute",
+            "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260826T030341Z-omnigent-v011-verification.md",
+            "verification_status": "passed"
+          },
+          "transition": "completed"
+        }
+      ],
+      "owner_skill": "codex-plan-detailed",
+      "phase_alias": null,
+      "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/0b4c6606/codex-plan-omnigent-v0-11/20260826T015846Z-omnigent-v011-plan.md",
+      "roadmap_ref": null,
+      "slug": "omnigent-v0-11-accommodation-20260826-015846",
+      "status": "completed",
+      "task_summary": "Plan official Omnigent v0.11.0 authority, additive transport conformance, and transport-only 0.6.0 release.",
+      "type": "detailed",
+      "updated_at": "2026-08-26T04:22:19Z"
+    },
+    {
       "acceptance_criteria_count": 7,
       "created_at": "2026-06-30T20:45:23Z",
       "file": "plans/phase-plan-v1-ADAPTERS.md",

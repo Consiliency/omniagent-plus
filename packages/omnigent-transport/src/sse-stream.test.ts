@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadOmnigentEventFixture,
+  loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
@@ -310,22 +311,205 @@ describe("sse stream parser", () => {
     ).toEqual(["answer", "answer"]);
   });
 
-  it("keeps v0.11-only event types outside the stable parser", async () => {
+  it("accepts v0.11 session metadata events and rejects malformed variants", async () => {
     const skipped: string[] = [];
     const events = await collectAsync(
       parseOmnigentSseStream(
         toStream(
-          ["session.permission_mode", "session.title"]
-            .map((type) => `data: ${JSON.stringify({ type })}`)
+          [
+            {
+              conversation_id: "session-v0-11",
+              item: { id: "message-1" },
+              permission_mode: "plan",
+              response_id: "forged-response",
+              type: "session.permission_mode",
+            },
+            {
+              conversation_id: "session-v0-11",
+              response_id: "forged-response",
+              title: "Renamed",
+              type: "session.title",
+            },
+            { conversation_id: "session-v0-11", type: "session.title" },
+            { permission_mode: "plan", type: "session.permission_mode" },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}`)
             .join("\n\n"),
         ),
-        { sessionId: "session-v0-11-watch-list" },
+        { sessionId: "session-v0-11" },
+        (skip) => skipped.push(skip.reason),
+      ),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        permission_mode: "plan",
+        item: undefined,
+        itemId: undefined,
+        response_id: undefined,
+        turnAliasId: undefined,
+        turnId: undefined,
+        type: "session.permission_mode",
+      }),
+      expect.objectContaining({
+        response_id: undefined,
+        title: "Renamed",
+        turnAliasId: undefined,
+        turnId: undefined,
+        type: "session.title",
+      }),
+    ]);
+    expect(mapOmnigentEventSequence("session-v0-11", events)).toEqual([]);
+    expect(skipped).toEqual(["invalid_event_shape", "invalid_event_shape"]);
+  });
+
+  it("accepts v0.11 pre-allocation failures without inventing response identity", async () => {
+    const normalizer = new OmnigentSseNormalizer({
+      now: () => "2026-08-26T02:47:18.000Z",
+      sessionId: "session-v0-11-failure",
+    });
+    normalizer.setFallbackTurnId("provisional-turn");
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          'data: {"type":"response.failed","call_id":"forged-call","response_id":"forged-response","response":{"status":"failed","error":{"code":"setup_error","message":"setup failed"}}}\n\n',
+        ),
+        { sessionId: "session-v0-11-failure" },
+        undefined,
+        normalizer,
+      ),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        failure: expect.objectContaining({ message: "setup failed" }),
+        call_id: undefined,
+        id: expect.stringContaining("response.failed"),
+        itemId: undefined,
+        response_id: undefined,
+        terminal: true,
+        turnId: "provisional-turn",
+      }),
+    ]);
+  });
+
+  it("keeps ambiguous id-less failures unattributed and binds an active response", () => {
+    const ambiguous = new OmnigentSseNormalizer({ sessionId: "session-ambiguous" });
+    ambiguous.setFallbackTurnId("turn-one");
+    ambiguous.setFallbackTurnId("turn-two");
+    expect(
+      ambiguous.normalize({
+        response: { status: "failed" },
+        response_id: "forged-response",
+        type: "response.failed",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        response_id: undefined,
+        turnAliasId: undefined,
+        turnId: undefined,
+      }),
+    );
+
+    const active = new OmnigentSseNormalizer({ sessionId: "session-active" });
+    active.setActiveResponseId("response-active");
+    expect(
+      active.normalize({
+        response: { status: "failed" },
+        type: "response.failed",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        response_id: undefined,
+        turnId: "response-active",
+      }),
+    );
+  });
+
+  it("rejects nested id-less failures that are not status-gated", async () => {
+    const skipped: string[] = [];
+    const legacyFields = {
+      id: "legacy-event-id",
+      occurredAt: "2026-08-26T02:47:18.000Z",
+      response_id: "forged-response",
+      sessionId: "session-v0-11-failure",
+      terminal: true,
+      type: "response.failed",
+    };
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          [
+            {
+              ...legacyFields,
+              response: { status: "incomplete" },
+            },
+            {
+              response: { error: { message: "missing status" } },
+              response_id: "forged-response",
+              type: "response.failed",
+            },
+            { ...legacyFields, response: [] },
+            { ...legacyFields, response: null },
+            { ...legacyFields, response: "failed" },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-v0-11-failure" },
         (skip) => skipped.push(skip.reason),
       ),
     );
 
     expect(events).toEqual([]);
-    expect(skipped).toEqual(["unknown_event_type", "unknown_event_type"]);
+    expect(skipped).toEqual(Array(5).fill("invalid_event_shape"));
+  });
+
+  it("keeps malformed v0.11 task detail from suppressing a failed status edge", async () => {
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          'data: {"type":"session.status","conversation_id":"session-task-detail","status":"failed","error":{"message":"failed"},"background_tasks":[{"id":42,"description":"kept","future":"preserved"},false]}\n\n',
+        ),
+        { sessionId: "session-task-detail" },
+      ),
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        background_tasks: [
+          expect.objectContaining({ description: "kept", future: "preserved" }),
+        ],
+        status: "failed",
+        terminal: true,
+      }),
+    ]);
+    expect(events[0]?.background_tasks?.[0]).not.toHaveProperty("id");
+  });
+
+  it("normalizes the tagged v0.11 fixture without skips", async () => {
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          loadOmnigentV011WireContract()
+            .sse_frames.map((frame) => `data: ${JSON.stringify(frame)}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-v0-11-fixture" },
+        (skip) => skipped.push(skip.reason),
+      ),
+    );
+
+    expect(skipped).toEqual([]);
+    expect(events.some(({ type }) => type === "session.permission_mode")).toBe(true);
+    expect(events.some(({ type }) => type === "session.title")).toBe(true);
+    expect(
+      events.some(
+        ({ response_id, type }) =>
+          type === "response.failed" && response_id === undefined,
+      ),
+    ).toBe(true);
   });
 
   it("maps a fixture assistant item when the harness emitted no text deltas", async () => {

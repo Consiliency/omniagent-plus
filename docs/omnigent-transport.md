@@ -1,7 +1,7 @@
 # Omnigent Transport
 
 `@consiliency/omnigent-transport@0.6.0` implements the official Omnigent
-`v0.10.0` boundary while preserving the neutral runtime-provider contract.
+`v0.11.0` boundary while preserving the neutral runtime-provider contract.
 
 ## Modes
 
@@ -28,7 +28,7 @@ while local state is active fails with `concurrency_limit`; Omnigent pending-inp
 queueing is available only through the explicit `allowQueuedTurns` option and is
 reflected by the returned queued handle.
 
-Omnigent v0.10 interrupt and stop controls are session-scoped and carry no turn
+Omnigent interrupt and stop controls are session-scoped and carry no turn
 identity or fencing token. HTTP and hybrid cancellation/close therefore fail
 with `backend_capability_missing` unless `withExclusiveSessionLease` and
 `sessionMutationFenceStore` are configured. Both hooks must use the same
@@ -52,11 +52,18 @@ failure policy.
 
 ## Event Boundary
 
-The v0.10 live allowlist remains exactly 52 tagged types. A stateful SSE
+The v0.11 live allowlist contains exactly 54 tagged types. A stateful SSE
 normalizer handles nested response objects, route/session identifiers, missing
 timestamps, stable item IDs, and response context before calling the neutral
 mapper. Reconnect completes the stream handshake before snapshot/history reads and
 closes the stream on every exit.
+
+The two v0.11 additions, `session.permission_mode` and `session.title`, remain
+raw metadata-only no-ops. A pre-allocation `response.failed` with
+`status: "failed"` and no response ID is accepted, assigned only synthetic event
+identity, and attributed to a turn only when existing correlation is
+unambiguous. Background-task detail is preserved best-effort without becoming
+lifecycle or control authority.
 
 Persisted history maps messages, tool calls/results, errors, and interruptions.
 It does not synthesize successful completion. Metadata-only rows and stream

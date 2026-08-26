@@ -4,6 +4,7 @@ import {
   omnigentStreamEventTypes,
   type OmnigentRawEvent,
   type OmnigentTaggedSseEvent,
+  type OmnigentBackgroundTaskInfo,
 } from "./types.js";
 
 export type OmnigentSseSkipReason =
@@ -37,6 +38,18 @@ function isKnownOmnigentEventType(
 }
 
 function hasValidEventShape(value: Record<string, unknown>): boolean {
+  if (value.type === "session.permission_mode") {
+    return (
+      stringValue(value.conversation_id) !== undefined &&
+      stringValue(value.permission_mode) !== undefined
+    );
+  }
+  if (value.type === "session.title") {
+    return (
+      stringValue(value.conversation_id) !== undefined &&
+      stringValue(value.title) !== undefined
+    );
+  }
   if (
     value.type !== "response.created" &&
     value.type !== "response.completed" &&
@@ -48,12 +61,15 @@ function hasValidEventShape(value: Record<string, unknown>): boolean {
   }
   const response = isRecord(value.response) ? value.response : undefined;
   const nativeShape = stringValue(response?.id) !== undefined;
+  const preAllocationFailureShape =
+    value.type === "response.failed" && response?.status === "failed";
   const legacyNormalizedShape =
+    !Object.prototype.hasOwnProperty.call(value, "response") &&
     stringValue(value.id) !== undefined &&
     stringValue(value.sessionId) !== undefined &&
     stringValue(value.occurredAt) !== undefined &&
     typeof value.terminal === "boolean";
-  return nativeShape || legacyNormalizedShape;
+  return nativeShape || preAllocationFailureShape || legacyNormalizedShape;
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -84,6 +100,32 @@ function errorMessage(value: unknown): string | undefined {
     return value;
   }
   return isRecord(value) ? stringValue(value.message) : undefined;
+}
+
+function backgroundTasks(
+  value: unknown,
+): readonly OmnigentBackgroundTaskInfo[] | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const knownFields = ["command", "description", "id", "status", "type"];
+  return value.filter(isRecord).map((task) => {
+    const normalized = { ...task };
+    for (const field of knownFields) {
+      const fieldValue = normalized[field];
+      if (
+        fieldValue !== undefined &&
+        fieldValue !== null &&
+        typeof fieldValue !== "string"
+      ) {
+        delete normalized[field];
+      }
+    }
+    return normalized as OmnigentBackgroundTaskInfo;
+  });
 }
 
 function parseFramePayload(
@@ -273,11 +315,21 @@ export class OmnigentSseNormalizer {
     const response = isRecord(raw.response) ? raw.response : undefined;
     const data = isRecord(raw.data) ? raw.data : undefined;
     const item = isRecord(raw.item) ? raw.item : undefined;
-    const nestedResponseId = stringValue(response?.id);
+    const isPassiveSessionMetadata =
+      tagged.type === "session.permission_mode" || tagged.type === "session.title";
+    const isPreAllocationFailure =
+      tagged.type === "response.failed" &&
+      stringValue(response?.id) === undefined &&
+      response?.status === "failed";
+    const nestedResponseId = isPassiveSessionMetadata
+      ? undefined
+      : stringValue(response?.id);
     const explicitResponseId =
-      stringValue(raw.response_id) ??
-      stringValue(data?.response_id) ??
-      stringValue(item?.response_id);
+      isPassiveSessionMetadata || isPreAllocationFailure
+      ? undefined
+      : stringValue(raw.response_id) ??
+        stringValue(data?.response_id) ??
+        stringValue(item?.response_id);
     const previousResponseId = this.currentResponseId;
     const officialTurnId = nestedResponseId ?? explicitResponseId;
     const officialTurnRejected =
@@ -308,17 +360,21 @@ export class OmnigentSseNormalizer {
       this.unboundTurnIds.length !== 1
         ? undefined
         : this.fallbackTurnId;
-    const turnId = isBareTurn
-      ? explicitResponseId
-      : officialTurnId ??
-        previousResponseId ??
-        this.identityFreeQuarantineTurnId ??
-        fallbackTurnId;
-    let turnAliasId = officialTurnId
-      ? this.responseAliases.get(officialTurnId)
-      : previousResponseId
-        ? this.responseAliases.get(previousResponseId)
-        : undefined;
+    const turnId = isPassiveSessionMetadata
+      ? undefined
+      : isBareTurn
+        ? explicitResponseId
+        : officialTurnId ??
+          previousResponseId ??
+          this.identityFreeQuarantineTurnId ??
+          fallbackTurnId;
+    let turnAliasId = isPassiveSessionMetadata
+      ? undefined
+      : officialTurnId
+        ? this.responseAliases.get(officialTurnId)
+        : previousResponseId
+          ? this.responseAliases.get(previousResponseId)
+          : undefined;
     let turnAliasConfirmed = turnAliasId !== undefined;
     const tentativeTurnAliasId = officialTurnId
       ? this.tentativeResponseAliases.get(officialTurnId)
@@ -372,24 +428,31 @@ export class OmnigentSseNormalizer {
       stringValue(raw.session_id) ??
       this.options.sessionId;
     const sequence = numberValue(raw.sequence_number);
-    const messageId = stringValue(raw.message_id);
-    const itemId =
-      stringValue(item?.id) ??
-      stringValue(raw.call_id) ??
-      stringValue(raw.action_id) ??
-      stringValue(raw.elicitation_id) ??
-      stringValue(raw.file_id);
+    const isIdentityFreeEvent =
+      isPassiveSessionMetadata || isPreAllocationFailure;
+    const messageId = isIdentityFreeEvent
+      ? undefined
+      : stringValue(raw.message_id);
+    const itemId = isIdentityFreeEvent
+      ? undefined
+      : stringValue(item?.id) ??
+        stringValue(raw.call_id) ??
+        stringValue(raw.action_id) ??
+        stringValue(raw.elicitation_id) ??
+        stringValue(raw.file_id);
     const messageIndex = numberValue(raw.index);
     const streamEventOrdinal =
       sequence ??
       `${this.options.syntheticEventIdPrefix ?? sessionId}:${this.frameOrdinal}`;
-    const eventId =
-      itemId ??
-      (messageId
-        ? `${messageId}:${messageIndex ?? 0}:${streamEventOrdinal}`
-        : undefined) ??
-      (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
-      `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
+    const syntheticEventId = `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
+    const eventId = isIdentityFreeEvent
+      ? syntheticEventId
+      : itemId ??
+        (messageId
+          ? `${messageId}:${messageIndex ?? 0}:${streamEventOrdinal}`
+          : undefined) ??
+        (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
+        syntheticEventId;
     const occurredAt =
       epochToIso(response?.completed_at) ??
       epochToIso(response?.created_at) ??
@@ -401,15 +464,18 @@ export class OmnigentSseNormalizer {
       : undefined;
     const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
-      action_id: stringValue(raw.action_id),
+      action_id: isIdentityFreeEvent ? undefined : stringValue(raw.action_id),
       agent_id: raw.agent_id === null ? null : stringValue(raw.agent_id),
       args: isRecord(raw.args) ? raw.args : undefined,
       attempt: numberValue(raw.attempt),
       background_task_count:
         numberValue(raw.background_task_count) ?? undefined,
+      background_tasks: backgroundTasks(raw.background_tasks),
       blocked_on:
         raw.blocked_on === null ? null : stringValue(raw.blocked_on),
-      call_id: stringValue(raw.call_id) ?? stringValue(item?.call_id),
+      call_id: isIdentityFreeEvent
+        ? undefined
+        : stringValue(raw.call_id) ?? stringValue(item?.call_id),
       child_session_id: stringValue(raw.child_session_id),
       cleared_pending_id: stringValue(data?.cleared_pending_id),
       consumed_item_id:
@@ -419,20 +485,23 @@ export class OmnigentSseNormalizer {
       conversation_id: stringValue(raw.conversation_id),
       delay_seconds: numberValue(raw.delay_seconds),
       delta: stringValue(raw.delta),
-      elicitation_id: stringValue(raw.elicitation_id),
+      elicitation_id: isIdentityFreeEvent
+        ? undefined
+        : stringValue(raw.elicitation_id),
       error: raw.error ?? response?.error,
       failure:
         failureMessage === undefined
           ? undefined
           : { category: "backend_unavailable", message: failureMessage },
       id: eventId,
-      item,
+      item: isIdentityFreeEvent ? undefined : item,
       itemId,
       final: typeof raw.final === "boolean" ? raw.final : undefined,
       index: messageIndex,
       message_id: messageId,
       message: failureMessage,
       model: stringValue(raw.model),
+      permission_mode: stringValue(raw.permission_mode),
       occurredAt,
       outputText: undefined,
       parent_session_id:
@@ -457,6 +526,7 @@ export class OmnigentSseNormalizer {
       terminal,
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
+      title: stringValue(raw.title),
       turnId,
       turnAliasConfirmed,
       turnAliasId,

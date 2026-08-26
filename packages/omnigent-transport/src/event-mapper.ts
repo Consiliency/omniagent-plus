@@ -105,6 +105,13 @@ export class OmnigentEventMapper {
   }
 
   map(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
+    if (
+      rawEvent.type === "session.permission_mode" ||
+      rawEvent.type === "session.title"
+    ) {
+      return [];
+    }
+
     const historicalItemKey = rawEvent.itemId;
     if (historicalItemKey && this.historicalItemIds.has(historicalItemKey)) {
       return [];

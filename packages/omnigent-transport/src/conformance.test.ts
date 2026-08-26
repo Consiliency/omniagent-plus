@@ -6,6 +6,7 @@ import {
   loadOmnigentFakeServerScenarios,
   loadOmnigentHttpSurface,
   loadOmnigentSourceMetadata,
+  loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
@@ -14,21 +15,22 @@ import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import { OmnigentHttpError } from "./http-client.js";
 import { omnigentStreamEventTypes } from "./types.js";
 
-describe("official Omnigent v0.10 conformance", () => {
+describe("official Omnigent v0.11 conformance", () => {
   it("freezes the release authority without broadening neutral capabilities", () => {
     const source = loadOmnigentSourceMetadata();
     const http = loadOmnigentHttpSurface();
     const cli = loadOmnigentCliSurface();
     const capabilities = loadOmnigentCapabilityMatrix();
-    const wire = loadOmnigentV010WireContract();
-    const historicalWire = loadOmnigentV09WireContract();
+    const wire = loadOmnigentV011WireContract();
+    const historicalV010Wire = loadOmnigentV010WireContract();
+    const historicalV09Wire = loadOmnigentV09WireContract();
 
     expect(source.freeze_target).toEqual(
       expect.objectContaining({
-        commit: "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b",
-        package_version: "0.10.0",
+        commit: "496b7b13f6af3ed5330b957df408fc91290b6307",
+        package_version: "0.11.0",
         requires_python: ">=3.12",
-        tag: "v0.10.0",
+        tag: "v0.11.0",
       }),
     );
     expect(wire.authority).toEqual(
@@ -37,7 +39,13 @@ describe("official Omnigent v0.10 conformance", () => {
         tag: source.freeze_target.tag,
       }),
     );
-    expect(historicalWire.authority).toEqual(
+    expect(historicalV010Wire.authority).toEqual(
+      expect.objectContaining({
+        commit: "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b",
+        tag: "v0.10.0",
+      }),
+    );
+    expect(historicalV09Wire.authority).toEqual(
       expect.objectContaining({
         commit: "cc4720a79fbdf9ccee56724bf571e7d48e1d9ac2",
         tag: "v0.9.0",
@@ -45,31 +53,28 @@ describe("official Omnigent v0.10 conformance", () => {
     );
     expect(source.preflight_confirmation).toEqual(
       expect.objectContaining({
-        added_paths: [
-          "/.well-known/omnigent.json",
-          "/v1/branding/logo/{variant}",
-          "/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}",
-        ],
+        added_paths: [],
         added_schemas: [
-          "BrandingInfo",
-          "BrandingLogosInfo",
-          "DailyCost",
-          "ServerInfoResponse",
-          "SmartRoutingSourcesInfo",
+          "BackgroundTaskInfo",
+          "FailedResponseObject",
+          "SessionPermissionModeEvent",
+          "SessionTitleEvent",
         ],
         changed_schemas: [
-          "AgentObject",
-          "ChildSessionSummary",
-          "ErrorDetail",
-          "OutputTextDeltaEvent",
+          "FailedEvent",
+          "ServerStreamEvent",
+          "SessionModelEvent",
+          "SessionProjectSummary",
+          "SessionResponse",
+          "SessionStatusEvent",
           "SessionUsage",
-          "UsageReport",
+          "UpdateSessionRequest",
         ],
         newer_stable_release: false,
-        official_release_event_count: 52,
+        official_release_event_count: 54,
         openapi_operation_count: 100,
         openapi_path_count: 72,
-        openapi_schema_count: 139,
+        openapi_schema_count: 143,
         removed_paths: [],
         removed_schemas: [],
       }),
@@ -78,12 +83,12 @@ describe("official Omnigent v0.10 conformance", () => {
       expect.objectContaining({
         operation_count: 100,
         path_count: 72,
-        schema_count: 139,
+        schema_count: 143,
       }),
     );
 
     expect(wire.child_page.data.map(({ task_summary }) => task_summary)).toEqual([
-      "Inspect the tagged v0.10 transport contract.",
+      "Inspect the tagged v0.11 transport contract.",
       null,
     ]);
     expect(http.child_session_public_surface).toEqual(
@@ -130,9 +135,22 @@ describe("official Omnigent v0.10 conformance", () => {
       expect(error.body).toBe(fixture.body);
     }
 
-    expect(omnigentStreamEventTypes).toHaveLength(52);
-    expect(omnigentStreamEventTypes).not.toContain("session.permission_mode");
-    expect(omnigentStreamEventTypes).not.toContain("session.title");
+    expect(omnigentStreamEventTypes).toHaveLength(54);
+    expect(omnigentStreamEventTypes).toContain("session.permission_mode");
+    expect(omnigentStreamEventTypes).toContain("session.title");
+    expect(wire.session_response.background_tasks).toEqual([
+      expect.objectContaining({ id: "shell-1", status: "running" }),
+    ]);
+    expect(wire.sse_frames).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "session.permission_mode" }),
+        expect.objectContaining({ type: "session.title" }),
+        expect.objectContaining({
+          response: expect.objectContaining({ status: "failed" }),
+          type: "response.failed",
+        }),
+      ]),
+    );
     expect(
       wire.sse_frames.filter(
         (frame) =>
@@ -185,6 +203,14 @@ describe("official Omnigent v0.10 conformance", () => {
           name: "usage_and_admin_surfaces",
           provider_capability: false,
         }),
+        expect.objectContaining({
+          name: "session_metadata_events",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "permission_mode_mutation",
+          provider_capability: false,
+        }),
       ]),
     );
     expect(source.security_posture).toEqual(
@@ -213,7 +239,7 @@ describe("official Omnigent v0.10 conformance", () => {
       http.optional_release_surfaces?.filter(
         ({ status }) => status === "observed_not_provider_required",
       ),
-    ).toHaveLength(11);
+    ).toHaveLength(14);
   });
 
   it("preserves create, page, event, and SSE behavior", async () => {
@@ -315,6 +341,7 @@ describe("official Omnigent v0.10 conformance", () => {
 
       expect(loadOmnigentFakeServerScenarios().scenarios).toEqual(
         expect.arrayContaining([
+          expect.objectContaining({ name: "v0_11_official_wire" }),
           expect.objectContaining({ name: "v0_10_official_wire" }),
           expect.objectContaining({ name: "v0_9_official_wire" }),
         ]),

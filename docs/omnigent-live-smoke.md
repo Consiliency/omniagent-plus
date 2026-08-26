@@ -1,6 +1,6 @@
 # Live Omnigent Smoke
 
-The live Omnigent smoke contract targets official Omnigent `v0.10.0` and is
+The live Omnigent smoke contract targets official Omnigent `v0.11.0` and is
 optional and configured to skip by default. CI and default local verification
 keep the gate off, with no credentials required for the normal repo test path.
 
@@ -10,7 +10,7 @@ keep the gate off, with no credentials required for the normal repo test path.
 | --- | --- | --- |
 | `OMNIAGENT_PLUS_LIVE_OMNIGENT` | required to enable live smoke | Set to `1` only when an operator intentionally wants the live check. |
 | `OMNIAGENT_PLUS_LIVE_OMNIGENT_BASE_URL` | required when live smoke is enabled | Points at the operator-controlled Omnigent HTTP surface. |
-| `OMNIGENT_AGENT_ID` | required when live smoke is enabled | Existing upstream agent id used by tagged v0.10 JSON create. |
+| `OMNIGENT_AGENT_ID` | required when live smoke is enabled | Existing upstream agent id used by tagged v0.11 JSON create. |
 | `OMNIAGENT_PLUS_LIVE_OMNIGENT_BEARER_TOKEN` | optional | Supplies a local bearer only when the chosen endpoint requires auth. |
 
 ## Evidence Rules
@@ -25,7 +25,7 @@ keep the gate off, with no credentials required for the normal repo test path.
 
 - Use only operator-controlled environments that already satisfy provider
   terms.
-- Confirm the live target reports stable v0.10 before treating a result as
+- Confirm the live target reports stable v0.11 before treating a result as
   tagged compatibility evidence; development `main` is not an equivalent
   target.
 - Keep subscription ownership and account use outside committed fixtures or

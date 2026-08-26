@@ -494,7 +494,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           `${request.sessionId}:${ack.item_id}`,
         );
       }
-      if (handle.turnId === turnId && acknowledgedTurnId) {
+      if (
+        handle.turnId === turnId &&
+        handle.state !== "failed" &&
+        acknowledgedTurnId
+      ) {
         this.replaceProvisionalTurnId(
           request.sessionId,
           turnId,
@@ -827,7 +831,17 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           );
           if (rawEvent.terminal) {
             if (rawEvent.turnId) {
-              this.retireProvisionalTurnCandidate(sessionId, rawEvent.turnId);
+              const identityFreeFailureRetired =
+                rawEvent.type === "response.failed" &&
+                rawEvent.turnAliasId === undefined &&
+                this.failProvisionalTurnCandidate(
+                  sessionId,
+                  rawEvent.turnId,
+                  rawEvent.occurredAt,
+                );
+              if (!identityFreeFailureRetired) {
+                this.retireProvisionalTurnCandidate(sessionId, rawEvent.turnId);
+              }
             }
             if (eventConcernsActiveTurn && isFailureTerminal(rawEvent)) {
               this.failActiveTurn(
@@ -1825,6 +1839,28 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         this.provisionalTurnOrder.delete(sessionId);
       }
     }
+  }
+
+  private failProvisionalTurnCandidate(
+    sessionId: string,
+    provisionalTurnId: string,
+    updatedAt: string,
+  ): boolean {
+    const turnKey = `${sessionId}:${provisionalTurnId}`;
+    if (!this.provisionalTurnKeys.has(turnKey)) {
+      return false;
+    }
+    this.retireProvisionalTurnCandidate(sessionId, provisionalTurnId);
+    this.provisionalTurnKeys.delete(turnKey);
+    this.nativePendingTurnKeys.delete(turnKey);
+    this.queuedOnlyTurnKeys.delete(turnKey);
+    const handle = this.turns.get(turnKey);
+    if (handle) {
+      const mutableHandle = handle as MutableTurnHandle;
+      mutableHandle.state = "failed";
+      mutableHandle.updatedAt = updatedAt;
+    }
+    return true;
   }
 
   private retireCancelledTurn(

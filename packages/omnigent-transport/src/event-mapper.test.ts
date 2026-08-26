@@ -110,6 +110,86 @@ describe("event mapper", () => {
     ]);
   });
 
+  it("keeps v0.11 session metadata outside the neutral runtime surface", () => {
+    const base: Omit<OmnigentRawEvent, "id" | "type"> = {
+      occurredAt: "2026-08-26T02:47:18.000Z",
+      sessionId: "session-v0-11",
+      turnId: "turn-active",
+    };
+    expect(
+      mapOmnigentEventSequence("session-v0-11", [
+        {
+          ...base,
+          id: "permission-mode",
+          permission_mode: "plan",
+          type: "session.permission_mode",
+        },
+        {
+          ...base,
+          id: "session-title",
+          title: "Renamed",
+          type: "session.title",
+        },
+      ]),
+    ).toEqual([]);
+
+    expect(
+      mapOmnigentEventSequence("session-v0-11", [
+        {
+          ...base,
+          id: "metadata-event",
+          item: { id: "message-1" },
+          itemId: "message-1",
+          title: "Forged item identity",
+          type: "session.title",
+        },
+        {
+          ...base,
+          id: "output-item-event",
+          item: {
+            content: [{ text: "legitimate output", type: "output_text" }],
+            id: "message-1",
+            response_id: "turn-active",
+            role: "assistant",
+            type: "message",
+          },
+          itemId: "message-1",
+          type: "response.output_item.done",
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        payload: { delta: "legitimate output" },
+        type: "runtime.text.delta",
+      }),
+    ]);
+  });
+
+  it("maps only attributed v0.11 pre-allocation failures", () => {
+    const failure: OmnigentRawEvent = {
+      failure: { message: "setup failed" },
+      id: "synthetic-failure",
+      occurredAt: "2026-08-26T02:47:18.000Z",
+      sessionId: "session-v0-11",
+      terminal: true,
+      type: "response.failed",
+    };
+    expect(mapOmnigentEventSequence("session-v0-11", [failure])).toEqual([]);
+    expect(
+      mapOmnigentEventSequence("session-v0-11", [
+        { ...failure, turnId: "provisional-turn" },
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          failure: expect.objectContaining({ message: "setup failed" }),
+        }),
+        turnId: "provisional-turn",
+        type: "runtime.turn.failed",
+      }),
+    ]);
+  });
+
   it("treats child session-created frames as metadata-only", () => {
     const runtimeEvents = mapOmnigentEventSequence("session-1", [
       {

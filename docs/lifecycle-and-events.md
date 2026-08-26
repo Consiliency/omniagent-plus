@@ -59,7 +59,7 @@ instead of poisoning the stream.
 
 ## Upstream Drift
 
-The official Omnigent `v0.10.0` freeze retains exactly 52 stream event types.
+The official Omnigent `v0.11.0` freeze contains exactly 54 stream event types.
 Reconnect opens SSE before fetching the snapshot and all cursor-paginated
 history. The persisted-item mapper never manufactures successful completion
 from an idle snapshot; success requires tagged response lifecycle evidence. Stream item IDs
@@ -89,9 +89,10 @@ The v0.6.0 `browser.action_request` and
 rule: they preserve raw transport metadata, emit no normalized runtime event,
 and cannot create or terminate a turn.
 
-## Development Watch List
+## V0.11 Metadata And Failure Additions
 
-The 2026-08-24 upstream `v0.11.0.dev0` probe adds
-`session.permission_mode` and `session.title`. These development-only events
-are not members of the v0.10 allowlist and follow existing unknown-frame
-behavior until a later stable freeze explicitly accepts them.
+`session.permission_mode` and `session.title` are accepted as raw metadata and
+emit no neutral runtime event. They cannot grant approval or permission
+authority. Pre-allocation `response.failed` frames may omit response identity;
+they reuse conservative turn correlation and remain unattributed when
+ambiguous. Malformed background-task detail cannot suppress a status edge.

@@ -151,6 +151,13 @@ export interface OmnigentV010WireFixture extends OmnigentV09WireFixture {
   readonly structured_policy_error: OmnigentStructuredHttpErrorFixture;
 }
 
+export interface OmnigentV011WireFixture extends OmnigentV010WireFixture {
+  readonly session_response: Readonly<Record<string, unknown>> & {
+    readonly background_tasks?: readonly Readonly<Record<string, unknown>>[] | null;
+  };
+  readonly sse_frames: Array<Readonly<Record<string, unknown>>>;
+}
+
 export interface OmnigentCliSurfaceFixture {
   readonly deprecated_aliases?: Array<{
     readonly command: string;
@@ -274,6 +281,12 @@ export function loadOmnigentV09WireContract(): OmnigentV09WireFixture {
 export function loadOmnigentV010WireContract(): OmnigentV010WireFixture {
   return readOmnigentFixture<OmnigentV010WireFixture>(
     "http/v0-10-wire-contract.json",
+  );
+}
+
+export function loadOmnigentV011WireContract(): OmnigentV011WireFixture {
+  return readOmnigentFixture<OmnigentV011WireFixture>(
+    "http/v0-11-wire-contract.json",
   );
 }
 

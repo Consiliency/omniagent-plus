@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadOmnigentV010WireContract,
+  loadOmnigentV011WireContract,
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
 import { FakeOmnigentServer } from "./fake-omnigent-server.js";
@@ -320,6 +321,42 @@ describe("http client", () => {
       }),
     ]);
     expect(children[0]).not.toHaveProperty("status");
+  });
+
+  it("preserves v0.11 background-task detail without making snapshots brittle", async () => {
+    const wire = loadOmnigentV011WireContract();
+    const response = {
+      ...wire.session_response,
+      background_tasks: [
+        ...(wire.session_response.background_tasks ?? []),
+        { description: "partial", id: 42, future: "preserved" },
+        false,
+      ],
+    };
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () => new Response(JSON.stringify(response)),
+    });
+
+    const session = await client.getSession("session-123");
+    expect(session.backgroundTasks).toEqual([
+      expect.objectContaining({
+        command: "sleep 120",
+        future_detail: "preserved",
+        id: "shell-1",
+      }),
+      expect.objectContaining({ description: "partial", future: "preserved" }),
+    ]);
+    expect(session.backgroundTasks?.[1]).not.toHaveProperty("id");
+
+    const malformedTopLevel = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async () =>
+        new Response(JSON.stringify({ ...response, background_tasks: "future" })),
+    });
+    await expect(malformedTopLevel.getSession("session-123")).resolves.toEqual(
+      expect.objectContaining({ backgroundTasks: undefined }),
+    );
   });
 
   it("accepts absent, null, and string task summaries across child pages", async () => {
