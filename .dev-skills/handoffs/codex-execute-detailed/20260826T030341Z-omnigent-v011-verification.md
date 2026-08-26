@@ -1,0 +1,69 @@
+# Omnigent v0.11 accommodation verification
+
+summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transport 0.6.0 is packable and dry-run publishable, and no package was published.
+
+## Run context
+
+- Plan: `plans/detailed-omnigent-v0-11-accommodation-20260826-015846.md`
+- Branch: `codex/implement-omnigent-v0-11`
+- Implementation commit: `ddab5cd`
+- Base plan commit: `99f9af1`
+- Upstream authority: Omnigent `v0.11.0` at
+  `496b7b13f6af3ed5330b957df408fc91290b6307`
+- Target package: `@consiliency/omnigent-transport@0.6.0`
+- Publication boundary: dry-run only; npm remains at `0.5.0`
+
+## Verification
+
+- PASS: live GitHub latest-release and exact-tag SHA preflight.
+- PASS: live PyPI version and Python `>=3.12` requirement preflight.
+- PASS: npm latest is `0.5.0` and exact `0.6.0` returns `E404`.
+- PASS: `node scripts/check-omnigent-openapi-delta.mjs v0.10.0 v0.11.0`
+  proved 100 operations, 72 paths, 143 schemas, 54 events, exact additions and
+  changes, no removals, and the load-bearing required/property sets.
+- PASS: isolated v0.11 CLI `--version`, root help, server help, and host help.
+- PASS: focused transport suite - 7 files and 150 tests.
+- PASS: `pnpm test` - 100 files passed, 342 tests passed, and one credentialed
+  live-smoke test intentionally skipped.
+- PASS: `pnpm typecheck` across the workspace.
+- PASS: `pnpm lint` with zero warnings.
+- PASS: `pnpm build` across all public/private workspace projects.
+- PASS: `pnpm --filter @consiliency/omnigent-transport test:pack`.
+- PASS: `NPM_PUBLISH_DRY_RUN=1 bash scripts/publish-package-if-needed.sh packages/omnigent-transport`.
+- PASS: `git diff --check`.
+
+The dry-run tarball was `@consiliency/omnigent-transport@0.6.0`, 82 files,
+91.3 kB packed and 516.8 kB unpacked. It includes emitted declarations and the
+current v0.11 plus historical v0.10/v0.9 fixtures. No npm publication, tag,
+release, merge, or deployment occurred.
+
+## Acceptance reduction
+
+- PASS: live and checked-in authority identify v0.11.0 at the exact tag commit.
+- PASS: exactly 54 event literals include only the two v0.11 additions.
+- PASS: permission/title events are validated metadata-only no-ops, including
+  with an active provisional turn and fence state.
+- PASS: status-bearing id-less failures preserve typed terminal behavior,
+  synthetic event identity, and conservative attribution.
+- PASS: background-task detail is availability-preserving on HTTP and SSE.
+- PASS: v0.10/v0.9 fixtures and loaders remain exported and tested.
+- PASS: no typed/public permission, approval, lease, lock, routing,
+  child-create, harness-override, schedule-control, or policy capability was
+  added.
+- PASS: only the still-unpublished transport 0.6.0 changelog entry changed;
+  sibling versions and the publish workflow are unchanged.
+- PASS: full suite, build, pack, and dry-run publication gates passed.
+- PENDING: open PR and exact-head advisor-board review. This is the next gate.
+
+## Dirty path classification
+
+All implementation and evidence paths are plan-owned. Generated `dist` output
+and installed dependencies are ignored. There were no pre-existing unrelated
+paths and no non-plan output.
+
+## Documentation delta
+
+`doc_delta_decision=docs_updated`: authority, transport, lifecycle,
+coordination, readiness, live-smoke, fixture, and release documentation now
+describe v0.11 and its explicit non-authority boundaries.
+
