@@ -37,6 +37,16 @@ describe("transport types", () => {
       backend: "omnigent-http",
       activeResponseId: "response-1",
       backgroundTaskCount: 1,
+      backgroundTasks: [
+        {
+          command: "sleep 120",
+          description: "Wait for CI",
+          futureDetail: "preserved",
+          id: "shell-1",
+          status: "running",
+          type: "shell",
+        },
+      ],
       mcpStartup: {
         "safe-server": { error: null, status: "ready" },
       },
@@ -181,15 +191,16 @@ describe("transport types", () => {
     expect(omnigentStreamEventTypes).toContain(
       "response.function_call_output.delta",
     );
-    expect(omnigentStreamEventTypes).toHaveLength(52);
-    expect(omnigentStreamEventTypes).not.toContain("session.permission_mode");
-    expect(omnigentStreamEventTypes).not.toContain("session.title");
+    expect(omnigentStreamEventTypes).toHaveLength(54);
+    expect(omnigentStreamEventTypes).toContain("session.permission_mode");
+    expect(omnigentStreamEventTypes).toContain("session.title");
     expect(childSummary.task_summary).toBe(
       "Inspect the tagged v0.10 transport contract.",
     );
     expect(snapshot.items[0]?.id).toBe("item-1");
     expect(snapshot.activeResponseId).toBe("response-1");
     expect(snapshot.backgroundTaskCount).toBe(1);
+    expect(snapshot.backgroundTasks?.[0]?.futureDetail).toBe("preserved");
     expect(camelSnapshot.modelOptions?.[0]?.id).toBe("gpt-5.6-codex");
     expect(camelSnapshot.projectId).toBe("project-camel");
     expect(harnessCatalog.local?.[0]?.name).toBe("codex");

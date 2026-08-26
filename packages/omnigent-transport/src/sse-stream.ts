@@ -4,6 +4,7 @@ import {
   omnigentStreamEventTypes,
   type OmnigentRawEvent,
   type OmnigentTaggedSseEvent,
+  type OmnigentBackgroundTaskInfo,
 } from "./types.js";
 
 export type OmnigentSseSkipReason =
@@ -37,6 +38,18 @@ function isKnownOmnigentEventType(
 }
 
 function hasValidEventShape(value: Record<string, unknown>): boolean {
+  if (value.type === "session.permission_mode") {
+    return (
+      stringValue(value.conversation_id) !== undefined &&
+      stringValue(value.permission_mode) !== undefined
+    );
+  }
+  if (value.type === "session.title") {
+    return (
+      stringValue(value.conversation_id) !== undefined &&
+      stringValue(value.title) !== undefined
+    );
+  }
   if (
     value.type !== "response.created" &&
     value.type !== "response.completed" &&
@@ -48,12 +61,14 @@ function hasValidEventShape(value: Record<string, unknown>): boolean {
   }
   const response = isRecord(value.response) ? value.response : undefined;
   const nativeShape = stringValue(response?.id) !== undefined;
+  const preAllocationFailureShape =
+    value.type === "response.failed" && response?.status === "failed";
   const legacyNormalizedShape =
     stringValue(value.id) !== undefined &&
     stringValue(value.sessionId) !== undefined &&
     stringValue(value.occurredAt) !== undefined &&
     typeof value.terminal === "boolean";
-  return nativeShape || legacyNormalizedShape;
+  return nativeShape || preAllocationFailureShape || legacyNormalizedShape;
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -84,6 +99,32 @@ function errorMessage(value: unknown): string | undefined {
     return value;
   }
   return isRecord(value) ? stringValue(value.message) : undefined;
+}
+
+function backgroundTasks(
+  value: unknown,
+): readonly OmnigentBackgroundTaskInfo[] | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const knownFields = ["command", "description", "id", "status", "type"];
+  return value.filter(isRecord).map((task) => {
+    const normalized = { ...task };
+    for (const field of knownFields) {
+      const fieldValue = normalized[field];
+      if (
+        fieldValue !== undefined &&
+        fieldValue !== null &&
+        typeof fieldValue !== "string"
+      ) {
+        delete normalized[field];
+      }
+    }
+    return normalized as OmnigentBackgroundTaskInfo;
+  });
 }
 
 function parseFramePayload(
@@ -407,6 +448,7 @@ export class OmnigentSseNormalizer {
       attempt: numberValue(raw.attempt),
       background_task_count:
         numberValue(raw.background_task_count) ?? undefined,
+      background_tasks: backgroundTasks(raw.background_tasks),
       blocked_on:
         raw.blocked_on === null ? null : stringValue(raw.blocked_on),
       call_id: stringValue(raw.call_id) ?? stringValue(item?.call_id),
@@ -433,6 +475,7 @@ export class OmnigentSseNormalizer {
       message_id: messageId,
       message: failureMessage,
       model: stringValue(raw.model),
+      permission_mode: stringValue(raw.permission_mode),
       occurredAt,
       outputText: undefined,
       parent_session_id:
@@ -457,6 +500,7 @@ export class OmnigentSseNormalizer {
       terminal,
       tool_name: stringValue(raw.tool_name),
       total_cost_usd: numberValue(raw.total_cost_usd),
+      title: stringValue(raw.title),
       turnId,
       turnAliasConfirmed,
       turnAliasId,

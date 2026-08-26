@@ -1,37 +1,34 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-24T06:00:29Z",
+  "captured_at": "2026-08-26T02:47:18Z",
   "openapi_delta": {
-    "from_tag": "v0.9.0",
-    "to_tag": "v0.10.0",
-    "previous_operation_count": 97,
+    "from_tag": "v0.10.0",
+    "to_tag": "v0.11.0",
+    "previous_operation_count": 100,
     "operation_count": 100,
-    "previous_path_count": 69,
+    "previous_path_count": 72,
     "path_count": 72,
-    "previous_schema_count": 134,
-    "schema_count": 139,
-    "added_paths": [
-      "/.well-known/omnigent.json",
-      "/v1/branding/logo/{variant}",
-      "/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}"
-    ],
+    "previous_schema_count": 139,
+    "schema_count": 143,
+    "added_paths": [],
     "removed_paths": [],
     "added_schemas": [
-      "BrandingInfo",
-      "BrandingLogosInfo",
-      "DailyCost",
-      "ServerInfoResponse",
-      "SmartRoutingSourcesInfo"
+      "BackgroundTaskInfo",
+      "FailedResponseObject",
+      "SessionPermissionModeEvent",
+      "SessionTitleEvent"
     ],
     "removed_schemas": [],
     "changed_schemas": [
-      "AgentObject",
-      "ChildSessionSummary",
-      "ErrorDetail",
-      "OutputTextDeltaEvent",
+      "FailedEvent",
+      "ServerStreamEvent",
+      "SessionModelEvent",
+      "SessionProjectSummary",
+      "SessionResponse",
+      "SessionStatusEvent",
       "SessionUsage",
-      "UsageReport"
+      "UpdateSessionRequest"
     ]
   },
   "session_endpoints": [
@@ -54,6 +51,7 @@
   "session_snapshot_fields": {
     "active_response_id": "nullable reconnect hint",
     "background_task_count": "nullable native terminal task count",
+    "background_tasks": "nullable read-only native terminal task detail",
     "created_at": "Unix epoch seconds normalized to ISO at the adapter boundary",
     "updated_at": "optional Unix epoch seconds; falls back to created_at",
     "kind": "additive session-kind metadata",
@@ -90,8 +88,11 @@
     "replay": false,
     "reconnect_steps": ["open_stream", "get_snapshot", "get_all_history_pages", "dedupe_by_item_id"],
     "event_families": ["session", "response", "turn", "browser"],
-    "official_release_event_count": 52,
-    "release_event_types": []
+    "official_release_event_count": 54,
+    "release_event_types": [
+      "session.permission_mode",
+      "session.title"
+    ]
   },
   "optional_release_surfaces": [
     { "field": "SessionUsage.agent_name", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
@@ -105,6 +106,9 @@
     { "field": "ImportSessionRequest.force", "status": "observed_not_provider_required", "reason": "import remains an operator surface" },
     { "field": "UpdateSessionRequest.subagent_routing_override", "status": "observed_not_provider_required", "reason": "routing metadata does not grant coordinator authority" },
     { "field": "RoutingDecisionData", "status": "observed_not_provider_required", "reason": "smart routing does not create a neutral route decision" },
+    { "field": "SessionProjectSummary.icon", "status": "observed_not_provider_required", "reason": "project presentation metadata is outside the provider" },
+    { "field": "SessionUsage.other_harnesses", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
+    { "field": "UpdateSessionRequest.permission_mode", "status": "observed_not_provider_required", "reason": "live TUI mutation grants no neutral permission or approval authority" },
     { "path": "/v1/sessions/{session_id}/events", "method": "POST", "status": "api_guide_authority", "reason": "tagged API guide remains authority because generated OpenAPI omits this route" }
   ],
   "fork_request": {
@@ -113,11 +117,11 @@
     "provider_sends_removed_fields": false
   },
   "endpoint_provenance": [
-    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "source": "omnigent/server/API.md and tagged route source", "ref": "v0.10.0", "note": "required route omitted from generated OpenAPI" }
+    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "source": "omnigent/server/API.md and tagged route source", "ref": "v0.11.0", "note": "required route omitted from generated OpenAPI" }
   ],
   "provenance": [
-    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.10.0" },
-    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.10.0" },
-    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.10.0" }
+    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.11.0" },
+    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.11.0" },
+    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.11.0" }
   ]
 }

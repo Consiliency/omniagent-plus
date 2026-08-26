@@ -11,6 +11,7 @@ export {
   OmnigentCliProvider,
 } from "./cli-client.js";
 export {
+  loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
 } from "./contract-fixtures.js";
@@ -46,6 +47,7 @@ export type {
   OmnigentProcessManagerOptions,
 } from "./process-manager.js";
 export type {
+  OmnigentBackgroundTaskInfo,
   OmnigentCliCommandResult,
   OmnigentCliCommandRunner,
   OmnigentHttpClientOptions,

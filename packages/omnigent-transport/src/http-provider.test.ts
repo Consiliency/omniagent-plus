@@ -1878,7 +1878,7 @@ describe("http provider", () => {
     await expect(streamRead).resolves.toEqual({ done: true, value: undefined });
   });
 
-  it("does not bind a provisional handle from snapshot-only evidence", async () => {
+  it("does not mutate a provisional turn from snapshot or v0.11 metadata evidence", async () => {
     const snapshot = {
       active_response_id: null as string | null,
       agent_id: "agent-snapshot-reconcile",
@@ -1890,6 +1890,7 @@ describe("http provider", () => {
       updated_at: 1_780_272_000,
     };
     let turnAccepted = false;
+    const fenceStore = createSessionMutationFenceStore();
     const provider = createHttpProvider({
       baseUrl: "http://127.0.0.1:4010",
       fetch: async (input, init) => {
@@ -1905,9 +1906,25 @@ describe("http provider", () => {
           );
         }
         if (url.endsWith("/stream")) {
-          return new Response("", {
+          return new Response(
+            [
+              {
+                conversation_id: snapshot.id,
+                permission_mode: "plan",
+                type: "session.permission_mode",
+              },
+              {
+                conversation_id: snapshot.id,
+                title: "Metadata rename",
+                type: "session.title",
+              },
+            ]
+              .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+              .join(""),
+            {
             headers: { "content-type": "text/event-stream" },
-          });
+            },
+          );
         }
         if (url.includes("/items")) {
           return new Response(JSON.stringify({ data: [], has_more: false }));
@@ -1920,6 +1937,7 @@ describe("http provider", () => {
           }),
         );
       },
+      sessionMutationFenceStore: fenceStore,
     });
     const session = await provider.createSession({
       agentSpec: { kind: "named_agent", value: snapshot.agent_id },
@@ -1936,11 +1954,15 @@ describe("http provider", () => {
     expect(handle.turnId).toBe("item-provisional");
 
     const info = await provider.getSessionInfo(session.id);
+    const fenceBefore = await fenceStore.read(session.id);
     expect(handle.turnId).toBe("item-provisional");
     expect(info.activeTurnId).toBe("item-provisional");
     const events = await collectAsync(provider.streamEvents(session.id));
-    expect(handle.turnId).toBe("item-provisional");
+    const after = await provider.getSessionInfo(session.id);
     expect(events).toEqual([]);
+    expect(after.activeTurnId).toBe("item-provisional");
+    expect(after.state).toBe(info.state);
+    expect(await fenceStore.read(session.id)).toEqual(fenceBefore);
   });
 
   it("reconciles stream events that arrive before the send acknowledgement", async () => {

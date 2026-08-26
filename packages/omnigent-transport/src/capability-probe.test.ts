@@ -25,11 +25,11 @@ describe("capability probe", () => {
     expect(snapshot.capabilities.canClose).toBe(true);
     expect(snapshot.capabilities.canSpawnChildSessions).toBe(false);
     expect(snapshot.endpoint).toBe("http://127.0.0.1:4010");
-    expect(snapshot.gitSha).toBe("40755dd8dddb07e1eb6e4055d1d9936e184ceb9b");
-    expect(snapshot.version).toBe("0.10.0");
+    expect(snapshot.gitSha).toBe("496b7b13f6af3ed5330b957df408fc91290b6307");
+    expect(snapshot.version).toBe("0.11.0");
   });
 
-  it("keeps v0.10 runtime guarantees and collaboration behavior non-capabilities", () => {
+  it("keeps v0.11 metadata and collaboration behavior non-capabilities", () => {
     const source = loadOmnigentSourceMetadata();
     const matrix = loadOmnigentCapabilityMatrix();
 
@@ -53,6 +53,14 @@ describe("capability probe", () => {
         }),
         expect.objectContaining({
           name: "shared_editor_approval",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "session_metadata_events",
+          provider_capability: false,
+        }),
+        expect.objectContaining({
+          name: "permission_mode_mutation",
           provider_capability: false,
         }),
       ]),

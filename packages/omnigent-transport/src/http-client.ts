@@ -12,6 +12,7 @@ import {
 import { omnigentSessionStatuses } from "./types.js";
 import type {
   OmnigentChildSessionSummary,
+  OmnigentBackgroundTaskInfo,
   OmnigentConversationItem,
   OmnigentEventAck,
   OmnigentHarnessCatalogResponse,
@@ -66,6 +67,32 @@ export class OmnigentNetworkError extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeBackgroundTasks(
+  value: unknown,
+): readonly OmnigentBackgroundTaskInfo[] | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const knownFields = ["command", "description", "id", "status", "type"];
+  return value.filter(isRecord).map((task) => {
+    const normalized = { ...task };
+    for (const field of knownFields) {
+      const fieldValue = normalized[field];
+      if (
+        fieldValue !== undefined &&
+        fieldValue !== null &&
+        typeof fieldValue !== "string"
+      ) {
+        delete normalized[field];
+      }
+    }
+    return normalized as OmnigentBackgroundTaskInfo;
+  });
 }
 
 function requiredString(
@@ -349,6 +376,7 @@ function normalizeSession(
       typeof wire.background_task_count === "number"
         ? wire.background_task_count
         : null,
+    backgroundTasks: normalizeBackgroundTasks(wire.background_tasks),
     createdAt,
     id,
     items: Array.isArray(value.items)
