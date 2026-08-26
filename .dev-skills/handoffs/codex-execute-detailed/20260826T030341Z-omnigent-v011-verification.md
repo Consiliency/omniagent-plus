@@ -106,6 +106,14 @@ terminal state remain stable after the late acknowledgement. The targeted suite
 passed 130 tests and the full verification sequence passed with 345 tests. A
 fresh exact-head board remains required, including a usable Fable verdict.
 
+The sixth exact-head review used a bounded brief over the load-bearing source
+and tests at `3fd6881ecb1f6cd3466e8dee5b9baf0f53c554a3`. Grok, Sol, and Gemini all
+returned `AGREE` with no blocking findings. Fable was invoked through the
+canonical Claude subscription TUI adapter, but both bounded attempts again
+stalled and ended `DEGRADED`; no alternate backing was substituted. The board's
+hard floor of three independent usable vendors passed. A final docs-only
+closeout-head confirmation remains after recording this result in the manifest.
+
 ## Acceptance reduction
 
 - PASS: live and checked-in authority identify v0.11.0 at the exact tag commit.
@@ -123,7 +131,8 @@ fresh exact-head board remains required, including a usable Fable verdict.
 - PASS: only the still-unpublished transport 0.6.0 changelog entry changed;
   sibling versions and the publish workflow are unchanged.
 - PASS: full suite, build, pack, and dry-run publication gates passed.
-- PENDING: final exact-head advisor-board review of the reconciliation commit.
+- PASS: exact implementation head received three independent `AGREE` verdicts
+  with no blockers; canonical Fable attempts were recorded as `DEGRADED`.
 
 ## Dirty path classification
 
