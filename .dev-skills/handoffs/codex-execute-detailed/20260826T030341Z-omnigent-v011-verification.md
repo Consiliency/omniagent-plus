@@ -23,7 +23,7 @@ summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transpo
   changes, no removals, and the load-bearing required/property sets.
 - PASS: isolated v0.11 CLI `--version`, root help, server help, and host help.
 - PASS: focused transport suite - 7 files and 150 tests.
-- PASS: `pnpm test` - 100 files passed, 344 tests passed, and one credentialed
+- PASS: `pnpm test` - 100 files passed, 345 tests passed, and one credentialed
   live-smoke test intentionally skipped.
 - PASS: `pnpm typecheck` across the workspace.
 - PASS: `pnpm lint` with zero warnings.
@@ -33,7 +33,7 @@ summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transpo
 - PASS: `git diff --check`.
 
 The dry-run tarball was `@consiliency/omnigent-transport@0.6.0`, 82 files,
-91.7 kB packed and 519.1 kB unpacked. It includes emitted declarations and the
+92.0 kB packed and 521.2 kB unpacked. It includes emitted declarations and the
 current v0.11 plus historical v0.10/v0.9 fixtures. No npm publication, tag,
 release, merge, or deployment occurred.
 
@@ -93,6 +93,18 @@ three malformed present shapes fail closed in parser regression evidence. The
 targeted suite passed 129 tests and the full verification sequence passed again
 with 344 tests. A fresh exact-head board remains required, including a usable
 Fable verdict through the canonical TUI adapter.
+
+The fifth exact-head review again delivered three usable independent seats;
+Grok and Gemini agreed, while Fable's two canonical TUI attempts ended
+`DEGRADED`. Sol reproduced a send-acknowledgement race: an identity-free failure
+could emit against the provisional turn and a later acknowledgement could then
+rename the returned handle. Identity-free terminal failures now mark the
+provisional handle `failed`, retire it from future provisional renames, and keep
+the emitted event and returned handle on the same stable turn ID. A provider
+race test holds the acknowledgement, emits the failure, and proves identity and
+terminal state remain stable after the late acknowledgement. The targeted suite
+passed 130 tests and the full verification sequence passed with 345 tests. A
+fresh exact-head board remains required, including a usable Fable verdict.
 
 ## Acceptance reduction
 

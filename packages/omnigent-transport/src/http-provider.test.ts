@@ -2054,6 +2054,107 @@ describe("http provider", () => {
     }
   });
 
+  it("keeps pre-allocation failure identity stable across a late acknowledgement", async () => {
+    const snapshot = {
+      active_response_id: null,
+      agent_id: "agent-pre-allocation-race",
+      created_at: 1_780_272_000,
+      id: "session-pre-allocation-race",
+      items: [],
+      pending_inputs: [],
+      status: "idle",
+      title: "Pre-allocation race",
+      updated_at: 1_780_272_000,
+    };
+    let resolveAck!: (response: Response) => void;
+    let resolveHistoryReady!: () => void;
+    let resolveTurnPosted!: () => void;
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const historyReady = new Promise<void>((resolve) => {
+      resolveHistoryReady = resolve;
+    });
+    const turnPosted = new Promise<void>((resolve) => {
+      resolveTurnPosted = resolve;
+    });
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST" && url.endsWith("/v1/sessions")) {
+          return new Response(JSON.stringify(snapshot));
+        }
+        if (init?.method === "POST" && url.endsWith("/events")) {
+          resolveTurnPosted();
+          return new Promise<Response>((resolve) => {
+            resolveAck = resolve;
+          });
+        }
+        if (url.endsWith("/stream")) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+              },
+            }),
+            { headers: { "content-type": "text/event-stream" } },
+          );
+        }
+        if (url.includes("/items")) {
+          resolveHistoryReady();
+          return new Response(
+            JSON.stringify({ data: [], first_id: null, has_more: false, last_id: null }),
+          );
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "pre-allocation-race-create",
+      runtime: "omnigent",
+      targetHarness: "codex",
+      title: snapshot.title,
+    });
+    const iterator = provider.streamEvents(session.id)[Symbol.asyncIterator]();
+    const firstEvent = iterator.next();
+    await historyReady;
+
+    const send = provider.sendTurn({
+      idempotencyKey: "pre-allocation-race-turn",
+      message: "race the acknowledgement",
+      sessionId: session.id,
+    });
+    await turnPosted;
+    const provisionalTurnId = `omnigent:${session.id}:pre-allocation-race-turn`;
+    streamController.enqueue(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          response: { error: { message: "setup failed" }, status: "failed" },
+          type: "response.failed",
+        })}\n\n`,
+      ),
+    );
+
+    await expect(firstEvent).resolves.toEqual(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          turnId: provisionalTurnId,
+          type: "runtime.turn.failed",
+        }),
+      }),
+    );
+    resolveAck(
+      new Response(JSON.stringify({ item_id: "item-1", queued: true }), {
+        status: 202,
+      }),
+    );
+    const handle = await send;
+    expect(handle).toMatchObject({ state: "failed", turnId: provisionalTurnId });
+
+    streamController.close();
+    await expect(iterator.next()).resolves.toEqual({ done: true, value: undefined });
+  });
+
   it("reconciles stream events that arrive before the send acknowledgement", async () => {
     const snapshot = {
       active_response_id: null,
