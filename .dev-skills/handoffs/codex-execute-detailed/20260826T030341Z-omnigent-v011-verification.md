@@ -83,6 +83,17 @@ full verification sequence passed again with 344 tests. A final exact-head board
 review is required after this third reconciliation commit, with Fable retried
 through the same canonical TUI adapter.
 
+The fourth exact-head review again delivered three usable independent seats;
+Grok and Gemini agreed, while Fable's two canonical TUI attempts ended
+`DEGRADED`. Sol reproduced a legacy-gate bypass where present-but-non-object
+`response` values (`[]`, `null`, or a string) were collapsed to absence. Those
+frames could then satisfy legacy fields and restore forged response authority.
+The legacy fallback now requires the raw `response` member to be absent, and all
+three malformed present shapes fail closed in parser regression evidence. The
+targeted suite passed 129 tests and the full verification sequence passed again
+with 344 tests. A fresh exact-head board remains required, including a usable
+Fable verdict through the canonical TUI adapter.
+
 ## Acceptance reduction
 
 - PASS: live and checked-in authority identify v0.11.0 at the exact tag commit.

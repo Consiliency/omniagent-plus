@@ -428,23 +428,30 @@ describe("sse stream parser", () => {
 
   it("rejects nested id-less failures that are not status-gated", async () => {
     const skipped: string[] = [];
+    const legacyFields = {
+      id: "legacy-event-id",
+      occurredAt: "2026-08-26T02:47:18.000Z",
+      response_id: "forged-response",
+      sessionId: "session-v0-11-failure",
+      terminal: true,
+      type: "response.failed",
+    };
     const events = await collectAsync(
       parseOmnigentSseStream(
         toStream(
           [
             {
-              id: "legacy-event-id",
-              occurredAt: "2026-08-26T02:47:18.000Z",
+              ...legacyFields,
               response: { status: "incomplete" },
-              sessionId: "session-v0-11-failure",
-              terminal: true,
-              type: "response.failed",
             },
             {
               response: { error: { message: "missing status" } },
               response_id: "forged-response",
               type: "response.failed",
             },
+            { ...legacyFields, response: [] },
+            { ...legacyFields, response: null },
+            { ...legacyFields, response: "failed" },
           ]
             .map((event) => `data: ${JSON.stringify(event)}`)
             .join("\n\n"),
@@ -455,7 +462,7 @@ describe("sse stream parser", () => {
     );
 
     expect(events).toEqual([]);
-    expect(skipped).toEqual(["invalid_event_shape", "invalid_event_shape"]);
+    expect(skipped).toEqual(Array(5).fill("invalid_event_shape"));
   });
 
   it("keeps malformed v0.11 task detail from suppressing a failed status edge", async () => {

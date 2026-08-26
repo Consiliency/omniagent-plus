@@ -64,7 +64,7 @@ function hasValidEventShape(value: Record<string, unknown>): boolean {
   const preAllocationFailureShape =
     value.type === "response.failed" && response?.status === "failed";
   const legacyNormalizedShape =
-    response === undefined &&
+    !Object.prototype.hasOwnProperty.call(value, "response") &&
     stringValue(value.id) !== undefined &&
     stringValue(value.sessionId) !== undefined &&
     stringValue(value.occurredAt) !== undefined &&
