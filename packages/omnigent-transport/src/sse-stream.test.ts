@@ -319,6 +319,7 @@ describe("sse stream parser", () => {
           [
             {
               conversation_id: "session-v0-11",
+              item: { id: "message-1" },
               permission_mode: "plan",
               response_id: "forged-response",
               type: "session.permission_mode",
@@ -343,6 +344,8 @@ describe("sse stream parser", () => {
     expect(events).toEqual([
       expect.objectContaining({
         permission_mode: "plan",
+        item: undefined,
+        itemId: undefined,
         response_id: undefined,
         turnAliasId: undefined,
         turnId: undefined,
@@ -369,7 +372,7 @@ describe("sse stream parser", () => {
     const events = await collectAsync(
       parseOmnigentSseStream(
         toStream(
-          'data: {"type":"response.failed","response_id":"forged-response","response":{"status":"failed","error":{"code":"setup_error","message":"setup failed"}}}\n\n',
+          'data: {"type":"response.failed","call_id":"forged-call","response_id":"forged-response","response":{"status":"failed","error":{"code":"setup_error","message":"setup failed"}}}\n\n',
         ),
         { sessionId: "session-v0-11-failure" },
         undefined,
@@ -380,7 +383,9 @@ describe("sse stream parser", () => {
     expect(events).toEqual([
       expect.objectContaining({
         failure: expect.objectContaining({ message: "setup failed" }),
+        call_id: undefined,
         id: expect.stringContaining("response.failed"),
+        itemId: undefined,
         response_id: undefined,
         terminal: true,
         turnId: "provisional-turn",

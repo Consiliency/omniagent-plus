@@ -33,7 +33,7 @@ summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transpo
 - PASS: `git diff --check`.
 
 The dry-run tarball was `@consiliency/omnigent-transport@0.6.0`, 82 files,
-91.5 kB packed and 517.8 kB unpacked. It includes emitted declarations and the
+91.7 kB packed and 519.1 kB unpacked. It includes emitted declarations and the
 current v0.11 plus historical v0.10/v0.9 fixtures. No npm publication, tag,
 release, merge, or deployment occurred.
 
@@ -67,6 +67,21 @@ provisional turn receives the typed failure while two provisional turns remain
 unattributed without handle mutation. The targeted suite passed 129 tests, then
 the full verification sequence passed with 344 tests. A final exact-head board
 review is required after this second reconciliation commit.
+
+The third exact-head review delivered three usable independent seats. Grok and
+Gemini agreed; Fable's canonical Claude TUI adapter stalled through both bounded
+attempts and ended `DEGRADED`. Sol reproduced two remaining generic identifier
+channels: metadata carrying `item.id` could seed mapper deduplication, and a
+pre-allocation failure carrying `call_id` could replace its synthetic event ID.
+The normalizer now synthesizes event identity and strips item, message, tool,
+action, and elicitation identifiers for passive metadata and nested
+pre-allocation failures. The mapper returns immediately for the two metadata
+types before touching dedupe state. Regression evidence proves forged metadata
+cannot suppress a later legitimate output item and forged failure identifiers
+cannot replace synthetic identity. The targeted suite passed 129 tests and the
+full verification sequence passed again with 344 tests. A final exact-head board
+review is required after this third reconciliation commit, with Fable retried
+through the same canonical TUI adapter.
 
 ## Acceptance reduction
 

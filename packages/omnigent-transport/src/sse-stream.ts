@@ -428,24 +428,31 @@ export class OmnigentSseNormalizer {
       stringValue(raw.session_id) ??
       this.options.sessionId;
     const sequence = numberValue(raw.sequence_number);
-    const messageId = stringValue(raw.message_id);
-    const itemId =
-      stringValue(item?.id) ??
-      stringValue(raw.call_id) ??
-      stringValue(raw.action_id) ??
-      stringValue(raw.elicitation_id) ??
-      stringValue(raw.file_id);
+    const isIdentityFreeEvent =
+      isPassiveSessionMetadata || isPreAllocationFailure;
+    const messageId = isIdentityFreeEvent
+      ? undefined
+      : stringValue(raw.message_id);
+    const itemId = isIdentityFreeEvent
+      ? undefined
+      : stringValue(item?.id) ??
+        stringValue(raw.call_id) ??
+        stringValue(raw.action_id) ??
+        stringValue(raw.elicitation_id) ??
+        stringValue(raw.file_id);
     const messageIndex = numberValue(raw.index);
     const streamEventOrdinal =
       sequence ??
       `${this.options.syntheticEventIdPrefix ?? sessionId}:${this.frameOrdinal}`;
-    const eventId =
-      itemId ??
-      (messageId
-        ? `${messageId}:${messageIndex ?? 0}:${streamEventOrdinal}`
-        : undefined) ??
-      (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
-      `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
+    const syntheticEventId = `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${sequence ?? this.frameOrdinal}`;
+    const eventId = isIdentityFreeEvent
+      ? syntheticEventId
+      : itemId ??
+        (messageId
+          ? `${messageId}:${messageIndex ?? 0}:${streamEventOrdinal}`
+          : undefined) ??
+        (nestedResponseId ? `${nestedResponseId}:${tagged.type}` : undefined) ??
+        syntheticEventId;
     const occurredAt =
       epochToIso(response?.completed_at) ??
       epochToIso(response?.created_at) ??
@@ -457,7 +464,7 @@ export class OmnigentSseNormalizer {
       : undefined;
     const normalized: OmnigentRawEvent = {
       action: stringValue(raw.action),
-      action_id: stringValue(raw.action_id),
+      action_id: isIdentityFreeEvent ? undefined : stringValue(raw.action_id),
       agent_id: raw.agent_id === null ? null : stringValue(raw.agent_id),
       args: isRecord(raw.args) ? raw.args : undefined,
       attempt: numberValue(raw.attempt),
@@ -466,7 +473,9 @@ export class OmnigentSseNormalizer {
       background_tasks: backgroundTasks(raw.background_tasks),
       blocked_on:
         raw.blocked_on === null ? null : stringValue(raw.blocked_on),
-      call_id: stringValue(raw.call_id) ?? stringValue(item?.call_id),
+      call_id: isIdentityFreeEvent
+        ? undefined
+        : stringValue(raw.call_id) ?? stringValue(item?.call_id),
       child_session_id: stringValue(raw.child_session_id),
       cleared_pending_id: stringValue(data?.cleared_pending_id),
       consumed_item_id:
@@ -476,14 +485,16 @@ export class OmnigentSseNormalizer {
       conversation_id: stringValue(raw.conversation_id),
       delay_seconds: numberValue(raw.delay_seconds),
       delta: stringValue(raw.delta),
-      elicitation_id: stringValue(raw.elicitation_id),
+      elicitation_id: isIdentityFreeEvent
+        ? undefined
+        : stringValue(raw.elicitation_id),
       error: raw.error ?? response?.error,
       failure:
         failureMessage === undefined
           ? undefined
           : { category: "backend_unavailable", message: failureMessage },
       id: eventId,
-      item,
+      item: isIdentityFreeEvent ? undefined : item,
       itemId,
       final: typeof raw.final === "boolean" ? raw.final : undefined,
       index: messageIndex,

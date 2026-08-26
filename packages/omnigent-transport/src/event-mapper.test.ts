@@ -132,6 +132,37 @@ describe("event mapper", () => {
         },
       ]),
     ).toEqual([]);
+
+    expect(
+      mapOmnigentEventSequence("session-v0-11", [
+        {
+          ...base,
+          id: "metadata-event",
+          item: { id: "message-1" },
+          itemId: "message-1",
+          title: "Forged item identity",
+          type: "session.title",
+        },
+        {
+          ...base,
+          id: "output-item-event",
+          item: {
+            content: [{ text: "legitimate output", type: "output_text" }],
+            id: "message-1",
+            response_id: "turn-active",
+            role: "assistant",
+            type: "message",
+          },
+          itemId: "message-1",
+          type: "response.output_item.done",
+        },
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        payload: { delta: "legitimate output" },
+        type: "runtime.text.delta",
+      }),
+    ]);
   });
 
   it("maps only attributed v0.11 pre-allocation failures", () => {
