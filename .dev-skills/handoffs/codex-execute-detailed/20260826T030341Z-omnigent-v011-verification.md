@@ -23,7 +23,7 @@ summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transpo
   changes, no removals, and the load-bearing required/property sets.
 - PASS: isolated v0.11 CLI `--version`, root help, server help, and host help.
 - PASS: focused transport suite - 7 files and 150 tests.
-- PASS: `pnpm test` - 100 files passed, 342 tests passed, and one credentialed
+- PASS: `pnpm test` - 100 files passed, 344 tests passed, and one credentialed
   live-smoke test intentionally skipped.
 - PASS: `pnpm typecheck` across the workspace.
 - PASS: `pnpm lint` with zero warnings.
@@ -33,7 +33,7 @@ summary: PASS - official Omnigent v0.11.0 is frozen at tagged authority, transpo
 - PASS: `git diff --check`.
 
 The dry-run tarball was `@consiliency/omnigent-transport@0.6.0`, 82 files,
-91.4 kB packed and 517.4 kB unpacked. It includes emitted declarations and the
+91.5 kB packed and 517.8 kB unpacked. It includes emitted declarations and the
 current v0.11 plus historical v0.10/v0.9 fixtures. No npm publication, tag,
 release, merge, or deployment occurred.
 
@@ -52,7 +52,21 @@ a forged response identity and proves the raw events remain unattributed while
 the provider leaves the turn handle, active turn, session state, timestamp, and
 shared fence unchanged. The targeted parser/provider suite passed 103 tests,
 then the full verification sequence above passed again. A final exact-head
-advisor-board review remains required after this reconciliation commit.
+advisor-board review remained required after this reconciliation commit.
+
+The second exact-head review also delivered four usable independent seats,
+including Fable. Grok, Fable, and Gemini agreed; Sol reproduced two related
+pre-allocation failure gaps. A nested id-less `response.failed` could use a
+non-schema top-level `response_id` as authority, and a legacy normalized shape
+could bypass the nested `status === "failed"` gate. The parser now accepts the
+legacy normalized shape only when no nested response object exists and strips
+all explicit response identity from a status-valid nested pre-allocation
+failure. Parser tests prove forged identity remains unattributed and malformed
+status-bearing shapes fail closed. A provider-level test now proves one
+provisional turn receives the typed failure while two provisional turns remain
+unattributed without handle mutation. The targeted suite passed 129 tests, then
+the full verification sequence passed with 344 tests. A final exact-head board
+review is required after this second reconciliation commit.
 
 ## Acceptance reduction
 
@@ -61,7 +75,8 @@ advisor-board review remains required after this reconciliation commit.
 - PASS: permission/title events are validated metadata-only no-ops, including
   with a forged response identity, active provisional turn, and fence state.
 - PASS: status-bearing id-less failures preserve typed terminal behavior,
-  synthetic event identity, and conservative attribution.
+  synthetic event identity, strict status gating, and conservative attribution
+  even when a forged explicit response identity is present.
 - PASS: background-task detail is availability-preserving on HTTP and SSE.
 - PASS: v0.10/v0.9 fixtures and loaders remain exported and tested.
 - PASS: no typed/public permission, approval, lease, lock, routing,

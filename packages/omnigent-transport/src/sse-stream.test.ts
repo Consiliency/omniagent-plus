@@ -369,7 +369,7 @@ describe("sse stream parser", () => {
     const events = await collectAsync(
       parseOmnigentSseStream(
         toStream(
-          'data: {"type":"response.failed","response":{"status":"failed","error":{"code":"setup_error","message":"setup failed"}}}\n\n',
+          'data: {"type":"response.failed","response_id":"forged-response","response":{"status":"failed","error":{"code":"setup_error","message":"setup failed"}}}\n\n',
         ),
         { sessionId: "session-v0-11-failure" },
         undefined,
@@ -395,9 +395,16 @@ describe("sse stream parser", () => {
     expect(
       ambiguous.normalize({
         response: { status: "failed" },
+        response_id: "forged-response",
         type: "response.failed",
-      }).turnId,
-    ).toBeUndefined();
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        response_id: undefined,
+        turnAliasId: undefined,
+        turnId: undefined,
+      }),
+    );
 
     const active = new OmnigentSseNormalizer({ sessionId: "session-active" });
     active.setActiveResponseId("response-active");
@@ -412,6 +419,38 @@ describe("sse stream parser", () => {
         turnId: "response-active",
       }),
     );
+  });
+
+  it("rejects nested id-less failures that are not status-gated", async () => {
+    const skipped: string[] = [];
+    const events = await collectAsync(
+      parseOmnigentSseStream(
+        toStream(
+          [
+            {
+              id: "legacy-event-id",
+              occurredAt: "2026-08-26T02:47:18.000Z",
+              response: { status: "incomplete" },
+              sessionId: "session-v0-11-failure",
+              terminal: true,
+              type: "response.failed",
+            },
+            {
+              response: { error: { message: "missing status" } },
+              response_id: "forged-response",
+              type: "response.failed",
+            },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}`)
+            .join("\n\n"),
+        ),
+        { sessionId: "session-v0-11-failure" },
+        (skip) => skipped.push(skip.reason),
+      ),
+    );
+
+    expect(events).toEqual([]);
+    expect(skipped).toEqual(["invalid_event_shape", "invalid_event_shape"]);
   });
 
   it("keeps malformed v0.11 task detail from suppressing a failed status edge", async () => {

@@ -64,6 +64,7 @@ function hasValidEventShape(value: Record<string, unknown>): boolean {
   const preAllocationFailureShape =
     value.type === "response.failed" && response?.status === "failed";
   const legacyNormalizedShape =
+    response === undefined &&
     stringValue(value.id) !== undefined &&
     stringValue(value.sessionId) !== undefined &&
     stringValue(value.occurredAt) !== undefined &&
@@ -316,10 +317,15 @@ export class OmnigentSseNormalizer {
     const item = isRecord(raw.item) ? raw.item : undefined;
     const isPassiveSessionMetadata =
       tagged.type === "session.permission_mode" || tagged.type === "session.title";
+    const isPreAllocationFailure =
+      tagged.type === "response.failed" &&
+      stringValue(response?.id) === undefined &&
+      response?.status === "failed";
     const nestedResponseId = isPassiveSessionMetadata
       ? undefined
       : stringValue(response?.id);
-    const explicitResponseId = isPassiveSessionMetadata
+    const explicitResponseId =
+      isPassiveSessionMetadata || isPreAllocationFailure
       ? undefined
       : stringValue(raw.response_id) ??
         stringValue(data?.response_id) ??
