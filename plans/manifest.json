@@ -72,20 +72,28 @@
           "transition": "executing"
         },
         {
-          "at": "2026-09-03T16:35:37Z",
+          "at": "2026-09-03T16:47:31Z",
           "by": "codex-execute-detailed",
           "metadata": {
-            "acceptance_criteria": "10/10",
-            "diagnostic": "implementation_and_verification_passed",
+            "acceptance_criteria": "9/10",
+            "advisor_board_delivered_seats": 4,
+            "advisor_board_distinct_vendors": 4,
+            "advisor_board_result": "three_agree_one_procedural_disagree_reconciled",
+            "diagnostic": "publication_blocked_missing_authenticated_partition_receipt",
             "dirty_path_classification": "all paths plan-owned; ignored build/install output only; no unrelated or non-plan output",
             "doc_delta_decision": "docs_updated",
+            "fable_adapter": "canonical_subscription_tui",
+            "local_reviewed_head": "c273d2e79413093558a72ef1e6da568060a5c83c",
             "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
+            "publication_effects": "none",
+            "publication_transaction": "abandoned_before_admission",
+            "review_reconciliation_path": ".dev-skills/handoffs/codex-advisor-board/20260903T164731Z-omnigent-v012-exact-head-reconciliation.md",
             "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/fcd59ee9/codex-omnigent-v0-12/20260903T061405Z-omnigent-v012-execution.md",
             "run_id": "20260903T061405Z-omnigent-v012-execution",
             "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260903T163441Z-omnigent-v012-verification.md",
-            "verification_status": "passed"
+            "verification_status": "blocked_after_all_executable_checks_passed"
           },
-          "transition": "completed"
+          "transition": "failed"
         }
       ],
       "owner_skill": "codex-plan-detailed",
@@ -93,10 +101,10 @@
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee9/main/20260903T051539Z-omnigent-v012-plan.md",
       "roadmap_ref": null,
       "slug": "detailed-omnigent-v0-12-accommodation-20260903-051539",
-      "status": "completed",
+      "status": "failed",
       "task_summary": "Plan official Omnigent v0.12.0 transport authority accommodation and transport-only 0.7.0 release.",
       "type": "detailed",
-      "updated_at": "2026-09-03T16:35:37Z"
+      "updated_at": "2026-09-03T16:47:31Z"
     },
     {
       "acceptance_criteria_count": 11,
