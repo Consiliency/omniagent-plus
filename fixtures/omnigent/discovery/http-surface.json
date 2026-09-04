@@ -1,52 +1,112 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-26T02:47:18Z",
+  "captured_at": "2026-09-03T16:23:40Z",
   "openapi_delta": {
-    "from_tag": "v0.10.0",
-    "to_tag": "v0.11.0",
+    "from_tag": "v0.11.0",
+    "to_tag": "v0.12.0",
     "previous_operation_count": 100,
-    "operation_count": 100,
+    "operation_count": 101,
     "previous_path_count": 72,
-    "path_count": 72,
-    "previous_schema_count": 139,
-    "schema_count": 143,
-    "added_paths": [],
+    "path_count": 73,
+    "previous_schema_count": 143,
+    "schema_count": 146,
+    "added_operations": [
+      "POST /v1/imports/local"
+    ],
+    "removed_operations": [],
+    "added_paths": [
+      "/v1/imports/local"
+    ],
     "removed_paths": [],
     "added_schemas": [
-      "BackgroundTaskInfo",
-      "FailedResponseObject",
-      "SessionPermissionModeEvent",
-      "SessionTitleEvent"
+      "ImportedSessionRef",
+      "LocalImportRequest",
+      "LocalImportResponse"
     ],
     "removed_schemas": [],
     "changed_schemas": [
-      "FailedEvent",
-      "ServerStreamEvent",
-      "SessionModelEvent",
-      "SessionProjectSummary",
-      "SessionResponse",
-      "SessionStatusEvent",
-      "SessionUsage",
+      "AutomaticSessionRenameRequest",
+      "ElicitationResolvedEvent",
+      "ImportSessionRequest",
+      "SessionForkRequest",
+      "SessionGitOptions",
       "UpdateSessionRequest"
+    ],
+    "annotation_only_fields_ignored": [
+      "description",
+      "format",
+      "title"
     ]
   },
   "session_endpoints": [
-    { "method": "POST", "path": "/v1/sessions", "purpose": "create_existing_agent_session" },
-    { "method": "GET", "path": "/v1/sessions", "purpose": "list_sessions_paginated" },
-    { "method": "GET", "path": "/v1/sessions/{session_id}", "purpose": "snapshot" },
-    { "method": "PATCH", "path": "/v1/sessions/{session_id}", "purpose": "mutate_session" },
-    { "method": "DELETE", "path": "/v1/sessions/{session_id}", "purpose": "destructive_delete" },
-    { "method": "GET", "path": "/v1/sessions/{session_id}/items", "purpose": "read_history_paginated" },
-    { "method": "GET", "path": "/v1/sessions/{session_id}/stream", "purpose": "stream_events" },
-    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "purpose": "send_turn_or_interrupt" },
-    { "method": "GET", "path": "/v1/sessions/{session_id}/child_sessions", "purpose": "observe_children_paginated" },
-    { "method": "POST", "path": "/v1/sessions/{source_id}/fork", "purpose": "fork_session" },
-    { "method": "POST", "path": "/v1/sessions/{session_id}/switch-agent", "purpose": "switch_bound_agent" },
-    { "method": "PUT", "path": "/v1/sessions/{session_id}/read-state", "purpose": "update_viewer_read_state" }
+    {
+      "method": "POST",
+      "path": "/v1/sessions",
+      "purpose": "create_existing_agent_session"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sessions",
+      "purpose": "list_sessions_paginated"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sessions/{session_id}",
+      "purpose": "snapshot"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/sessions/{session_id}",
+      "purpose": "mutate_session"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/sessions/{session_id}",
+      "purpose": "destructive_delete"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sessions/{session_id}/items",
+      "purpose": "read_history_paginated"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sessions/{session_id}/stream",
+      "purpose": "stream_events"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{session_id}/events",
+      "purpose": "send_turn_or_interrupt"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/sessions/{session_id}/child_sessions",
+      "purpose": "observe_children_paginated"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{source_id}/fork",
+      "purpose": "fork_session"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{session_id}/switch-agent",
+      "purpose": "switch_bound_agent"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/sessions/{session_id}/read-state",
+      "purpose": "update_viewer_read_state"
+    }
   ],
   "harness_endpoints": [
-    { "method": "GET", "path": "/v1/harnesses", "purpose": "read_only_harness_catalog" }
+    {
+      "method": "GET",
+      "path": "/v1/harnesses",
+      "purpose": "read_only_harness_catalog"
+    }
   ],
   "session_snapshot_fields": {
     "active_response_id": "nullable reconnect hint",
@@ -62,32 +122,91 @@
     "subagent_routing_override": "read-only routing metadata"
   },
   "child_session_public_surface": {
-    "observe": ["GET /v1/sessions/{session_id}/child_sessions", "session.created", "session.child_session.updated"],
+    "observe": [
+      "GET /v1/sessions/{session_id}/child_sessions",
+      "session.created",
+      "session.child_session.updated"
+    ],
     "create_under_parent": false,
     "fork_available": true,
     "task_summary": "optional nullable read-only descriptive metadata",
-    "read_only_fields": ["routed_model", "routing_decision_id", "task_summary"]
+    "read_only_fields": [
+      "routed_model",
+      "routing_decision_id",
+      "task_summary"
+    ]
   },
   "structured_error_contract": {
-    "required_machine_fields": ["code", "message"],
-    "optional_nullable_descriptive_fields": ["title", "cause", "remediation"],
-    "classification_fields": ["code", "message", "error", "detail.code", "detail.message", "detail.error", "plain_string_body"],
-    "excluded_from_classification": ["title", "cause", "remediation", "unknown_additive_fields"],
+    "required_machine_fields": [
+      "code",
+      "message"
+    ],
+    "optional_nullable_descriptive_fields": [
+      "title",
+      "cause",
+      "remediation"
+    ],
+    "classification_fields": [
+      "code",
+      "message",
+      "error",
+      "detail.code",
+      "detail.message",
+      "detail.error",
+      "plain_string_body"
+    ],
+    "excluded_from_classification": [
+      "title",
+      "cause",
+      "remediation",
+      "unknown_additive_fields"
+    ],
     "body_type": "unknown",
     "pass_through": "lossless",
     "authority_effect": "none"
   },
   "conversation_item_contract": {
-    "envelope_fields": ["id", "type", "status", "response_id", "created_at", "created_by", "data"],
-    "mapped_types": ["message", "function_call", "function_call_output", "error"],
-    "metadata_only_types": ["reasoning", "compaction", "native_tool", "resource_event", "routing_decision", "slash_command", "terminal_command"]
+    "envelope_fields": [
+      "id",
+      "type",
+      "status",
+      "response_id",
+      "created_at",
+      "created_by",
+      "data"
+    ],
+    "mapped_types": [
+      "message",
+      "function_call",
+      "function_call_output",
+      "error"
+    ],
+    "metadata_only_types": [
+      "reasoning",
+      "compaction",
+      "native_tool",
+      "resource_event",
+      "routing_decision",
+      "slash_command",
+      "terminal_command"
+    ]
   },
   "stream_contract": {
     "mode": "live_tail_only",
     "done_sentinel": "[DONE]",
     "replay": false,
-    "reconnect_steps": ["open_stream", "get_snapshot", "get_all_history_pages", "dedupe_by_item_id"],
-    "event_families": ["session", "response", "turn", "browser"],
+    "reconnect_steps": [
+      "open_stream",
+      "get_snapshot",
+      "get_all_history_pages",
+      "dedupe_by_item_id"
+    ],
+    "event_families": [
+      "session",
+      "response",
+      "turn",
+      "browser"
+    ],
     "official_release_event_count": 54,
     "release_event_types": [
       "session.permission_mode",
@@ -95,33 +214,198 @@
     ]
   },
   "optional_release_surfaces": [
-    { "field": "SessionUsage.agent_name", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
-    { "field": "SessionUsage.harness", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
-    { "field": "SessionUsage.llm_model", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
-    { "field": "UsageReport.daily_costs", "status": "observed_not_provider_required", "reason": "cost reporting does not grant billing or routing authority" },
-    { "path": "/.well-known/omnigent.json", "method": "GET", "status": "observed_not_provider_required", "reason": "server discovery is an operator and administration surface" },
-    { "path": "/v1/branding/logo/{variant}", "method": "GET", "status": "observed_not_provider_required", "reason": "branding is an operator and administration surface" },
-    { "field": "ServerInfoResponse.smart_routing_sources", "status": "observed_not_provider_required", "reason": "source availability does not create a neutral route decision" },
-    { "path": "/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}", "method": "GET", "status": "observed_not_provider_required", "reason": "environment search is an operator and administration surface" },
-    { "field": "ImportSessionRequest.force", "status": "observed_not_provider_required", "reason": "import remains an operator surface" },
-    { "field": "UpdateSessionRequest.subagent_routing_override", "status": "observed_not_provider_required", "reason": "routing metadata does not grant coordinator authority" },
-    { "field": "RoutingDecisionData", "status": "observed_not_provider_required", "reason": "smart routing does not create a neutral route decision" },
-    { "field": "SessionProjectSummary.icon", "status": "observed_not_provider_required", "reason": "project presentation metadata is outside the provider" },
-    { "field": "SessionUsage.other_harnesses", "status": "observed_not_provider_required", "reason": "usage attribution is operator reporting metadata" },
-    { "field": "UpdateSessionRequest.permission_mode", "status": "observed_not_provider_required", "reason": "live TUI mutation grants no neutral permission or approval authority" },
-    { "path": "/v1/sessions/{session_id}/events", "method": "POST", "status": "api_guide_authority", "reason": "tagged API guide remains authority because generated OpenAPI omits this route" }
+    {
+      "field": "SessionUsage.agent_name",
+      "status": "observed_not_provider_required",
+      "reason": "usage attribution is operator reporting metadata"
+    },
+    {
+      "field": "SessionUsage.harness",
+      "status": "observed_not_provider_required",
+      "reason": "usage attribution is operator reporting metadata"
+    },
+    {
+      "field": "SessionUsage.llm_model",
+      "status": "observed_not_provider_required",
+      "reason": "usage attribution is operator reporting metadata"
+    },
+    {
+      "field": "UsageReport.daily_costs",
+      "status": "observed_not_provider_required",
+      "reason": "cost reporting does not grant billing or routing authority"
+    },
+    {
+      "path": "/.well-known/omnigent.json",
+      "method": "GET",
+      "status": "observed_not_provider_required",
+      "reason": "server discovery is an operator and administration surface"
+    },
+    {
+      "path": "/v1/branding/logo/{variant}",
+      "method": "GET",
+      "status": "observed_not_provider_required",
+      "reason": "branding is an operator and administration surface"
+    },
+    {
+      "field": "ServerInfoResponse.smart_routing_sources",
+      "status": "observed_not_provider_required",
+      "reason": "source availability does not create a neutral route decision"
+    },
+    {
+      "path": "/v1/sessions/{session_id}/resources/environments/{environment_id}/search/{path}",
+      "method": "GET",
+      "status": "observed_not_provider_required",
+      "reason": "environment search is an operator and administration surface"
+    },
+    {
+      "field": "ImportSessionRequest.force",
+      "status": "observed_not_provider_required",
+      "reason": "import remains an operator surface"
+    },
+    {
+      "field": "UpdateSessionRequest.subagent_routing_override",
+      "status": "observed_not_provider_required",
+      "reason": "routing metadata does not grant coordinator authority"
+    },
+    {
+      "field": "RoutingDecisionData",
+      "status": "observed_not_provider_required",
+      "reason": "smart routing does not create a neutral route decision"
+    },
+    {
+      "field": "SessionProjectSummary.icon",
+      "status": "observed_not_provider_required",
+      "reason": "project presentation metadata is outside the provider"
+    },
+    {
+      "field": "SessionUsage.other_harnesses",
+      "status": "observed_not_provider_required",
+      "reason": "usage attribution is operator reporting metadata"
+    },
+    {
+      "field": "UpdateSessionRequest.permission_mode",
+      "status": "observed_not_provider_required",
+      "reason": "live TUI mutation grants no neutral permission or approval authority"
+    },
+    {
+      "path": "/v1/sessions/{session_id}/events",
+      "method": "POST",
+      "status": "api_guide_authority",
+      "reason": "tagged API guide remains authority because generated OpenAPI omits this route"
+    },
+    {
+      "path": "/v1/imports/local",
+      "method": "POST",
+      "status": "observed_not_provider_required",
+      "reason": "host-local import remains an operator and administration surface"
+    },
+    {
+      "field": "ProjectSessionCreateRequest.project_id",
+      "status": "observed_not_provider_required",
+      "reason": "the provider retains the legacy required-agent create shape and does not select projects"
+    },
+    {
+      "field": "ImportSessionRequest.project_id",
+      "status": "observed_not_provider_required",
+      "reason": "project filing during import remains an operator and administration surface"
+    },
+    {
+      "field": "SessionForkRequest.model_override",
+      "status": "observed_not_provider_required",
+      "reason": "fork configuration does not grant neutral model or harness authority"
+    },
+    {
+      "field": "SessionForkRequest.reasoning_effort",
+      "status": "observed_not_provider_required",
+      "reason": "fork configuration does not grant neutral reasoning authority"
+    },
+    {
+      "field": "SessionForkRequest.terminal_launch_args",
+      "status": "observed_not_provider_required",
+      "reason": "native terminal launch controls remain outside the provider"
+    },
+    {
+      "field": "SessionForkRequest.codex_bypass_sandbox",
+      "status": "observed_not_provider_required",
+      "reason": "dangerous fork approval selection grants no Consiliency approval authority"
+    },
+    {
+      "field": "SessionGitOptions.existing_branch",
+      "status": "observed_not_provider_required",
+      "reason": "existing-branch checkout remains an upstream worktree administration surface"
+    },
+    {
+      "field": "ElicitationResolvedEvent.action",
+      "status": "metadata_only",
+      "reason": "a recorded verdict is observational and grants no approval authority"
+    },
+    {
+      "field": "AutomaticSessionRenameRequest.title.maxLength",
+      "value": 100,
+      "status": "observed_not_provider_required",
+      "reason": "automatic title administration is outside the provider"
+    },
+    {
+      "field": "UpdateSessionRequest.title.maxLength",
+      "value": 200,
+      "status": "observed_not_provider_required",
+      "reason": "title mutation administration is outside the provider"
+    }
   ],
   "fork_request": {
-    "allowed_fields": ["agent_id", "title", "up_to_response_id"],
-    "removed_fields": ["model_override"],
-    "provider_sends_removed_fields": false
+    "allowed_fields": [
+      "agent_id",
+      "codex_bypass_sandbox",
+      "model_override",
+      "reasoning_effort",
+      "terminal_launch_args",
+      "title",
+      "up_to_response_id"
+    ],
+    "additive_fields": [
+      "codex_bypass_sandbox",
+      "model_override",
+      "reasoning_effort",
+      "terminal_launch_args"
+    ],
+    "provider_sends_additive_fields": false
   },
   "endpoint_provenance": [
-    { "method": "POST", "path": "/v1/sessions/{session_id}/events", "source": "omnigent/server/API.md and tagged route source", "ref": "v0.11.0", "note": "required route omitted from generated OpenAPI" }
+    {
+      "method": "POST",
+      "path": "/v1/sessions/{session_id}/events",
+      "source": "omnigent/server/API.md and tagged route source",
+      "ref": "v0.12.0",
+      "note": "required route omitted from generated OpenAPI"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/imports/local",
+      "source": "openapi.json and tagged route source",
+      "ref": "v0.12.0",
+      "note": "observed administration surface only"
+    }
   ],
   "provenance": [
-    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.11.0" }
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/API.md",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/schemas.py",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/routes/sessions/routes_core.py",
+      "ref": "v0.12.0"
+    }
   ]
 }

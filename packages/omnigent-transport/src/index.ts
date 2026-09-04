@@ -11,6 +11,7 @@ export {
   OmnigentCliProvider,
 } from "./cli-client.js";
 export {
+  loadOmnigentV012WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,

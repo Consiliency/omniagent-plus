@@ -14,8 +14,11 @@ and scenario boundaries instead of raw provider payload dumps.
 ## provenance
 
 - Every fixture points back to the tagged upstream source that justified it.
-- The current freeze target is `omnigent` `v0.11.0` at
-  `496b7b13f6af3ed5330b957df408fc91290b6307`.
+- The current freeze target is `omnigent` `v0.12.0` at
+  `f04b0354fb5344c1ea8b92795ceb6760a9ad7595`.
+- The `v0.11.0` fixture at
+  `496b7b13f6af3ed5330b957df408fc91290b6307` remains historical regression
+  evidence and must not be rewritten as v0.12.
 - The `v0.10.0` fixture at
   `40755dd8dddb07e1eb6e4055d1d9936e184ceb9b` remains historical regression
   evidence and must not be rewritten as v0.11.
@@ -38,9 +41,10 @@ and scenario boundaries instead of raw provider payload dumps.
 
 - Each scenario in `scenarios.json` maps required provider capabilities to the
   minimum fixtures needed to simulate or normalize that case.
-- `v0_11_official_wire` is the current tagged authority scenario. It serves
-  metadata-only permission/title events, background-task detail, and both
-  allocated and pre-allocation failure shapes.
+- `v0_12_official_wire` is the current tagged authority scenario. It serves
+  metadata-only elicitation verdicts, the unchanged permission/title events,
+  background-task detail, and both allocated and pre-allocation failure shapes.
+- `v0_11_official_wire` remains available for historical wire regression.
 - `v0_10_official_wire` remains available for historical wire regression.
 - `v0_9_official_wire` remains available for historical wire regression.
 - Downstream transport tests should treat `blocked` capabilities as typed

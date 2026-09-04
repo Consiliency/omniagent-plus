@@ -49,7 +49,7 @@ try {
       "utf8",
     ),
   );
-  if (installedPackage.version !== "0.6.0") {
+  if (installedPackage.version !== "0.7.0") {
     throw new Error("unexpected packed package version");
   }
   execFileSync(
@@ -70,6 +70,7 @@ try {
       "--input-type=module",
       "-e",
       `import {
+  loadOmnigentV012WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
@@ -82,33 +83,36 @@ const snapshot = snapshotFromHealth({
   runtime: "omnigent",
   sessionStateDrift: [],
 });
-const currentWire = loadOmnigentV011WireContract();
+const currentWire = loadOmnigentV012WireContract();
+const historicalV011Wire = loadOmnigentV011WireContract();
 const historicalV010Wire = loadOmnigentV010WireContract();
 const historicalV09Wire = loadOmnigentV09WireContract();
-if (snapshot.version !== "0.11.0") throw new Error("unexpected fixture version");
-if (snapshot.gitSha !== "496b7b13f6af3ed5330b957df408fc91290b6307") {
+if (snapshot.version !== "0.12.0") throw new Error("unexpected fixture version");
+if (snapshot.gitSha !== "f04b0354fb5344c1ea8b92795ceb6760a9ad7595") {
   throw new Error("unexpected fixture git sha");
 }
 if (
-  currentWire.authority.tag !== "v0.11.0" ||
-  currentWire.authority.commit !== "496b7b13f6af3ed5330b957df408fc91290b6307"
+  currentWire.authority.tag !== "v0.12.0" ||
+  currentWire.authority.commit !== "f04b0354fb5344c1ea8b92795ceb6760a9ad7595"
 ) {
   throw new Error("unexpected current wire authority");
 }
 if (
   currentWire.child_page.data[0]?.task_summary !==
-    "Inspect the tagged v0.11 transport contract." ||
+    "Inspect the tagged v0.12 transport contract." ||
   currentWire.child_page.data[1]?.task_summary !== null
 ) {
-  throw new Error("unexpected v0.11 task summary fixture");
+  throw new Error("unexpected v0.12 task summary fixture");
 }
 const currentDeltas = currentWire.sse_frames.filter(
   (frame) => frame.type === "response.output_text.delta",
 );
 if (currentDeltas.length !== 2) {
-  throw new Error("unexpected v0.11 lossless SSE regression fixture");
+  throw new Error("unexpected v0.12 lossless SSE regression fixture");
 }
 if (
+  historicalV011Wire.authority.tag !== "v0.11.0" ||
+  historicalV011Wire.authority.commit !== "496b7b13f6af3ed5330b957df408fc91290b6307" ||
   historicalV010Wire.authority.tag !== "v0.10.0" ||
   historicalV010Wire.authority.commit !== "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b" ||
   historicalV09Wire.authority.tag !== "v0.9.0" ||
@@ -116,6 +120,13 @@ if (
   !historicalV09Wire.sse_frames.some((frame) => frame.type === "response.completed")
 ) {
   throw new Error("unexpected historical v0.9 wire fixture");
+}
+if (
+  currentWire.observed_non_provider_requests.provider_serializes !== false ||
+  currentWire.elicitation_resolution_samples.valid.length !== 5 ||
+  currentWire.elicitation_resolution_samples.malformed.length !== 6
+) {
+  throw new Error("unexpected v0.12 metadata-only boundary fixture");
 }`,
     ],
     { cwd: consumer, stdio: "pipe" },

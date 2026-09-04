@@ -146,6 +146,14 @@ describe("transport types", () => {
       sessionId: "session-1",
       type: "response.function_call_output.delta",
     };
+    const elicitationResolvedEvent: OmnigentRawEvent = {
+      action: "decline",
+      elicitation_id: "elicit-v0-12",
+      id: "elicitation-resolved-1",
+      occurredAt: "2026-09-03T05:15:39.000Z",
+      sessionId: "session-1",
+      type: "response.elicitation_resolved",
+    };
 
     expect(httpOptions.baseUrl).toContain("127.0.0.1");
     expect(httpOptions.allowQueuedTurns).toBe(true);
@@ -180,20 +188,62 @@ describe("transport types", () => {
       "failed",
       "cancelled",
     ]);
-    expect(omnigentStreamEventTypes).toContain("response.output_text.delta");
-    expect(omnigentStreamEventTypes).toContain("response.reasoning_text.delta");
-    expect(omnigentStreamEventTypes).toContain("response.elicitation_request");
-    expect(omnigentStreamEventTypes).toContain("session.usage");
-    expect(omnigentStreamEventTypes).toContain("session.heartbeat");
-    expect(omnigentStreamEventTypes).toContain("session.mcp_startup");
-    expect(omnigentStreamEventTypes).toContain("response.policy_denied");
-    expect(omnigentStreamEventTypes).toContain("browser.action_request");
-    expect(omnigentStreamEventTypes).toContain(
+    expect(omnigentStreamEventTypes).toEqual([
+      "browser.action_request",
+      "session.created",
+      "session.status",
+      "session.input.consumed",
+      "session.interrupted",
+      "session.child_session.updated",
+      "session.usage",
+      "session.model",
+      "session.model_options",
+      "session.reasoning_effort",
+      "session.collaboration_mode",
+      "session.permission_mode",
+      "session.title",
+      "session.agent_changed",
+      "session.todos",
+      "session.terminal_pending",
+      "session.sandbox_status",
+      "session.skills",
+      "session.superseded",
+      "session.presence",
+      "session.resource.created",
+      "session.resource.deleted",
+      "session.changed_files.invalidated",
+      "session.terminal.activity",
+      "session.heartbeat",
+      "session.mcp_startup",
+      "response.created",
+      "response.queued",
+      "response.in_progress",
+      "response.output_text.delta",
+      "response.output_item.done",
+      "response.output_file.done",
+      "response.reasoning.started",
+      "response.reasoning_text.delta",
+      "response.reasoning_summary_text.delta",
+      "response.retry",
+      "response.error",
+      "response.compaction.in_progress",
+      "response.compaction.completed",
+      "response.compaction.failed",
+      "response.client_task.cancel",
+      "response.heartbeat",
+      "response.elicitation_request",
+      "response.elicitation_resolved",
+      "response.policy_denied",
       "response.function_call_output.delta",
-    );
-    expect(omnigentStreamEventTypes).toHaveLength(54);
-    expect(omnigentStreamEventTypes).toContain("session.permission_mode");
-    expect(omnigentStreamEventTypes).toContain("session.title");
+      "response.completed",
+      "response.failed",
+      "response.incomplete",
+      "response.cancelled",
+      "turn.started",
+      "turn.completed",
+      "turn.failed",
+      "turn.cancelled",
+    ]);
     expect(childSummary.task_summary).toBe(
       "Inspect the tagged v0.10 transport contract.",
     );
@@ -215,5 +265,7 @@ describe("transport types", () => {
     expect(policyDeniedEvent.phase).toBe("tool_call");
     expect(browserActionEvent.action_id).toBe("baction_metadata_only");
     expect(toolOutputDeltaEvent.call_id).toBe("call_metadata_only");
+    expect(elicitationResolvedEvent.elicitation_id).toBe("elicit-v0-12");
+    expect(elicitationResolvedEvent.action).toBe("decline");
   });
 });

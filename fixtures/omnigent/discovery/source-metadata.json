@@ -1,63 +1,68 @@
 {
   "schema": "omnigent.source_metadata.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-26T02:47:18Z",
+  "captured_at": "2026-09-03T16:23:40Z",
   "repo": "omnigent-ai/omnigent",
   "freeze_target": {
-    "tag": "v0.11.0",
-    "commit": "496b7b13f6af3ed5330b957df408fc91290b6307",
-    "published_at": "2026-08-25T20:10:48Z",
-    "package_version": "0.11.0",
+    "tag": "v0.12.0",
+    "commit": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
+    "published_at": "2026-09-01T22:18:22Z",
+    "package_version": "0.12.0",
     "requires_python": ">=3.12"
   },
   "previous_probe": {
-    "tag": "v0.10.0",
-    "commit": "40755dd8dddb07e1eb6e4055d1d9936e184ceb9b",
-    "published_at": "2026-08-19T04:34:41Z",
-    "authority": "historical release authority retained for regression evidence; superseded by v0.11.0"
+    "tag": "v0.11.0",
+    "commit": "496b7b13f6af3ed5330b957df408fc91290b6307",
+    "published_at": "2026-08-25T20:10:48Z",
+    "authority": "historical release authority retained for regression evidence; superseded by v0.12.0"
   },
   "head_probe": {
     "branch": "main",
-    "commit": "820a3b50fdf9c88696eafcb1568c7bac4c2aa12d",
-    "observed_at": "2026-08-26T02:47:18Z",
+    "commit": "385830d871145d0aca1c46be5e293b0192e24398",
+    "observed_at": "2026-09-03T16:23:40Z",
     "authority": "development probe only; not frozen",
-    "version": "0.12.0.dev0",
+    "version": "0.13.0.dev0",
     "comparison_status": "diverged",
-    "commits_ahead_of_freeze": 75,
-    "commits_behind_freeze": 1,
+    "commits_ahead_of_freeze": 195,
+    "commits_behind_freeze": 2,
     "added_stream_events": []
   },
   "preflight_confirmation": {
-    "observed_at": "2026-08-26T02:47:18Z",
+    "observed_at": "2026-09-03T16:23:40Z",
     "previous_openapi_operation_count": 100,
-    "openapi_operation_count": 100,
+    "openapi_operation_count": 101,
     "previous_openapi_path_count": 72,
-    "openapi_path_count": 72,
-    "previous_openapi_schema_count": 139,
-    "openapi_schema_count": 143,
-    "added_paths": [],
+    "openapi_path_count": 73,
+    "previous_openapi_schema_count": 143,
+    "openapi_schema_count": 146,
+    "added_operations": [
+      "POST /v1/imports/local"
+    ],
+    "removed_operations": [],
+    "added_paths": [
+      "/v1/imports/local"
+    ],
     "removed_paths": [],
     "added_schemas": [
-      "BackgroundTaskInfo",
-      "FailedResponseObject",
-      "SessionPermissionModeEvent",
-      "SessionTitleEvent"
+      "ImportedSessionRef",
+      "LocalImportRequest",
+      "LocalImportResponse"
     ],
     "removed_schemas": [],
     "changed_schemas": [
-      "FailedEvent",
-      "ServerStreamEvent",
-      "SessionModelEvent",
-      "SessionProjectSummary",
-      "SessionResponse",
-      "SessionStatusEvent",
-      "SessionUsage",
+      "AutomaticSessionRenameRequest",
+      "ElicitationResolvedEvent",
+      "ImportSessionRequest",
+      "SessionForkRequest",
+      "SessionGitOptions",
       "UpdateSessionRequest"
     ],
-    "added_stream_events": [
-      "session.permission_mode",
-      "session.title"
+    "annotation_only_fields_ignored": [
+      "description",
+      "format",
+      "title"
     ],
+    "added_stream_events": [],
     "removed_stream_events": [],
     "official_release_event_count": 54,
     "server_background_command": "omnigent server --background",
@@ -85,13 +90,50 @@
     ]
   },
   "provenance": [
-    { "kind": "release_metadata", "source": "GitHub release metadata", "ref": "v0.11.0" },
-    { "kind": "package_metadata", "source": "PyPI omnigent 0.11.0 metadata", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "omnigent/cli.py", "ref": "v0.11.0" },
-    { "kind": "historical_tagged_source", "path": "fixtures/omnigent/http/v0-9-wire-contract.json", "ref": "v0.9.0" },
-    { "kind": "remote_head_probe", "path": "refs/heads/main", "ref": "820a3b50fdf9c88696eafcb1568c7bac4c2aa12d" }
+    {
+      "kind": "release_metadata",
+      "source": "GitHub release metadata",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "package_metadata",
+      "source": "PyPI omnigent 0.12.0 metadata",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/API.md",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/schemas.py",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/routes/sessions/routes_core.py",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/cli.py",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "historical_tagged_source",
+      "path": "fixtures/omnigent/http/v0-11-wire-contract.json",
+      "ref": "v0.11.0"
+    },
+    {
+      "kind": "remote_head_probe",
+      "path": "refs/heads/main",
+      "ref": "385830d871145d0aca1c46be5e293b0192e24398"
+    }
   ]
 }

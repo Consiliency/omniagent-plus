@@ -1,19 +1,19 @@
 # Omnigent Contract Freeze
 
-`IF-0-CONTRACT-1` is frozen to official Omnigent `v0.11.0` at commit
-`496b7b13f6af3ed5330b957df408fc91290b6307`, published 2026-08-25. PyPI
-reports `omnigent==0.11.0` with Python `>=3.12`.
+`IF-0-CONTRACT-1` is frozen to official Omnigent `v0.12.0` at commit
+`f04b0354fb5344c1ea8b92795ceb6760a9ad7595`, published 2026-09-01. PyPI
+reports `omnigent==0.12.0` with Python `>=3.12`.
 
-The direct `v0.10.0` to `v0.11.0` comparison keeps 100 operations and 72 paths
-and increases schemas from 139 to 143. No path or schema is removed. The four
-added schemas are `BackgroundTaskInfo`, `FailedResponseObject`,
-`SessionPermissionModeEvent`, and `SessionTitleEvent`. Eight schemas change:
-`FailedEvent`, `ServerStreamEvent`, `SessionModelEvent`,
-`SessionProjectSummary`, `SessionResponse`, `SessionStatusEvent`,
-`SessionUsage`, and `UpdateSessionRequest`.
+The direct `v0.11.0` to `v0.12.0` comparison grows from 100 to 101 operations,
+72 to 73 paths, and 143 to 146 schemas. It adds only `POST /v1/imports/local`
+and `ImportedSessionRef`, `LocalImportRequest`, and `LocalImportResponse`; no
+operation, path, schema, or event is removed. Ignoring documentation and
+generator-only `format` annotations, six schemas change structurally:
+`AutomaticSessionRenameRequest`, `ElicitationResolvedEvent`,
+`ImportSessionRequest`, `SessionForkRequest`, `SessionGitOptions`, and
+`UpdateSessionRequest`.
 
-The stream union grows from 52 to 54 with exactly
-`session.permission_mode` and `session.title`.
+The stream union remains the exact existing 54 event types.
 
 Tagged `openapi.json`, `omnigent/server/API.md`, and
 `omnigent/server/schemas.py` are the authority. The checked-in fixtures are
@@ -26,6 +26,9 @@ The adapter supports `named_agent` directly and an optional resolver for human
 names. Inline and bundle-path specs fail closed until a separately reviewed
 multipart bundle flow exists. The neutral initial message becomes one tagged
 user message item; workspace uses `worktree.path ?? repoRoot`.
+V0.12 additionally supports project-aware creation, but requests without a
+non-null `project_id` retain the legacy required-`agent_id` shape. The adapter
+does not serialize project-like keys from generic request metadata.
 
 The session, history, and child-list surfaces use official wire shapes:
 
@@ -133,6 +136,14 @@ Session permission-mode and title frames are accepted as raw metadata and emit
 no neutral runtime event. Background-task detail is preserved best-effort from
 snapshots and status frames and never controls lifecycle authority.
 
+V0.12 adds an optional verdict to `response.elicitation_resolved`. The
+transport requires a non-empty `elicitation_id`, accepts only `accept`,
+`decline`, or `cancel` when an action is present, and normalizes an absent or
+explicit-null action to `undefined`. The event keeps only that metadata and a
+synthetic event ID. Supplied response, turn, message, item, call, and action
+identities are ignored before mapper, deduplication, cancellation, or fence
+state can be touched.
+
 ## CLI And Capabilities
 
 Production lifecycle remains `omnigent server --background`, with
@@ -158,6 +169,11 @@ V0.11 project icons, other-harness usage attribution, live permission-mode
 mutation, scheduled-task controls, and model vocabulary remain operator or
 reporting surfaces. No typed or public TUI-control path is added.
 
+V0.12 project-aware creation and import, configurable forks, existing-branch
+worktrees, and title bounds are likewise operator or administration surfaces.
+The adapter exposes no new method or capability for them. A recorded
+elicitation verdict is observational metadata and grants no approval authority.
+
 Sub-agent bundle-root isolation is an upstream stable v0.10 guarantee. The
 transport records that guarantee but does not implement or re-enforce it.
 V0.10 also reverted upstream shared-session approval attribution so any shared
@@ -167,7 +183,6 @@ or route-decision capability.
 
 ## Development Watch List
 
-The 2026-08-26 upstream development `main` probe observed `0.12.0.dev0` at
-`820a3b50fdf9c88696eafcb1568c7bac4c2aa12d`. Its OpenAPI contract still has
-100 operations, 72 paths, 143 schemas, and the same 54 events. Development
-`main` remains observational only.
+The 2026-09-03 upstream development `main` probe observed `0.13.0.dev0` at
+`385830d871145d0aca1c46be5e293b0192e24398`, 195 commits ahead of and two
+commits behind the v0.12 tag. Development `main` remains observational only.

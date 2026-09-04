@@ -1,39 +1,210 @@
 {
   "schema": "omnigent.capability_probe_matrix.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-26T02:47:18Z",
+  "captured_at": "2026-09-03T16:23:40Z",
   "release": {
-    "tag": "v0.11.0",
-    "commit": "496b7b13f6af3ed5330b957df408fc91290b6307"
+    "tag": "v0.12.0",
+    "commit": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595"
   },
   "capabilities": [
-    { "name": "create_session", "status": "supported", "evidence": ["v0.11 POST /v1/sessions requires agent_id and initial_items", "named-agent JSON create is supported", "idempotency is process-local", "bundle and inline specs remain blocked"] },
-    { "name": "send_turn", "status": "supported", "evidence": ["v0.11 tagged message role/content event", "accepted and synchronous policy-denial acknowledgements"] },
-    { "name": "stream_events", "status": "supported", "evidence": ["v0.11 GET /stream", "54-event allowlist", "tagged SSE normalization", "session.permission_mode and session.title are metadata-only"] },
-    { "name": "read_history", "status": "supported", "evidence": ["cursor-paginated ConversationItem history"] },
-    { "name": "cancel_turn", "status": "supported", "evidence": ["interrupt event", "requires withExclusiveSessionLease because the control is session-scoped"] },
-    { "name": "close_session", "status": "emulated", "evidence": ["stop_session plus provider-local logical close", "requires withExclusiveSessionLease because the control is session-scoped"] },
-    { "name": "list_sessions", "status": "supported", "evidence": ["cursor-paginated GET /v1/sessions"] },
-    { "name": "harness_catalog", "status": "supported", "evidence": ["read-only GET /v1/harnesses"] },
-    { "name": "child_session", "status": "blocked", "evidence": ["child endpoint is observe-only", "routed_model, routing_decision_id, and nullable task_summary are read-only", "smart routing grants no child-create, route-decision, lease, or lock authority"] },
-    { "name": "harness_override", "status": "blocked", "evidence": ["catalog is read-only", "routing override is not public harness authority"] },
-    { "name": "malformed_event", "status": "emulated", "evidence": ["unknown SSE frames are skipped", "invalid event requests fail"] },
-    { "name": "reconnect", "status": "supported", "evidence": ["stream handshake precedes snapshot and paginated history", "identity-free equal text remains lossless"] },
-    { "name": "terminal_event_uniqueness", "status": "emulated", "evidence": ["provider collapses response and turn terminal markers"] }
+    {
+      "name": "create_session",
+      "status": "supported",
+      "evidence": [
+        "v0.12 legacy POST /v1/sessions requires agent_id and preserves initial_items",
+        "project-aware create is observed but not serialized by this provider",
+        "named-agent JSON create is supported",
+        "idempotency is process-local",
+        "bundle and inline specs remain blocked"
+      ]
+    },
+    {
+      "name": "send_turn",
+      "status": "supported",
+      "evidence": [
+        "v0.12 tagged message role/content event",
+        "accepted and synchronous policy-denial acknowledgements"
+      ]
+    },
+    {
+      "name": "stream_events",
+      "status": "supported",
+      "evidence": [
+        "v0.12 GET /stream",
+        "unchanged 54-event allowlist",
+        "tagged SSE normalization",
+        "elicitation verdict, session.permission_mode, and session.title are metadata-only"
+      ]
+    },
+    {
+      "name": "read_history",
+      "status": "supported",
+      "evidence": [
+        "cursor-paginated ConversationItem history"
+      ]
+    },
+    {
+      "name": "cancel_turn",
+      "status": "supported",
+      "evidence": [
+        "interrupt event",
+        "requires withExclusiveSessionLease because the control is session-scoped"
+      ]
+    },
+    {
+      "name": "close_session",
+      "status": "emulated",
+      "evidence": [
+        "stop_session plus provider-local logical close",
+        "requires withExclusiveSessionLease because the control is session-scoped"
+      ]
+    },
+    {
+      "name": "list_sessions",
+      "status": "supported",
+      "evidence": [
+        "cursor-paginated GET /v1/sessions"
+      ]
+    },
+    {
+      "name": "harness_catalog",
+      "status": "supported",
+      "evidence": [
+        "read-only GET /v1/harnesses"
+      ]
+    },
+    {
+      "name": "child_session",
+      "status": "blocked",
+      "evidence": [
+        "child endpoint is observe-only",
+        "routed_model, routing_decision_id, and nullable task_summary are read-only",
+        "smart routing grants no child-create, route-decision, lease, or lock authority"
+      ]
+    },
+    {
+      "name": "harness_override",
+      "status": "blocked",
+      "evidence": [
+        "catalog is read-only",
+        "routing override is not public harness authority"
+      ]
+    },
+    {
+      "name": "malformed_event",
+      "status": "emulated",
+      "evidence": [
+        "unknown SSE frames are skipped",
+        "invalid event requests fail"
+      ]
+    },
+    {
+      "name": "reconnect",
+      "status": "supported",
+      "evidence": [
+        "stream handshake precedes snapshot and paginated history",
+        "identity-free equal text remains lossless"
+      ]
+    },
+    {
+      "name": "terminal_event_uniqueness",
+      "status": "emulated",
+      "evidence": [
+        "provider collapses response and turn terminal markers"
+      ]
+    }
   ],
   "observed_non_capabilities": [
-    { "name": "bundle_root_isolation", "evidence": "stable v0.10 upstream runtime guarantee", "provider_capability": false, "transport_enforced": false },
-    { "name": "structured_error_descriptions", "evidence": "lossless title, cause, remediation, and unknown fields", "provider_capability": false, "classification_authority": false },
-    { "name": "shared_editor_approval", "evidence": "v0.10 upstream rollback permits shared editors to approve", "provider_capability": false, "consiliency_authority": false },
-    { "name": "usage_and_admin_surfaces", "evidence": "usage, branding, server discovery, smart-routing sources, and environment search", "provider_capability": false, "consiliency_authority": false },
-    { "name": "session_metadata_events", "evidence": "permission mode and title are read-only transport metadata", "provider_capability": false, "consiliency_authority": false },
-    { "name": "permission_mode_mutation", "evidence": "live Claude TUI mutation remains an upstream operator surface", "provider_capability": false, "consiliency_authority": false }
+    {
+      "name": "bundle_root_isolation",
+      "evidence": "stable v0.10 upstream runtime guarantee",
+      "provider_capability": false,
+      "transport_enforced": false
+    },
+    {
+      "name": "structured_error_descriptions",
+      "evidence": "lossless title, cause, remediation, and unknown fields",
+      "provider_capability": false,
+      "classification_authority": false
+    },
+    {
+      "name": "shared_editor_approval",
+      "evidence": "v0.10 upstream rollback permits shared editors to approve",
+      "provider_capability": false,
+      "consiliency_authority": false
+    },
+    {
+      "name": "usage_and_admin_surfaces",
+      "evidence": "usage, branding, server discovery, smart-routing sources, and environment search",
+      "provider_capability": false,
+      "consiliency_authority": false
+    },
+    {
+      "name": "session_metadata_events",
+      "evidence": "permission mode and title are read-only transport metadata",
+      "provider_capability": false,
+      "consiliency_authority": false
+    },
+    {
+      "name": "permission_mode_mutation",
+      "evidence": "live Claude TUI mutation remains an upstream operator surface",
+      "provider_capability": false,
+      "consiliency_authority": false
+    },
+    {
+      "name": "project_aware_create_and_import",
+      "evidence": "project_id and local import are upstream operator filing surfaces",
+      "provider_capability": false,
+      "consiliency_authority": false
+    },
+    {
+      "name": "configurable_fork",
+      "evidence": "fork model, effort, native launch, and Codex sandbox choices remain upstream controls",
+      "provider_capability": false,
+      "approval_authority": false,
+      "harness_override_authority": false,
+      "route_decision_authority": false
+    },
+    {
+      "name": "existing_branch_checkout",
+      "evidence": "existing_branch is an upstream worktree administration option",
+      "provider_capability": false,
+      "lease_authority": false,
+      "lock_authority": false
+    },
+    {
+      "name": "elicitation_resolution_verdict",
+      "evidence": "accept, decline, cancel, absent, and null verdicts are read-only stream metadata",
+      "provider_capability": false,
+      "approval_authority": false,
+      "consiliency_authority": false
+    }
   ],
   "provenance": [
-    { "kind": "tagged_source", "path": "omnigent/server/API.md", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "openapi.json", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "omnigent/server/schemas.py", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "CHANGELOG.md", "ref": "v0.11.0" },
-    { "kind": "historical_tagged_source", "path": "tests/runner/test_sub_agent_workdir_resolution.py", "ref": "v0.10.0" }
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/API.md",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/server/schemas.py",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "CHANGELOG.md",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "historical_tagged_source",
+      "path": "tests/runner/test_sub_agent_workdir_resolution.py",
+      "ref": "v0.10.0"
+    }
   ]
 }

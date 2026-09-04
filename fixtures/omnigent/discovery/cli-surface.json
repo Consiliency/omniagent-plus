@@ -1,15 +1,21 @@
 {
   "schema": "omnigent.cli_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-08-26T02:47:18Z",
+  "captured_at": "2026-09-03T16:23:40Z",
   "release": {
-    "tag": "v0.11.0",
-    "commit": "496b7b13f6af3ed5330b957df408fc91290b6307",
-    "version_output": "omnigent 0.11.0 (built 2026-08-25T17:27:41Z)"
+    "tag": "v0.12.0",
+    "commit": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
+    "version_output": "omnigent 0.12.0 (built 2026-09-01T20:58:30Z)"
   },
   "entrypoints": [
-    { "name": "omnigent", "target": "omnigent.cli:main" },
-    { "name": "omni", "target": "omnigent.cli:main" }
+    {
+      "name": "omnigent",
+      "target": "omnigent.cli:main"
+    },
+    {
+      "name": "omni",
+      "target": "omnigent.cli:main"
+    }
   ],
   "documented_commands": [
     "omnigent run",
@@ -39,7 +45,7 @@
   "exit_code_contract": {
     "success_code": 0,
     "nonzero_codes_are_stable_abi": false,
-    "note": "v0.11.0 does not publish a stable non-zero exit-code table"
+    "note": "v0.12.0 does not publish a stable non-zero exit-code table"
   },
   "compatibility_notes": [
     "v0.8 extra_args is not used by this repository",
@@ -47,14 +53,40 @@
     "v0.8 recursive dotfile scanning is not used locally",
     "v0.10 omnigent start and omnigent host --background are operator lifecycle commands",
     "v0.11 permission-mode and scheduled-task controls remain operator surfaces",
+    "v0.12 bare omni starts the background host instead of the default agent; this package never invokes bare omni",
+    "v0.12 preserves omnigent server --background, omnigent server status --json, and omnigent server stop",
     "production lifecycle invokes only omnigent server --background"
   ],
   "provenance": [
-    { "kind": "tagged_source", "path": "pyproject.toml", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "README.md", "ref": "v0.11.0" },
-    { "kind": "tagged_source", "path": "omnigent/cli.py", "ref": "v0.11.0" },
-    { "kind": "isolated_probe", "command": "uvx --from omnigent==0.11.0 omnigent --help", "ref": "v0.11.0" },
-    { "kind": "isolated_probe", "command": "uvx --from omnigent==0.11.0 omnigent server --help", "ref": "v0.11.0" },
-    { "kind": "isolated_probe", "command": "uvx --from omnigent==0.11.0 omnigent host --help", "ref": "v0.11.0" }
+    {
+      "kind": "tagged_source",
+      "path": "pyproject.toml",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "README.md",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "tagged_source",
+      "path": "omnigent/cli.py",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "isolated_probe",
+      "command": "uvx --from omnigent==0.12.0 omnigent --help",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "isolated_probe",
+      "command": "uvx --from omnigent==0.12.0 omnigent server --help",
+      "ref": "v0.12.0"
+    },
+    {
+      "kind": "isolated_probe",
+      "command": "uvx --from omnigent==0.12.0 omnigent host --help",
+      "ref": "v0.12.0"
+    }
   ]
 }

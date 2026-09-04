@@ -3,6 +3,29 @@
 All notable changes to the public `@consiliency/*` seam packages are documented
 here. These packages were never published under any other scope.
 
+## [0.7.0] - 2026-09-03 - Omnigent v0.12 compatibility
+
+### Changed
+- Freeze official Omnigent `v0.12.0` at
+  `f04b0354fb5344c1ea8b92795ceb6760a9ad7595`, preserving the v0.11, v0.10,
+  and v0.9 tagged-wire fixtures and loaders as immutable regression evidence.
+- Keep the exact 54-event vocabulary while accepting the optional
+  `response.elicitation_resolved` verdict as validated, identity-free,
+  metadata-only evidence. Absent and explicit-null actions normalize alike.
+- Prove legacy named-agent session creation and the production server lifecycle
+  commands remain compatible with v0.12.
+- Record project-aware creation and import, configurable forks,
+  existing-branch worktrees, and title limits as upstream administration
+  surfaces that the neutral provider does not expose.
+
+### Notes
+- Elicitation verdict metadata grants no approval, authority, lease, lock,
+  child-create, harness-override, or route-decision capability.
+- The v0.12 bare-`omni` behavior change does not affect this package; production
+  continues to use `omnigent server --background`, `server status --json`, and
+  `server stop`.
+- Only `@consiliency/omnigent-transport` advances to `0.7.0`.
+
 ## [0.6.0] - 2026-08-26 - Omnigent v0.11 compatibility
 
 ### Changed
