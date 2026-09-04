@@ -94,6 +94,31 @@
             "verification_status": "blocked_after_all_executable_checks_passed"
           },
           "transition": "failed"
+        },
+        {
+          "at": "2026-09-04T10:58:30Z",
+          "by": "codex-execute-detailed",
+          "metadata": {
+            "acceptance_criteria": "10/10",
+            "advisor_board_delivered_seats": 4,
+            "advisor_board_distinct_vendors": 4,
+            "advisor_board_result": "four_vendor_closeout_review_agree",
+            "diagnostic": "publication_gate_restored_and_exact_pr_head_reviewed",
+            "dirty_path_classification": "all tracked changes are plan-owned; ignored build output only",
+            "doc_delta_decision": "docs_updated",
+            "exact_pr_head_review": "terminal_closeout_commit_reviewed_after_fabpub_publication",
+            "fable_adapter": "canonical_subscription_tui",
+            "npm_publication_status": "not_published_dry_run_only",
+            "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
+            "pr_url": "https://github.com/Consiliency/omniagent-plus/pull/17",
+            "publication_status": "published_to_pr_via_authenticated_fabpub",
+            "reviewed_implementation_head": "744468b872e4871390807152ce785f458e42271c",
+            "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/fcd59ee9/codex-omnigent-v0-12/20260903T061405Z-omnigent-v012-execution.md",
+            "run_id": "20260903T061405Z-omnigent-v012-execution",
+            "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260903T163441Z-omnigent-v012-verification.md",
+            "verification_status": "passed"
+          },
+          "transition": "completed"
         }
       ],
       "owner_skill": "codex-plan-detailed",
@@ -101,10 +126,10 @@
       "reflection_ref": "/home/viperjuice/.codex/skills/codex-plan-detailed/reflections/fcd59ee9/main/20260903T051539Z-omnigent-v012-plan.md",
       "roadmap_ref": null,
       "slug": "detailed-omnigent-v0-12-accommodation-20260903-051539",
-      "status": "failed",
+      "status": "completed",
       "task_summary": "Plan official Omnigent v0.12.0 transport authority accommodation and transport-only 0.7.0 release.",
       "type": "detailed",
-      "updated_at": "2026-09-03T16:47:31Z"
+      "updated_at": "2026-09-04T10:58:30Z"
     },
     {
       "acceptance_criteria_count": 11,

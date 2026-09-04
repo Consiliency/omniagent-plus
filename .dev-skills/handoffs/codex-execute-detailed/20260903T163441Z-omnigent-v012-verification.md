@@ -1,6 +1,6 @@
 # Omnigent v0.12 accommodation verification
 
-summary: BLOCKED - all executable Omnigent v0.12.0 and transport 0.7.0 gates pass, but the required exact-head PR could not be opened because the authenticated FABPUB partition receipt is absent.
+summary: PASS - the Omnigent v0.12.0 transport gates pass, authenticated FABPUB published the exact branch head as PR 17, and the reconciled closeout is ready to merge without publishing npm early.
 
 ## Run context
 
@@ -11,8 +11,9 @@ summary: BLOCKED - all executable Omnigent v0.12.0 and transport 0.7.0 gates pas
   `f04b0354fb5344c1ea8b92795ceb6760a9ad7595`
 - Target package: `@consiliency/omnigent-transport@0.7.0`
 - Publication boundary: npm dry-run only; npm remains at `0.6.0`
-- Overall acceptance: 9/10; the exact-head reviewed PR criterion is blocked
-  before any remote effect.
+- Pull request: `Consiliency/omniagent-plus#17` at reviewed implementation and
+  reconciliation head `744468b872e4871390807152ce785f458e42271c`.
+- Overall acceptance: 10/10 after the final four-vendor closeout review.
 
 ## Verification
 
@@ -33,17 +34,19 @@ summary: BLOCKED - all executable Omnigent v0.12.0 and transport 0.7.0 gates pas
 - PASS: all Omnigent JSON fixtures parse, `git diff --check` passes, and the
   core-contracts, governed-pipeline, coordinator, leasing, state-ledger,
   publish-workflow, and lockfile boundaries are unchanged.
-- BLOCKED: the governed publisher committed local head
+- HISTORICAL: the first governed publisher attempt committed local head
   `c273d2e79413093558a72ef1e6da568060a5c83c`, then stopped at
   `COMMITTED_HEAD_RESOLVED` because this repository has no authenticated
   partition receipt and global cutover authority is inactive. The no-effect
   transaction was canonically abandoned before admission, broker intent,
-  adapter start, push, or PR creation.
+  adapter start, push, or PR creation. After `Consiliency/agent-harness#767`
+  restored zero-history bootstrap authority, authenticated FABPUB published
+  exact head `744468b872e4871390807152ce785f458e42271c` as PR 17.
 
 The dry-run tarball is `@consiliency/omnigent-transport@0.7.0`: 83 files,
 94.9 kB packed and 547.1 kB unpacked. It includes declarations, the current
 v0.12 fixture, and historical v0.11/v0.10/v0.9 fixtures. No npm publication,
-tag, release, merge, or deployment occurred.
+tag, release, merge, or deployment occurred as part of verification.
 
 ## Acceptance reduction
 
@@ -62,11 +65,12 @@ tag, release, merge, or deployment occurred.
   all off-limit runtime, coordinator, lock, state, workflow, and canon surfaces
   remain unchanged.
 - PASS: all executable verification gates passed.
-- BLOCKED: no PR exists, so exact PR-head review and the final PR acceptance
-  criterion are not satisfied. The local exact-head advisor board delivered
-  four usable independent seats: Grok, Fable, and Gemini agreed; Sol correctly
-  disagreed with the former 10/10 completion claim. This receipt reconciles
-  that finding by recording 9/10 and a failed terminal plan state.
+- PASS: PR 17 was established at reviewed implementation and reconciliation
+  head `744468b872e4871390807152ce785f458e42271c`. The earlier board's
+  procedural disagreement was accepted, the stale 10/10 claim was retracted
+  before publication, and the terminal closeout commit was then FABPUB-published
+  and reviewed with the full implementation, plan, and verification receipt and
+  with no subsequent head-changing delta.
 
 ## Dirty path classification
 

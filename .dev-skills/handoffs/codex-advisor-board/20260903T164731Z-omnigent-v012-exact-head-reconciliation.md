@@ -41,3 +41,20 @@ actual PR head is reviewed.
 - Direct normalizer callers do not revalidate `action`; production parsing does.
 - One coordination-document sentence could be tightened without changing the
   contract.
+
+## Final closeout
+
+`Consiliency/agent-harness#767` merged the reviewed zero-history FABPUB
+bootstrap. Authenticated FABPUB then published this branch as
+`Consiliency/omniagent-plus#17` at exact head
+`744468b872e4871390807152ce785f458e42271c`; no direct push or npm publication
+was used. Live release metadata still identifies Omnigent `v0.12.0` at
+`f04b0354fb5344c1ea8b92795ceb6760a9ad7595` as authoritative, and npm still
+reports transport `0.6.0` with `0.7.0` unoccupied.
+
+The refreshed full workspace suite passed 348 tests in 100 files with the one
+credentialed smoke intentionally skipped. The packed consumer smoke and npm
+publish dry-run also passed. The final closeout board received the full plan,
+implementation diff, verification receipt, prior reconciliation, and this
+closeout delta directly. Its acceptance makes the prior failed transition a
+truthful historical record and restores terminal acceptance to 10/10.
