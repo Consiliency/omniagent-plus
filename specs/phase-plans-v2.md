@@ -113,13 +113,22 @@ and publication; correct current readiness claims.
 
 **Exit criteria**
 - [ ] EC-GUARD-1 - PR and release verification run frozen install, build, lint, typecheck, tests, and package smoke once; an injected failure makes the gate fail.
-- [ ] EC-GUARD-2 - Full versus focused/integration commands have reliable exit codes, process-test timeouts, and documented execution topology; no skip-only green.
+- [ ] EC-GUARD-2 - Full versus focused/integration commands have reliable exit codes, process-test timeouts, and documented execution topology; no skip-only green. Disposable PostgreSQL connects, bootstraps required Supabase roles, applies the existing migration unmodified with SQL error-stop, and exposes its coordination function; unavailable service or failed migration fails the gate.
 - [ ] EC-GUARD-3 - Docs distinguish implemented behavior from consumer obligations; HY-1/HY-5/HY-6 subclaims are implemented or explicitly deferred with evidence.
 
 **Scope notes**
 Decompose into 2 lanes: workflow/tooling; docs/test-boundary inventory. Reuse
 fleet offload conventions where available. Preserve meaningful conformance
 and ownership tests when replacing brittle prose assertions.
+Before enabling HY-6, GUARD records only the two exact existing type-import
+edges named in CASE-HY-6 with positive/negative controls. PREP owns the ID-1
+source repair and baseline removal under omniagent-plus#27; moving that repair
+earlier requires a reviewed ownership amendment. New/altered escapes fail;
+no broad exemption or failing full gate waits for PREP.
+The hosted full gate provisions a version-pinned disposable PostgreSQL service
+for COORD's integration suite; missing service/setup fails instead of skipping.
+The docs lane assigns each section-6 audit claim to its finding/phase owner,
+including backoff and confidence claims, and records interim truthful wording.
 
 **Non-goals**
 Provider upgrades, production credentials, coverage percentages as correctness proof.
@@ -151,8 +160,8 @@ enforces its declared content policy.
 
 **Exit criteria**
 - [ ] EC-DATA-1 - Shared corpus covers scanner entry points, safe lookalikes, nested fields, evidence refs, and direct packet/schema bypass; metadata versus content behavior is frozen.
-- [ ] EC-DATA-2 - Crash injection proves monotonic sequences, safe incomplete-tail recovery, preserved schema-invalid records, owner-safe locks, and supported fsync ordering across processes.
-- [ ] EC-DATA-3 - Read-only queries do not mutate; replay selects correctly scoped latest state; retention preserves dependencies and newer schema versions fail explicitly.
+- [ ] EC-DATA-2 - Crash injection proves monotonic sequences, safe incomplete-tail recovery, preserved schema-invalid records, owner-safe locks, and supported fsync ordering across processes. New locks atomically publish initialized identity; acquisition crashes cannot leave an unrecoverable identity-less lock at the contested path.
+- [ ] EC-DATA-3 - Read-only queries take no writer lock and do not mutate; bounded stable snapshots report incomplete/in-progress tails explicitly, never repair or return mixed/complete success from incomplete data. Blocked legacy locks allow nonmutating committed-data inspection. Replay selects correctly scoped latest state; retention preserves dependencies and newer schema versions fail explicitly.
 - [ ] EC-DATA-4 - Measured append/index changes preserve concurrency and recovery; required core fake-provider and identity-boundary cases pass without public contract drift.
 
 **Scope notes**
@@ -194,9 +203,9 @@ under expiry, crash, clock skew, and backend failure.
 **Exit criteria**
 - [ ] EC-COORD-1 - Expired cooldowns unblock appropriately, unknown preferences are explicit, and send-turn checks the established session identity before dispatch.
 - [ ] EC-COORD-2 - One bounded retry/settlement policy handles Retry-After dates, negatives, hard stops, and balanced active-turn counts; diagnostics follow DATA content rules.
-- [ ] EC-COORD-3 - Cleanup proves managed path, registration, independent holder/fence, liveness, and dirty state; missing directories reconcile without arbitrary deletion; corrupt state cannot authorize acquisition.
-- [ ] EC-COORD-4 - Local PostgreSQL proves server-time expiry, atomic concurrent hard acquire, holder-only renew/release, and crash-consistent event/projection replay; local/fleet lease contracts remain distinct.
-- [ ] EC-COORD-5 - CLI dry-run/record/arbitrate effects and bounded inbox/query behavior are explicit; obsolete coordination APIs have a tested migration or retained ownership decision.
+- [ ] EC-COORD-3 - Cleanup proves managed path, registration, independent holder/fence, liveness, and dirty state; missing directories reconcile to released metadata with durable transition and cleared registry collision, without Git pruning or bypassing future acquisition checks. Corrupt state cannot authorize acquisition. Worktree locks pass DATA-equivalent initialized-identity, blocked-unprovable-lock and replacement-race fault cases.
+- [ ] EC-COORD-4 - Disposable PostgreSQL with migration roles proves server-time expiry, atomic concurrent hard acquire, holder-only renew/release, and crash-consistent event/projection replay. Worktree atomic writes satisfy DATA's supported fsync ordering. COORD separately freezes and tests the Supabase RPC wrapper harness and CLI-2 error mapping; SQL-only or mocked-client tests are not hosted Supabase acceptance. Local/fleet lease contracts remain distinct.
+- [ ] EC-COORD-5 - CLI dry-run/record/arbitrate effects and bounded inbox/query behavior are explicit; the CLI lane proves unknown-option rejection and known-option acceptance including route-task (CASE-CLI-4/CASE-CC-4); obsolete coordination APIs have a tested migration or retained ownership decision.
 
 **Scope notes**
 Decompose into 3 lanes: coordinator/rate limits; worktree registry/cleanup;
@@ -204,6 +213,10 @@ Supabase backend/migrations. One final integration lane owns shared CLI
 commands. Consume DATA's frozen lock and record interfaces. Use forward
 migrations; test only disposable worktrees/databases. Planning does not
 authorize production database deployment.
+COORD owns worktree locks.ts and lease-manager.ts durability semantics whether
+it adopts DATA's primitive or retains separate helpers; its detailed plan
+chooses the implementation before parallel work. Consolidation deferral never
+defers their shared ownership/crash cases or the released-metadata post-state.
 
 **Non-goals**
 Inbox authority, silent hard-to-soft fallback, or harness/Portal runtime edits.
@@ -213,6 +226,11 @@ Inbox authority, silent hard-to-soft fallback, or harness/Portal runtime edits.
 - `packages/rate-limit-catalog/src/`
 - `packages/worktree-leasing/src/`
 - `packages/cli/src/commands/`
+- `packages/cli/src/args.ts`
+- `packages/cli/src/runtime.ts`
+- `packages/cli/src/types.ts`
+- `packages/state-ledger/src/coordination.ts`
+- `packages/state-ledger/src/supabase-coordination-channel.ts`
 - `supabase/migrations/`
 
 **Depends on**
@@ -234,7 +252,7 @@ External contract changes require a scoped amendment and owner routing first.
 Bound HTTP/SSE resources and preserve public lifecycle behavior.
 
 **Exit criteria**
-- [ ] EC-WIRE-1 - Prefixed URLs, request/body deadlines, typed CLI/HTTP failures, abort, UTF-8/chunk boundaries, CR framing, and oversize streams have behavioral tests.
+- [ ] EC-WIRE-1 - Prefixed URLs, request/body deadlines, typed CLI/HTTP failures, abort, UTF-8/chunk boundaries, CR framing, and oversize streams have behavioral tests. SSE data values preserve trailing/additional leading spaces while removing only one optional space after the colon, including across chunks.
 - [ ] EC-WIRE-2 - Stream/history posture matches DATA policy; every upstream event has a documented mapping/drop disposition without added approval authority.
 - [ ] EC-WIRE-3 - Session/cache cleanup and concurrent cold start are bounded while reconnect, late acknowledgement, idempotency, cancellation quarantine, and mutation fencing stay correct.
 - [ ] EC-WIRE-4 - Frozen upstream fixtures and independent packed consumer checks pass; no ledger or harness dependency is added to transport.

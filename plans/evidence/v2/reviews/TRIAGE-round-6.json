@@ -1,0 +1,142 @@
+{
+  "schema": "advisor_board_snapshot.v1",
+  "round": 6,
+  "scope": "complete amended TRIAGE documentation review; not governed phase acceptance",
+  "input_sha256": {
+    "docs/code-review-2026-09-01.md": "58451cb03712bdf6cc6d4dcb93aecbf03bfe9d6b382e467bde7e8a4fc39f1ef3",
+    "plans/audit-remediation-disposition-20260905.md": "65be65733a9684f089697fdaeff3b00fc82a35ea8d4610b1cbe849cd066779f2",
+    "specs/phase-plans-v2.md": "9c218d51605583d3b82f2f38ff676ca5938b8db0582bcf042a5c6e99efdc27e7",
+    "plans/phase-plan-v2-TRIAGE.md": "1e33ace96bd6a1175e9b57a6a608be679ca7b462da42a460a43c9506a0dd6b8e",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+    "plans/evidence/v2/TRIAGE.json": "cab344f77de8dd73e3246dfa05d81e263a6b3766ddc52a59e101397d846bf19b",
+    "plans/evidence/v2/TRIAGE-reviews.md": "5d4b4cee434c0bdc03a98bf6e2686f8ce20fe25a5010c4f5493a14cc8d4710d7",
+    ".dev-skills/handoffs/codex-execute-phase/latest.md": "88aa33349502a3c69c8f6fb8a9e575575a0d5549f6d01f380709a3a1b6b9723b",
+    ".phase-loop/state.json": "f8883348abef92474640b08065cdf48ed994a327fa2dbd971eac99bf3cf5eee4",
+    "plans/evidence/v2/TRIAGE-review-brief.md": "de4d51c01227fdada26196cc8758dc927c1404809ca9ecbcbb64e64abc79319a"
+  },
+  "inputs_unchanged_during_review": true,
+  "board": {
+    "name": "code-review",
+    "purpose": "code-review",
+    "seats": [
+      {
+        "model": "grok-4.6",
+        "effort": "max",
+        "harness": "grok",
+        "lens": "adversarial",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "claude-fable-5-1",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gpt-6-astra",
+        "effort": "max",
+        "harness": "codex",
+        "lens": "red-team",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "requested_seats": 4,
+  "delivered_seats": 4,
+  "accepted": false,
+  "restoration": {
+    "authorization": "User reported Fable available again on 2026-09-11; fresh user-requested review",
+    "selected_model": "claude-fable-5-1",
+    "temporary_opus_override_ended": true,
+    "route": "canonical homebrew Claude Code subscription self-PTY adapter",
+    "process_pid": 2709171,
+    "process_stdin": "/dev/pts/11",
+    "operator_terminated": false,
+    "native_or_api_replacement": false
+  },
+  "legs": [
+    {
+      "leg": "grok",
+      "status": "OK",
+      "text": "The review bundle was truncated in the prompt, so I\u2019ll load the offloaded full request and then assess only the framed documentation.The framed bundle is long; I\u2019ll continue through the audit, disposition, and later TRIAGE docs so the content review is complete.The amended TRIAGE bundle is internally consistent on compatibility, inventory, and non-approval, but two ownership binds are still wrong for an interface freeze.\n\n**Medium \u2014 CASE-CC-4 / CC-4 (DATA, omniagent-plus#21).** The decision is conservative: unknown CLI flags fail at `packages/cli/src/args.ts:parseCliArgs` (including `route-task`); public `buildHandoffPacket` / `HandoffPacketInput`, exported request/event/route/handoff schemas, and upstream wire stay additive unless a separately reviewed versioned change. That does not match executable ownership. CC-4 remains DATA/#21; DATA key files and EC-DATA-1..4 never mention CLI argv. COORD owns CLI and CASE-CLI-4 (enums, command/state-root, health paths) but not unknown flags. A DATA plan cannot close the named boundary; a COORD plan can miss it. **Correction:** keep the public-schema freeze and \u201cschema/type agreement for changed symbols\u201d on CC-4/DATA; move the CLI argv rejection into CASE-CLI-4 / EC-COORD-5 / omniagent-plus#23 (and COORD key files: `args` / `runtime` / types), or dual-bind the case in the matrix. Do not leave a CLI construction test owned only by DATA.\n\n**Low \u2014 CASE-HY-6 / ID-1 sequencing.** Round 5 correctly retained: do not enable the relative-escape rule as a failing full gate before a recorded ID-1 forward-fix or a temporary new-escape-only baseline; no skip-green. That bound lives only in `plans/evidence/v2/TRIAGE-reviews.md`. Matrix CASE-HY-6 and GUARD notes still say only \u201crelative source escape fails.\u201d **Correction:** one sentence on CASE-HY-6 or GUARD scope notes so a GUARD planner using matrix+roadmap cannot false-green or red-gate PREP\u2019s ID-1.\n\nRound 6 corrections that hold: receipt flags stay false (`final_candidate_accepted`, `plan_review_accepted`, `produced_if_gates: []`); structural vs review vs EC vs IF vs publication are separated; executor IF self-report is not acceptance; FABPUB/agent-harness#789 is not weakened; license stays omniagent-plus#20 until PREP via #27. Pending EC/IF checkboxes and `awaiting_phase_closeout` / `closeout_verification: not_run` are not blockers.\n\nNo TRIAGE content blocker found for lost IDs, unsafe lock/TTL steal, metadata-only label trust, identity substitution, or dagger skip-green. R/C rows remain requirement text, not passing tests.\n\n**Not TRIAGE blockers (implementation evidence still due):** packed TR-1 labels, CoordinationStore inventory/removal, crash/lock recovery, corpus/scanner, operator composition, hosted CI failure propagation.\n\n**Limitations:** supplied framed docs only; did not run `verify-triage.mjs`, phase-loop, git, tests, or builds; did not inspect worktree source, live issues, or recompute hashes; did not see raw `TRIAGE-round-5.json` (only the reducer). Structural greens and historical AGREE on other bytes are non-approvals. `state.json` still tells closeout to plan GUARD; TRIAGE.json/latest.md supersede it.\n\n**Open questions (not blockers):** whether `parseCliArgs` is actually at the cited path; whether `TRIAGE-round-5.json` is staged (absent from `state.json` dirty_paths).\n\nPARTIALLY AGREE\n",
+      "detail": null,
+      "seat_key": "grok:grok-4.6:max:adversarial"
+    },
+    {
+      "leg": "claude",
+      "status": "OK",
+      "text": "Documentation content is close to ready. The inventory holds, the round-5 corrections are sound and conservative, and the remaining defects are small ownership and receipt-truthfulness amendments rather than planning blockers. The plan and checker bytes are unchanged from round 3, and re-reading them found no new defect.\n\n**Independent inventory.** I counted the audit's bold finding headings and the matrix rows by hand.\n\n| Inventory | Audit | Matrix |\n| --- | --- | --- |\n| Finding IDs | 55 | 55 |\n| N/Q rows and case families | n/a | 28 and 28 |\n| Cross-cutting sections and cases | 4 | 4 |\n\nEvery case family names an observable falsifier. The 2026-09-09 source observations agree with the N rows they support and are correctly labeled as observations, not reproductions.\n\n**Actionable content defects:**\n\n- **Medium, CASE-CC-4 ownership.** The amended case names the CLI argument parser as the owned typo-rejection boundary, yet CC-4 sits in DATA, whose roadmap key files exclude the CLI package. COORD's CASE-CLI-4 lane was already told to own the CLI args, runtime, and types paths, so two phases and two issues now touch one operator-input surface. The audit also reports that strict argv parsing already works, so this subcase is a regression control, not a remediation. Correction: state that COORD's CLI lane executes the argv control alongside CASE-CLI-4, and limit DATA's CC-4 obligation to schema/type agreement for changed core symbols plus the documented preservation of public unknown-field behavior.\n\n- **Medium, HY-6 and ID-1 sequencing.** The GUARD import-enforcement obligation exists only in the reconciliation. The matrix ID-1 row still says PREP, and the HY-6 row says dependency rules must catch relative escapes, so a GUARD planner reading the owning documents would enable a rule that fails on the existing escape or add an exemption. Correction: add one sentence to the HY-6 or ID-1 row and to the GUARD scope notes recording the choice: move the minimal ID-1 fix into GUARD with recorded ownership, or use a bounded baseline that PREP removes.\n\n- **Low, WL-2 versus decision 3.** The WL-2 row still permits a documented operator action without holder proof, while decision 3 requires independent holder evidence for every destructive cleanup and forbids new force-cleanup capability. Correction: state that decision 3 governs and that any operator path must still supply independent holder evidence.\n\n- **Low, receipt and handoff staleness.** The receipt's local-execution block still sets reviewed_inputs_unchanged to true and states that all candidate hashes match rounds 2 and 3, which is false for the amended matrix. The scope note mitigates this for humans but not for tooling. EC-TRIAGE-3 still names a missing Opus review as unaccepted although that selection has ended. The 2026-09-11 seat restoration has no timestamp, the round-4 record has no recorded hash, and the OpenAI seat is labeled Sol, GPT-6 Astra, and Codex across rounds. Correction: set the boolean false or scope it to the pre-amendment hash, reword EC-TRIAGE-3 to the pending round-6 review, add the amendment timestamp and round-4 hash, and use one seat label.\n\n**Implementation-phase evidence still due, not TRIAGE blockers:** truthful transport labels through a packed consumer, crash-injection and lock-recovery proofs, PostgreSQL server-time expiry, established-session identity checks, operator composition replay, packed consumer checks, and license implementation. Pending runner closeout, unchecked EC and IF boxes, the agent-harness#819 defect, and the held publication route are intentional and correctly recorded as non-approvals.\n\n**Limitations.** I used no tools and did not execute the checker, the roadmap validator, or the runner. I did not inspect current source, so I cannot confirm that one parser function is the strict boundary for every command including route-task, nor verify any hash, live issue body, or raw review record. The supplied runner state predates round 5, so I cannot confirm the round-5 record and the 2026-09-11 edits are staged.\n\n**Open questions.** Will the GUARD planner consume the reconciliation file, or only the roadmap and matrix? Does any phase own the audit's section 6 documentation-claim table row by row, for example the backoff and confidence claims in the rate-limit taxonomy doc? Should decision 7's partition-blocked sentence carry a date qualifier now that generation 1 is active?\n\nPARTIALLY AGREE",
+      "detail": null,
+      "seat_key": "claude:claude-fable-5-1:max:correctness"
+    },
+    {
+      "leg": "codex",
+      "status": "OK",
+      "text": "The round-6 corrections address the reported concerns: CASE-CC-4 preserves public compatibility, the receipt separates structural checks from acceptance, and GUARD retains the import-enforcement sequencing obligation. Comparing the supplied audit and matrix, all 55 finding IDs and sections 3.1\u20133.4 are represented.\n\nTwo documentation gaps remain:\n\n- **Medium \u2014 CASE-CC-7 lacks a falsifiable request-message decision.** In `plans/audit-remediation-disposition-20260905.md`, requiring empty/oversized messages to \u201cget explicit tests\u201d does not specify their expected disposition. The following sentence freezes oversize **redacted text** behavior, which does not resolve `sendTurnRequestSchema.message`. Tests accepting or rejecting the same request could satisfy the present wording. Explicitly retain existing request-message acceptance as a justified disposition, or require a reviewed validation change with an owned rejection boundary and positive/negative boundary cases. This is a TRIAGE content gap; implementing those tests remains DATA work.\n\n- **Low \u2014 TR-5 loses its whitespace-preservation subclaim.** The supplied audit identifies `.trim()` corrupting SSE `data:` values. The matrix\u2019s TR-5 row and `specs/phase-plans-v2.md` EC-WIRE-1 enumerate framing, chunking, abort and bounds checks without retaining that specific expected behavior. Add a case preserving trailing spaces and additional leading spaces while removing only the permitted single space after the colon, including across chunks. This is a documentation completeness correction, not a claim that the historical defect was freshly reproduced.\n\nOpen implementation questions remain with their assigned owners, including precise compatibility/migration versions and the maintainer\u2019s license choice before PREP. Pending runner closeout and unchecked IF/EC gates are intentional and are not additional content blockers.\n\nReview limitations: I inspected only the supplied document and checker text. I did not inspect current runtime source, raw historical reviewer reports, live issues or external infrastructure; execute commands or tests; or independently recompute hashes. Reported execution and source observations therefore remain attributed evidence. This verdict concerns documentation-content readiness only and grants no implementation, landing or release approval.\n\nPARTIALLY AGREE",
+      "detail": null,
+      "seat_key": "codex:gpt-6-astra:max:red-team"
+    },
+    {
+      "leg": "gemini",
+      "status": "OK",
+      "text": "### Content Assessment\nThe amended TRIAGE documentation candidate (`plans/audit-remediation-disposition-20260905.md`, `specs/phase-plans-v2.md`, `plans/phase-plan-v2-TRIAGE.md`, `verify-triage.mjs`, and reconciliation artifacts) successfully establishes an interface-only planning inventory without prematurely claiming runtime remediation or release readiness.\n\nKey review criteria verified:\n1. **Finding and Case Completeness**: All 55 audit findings (SL-1..12, CC-1..7, TR-1..9, CO-1..8, WL-1..7, CLI-1..4, ID-1..2, HY-1..6) and sections 3.1\u20133.4 are mapped to primary tracking issues (`#20` through `#27`, with roadmap coordination in `#19`). All 28 N/Q items and 4 cross-cutting areas possess named, falsifiable acceptance case families (`CASE-SL-7` through `CASE-HY-6`, `CASE-3.1` through `CASE-3.4`).\n2. **Conservative Compatibility Decisions**:\n   - *Content & Paths (DATA, WIRE)*: Runtime text events retain permissible content (`content_allowed`), while metadata export surfaces (evidence refs, CLI envelopes, health commands, human output, UI projections) enforce field allowlists without leaking user home directories or credentials. Truthful redaction postures are required from the transport before release.\n   - *Recovery Ordering (DATA)*: SL-5 (preserving corrupt/schema-invalid tail bytes with bounded corruption errors rather than truncating them) is sequenced strictly before CC-2/CC-3 content tightening, preventing data loss. Sequences derive from committed records rather than stale manifests.\n   - *Lease Authority (COORD)*: Distinct contracts for `WorktreeLeaseManager` (local git/filesystem) and Consiliency `LeaseStore` (fleet soft/hard) are maintained. Supabase owns authoritative clock time and atomic acquisitions.\n   - *Established Identity (COORD)*: `sendTurn` launch gates enforce identity, harness, and provider alignment against established session state rather than absent request fields.\n   - *Supervision (INTEG)*: Runtime loops (process cleanup, lease renewal, cooldown sweep, retry accounting) are assigned to a repo-owned operator composition; transport remains independently consumable.\n   - *CI Topology (GUARD)*: A unified, fail-propagating GitHub Actions workflow on hosted Ubuntu runs install, build, lint, typecheck, tests, and package smoke without skip-only false greens.\n   - *License Ownership (PREP)*: Maintainer ownership (`@ViperJuice`) is assigned to `omniagent-plus#20`, with package implementation and verification in `omniagent-plus#27`.\n3. **Round 5 Corrections**:\n   - `CASE-CC-4` appropriately restricts strict typo rejection to CLI input parsing (`parseCliArgs`) while preserving public schema/builder flexibility unless versioned.\n   - The receipt (`TRIAGE.json`) and handoffs maintain strict separation between structural checker verification and governed phase acceptance (`final_candidate_accepted: false`, `closeout_verification_status: not_run`, `produced_if_gates: []`).\n   - The sequencing dependency between GUARD import enforcement and PREP's ID-1 relative import repair is explicitly logged for resolution during GUARD planning.\n\n### Actionable Findings\nNone. The candidate documentation meets all planning-phase criteria and resolves previous review feedback without introducing unowned obligations or breaking changes.\n\n### Open Questions\n1. **GUARD Import Rule Baseline**: During GUARD phase planning, will ID-1 be pulled forward as an immediate minimal fix, or will the type/import rule introduce an explicit temporary baseline to prevent false-positive failures prior to PREP?\n\n### Review Limitations\n- Review was conducted solely on the provided text bundle; no live repositories, unprovided source files, or commit histories were inspected.\n- No commands, test runners, linters, or build scripts were executed.\n- External GitHub configuration, actions secret names, organization policies, and Dagger infrastructure status were evaluated strictly from recorded observations in the provided artifacts.\n- Local execution logs, test receipts, and prior advisor evaluations were treated as review evidence rather than authoritative self-certifications.\n\nAGREE\n",
+      "detail": null,
+      "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach"
+    }
+  ],
+  "acceptance_limit": "All four seats delivered; Fable, Grok and Codex PARTIALLY AGREE, Gemini AGREE. Documentation corrections and resubmission required.",
+  "runtime_evidence": ".phase-loop/runs/20260911-triage-fable-review"
+}
