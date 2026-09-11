@@ -1,0 +1,43 @@
+{
+  "schema": "advisor_board_snapshot.v1",
+  "round": 4,
+  "scope": "supplemental current-plan review; not a replacement for the exact-input matrix, roadmap, plan and checker reviews retained in rounds 2 and 3",
+  "input_sha256": {
+    "plans/phase-plan-v2-TRIAGE.md": "1e33ace96bd6a1175e9b57a6a608be679ca7b462da42a460a43c9506a0dd6b8e"
+  },
+  "board": "code-review",
+  "requested_seats": 4,
+  "delivered_seats": 3,
+  "usable": true,
+  "legs": [
+    {
+      "leg": "grok",
+      "seat_key": "grok:grok-4.6:max:adversarial",
+      "status": "OK",
+      "verdict": "DISAGREE",
+      "summary": "The plan alone cannot prove its own evidence and acceptance conditions; no plan defect was identified beyond the omitted review inputs."
+    },
+    {
+      "leg": "claude",
+      "seat_key": "claude:claude-fable-5-1:max:correctness",
+      "status": "DEGRADED",
+      "verdict": null,
+      "summary": "Claude Code subscription TUI reported a monthly spend limit; this is not approval."
+    },
+    {
+      "leg": "codex",
+      "seat_key": "codex:gpt-6-astra:max:red-team",
+      "status": "OK",
+      "verdict": "PARTIALLY AGREE",
+      "summary": "No plan defect was demonstrated; whole-phase acceptance could not be established from the plan-only bundle."
+    },
+    {
+      "leg": "gemini",
+      "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach",
+      "status": "OK",
+      "verdict": "AGREE",
+      "summary": "The plan's bounded scope, ownership, freeze gate and verification design are coherent, subject to the evidence limitations."
+    }
+  ],
+  "reconciliation": "The round is preserved as a scope-limited, non-approval observation. It does not supersede rounds 2 and 3, whose exact input hashes remain current. No material correction to the matrix, roadmap, plan or checker was identified."
+}

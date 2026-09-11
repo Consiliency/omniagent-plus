@@ -1,0 +1,146 @@
+{
+  "schema": "advisor-board-review.v1",
+  "round": 9,
+  "event": "complete",
+  "started_at": "2026-09-11T09:12:29.413929+00:00",
+  "completed_at": "2026-09-11T09:20:41.903376+00:00",
+  "run_id": "20260911-triage-round9-091229",
+  "board": {
+    "name": "code-review",
+    "purpose": "code-review",
+    "seats": [
+      {
+        "model": "grok-4.6",
+        "effort": "max",
+        "harness": "grok",
+        "lens": "adversarial",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "claude-fable-5-1",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gpt-6-astra",
+        "effort": "max",
+        "harness": "codex",
+        "lens": "red-team",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "input_sha256": {
+    "docs/code-review-2026-09-01.md": "58451cb03712bdf6cc6d4dcb93aecbf03bfe9d6b382e467bde7e8a4fc39f1ef3",
+    "plans/audit-remediation-disposition-20260905.md": "fc7142c943a1305989838d1106c7860fdddf94408e23118a3a4c8f5eb2bf0192",
+    "specs/phase-plans-v2.md": "b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93",
+    "plans/phase-plan-v2-TRIAGE.md": "69484fbac85b4d574463e7bf264fe942d44b8e4a225dd0dce92dc0c9e176cfee",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+    "plans/evidence/v2/TRIAGE.json": "97d3c9b97764510c93bf2418beb7e0d75dac28cbba00633adf7d3b62c4e0bae4",
+    "plans/evidence/v2/TRIAGE-reviews.md": "2268b6bc65ea2c02796403243ee06415036a77a3f1784d119a8779b358281a04",
+    ".dev-skills/handoffs/codex-execute-phase/latest.md": "ecfa8b42b152404c5ffe0a2b30a3b529b61e376e8a456182d20f687f2a86ac0b",
+    ".phase-loop/state.json": "f8883348abef92474640b08065cdf48ed994a327fa2dbd971eac99bf3cf5eee4",
+    "plans/evidence/v2/reviews/TRIAGE-round-8.json": "d93f229db5b89c10be209f1d565091c6d5491071ae5de4276011b5fdfbca4c26",
+    "plans/manifest.json": "2dfe599919364503de50fde2b41e1bdda6fd47047fa8c362144bb977f0410301",
+    ".dev-skills/handoffs/codex-plan-phase/latest.md": "ea3d1b26252da103ea8652fc2f14b2ac2d3027e1a4b2c68f214b0a181231dc83",
+    "plans/evidence/v2/TRIAGE-review-brief.md": "d1b89992d75e3aa7b6f23aa4d788a0d4876432c40af568826ffdd940525de86c"
+  },
+  "staged_diff_sha256": "54bcf31ee2a9bd8918544b36a701e3226867fa48b1d716fb0f7330eec825c04d",
+  "inputs_unchanged": true,
+  "staged_diff_unchanged": true,
+  "result": {
+    "legs": [
+      {
+        "leg": "grok",
+        "status": "OK",
+        "text": "The review bundle in the prompt is truncated. I’ll load the offloaded full request so the documentation review uses the complete candidate, not the cut message.The audit is in; next I’ll load the disposition, roadmap, phase plan, and round-8/9 review materials.The post-round-8 amendments close Fable’s three mediums and two lows: COORD now owns DATA-equivalent worktree `locks.ts` / `lease-manager.ts` durability (initialized identity, blocked unprovable locks, replacement races, supported fsync) with helper consolidation optional; new-format locks must publish identity atomically so a create/write crash cannot leave an unrecoverable lock; SL-6 reads are lock-free bounded snapshots that never repair, never report mixed/complete success on an incomplete tail, and still inspect committed data behind a blocked legacy writer lock; GUARD bootstraps disposable `anon` / `authenticated` / `service_role`, applies the existing migration with SQL error-stop, and treats missing service/migration as gate failure; RPC-wrapper vs SQL proof is deferred to COORD and cannot be closed by SQL-only or mocked mapping; missing-path recovery post-state is `released` / `releasedAt`, active-map removal, durable WL-4 transition, collision cleared for this lease only, no Git pruning; manifest attribution splits plan-authoring append from the Sep-10 executor-control `executing` write.\n\nAudit IDs SL-1..12, CC-1..7, TR-1..9, CO-1..8, CLI-1..4, WL-1..7, ID-1..2, HY-1..6 (55) plus 3.1–3.4 match the matrix; 28 N/Q CASE rows plus four cross-cutting cases are present. No lost finding, lease-authority merger, TTL-only delete, global metadata-only scan, silent identity substitution, skip-green CI, or inferred license.\n\n## Actionable defect\n\n- **Medium, Decision 3 / CASE-WL-7 / EC-COORD-3.** Worktree locks now inherit SL-2 fail-closed unprovable-lock policy, but not the SL-6 inspection rule that made that policy operable. CASE-WL-7 only requires that `query()` not mutate; the audit’s registry/`query()` path takes the exclusive lock. A blocked worktree lock would then brick list/query the way an identity-less `store.lock` bricked reads before Decision 2. **Correction:** freeze one of (a) bounded stable lock-free inspection of committed registry/active-map/lease-state with incomplete writes reported as in-progress, never repaired, never mixed success, or (b) explicit fail-closed reads with a bounded diagnostic. Silence is not an acceptance case.\n\n## Non-blocking\n\n- **Low, CASE-WL-3** still says reconcile “after … Git registration checks,” which can be read as “stale `.git/worktrees` blocks metadata release,” contradicting Decision 3 / EC-COORD-3 (reconcile succeeds; leftover Git is reported and may fail a later acquire). Align CASE-WL-3 to Decision 3.\n- **Low, SL-11** still says “real local PostgreSQL” while Decision 6 / EC-GUARD-2 freeze a GUARD-provisioned disposable service. Treat Decision 6 as authoritative.\n\nUnchecked IF/EC boxes, runner `awaiting_phase_closeout` / `not_run`, packed-consumer TR-1, crash/skew tests, CoordinationStore inventory, and the maintainer license choice are implementation-phase evidence, not documentation-merge blockers. This verdict is not IF-0-TRIAGE-1, runner closeout, commit/push/merge, or permission to skip the publication broker.\n\n## Open questions (not blockers)\n\n- Whether `packages/cli/src/args.ts:parseCliArgs` exists on current source (coordinator-attributed; audit described per-command `util.parseArgs`).\n- Exact PostgreSQL image pin and whether the unmodified migration needs anything beyond the three roles (GUARD/COORD detail).\n- Whether PREP’s ID-1 fix must touch WIRE-frozen transport type exports.\n- Sep-10 runner empty owned/unowned buckets vs later dirty paths: closeout concern, not this candidate’s staging manifest.\n\n## Limits\n\nAssessed supplied text only. Did not execute `verify-triage.mjs`, phase-loop, git, or hash recomputation; did not inspect the worktree, live issues/PRs, agent-harness#789/#819, or runtime source; did not run tests, builds, or migrations. Coordinator source observations and structural-green claims are unverified here.\n\nPARTIALLY AGREE\n",
+        "detail": null,
+        "seat_key": "grok:grok-4.6:max:adversarial"
+      },
+      {
+        "leg": "claude",
+        "status": "OK",
+        "text": "The post-round-8 candidate is merge-ready as documentation content. Each round-9 focus area now has an owned, falsifiable decision, and no round-8 medium gap survives. Three low clarifications remain. None changes a frozen boundary or blocks the documentation merge.\n\n**Verified corrections.** Decision 3, EC-COORD-3/4 and the COORD scope notes give worktree locks.ts and lease-manager.ts the ledger's initialized-identity, blocked-unprovable-lock, replacement-race and fsync obligations, with consolidation optional. Decision 2 and EC-DATA-2/3 require atomic identity publication at the contested path, lock-free bounded stable reads, explicit incomplete-tail reporting, no read repair, and committed-data inspection behind a blocked legacy lock. These cohere: with atomic publication, any identity-less lock is legacy by construction, so the blocked-forever rule cannot swallow a new-format crash. Decision 6 and EC-GUARD-2 add role bootstrap, unmodified migration with error-stop and a function-presence positive control. Decision 3 and CASE-WL-3 define the reconciliation post-state. Manifest attribution now matches the supplied manifest: one plan-authoring append, one Sep-10 executor-control executing transition, 29 entries, no IF gate claimed. Membership reconciles: 55 findings, 28 N/Q families, four cross-cutting families.\n\n**Actionable findings**\n\n- **Low, SL-2 and SL-3 rows.** The worktree-leasing half of both findings is COORD-owned through decision 3, but the rows still read DATA only and omniagent-plus#22 owns the IDs outright. #22 could check SL-2/SL-3 after the ledger fix while the worktree lock subclaim has no issue home. Correction: add a one-line cross-reference in each row to decision 3, EC-COORD-3/4 and omniagent-plus#24, and mirror that subclaim in #24 during the authorized issue updates. A pointer, not a second owner.\n\n- **Low, decision 3 and CASE-WL-3.** Reconciliation reuses the ordinary released status. A missing-path reconciliation or dead-holder recovery recorded identically to a holder release lets replay and UI attribute the action to the holder and makes \"no conflicting takeover\" unauditable. Correction: keep the existing status literal for CASE-CC-4 compatibility, but require the durable WL-4 transition to carry a cause and actor, frozen by DATA with the release-record shape, and require replay/UI to project it.\n\n- **Low, decision 6 and EC-GUARD-2.** Two wording gaps. Role bootstrap names no attributes: Supabase's service_role carries BYPASSRLS, and the migration enables RLS with grants only to service_role, so a plain-created role denies every row while a superuser connection bypasses RLS entirely. Neither yields a false green, but the tempting fix would add policies to the production migration. Freeze that the bootstrap reproduces the role attributes the migration's security model assumes, and name the connecting role. Also, \"applies the existing migration\" should read \"every file under supabase/migrations in order\", because COORD's SL-11 server-time fix arrives as a forward migration and COORD does not own the workflow files.\n\n**Still due, not blockers:** every R/C behavioral case, packed-consumer TR-1 proof, PostgreSQL skew and race probes, restart replay, the maintainer license choice, runner reconciliation of the Sep-10 snapshot's stale roadmap hash and empty ownership buckets, and broker-mediated publication proof. Pending IF/EC boxes are correctly unchecked.\n\n**Limitations.** I read the supplied text only. I did not run the checker, validators or git, recompute any hash, inspect current source, live issues, omniagent-plus#28, agent-harness#789/#819, run directories, or raw rounds one to seven. Coordinator source observations, including parseCliArgs, the two ID-1 edges and the migration's grants, are attributed, not verified. I cannot confirm runtime files are unchanged.\n\n**Open questions**\n- Does the migration reference anything Supabase-specific beyond the three roles, such as auth-schema functions? If so GUARD fails closed and needs an amendment, not an edited migration.\n- Which identity fields constitute liveness proof? PID absence with hostname match means dead on one host but is undefined across containers sharing a volume; the DATA plan should resolve that case to uncertain.\n- Does omnigent-transport already export the provider-mode type, or does PREP add it under its package-exports lane?\n\nAGREE",
+        "detail": null,
+        "seat_key": "claude:claude-fable-5-1:max:correctness"
+      },
+      {
+        "leg": "codex",
+        "status": "OK",
+        "text": "No remaining actionable documentation-content blocker identified. The supplied audit’s 55 findings, 28 N/Q case families, and sections 3.1–3.4 remain accounted for.\n\nThe round-8 corrections provide sufficiently concrete planning boundaries:\n\n- Decision 3 and EC-COORD-3/4 explicitly retain worktree lock and atomic-writer correctness obligations despite optional consolidation.\n- Decision 2 and EC-DATA-2/3 require initialized lock publication, acquisition fault cases, and bounded lock-free reads with explicit incomplete-tail outcomes.\n- Decision 6 and EC-GUARD-2 establish disposable role bootstrap, error-stopping migration application, and a positive setup control. COORD separately owns RPC-wrapper evidence.\n- CASE-WL-3 defines released metadata, active-map removal, durable transition, and collision handling without Git pruning or bypassing subsequent acquisition checks.\n- The corrected manifest attribution matches the supplied September 10 executor lifecycle entry.\n\nThe current handoff consistently separates documentation merge readiness from runner IF/EC acceptance and broker publication proof. Pending implementation tests and detailed algorithm choices are appropriately assigned to later phases.\n\nOpen evidence questions, not content blockers: whether the declared hashes and verification results match the actual staged candidate, and whether live runner/publication state matches the recorded observations.\n\nReview limitations: I assessed only supplied text. I did not inspect current repository source or unprovided historical reports, execute checks, recompute digests, or verify external state. Source observations and execution results remain coordinator-attributed evidence.\n\nThis verdict covers documentation-content readiness only; it establishes no runtime remediation, phase acceptance, or publication approval.\n\nAGREE",
+        "detail": null,
+        "seat_key": "codex:gpt-6-astra:max:red-team"
+      },
+      {
+        "leg": "gemini",
+        "status": "OK",
+        "text": "### Assessment of Post-Round-8 Amendments\n\nThe post-Round-8 documentation candidate (`docs/code-review-2026-09-01.md`, `plans/audit-remediation-disposition-20260905.md`, `specs/phase-plans-v2.md`, `plans/phase-plan-v2-TRIAGE.md`, `plans/evidence/v2/verify-triage.mjs`, `plans/evidence/v2/TRIAGE.json`, and `plans/evidence/v2/TRIAGE-reviews.md`) resolves all actionable gaps identified in Round 8 with conservative, fail-closed specifications:\n\n1. **Worktree Lock and Writer Ownership (`EC-COORD-3`, `EC-COORD-4`, Decision 3)**:\n   - Worktree lock (`locks.ts`) and atomic write (`lease-manager.ts`) correctness are bound to COORD under `EC-COORD-3` and `EC-COORD-4`.\n   - COORD is obligated to satisfy identical identity publication, unprovable lock blocking, replacement-race safety, and fsync ordering guarantees as DATA, whether it adopts DATA’s primitive or preserves distinct helpers.\n\n2. **Atomic Initialized Lock Publication & Lock-Free Reads (Decision 2, `EC-DATA-2`, `EC-DATA-3`)**:\n   - Decision 2 and `EC-DATA-2` mandate atomic initialized identity publication upon lock creation, preventing crash-induced unprovable locks.\n   - The read path (`SL-6`, `EC-DATA-3`) is explicitly specified as lock-free: readers inspect a bounded stable snapshot, report unterminated tails as writer-in-progress (never repair or false success), and maintain committed-data inspection even if a writer lock is blocked.\n\n3. **PostgreSQL Roles and Migration Controls (Decision 6, `EC-GUARD-2`, `EC-COORD-4`)**:\n   - The hosted full gate provisions a disposable, version-pinned PostgreSQL service.\n   - GUARD bootstraps required Supabase roles (`anon`, `authenticated`, `service_role`), applies migrations with SQL error-stop, and verifies coordination function presence as a positive control.\n   - Mocked RPC mapping and direct SQL are separated from hosted Supabase acceptance; RPC harness selection is assigned to COORD planning.\n\n4. **Recovery Post-State and Collision Handling (Decision 3, `CASE-WL-3`, `CASE-WL-5`)**:\n   - Dead-holder reconciliation terminal state is defined: `status: \"released\"`, `releasedAt` timestamp recorded, active-map entry removed, durable `WL-4` transition logged, and registry collision cleared.\n   - Destructive filesystem cleanup and Git metadata pruning remain out of scope; stale Git registrations continue to block future acquisition without bypass.\n\n5. **Manifest Lifecycle Attribution (`TRIAGE.json`, `TRIAGE-reviews.md`)**:\n   - Manifest provenance accurately attributes the plan entry to `codex-plan-phase` authoring and the lifecycle transition to the `codex-execute-phase` control layer outside `SL-0`, resolving prior misattributions without claiming unauthorized execution writes.\n\n### Inventory, Boundaries, and Governance\n\n- **Inventory Parity**: All 55 audit findings, 28 N/Q cases, and 4 cross-cutting sections retain 1:1 mapping across issues (`omniagent-plus#19`–`#27`) and matrix rows.\n- **Safety Posture**: All uncompleted phase gates (`IF-0-TRIAGE-1` through `IF-0-SHIP-8`), runner closeout statuses (`awaiting_phase_closeout`), and external landing holds (`agent-harness#789` and `#819`) remain explicitly pending. Documentation merge readiness does not assert runtime remediation or bypass publication brokers.\n\n### Actionable Content Defects\n\nNone. The planning boundaries and interface decisions are consistent, conservative, and ready for documentation merge.\n\n### Open Questions (Non-Blocking Implementation Context)\n\n1. **CLI Parser Surface**: Validating whether `packages/cli/src/args.ts:parseCliArgs` exists verbatim in the worktree or is introduced during COORD execution remains an implementation-level check under `omniagent-plus#23`.\n2. **PostgreSQL Service Pin**: Pinned container image tags and harness wiring remain appropriately deferred to GUARD lane planning.\n\n### Review Limitations\n\n- Assessed strictly the supplied documentation text, structural checker script, and evidence receipts.\n- No code was compiled, linted, or executed.\n- No unit, integration, or fault-injection tests were run.\n- Remote Git repositories, GitHub pull requests and issues, npm registries, and hosted infrastructure were not contacted.\n- All hashes, timestamps, and git status lines were verified solely as documented evidence strings.\n\nAGREE\n",
+        "detail": null,
+        "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach"
+      }
+    ],
+    "president": null,
+    "president_findings": []
+  },
+  "coordinator_observations": {
+    "claude_route": "homebrew Claude Code subscription self-PTY",
+    "claude_pid": 997616,
+    "claude_stdin": "/dev/pts/13",
+    "operator_terminated": false,
+    "review_scope": "documentation content; not phase or publication acceptance"
+  }
+}

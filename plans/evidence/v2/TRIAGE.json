@@ -1,0 +1,332 @@
+{
+  "schema": "audit-triage-review.v1",
+  "phase": "TRIAGE",
+  "status": "awaiting_phase_closeout",
+  "scope": "local_triage_verification_only",
+  "artifact_state": "staged",
+  "observed_base_commit": "076f1e5d87acba21b87c188e3a70a0f319b79e60",
+  "input_sha256": {
+    "plans/audit-remediation-disposition-20260905.md": "fc7142c943a1305989838d1106c7860fdddf94408e23118a3a4c8f5eb2bf0192",
+    "specs/phase-plans-v2.md": "b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93",
+    "plans/phase-plan-v2-TRIAGE.md": "69484fbac85b4d574463e7bf264fe942d44b8e4a225dd0dce92dc0c9e176cfee",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+    "plans/evidence/v2/TRIAGE-reviews.md": "7e306fd6d760cfe6c6daa6107b03e76b13e4f8093628914dc5d68d16e962c2dd",
+    "plans/evidence/v2/TRIAGE-review-brief.md": "d1b89992d75e3aa7b6f23aa4d788a0d4876432c40af568826ffdd940525de86c"
+  },
+  "authoring_verification": {
+    "scope": "historical authoring observations, not attestation of the current amended bytes; see current_verification",
+    "roadmap_validator": "passed: 8 phases",
+    "phase_plan_validator": "passed: 1 lane, 0 warnings",
+    "dispatch_literal_validator": "passed: 0 findings",
+    "audit_finding_ids": 55,
+    "disposition_finding_rows": 55,
+    "nq_case_families": 28,
+    "cross_cutting_case_families": 4,
+    "membership_check": "passed: exact membership, not only counts",
+    "negative_controls": [
+      "missing finding rejected",
+      "missing N/Q case rejected",
+      "missing cross-cutting case rejected",
+      "duplicate case rejected",
+      "duplicate cross-cutting case rejected",
+      "mismatched case ID rejected"
+    ],
+    "installed_runner_resolution": "4 commands and Node suite; zero intake findings",
+    "installed_phase_loop_runtime": "0.7.14",
+    "subprocess_exit_controls": "complete=0, missing finding=1, duplicate case=1",
+    "git_diff_check": "passed",
+    "manifest_append": "codex-plan-phase appended one entry preserving 28 previous entries; Sep-10 codex-execute-phase control layer subsequently recorded the executing lifecycle transition outside SL-0 ownership; neither is a runner verification result and neither was changed in Sep-11 resumption"
+  },
+  "review": {
+    "round_1": "plans/evidence/v2/reviews/TRIAGE-round-1.json",
+    "round_1_accepted": false,
+    "reconciliation": "plans/evidence/v2/TRIAGE-reviews.md",
+    "round_2": "plans/evidence/v2/reviews/TRIAGE-round-2.json",
+    "round_2_status": "completed; verification wiring blocker corrected",
+    "round_2_accepted": false,
+    "round_3": "plans/evidence/v2/reviews/TRIAGE-round-3.json",
+    "round_3_status": "completed: Fable, Grok, Codex (GPT-5.6 Sol) and Gemini AGREE on historical bytes",
+    "round_4": "plans/evidence/v2/reviews/TRIAGE-round-4.json",
+    "round_4_status": "supplemental: plan-only board preserved as non-approval because its bundle omitted the matrix and reducer; Fable was degraded",
+    "round_5": "plans/evidence/v2/reviews/TRIAGE-round-5.json",
+    "round_5_status": "complete: Opus DEGRADED after provider refusal; Grok PARTIALLY AGREE; Codex and Gemini AGREE; not four-seat approval",
+    "round_6": "plans/evidence/v2/reviews/TRIAGE-round-6.json",
+    "round_6_status": "four usable seats: Fable, Grok and Codex PARTIALLY AGREE; Gemini AGREE; documentation corrections require resubmission",
+    "round_7": "plans/evidence/v2/reviews/TRIAGE-round-7.json",
+    "round_7_status": "four usable seats: Fable/Grok PARTIALLY AGREE; Codex/Gemini AGREE; latest corrections await review",
+    "final_candidate_accepted": false,
+    "plan_review_accepted": true,
+    "acceptance_scope": "exact round-9 core document bytes accepted for documentation merge after coordinator reconciliation; not unanimous agreement, runtime remediation or governed phase acceptance",
+    "execution_review_status": "content review reconciled; formal runner closeout still pending",
+    "followup_review_required": false,
+    "claude_model_override": null,
+    "claude_model_selection": "claude-fable-5-1 restored at user request on 2026-09-11; temporary Opus selection ended; shared defaults unchanged",
+    "claude_selection_recorded_at": "2026-09-11T05:37:35Z",
+    "openai_seat_label": "Codex; historical model GPT-5.6 Sol, current model GPT-6 Astra; raw seat keys retained",
+    "gemini_seat_label": "Gemini; rounds 1-3 used Gemini 3.7 Flash, rounds 4-9 used Gemini 3.8 Flash; raw keys retained",
+    "review_records_sha256": {
+      "plans/evidence/v2/reviews/TRIAGE-round-4.json": "e0edc4e0a5fac9436cb05825525461fcb4cc3532e38f317955fe6c58d466a988",
+      "plans/evidence/v2/reviews/TRIAGE-round-5.json": "60dc71f3a9bda66a5db9fa3d86abfb116d1cf974dec34afa14151a8d813d525d",
+      "plans/evidence/v2/reviews/TRIAGE-round-6.json": "4a6b083f7f57d1f9de2622797c6b4b74ca084f1c53cb2fb162a19a8327dc9c3d",
+      "plans/evidence/v2/reviews/TRIAGE-round-7.json": "d058b6d5e2054e37d563cd6d6683e05c1f02fe9a4f6f8eccf7a3ad42598b9ac0",
+      "plans/evidence/v2/reviews/TRIAGE-round-8.json": "d93f229db5b89c10be209f1d565091c6d5491071ae5de4276011b5fdfbca4c26",
+      "plans/evidence/v2/reviews/TRIAGE-round-9.json": "d3d341cfc29974923f6c197f4ed1f03c44665cffc7d5c6ef78bcaff083a2ae3f"
+    },
+    "automatic_refusal_retry": false,
+    "claude_route": "homebrew Claude Code subscription TUI; PTY verified",
+    "round_8": "plans/evidence/v2/reviews/TRIAGE-round-8.json",
+    "round_8_status": "four usable seats: Grok/Codex/Gemini AGREE, Fable PARTIALLY AGREE; three medium and two low findings amended pending resubmission",
+    "round_9": "plans/evidence/v2/reviews/TRIAGE-round-9.json",
+    "round_9_status": "four usable seats: Fable/Codex/Gemini AGREE; Grok PARTIALLY AGREE, reconciled by retaining bounded fail-closed worktree queries and recording nonblocking owned follow-ups",
+    "documentation_merge_ready": true,
+    "recording_only_paths": [
+      "plans/evidence/v2/TRIAGE.json",
+      "plans/evidence/v2/TRIAGE-reviews.md",
+      "plans/evidence/v2/reviews/TRIAGE-round-9.json",
+      ".dev-skills/handoffs/codex-execute-phase/latest.md",
+      ".dev-skills/handoffs/codex-execute-phase/20260911-triage-merge-readiness.md"
+    ],
+    "reviewed_core_input_sha256": {
+      "plans/audit-remediation-disposition-20260905.md": "fc7142c943a1305989838d1106c7860fdddf94408e23118a3a4c8f5eb2bf0192",
+      "specs/phase-plans-v2.md": "b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93",
+      "plans/phase-plan-v2-TRIAGE.md": "69484fbac85b4d574463e7bf264fe942d44b8e4a225dd0dce92dc0c9e176cfee",
+      "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7"
+    }
+  },
+  "phase_acceptance": {
+    "EC-TRIAGE-1": "content inventory reviewed and live owners verified; formal runner acceptance pending",
+    "EC-TRIAGE-2": "source-grounded decisions reviewed and reconciled; formal runner acceptance pending",
+    "EC-TRIAGE-3": "four-seat review completed and feedback dispositioned; documented nonblocking phase follow-ups remain, formal runner acceptance pending"
+  },
+  "produced_if_gates": [],
+  "runtime_tests_run": false,
+  "builds_run": false,
+  "migrations_run": false,
+  "runtime_files_changed": false,
+  "publication": {
+    "new_commit": false,
+    "new_push": false,
+    "new_pr": false,
+    "new_merge": false,
+    "new_release": false,
+    "blocker": "exact-candidate broker publication proof pending; no content blocker; formal phase closeout remains separate",
+    "scope": "Sep-11 user authorizes documentation review, commit, broker-mediated PR publication, merge and safe pruning; no registry release, authority override or implied phase acceptance",
+    "partition_recovery": "agent-harness#789 generation 1 ACTIVE; first governed publish proof pending",
+    "recovery_record": "https://github.com/Consiliency/agent-harness/issues/789#issuecomment-5612991044",
+    "existing_exception": "omniagent-plus#28 candidate only; not reused",
+    "observation_scope": "recorded before the candidate commit and publication attempt; subsequent PR/issue comments record actual landing, not these historical false booleans"
+  },
+  "local_execution": {
+    "run_id": "20260910-triage-local-verification",
+    "observed_at": "2026-09-10T08:44:00Z",
+    "status": "executed_pending_governed_acceptance",
+    "handoff": ".dev-skills/handoffs/codex-execute-phase/20260910-triage-local-verification.md",
+    "planning_receipt_before_execution_sha256": "44670462f2b738c9cbf6637fc31a56bbfe487b3ed2bf2208916db3c235ba9811",
+    "reviewed_inputs_unchanged": false,
+    "observation_scope": "historical local execution; current candidate differs from its reviewed inputs, so earlier verification and approvals do not transfer",
+    "review_records_sha256": {
+      "plans/evidence/v2/reviews/TRIAGE-round-1.json": "9e86afb7cff858679ef2dde8be01647c3c7aca8f81529a272a8ab918b448382a",
+      "plans/evidence/v2/reviews/TRIAGE-round-2.json": "2abbaff0adc1a4224b8c2e3ae303047158d378c6de61d6297f56e7d37f5b1e89",
+      "plans/evidence/v2/reviews/TRIAGE-round-3.json": "7f2ccc28b8378ef5936d813689279311eece88101a3d10cd4f8790a1e5dca8b3"
+    },
+    "review_reuse_scope": "historical context only; current matrix, roadmap and plan require fresh exact-input review",
+    "local_checks": {
+      "structural_suite": "passed: 55 findings, 28 N/Q cases, 4 cross-cutting cases, 6 negative controls, 8 roadmap phases and whitespace checks",
+      "plan_validator": "passed: 1 lane, 0 warnings; separate fab_gate import warning remains",
+      "runner_command_discovery": "4 verification commands and Node suite; zero intake findings",
+      "review_input_hashes": "current matrix, roadmap and plan no longer match rounds 2/3; the 12 historical responses remain preserved but do not approve current bytes",
+      "finding_ownership": "all 55 IDs have one primary issue owner and occur in that live issue body; all owning issues OPEN",
+      "source_review": "observations below support proposed decisions; not new behavioral test results",
+      "runtime_diff_from_remote_main": "empty across packages, scripts, workflows, fixtures, migrations and root dependency/test configuration"
+    },
+    "source_observations": [
+      {
+        "decision": "content_and_paths",
+        "sources": [
+          "packages/core-contracts/src/redaction.ts",
+          "packages/state-ledger/src/evidence-store.ts",
+          "packages/cli/src/commands/health.ts"
+        ],
+        "observation": "Workspace paths permit operational absolute roots; evidence saves pass label/path through after the artifact-ref early return; health exports internal paths under metadata_only. Retain operational semantics and fix export boundaries in DATA."
+      },
+      {
+        "decision": "recovery_before_validation",
+        "sources": [
+          "packages/state-ledger/src/append-only-store.ts",
+          "packages/state-ledger/src/schema.ts",
+          "packages/state-ledger/src/retention.ts",
+          "packages/state-ledger/src/replay.ts"
+        ],
+        "observation": "The last parsed line can be truncated after any parse/schema error; read initialization writes projections. Retention protects newest-per-kind only; session replay selects the first session and unscoped routes. Recovery must precede stricter content validation."
+      },
+      {
+        "decision": "distinct_lease_authorities",
+        "sources": [
+          "packages/state-ledger/src/coordination.ts",
+          "packages/worktree-leasing/src/lease-manager.ts",
+          "packages/worktree-leasing/src/lease-store.ts",
+          "packages/state-ledger/src/supabase-coordination-channel.ts",
+          "supabase/migrations/20260708215513_coordination_leases.sql"
+        ],
+        "observation": "The local worktree registry, legacy CoordinationStore and fleet LeaseStore remain separate surfaces. SQL still accepts caller time; environment construction checks undefined only. Preserve separate authorities and retained-consumer obligations."
+      },
+      {
+        "decision": "established_identity_and_supervision",
+        "sources": [
+          "packages/coordinator/src/launch-gate.ts",
+          "packages/coordinator/src/active-turns.ts",
+          "packages/coordinator/src/replay.ts",
+          "packages/rate-limit-catalog/src/rules.ts"
+        ],
+        "observation": "Send persists a route and invokes the provider without comparing established-session identity. Negative active-turn deltas clamp to zero; replay applies the latest classification to all decisions; Retry-After uses parseInt. COORD owns boundary repairs; INTEG owns scheduling and settlement."
+      },
+      {
+        "decision": "simulation_and_environment_limits",
+        "sources": [
+          "packages/core-contracts/src/fake-event-stream.ts",
+          "packages/identity-isolation/src/environment.ts",
+          "packages/cli/src/commands/identities.ts",
+          "packages/omnigent-transport/src/cli-client.ts"
+        ],
+        "observation": "FakeEventStream checks only the first returned sequence; profile environment uses an explicit allowlist while CLI preflight supplies an empty environment; CLI transport parses JSON without normalization. Named case families remain necessary."
+      },
+      {
+        "decision": "ci_topology_and_license_owner",
+        "sources": [
+          ".github/workflows/publish.yml",
+          ".github/CODEOWNERS",
+          "package.json"
+        ],
+        "observation": "Only release/dispatch verification exists, without lint/typecheck. Hosted PR verification needs no new external implementation. ViperJuice remains the license decision owner in omniagent-plus#20; omniagent-plus#27 consumes the decision. No license choice inferred."
+      }
+    ],
+    "remote_state": {
+      "main": "da9f6eb90ebbf0c8059018edb14a15fbdab5d84f",
+      "roadmap_pr": "Consiliency/omniagent-plus#28",
+      "roadmap_pr_state": "OPEN_DRAFT",
+      "roadmap_pr_head": "076f1e5d87acba21b87c188e3a70a0f319b79e60",
+      "issue_inventory": [
+        "omniagent-plus#19",
+        "omniagent-plus#20",
+        "omniagent-plus#21",
+        "omniagent-plus#22",
+        "omniagent-plus#23",
+        "omniagent-plus#24",
+        "omniagent-plus#25",
+        "omniagent-plus#26",
+        "omniagent-plus#27"
+      ],
+      "all_issues_open": true
+    },
+    "closeout_readiness": {
+      "issue": "Consiliency/agent-harness#819",
+      "issue_state": "OPEN",
+      "issue_updated_at": "2026-09-09T22:21:03Z",
+      "runtime_version": "0.7.14",
+      "runtime_commit": "c98573ebd45452451ce719406f5b28379284b4c9",
+      "fresh_cli_registered_count": 4,
+      "unavailable_validators": [
+        "fab_gate"
+      ],
+      "readiness_probe_exit": 1,
+      "probe_scope": "startup defect persists; subsequent normal closeout retry verified below",
+      "normal_closeout_retry": {
+        "entrypoint": "run_closeout_validators",
+        "review_mode": "block",
+        "synthetic_context_only": true,
+        "registered_count_after_retry": 5,
+        "unavailable_after_retry": [],
+        "negative_control": "incomplete FAB-scoped input returns fab_delta_review_gate_block with block severity",
+        "manual_preload_or_reregistration": false,
+        "exit_code": 0,
+        "acceptance_limit": "does not accept TRIAGE or prove governed publication; supersedes startup-only inference of a permanent closeout block"
+      },
+      "bounded_runner_dry_run": {
+        "phase": "TRIAGE",
+        "status": "planned",
+        "closeout_mode": "manual",
+        "exit_code": 0,
+        "canonical_state": ".phase-loop/state.json",
+        "runtime_version_warning": "startup import warning persists; issue remains OPEN"
+      },
+      "bounded_runner_execution": {
+        "run_id": "20260910T091701Z-01-triage-execute",
+        "exit_code": 0,
+        "phase_status": "awaiting_phase_closeout",
+        "closeout_mode": "manual",
+        "closeout_verification_status": "not_run",
+        "executor_local_verification_status": "passed",
+        "executor_produced_if_gates_claim": [
+          "IF-0-TRIAGE-1"
+        ],
+        "accepted_if_gates": [],
+        "acceptance_limit": "executor self-report is not governed phase acceptance; local TRIAGE.json is not a runner verification artifact"
+      },
+      "runner_verification_artifact_path": null,
+      "runner_closeout_executed": false,
+      "shared_runtime_changed": false,
+      "publication_authority_changed": false,
+      "gate_override_used": false,
+      "next_phase": "TRIAGE",
+      "next_command": "land reviewed documentation via the supported broker; reconcile actual runner evidence separately before IF acceptance",
+      "resume_command_after_gate": "codex-execute-phase plans/phase-plan-v2-TRIAGE.md",
+      "downstream": "GUARD planning waits for accepted IF-0-TRIAGE-1; no downstream runtime edits"
+    },
+    "operational_status_note": "The dated publication statements in reviewed planning inputs describe the pre-rotation state. This execution receipt supersedes that operational status without changing or extending their review approval."
+  },
+  "post_review_amendment": {
+    "observed_at": "2026-09-11T09:10:45.604Z",
+    "round_5_sha256": "60dc71f3a9bda66a5db9fa3d86abfb116d1cf974dec34afa14151a8d813d525d",
+    "round_6_sha256": "4a6b083f7f57d1f9de2622797c6b4b74ca084f1c53cb2fb162a19a8327dc9c3d",
+    "round_7_sha256": "d058b6d5e2054e37d563cd6d6683e05c1f02fe9a4f6f8eccf7a3ad42598b9ac0",
+    "changed_candidate_inputs": [
+      "plans/audit-remediation-disposition-20260905.md",
+      "specs/phase-plans-v2.md",
+      "plans/phase-plan-v2-TRIAGE.md"
+    ],
+    "amendments": [
+      "bind CLI argv regression control to COORD",
+      "default GUARD to two exact existing import edges with PREP-owned removal",
+      "keep unprovable locks blocked and dead-holder recovery metadata-only",
+      "freeze request-message and persisted-schema compatibility",
+      "restore SSE whitespace cases",
+      "scope helper consolidation deferrals",
+      "require hosted PostgreSQL probes without skip",
+      "bind current evidence and preserve historical provenance",
+      "assign worktree lock/writer correctness to COORD",
+      "require atomic initialized lock publication and stable lock-free reads",
+      "bootstrap disposable migration roles and separate RPC proof",
+      "define released metadata without Git pruning",
+      "correct executor-control manifest attribution"
+    ],
+    "reviewed": true,
+    "handoff": ".dev-skills/handoffs/codex-execute-phase/20260911-triage-merge-readiness.md",
+    "round_8_sha256": "d93f229db5b89c10be209f1d565091c6d5491071ae5de4276011b5fdfbca4c26",
+    "review_record": "plans/evidence/v2/reviews/TRIAGE-round-9.json"
+  },
+  "current_verification": {
+    "observed_at": "2026-09-11T09:22:32.205Z",
+    "scope": "local structural and evidence consistency only; not governed verification or behavioral remediation",
+    "input_sha256": {
+      "plans/audit-remediation-disposition-20260905.md": "fc7142c943a1305989838d1106c7860fdddf94408e23118a3a4c8f5eb2bf0192",
+      "specs/phase-plans-v2.md": "b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93",
+      "plans/phase-plan-v2-TRIAGE.md": "69484fbac85b4d574463e7bf264fe942d44b8e4a225dd0dce92dc0c9e176cfee",
+      "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+      "plans/evidence/v2/TRIAGE-reviews.md": "7e306fd6d760cfe6c6daa6107b03e76b13e4f8093628914dc5d68d16e962c2dd",
+      "plans/evidence/v2/TRIAGE-review-brief.md": "d1b89992d75e3aa7b6f23aa4d788a0d4876432c40af568826ffdd940525de86c"
+    },
+    "structural_suite": "passed after round-8 amendments: 55 findings, 28 N/Q cases, 4 cross-cutting cases, 6 negative controls, 8 phases and whitespace checks",
+    "phase_plan_validator": "passed after round-8 amendments: 1 lane, 0 warnings",
+    "evidence_consistency": "exact round-9 core hashes preserved; raw reviews and evidence bindings checked; recording-only metadata is not part of the original board inputs",
+    "runtime_version": "0.7.14",
+    "runtime_commit": "c98573ebd45452451ce719406f5b28379284b4c9",
+    "startup_warning": "agent-harness#819 still reproduces; these document checks are not a real closeout probe",
+    "runtime_tests_or_builds": "not_run"
+  },
+  "license": {
+    "decision_owner": "Consiliency/omniagent-plus#20",
+    "maintainer": "ViperJuice",
+    "implementation_owner": "Consiliency/omniagent-plus#27",
+    "choice": "pending before PREP exit; not blocking unrelated fixes"
+  }
+}

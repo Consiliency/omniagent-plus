@@ -1,0 +1,144 @@
+{
+  "schema": "advisor_board_snapshot.v1",
+  "round": 5,
+  "scope": "complete-artifact TRIAGE documentation-content review; not governed phase acceptance",
+  "input_sha256": {
+    "docs/code-review-2026-09-01.md": "58451cb03712bdf6cc6d4dcb93aecbf03bfe9d6b382e467bde7e8a4fc39f1ef3",
+    "plans/audit-remediation-disposition-20260905.md": "f6f10ca141d5aa0c23c5eaf66c4be4d99d101f71acffdd7fd3b1b087cda123b4",
+    "specs/phase-plans-v2.md": "9c218d51605583d3b82f2f38ff676ca5938b8db0582bcf042a5c6e99efdc27e7",
+    "plans/phase-plan-v2-TRIAGE.md": "1e33ace96bd6a1175e9b57a6a608be679ca7b462da42a460a43c9506a0dd6b8e",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+    "plans/evidence/v2/TRIAGE.json": "e06c819e856bd664d10bb9bace8c93636ef95ae6b8f9d25e8e7b5b96599c5146",
+    "plans/evidence/v2/TRIAGE-reviews.md": "092b39623cb1f0f9f263b634d49a8f1266b37f31e8d2d27551c8ce5c1a3f0676",
+    ".dev-skills/handoffs/codex-execute-phase/latest.md": "2395b762532114e08f676cfd1bae6349d599e4556bf6957c430df75ae36c2d16",
+    ".phase-loop/state.json": "f8883348abef92474640b08065cdf48ed994a327fa2dbd971eac99bf3cf5eee4",
+    "plans/evidence/v2/TRIAGE-review-brief.md": "c5a4b51074d03f3442a90dd5bc2bdc66d2f4e039e1f503ff72dd750fde50ed8d"
+  },
+  "inputs_unchanged_during_review": true,
+  "board": {
+    "name": "code-review",
+    "purpose": "code-review",
+    "seats": [
+      {
+        "model": "grok-4.6",
+        "effort": "max",
+        "harness": "grok",
+        "lens": "adversarial",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "claude-opus-5",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gpt-6-astra",
+        "effort": "max",
+        "harness": "codex",
+        "lens": "red-team",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "requested_seats": 4,
+  "delivered_seats": 3,
+  "accepted": false,
+  "substitution": {
+    "authorization": "User: Replace fable with opus for now",
+    "scope": "per-invocation Claude seat only; shared defaults unchanged",
+    "previous_model": "claude-fable-5-1",
+    "requested_model": "claude-opus-5",
+    "route": "canonical homebrew Claude Code subscription self-PTY adapter",
+    "process_pid": 2879387,
+    "process_stdin": "/dev/pts/8",
+    "operator_terminated": false,
+    "native_or_api_replacement": false,
+    "automatic_refusal_retry": false
+  },
+  "legs": [
+    {
+      "leg": "grok",
+      "status": "OK",
+      "text": "The review packet was truncated in this turn. I\u2019ll load the offloaded full request so the TRIAGE comparison uses the complete supplied bundle, then assess only that material.The bundle is large and still only partly loaded. I\u2019ll pull the remaining audit IDs, disposition matrix, roadmap, phase plan, and receipts next so the comparison is against the full packet, not the truncated excerpt.I have the audit IDs. Next I\u2019ll read the disposition tables, compatibility decisions, N/Q cases, phase plan, and checker so I can compare them independently.Independent ID check: the audit\u2019s 55 findings (`SL-1`\u2013`SL-12`, `CC-1`\u2013`CC-7`, `TR-1`\u2013`TR-9`, `CO-1`\u2013`CO-8`, `WL-1`\u2013`WL-7`, `CLI-1`\u2013`CLI-4`, `ID-1`\u2013`ID-2`, `HY-1`\u2013`HY-6`) match the disposition rows; all 28 N/Q rows have `CASE-*` families; \u00a73.1\u20133.4 have `CASE-3.1`\u2013`CASE-3.4`. Decisions 1\u20137 are conservative enough to implement (truthful packed-consumer labels, no global metadata-only wipe, no lock steal on TTL/PID, distinct lease APIs, established-session identity, no skip-green CI, no inferred license). FABPUB/`agent-harness#789` still holds landing, not local planning.\n\n## Actionable documentation defects\n\n**Medium \u2014 `plans/evidence/v2/TRIAGE.json` `review.final_candidate_accepted` and `phase_acceptance.EC-TRIAGE-1`.** The same receipt sets `final_candidate_accepted: true` and calls EC-TRIAGE-1 \u201clocally verified\u201d while `execution_review_status` is still pending this complete-artifact board, `produced_if_gates`/`accepted_if_gates` are empty, and closeout verification is `not_run`. EC-TRIAGE-1 also requires review of each disposition, not only `verify-triage.mjs` membership. **Correction:** keep structural membership separate from content-review status; leave `final_candidate_accepted` false until this board is reconciled. Do not treat the executor\u2019s `IF-0-TRIAGE-1` self-report as an accepted gate (`latest.md` already warns; the JSON field still can).\n\n**Low \u2014 `CASE-CC-4` (`plans/audit-remediation-disposition-20260905.md`).** \u201cExplicitly owned operator inputs\u201d is the right compatibility rule (no blanket `.strict()`), but TRIAGE never names those schemas versus additive wire types. **Correction:** list the owned input surfaces in the case row (CLI/route-task/handoff builder versus public wire) so DATA does not invent the freeze.\n\nNeither is an implementation-phase substitute issue. Pending EC/IF checkboxes are otherwise correct.\n\n## Not TRIAGE blockers\n\nBehavioral proofs for scanner corpus, crash/lock recovery, packed TR-1 labels, live PostgreSQL SL-11, CoordinationStore retain-or-remove, and INTEG supervision are due in DATA/COORD/WIRE/INTEG. Round-2 carry-overs belong in later phase plans: DATA must freeze ledger lock/index interfaces and identity-less lock files (`SL-2`); COORD must name CLI `runtime`/`types` paths for `CASE-CLI-4`. License choice may stay on omniagent-plus#20 until PREP. `agent-harness#819` plus a synthetic closeout control is not real-candidate closeout proof and is not a reason to discard this planning packet.\n\n## Open questions (not blockers)\n\nWhether live issue bodies still contain all 55 IDs, and whether 2026-09-09 source observations still match `main`, are asserted in the receipt and not included here.\n\n## Review limits\n\nAssessed only the supplied bundle. Did not inspect the worktree, GitHub issues, or file hashes; did not run `verify-triage.mjs`, `phase-loop`, git, or closeout; did not treat rounds 1\u20134 or the executor IF self-report as approval. Structural-checker green was not re-executed and cannot close content review. Publication remains held.\n\nPARTIALLY AGREE\n",
+      "detail": null,
+      "seat_key": "grok:grok-4.6:max:adversarial"
+    },
+    {
+      "leg": "claude",
+      "status": "DEGRADED",
+      "text": "API Error: Opus 5's safeguards flagged this message (https://www.anthropic.com/legal/aup). This sometimes happens with safe, normal conversations. Claude Code can't respond to this message with Opus 5.\n\nDouble press esc to edit your last message, or try a different model with /model.\n\nSend feedback with /feedback or learn more: https://support.claude.com/en/articles/16049681\n\nDetails: `[reasoning_extraction]`\n\nRequest ID: req_011CeuXwtpoGXc4vagG8Mhnd",
+      "detail": null,
+      "seat_key": "claude:claude-opus-5:max:correctness"
+    },
+    {
+      "leg": "codex",
+      "status": "OK",
+      "text": "No TRIAGE documentation-content blocker identified. I independently compared the supplied audit text with the matrix: all 55 finding IDs and sections 3.1\u20133.4 are represented, and all 28 N/Q items have matching case families with observable acceptance requirements.\n\nOne nonblocking ownership question remains for downstream planning:\n\n- **P2 \u2014 GUARD/CASE-HY-6 versus PREP/ID-1:** `plans/audit-remediation-disposition-20260905.md` assigns relative-import enforcement to GUARD but the existing relative-import correction to PREP. `specs/phase-plans-v2.md` places these phases far apart. Before GUARD enables enforcement, its lane plan should either move the minimum ID-1 correction forward or document a narrowly scoped temporary baseline, with tests rejecting new escapes and PREP responsible for removing the baseline. This is a downstream planning requirement, not a TRIAGE content blocker.\n\nThe pending closeout status is accurately distinguished from local verification and executor claims. Behavioral remediation, real-candidate runner closeout, and publication evidence remain future obligations; none is required to manufacture acceptance for this content review.\n\nI inspected only the supplied text, including the checker source. I did not inspect filesystem originals, current runtime source, raw per-seat review reports, installed tooling, or live external state. I executed nothing and did not independently verify hashes or reported command results. The supplied reconciliation therefore supports historical context, not independent proof of those executions.\n\nThis verdict concerns documentation-content readiness only.\n\nAGREE",
+      "detail": null,
+      "seat_key": "codex:gpt-6-astra:max:red-team"
+    },
+    {
+      "leg": "gemini",
+      "status": "OK",
+      "text": "### Review Scope & Limitations\n- **Inspected**: Bytewise concatenation of the supplied sealed review bundle (`code-review-2026-09-01.md`, `audit-remediation-disposition-20260905.md`, `phase-plans-v2.md`, `phase-plan-v2-TRIAGE.md`, `verify-triage.mjs`, `TRIAGE.json`, `TRIAGE-reviews.md`, `latest.md`, and `state.json`).\n- **Not Inspected / Not Executed**: No commands, test runners, or validation scripts were executed (`verify-triage.mjs`, `phase-loop`, `git diff`). No external repositories (`agent-harness`, `consiliency-portal`), live network/browser services, live GitHub issues, or unprovided source worktrees were accessed. All observations are based exclusively on the provided text bundle.\n\n---\n\n### Documentation Content Assessment\n\n1. **Finding Accounting and Issue Ownership (EC-TRIAGE-1)**:\n   - All 55 historical audit findings (SL-1..12, CC-1..7, TR-1..9, CO-1..8, WL-1..7, CLI-1..4, ID-1..2, HY-1..6) and sections 3.1\u20133.4 map 1:1 to designated tracking issues (`omniagent-plus#19`\u2013`#27`).\n   - All 28 N/Q items and 4 cross-cutting sections possess explicit, falsifiable acceptance cases (`CASE-SL-7` through `CASE-HY-6` and `CASE-3.1` through `CASE-3.4`).\n   - Ownership boundaries are cleanly partitioned; specifically, `omniagent-plus#20` maintains sole decision ownership for the HY-2 license choice, while `omniagent-plus#27` consumes that decision for packaging implementation.\n\n2. **Compatibility Decisions & Policy Guarantees (EC-TRIAGE-2)**:\n   - **Content & Path Policy**: Retains existing postures (`metadata_only`, `content_allowed`, `content_redacted`). TR-1 enforces truthful stream/history labels via an independently packed transport consumer. Operational roots remain absolute, while exported paths (including CLI health and envelopes) are sanitized/relativized to prevent leakage.\n   - **Recovery Before Validation**: Prevents silent corruption/deletion by ordering SL-5 repair before CC-2/CC-3 tightening. Schema-invalid records fail closed with typed corruption errors while preserving bytes. Manifest sequence authority is validated against the ledger tail, and lock recovery requires proof of dead holders.\n   - **Lease & Routing Separation**: Local worktree leases (`WorktreeLeaseManager`) and fleet scopes (`LeaseStore`) remain strictly separated. Supabase clock authority is server-side. Send-turn enforces session identity matching against established session state.\n   - **Composition**: Library boundaries are preserved; transport remains independently consumable, and operator loop responsibilities (retries, timeouts, process cleanup) are assigned to an explicit composition in INTEG.\n\n3. **Readiness and Phase Closeout Posture (EC-TRIAGE-3)**:\n   - `TRIAGE.json`, `latest.md`, and `state.json` truthfully reflect `awaiting_phase_closeout` in manual mode with verification `not_run`.\n   - Executor local verification is properly segregated from governed acceptance; `produced_if_gates` is empty (`[]`). Outstanding operational blockers (`agent-harness#789`, `#819`) are documented without false green claims.\n\n---\n\n### Actionable Documentation Observations (Non-Blockers)\n\n1. **Closeout Evidence Path Symmetry**:\n   - *File*: `specs/phase-plans-v2.md` (Phase 1 closeout policy) vs. `plans/phase-plan-v2-TRIAGE.md` (Spec Closeout Plan).\n   - *Severity*: Low (Documentation hygiene / non-blocker).\n   - *Concern*: The roadmap specifies `evidence_paths: plans/evidence/v2/TRIAGE.json`, whereas the phase plan specifies both `TRIAGE.json` and `TRIAGE-reviews.md`.\n   - *Correction*: Update `specs/phase-plans-v2.md` to include `plans/evidence/v2/TRIAGE-reviews.md` so that the closeout specification and phase plan match identically.\n\n2. **Review Flag Scoping in Receipt**:\n   - *File*: `plans/evidence/v2/TRIAGE.json` (`review.final_candidate_accepted`).\n   - *Severity*: Low (Clarity / non-blocker).\n   - *Concern*: Setting `\"final_candidate_accepted\": true` under `\"review\"` could be misread out of context, despite `\"acceptance_scope\"` clarifying it covers plan readiness only.\n   - *Correction*: Future reducers should name this key `\"plan_review_accepted\"` to maintain clear separation from governed phase acceptance.\n\n---\n\n### Open Questions (Separated from Blockers)\n\n1. **`CoordinationStore` Disposition (`CASE-SL-8`)**: The choice between deprecation/removal and retention with conflict/overwrite fixes depends on the external caller inventory during COORD.\n2. **Export Path Schema Compatibility (`CASE-CLI-4` / `CASE-CC-5`)**: Whether sanitizing health and envelope paths requires an explicit export schema version increment remains an open implementation question to resolve during DATA.\n\n---\n\nAGREE\n",
+      "detail": null,
+      "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach"
+    }
+  ],
+  "acceptance_limit": "Opus DEGRADED, Grok PARTIALLY AGREE, Codex and Gemini AGREE. Three usable responses are not four-seat approval. Corrected bytes need review.",
+  "runtime_evidence": ".phase-loop/runs/20260910-triage-opus-review"
+}
