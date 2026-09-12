@@ -842,7 +842,7 @@
       "created_at": "2026-09-12T02:05:55Z",
       "execution_authorized": false,
       "file": "plans/phase-plan-v2-GUARD.md",
-      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260912-guard-review-blocked.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260912-guard-fable-recovered.md",
       "if_gates_produced": [],
       "lanes": [
         "SL-0",
@@ -854,7 +854,7 @@
       "phase_alias": "GUARD",
       "reflection_ref": null,
       "registry_status_note": "committed denotes authored artifact, not accepted phase or completed execution",
-      "review_status": "incomplete_claude_seat",
+      "review_status": "fable_recovered_amendment_and_complete_grok_review_required",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "phase-plans-v2",
@@ -865,7 +865,7 @@
       "status": "committed",
       "task_summary": null,
       "type": "phase",
-      "updated_at": "2026-09-12T02:05:55Z"
+      "updated_at": "2026-09-12T08:14:17Z"
     },
     {
       "acceptance_criteria_count": 3,
