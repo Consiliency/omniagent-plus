@@ -1,0 +1,141 @@
+{
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "d8bffbe297546bf9f5e7c489c6e708b264df82d423ad2b885d9c2773ffb55229",
+    ".phase-loop/guard-amendment.diff": "94088a3405ad33a1bc7b2f14d361b979c1158de73ae2cf039bf222af3aa447a1",
+    "plans/evidence/v2/TRIAGE-closeout.json": "7cc0eedb1dd83cf0fa0c19de8f1892d7b2f80b91dc367f027176e4b28ef837c2",
+    "plans/evidence/v2/GUARD-plan-reviews.md": "2fde802c6d1db20ee250e0938218a8c80ee89da953b218264d16d4757d5377f8",
+    "specs/phase-plans-v2.md": "ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c",
+    "plans/audit-remediation-disposition-20260905.md": "2ec237f5903c8ede6544feb35cb3948e5d762cef988acf05c4e8e1ff0bc4209d",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+    "packages/identity-isolation/src/process-profile.ts": "0bd7cbeea1fff5c7c5554ccdc43a72032f068ba888379476fe2d423244f14ff8",
+    "packages/identity-isolation/src/omnigent-isolation-policy.ts": "1c92c58f09b3a2c914016d32d742ca87976812f71721a0813dd9f9527dfe776c",
+    "packages/identity-isolation/src/types.ts": "cda851d8201da68d54b9ad23ac98ebb54890aa8b2fd0ce7647f54fc909f3145b",
+    "plans/evidence/v2/TRIAGE.json": "b667636e69f1530aca1dc58d990a617fcbf6f83ea9073761888fc0c42c4495c0",
+    "plans/evidence/v2/TRIAGE-reviews.md": "7e306fd6d760cfe6c6daa6107b03e76b13e4f8093628914dc5d68d16e962c2dd"
+  },
+  "inputs_unchanged": true,
+  "board": {
+    "name": "code-review",
+    "purpose": "code-review",
+    "seats": [
+      {
+        "model": "grok-4.6",
+        "effort": "max",
+        "harness": "grok",
+        "lens": "adversarial",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "claude-fable-5-1",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gpt-6-astra",
+        "effort": "max",
+        "harness": "codex",
+        "lens": "red-team",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "result": {
+    "legs": [
+      {
+        "leg": "grok",
+        "status": "OK",
+        "text": "The review bundle is truncated in the prompt; I\u2019ll load the full offloaded request first so the candidate can be judged from complete text, without treating by-reference worktree paths as instructions.The candidate is a coherent **manual-acceptance route plus GUARD plan**, not a silent conversion of broken harness state into a pass. Historical `TRIAGE.json` stays `awaiting_phase_closeout`; runner mutation is denied; Agent Harness is treated as adjacent tooling, not an npm prerequisite; ID-1 remains PREP; SQL setup is not sold as client RLS/RPC; later product bugs stay with DATA/COORD/WIRE/INTEG/PREP/SHIP. Round-1 privilege, checkout-pin, and fail-propagation holes are largely closed **in plan text**.\n\nThis is not execution authorization. Source files and `verify-triage.mjs` were supplied only as hashes, so CASE-HY-6 \u201cexactly three type-only edges\u201d is an inventory **claim**, not inspected syntax. Last GUARD panel was incomplete (Fable stalled). A green structural checker does not prove imports or behavior.\n\n## What holds\n\n**Manual closeout (TRIAGE).** `specs/phase-plans-v2.md` (2026-09-12 amendment) and `plans/evidence/v2/TRIAGE-closeout.json` separate an accepted manual record from a successful runner run. `runner_state_modified: false`, `runner_verification_claimed: false`, and the `TRIAGE.json` follow-up pointer preserve pending-closeout history. That matches the required split: harness pending-closeout must not be rewritten to passed.\n\n**Phase split.** GUARD owns the shared fail-propagating gate, disposable fixture admission, AST baseline, evidence-scoped readiness wording, and process timeout/cleanup. COORD keeps RPC/RLS behavior. PREP keeps ID-1 repair, license, and isolated-consumer proof. SHIP stays GitHub Actions OIDC npm; GUARD does not publish. SL-0 process suites are limited to timeout/readiness/cleanup on four named files.\n\n**Privilege and failure propagation (plan).** SL-0 rejects ambient `DATABASE_URL`/remote hosts, admits only an owned loopback disposable DB, requires zero-write negatives, pins `postgres:17.6-bookworm` as fixture-only, bootstraps `guard_client` as `LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT`, forbids installer URL for integration, and states SECURITY DEFINER is not hosted RLS proof. Gate stages must fail closed; `pnpm test:integration` cannot skip-green; publish checks `github.sha` plus lockfile/manifest digests before npm effects; `id-token` stays on publish only.\n\n**HY-6 posture.** 2\u21923 is an explicit inventory correction, not a silent extra exemption. PREP still removes the baseline under omniagent-plus#27. New/altered edges must fail now.\n\n## Prioritized findings\n\n1. **TRIAGE acceptance is not yet earned as a closed EC set.** `TRIAGE-closeout.json` status is `pending_amendment_review`; `amendment_panel` is pending; `EC-TRIAGE-3` both claims historical reviews and admits this amendment is unreviewed. Historical round-9 hashes (`reviewed_merged_core_sha256`) are the merged two-edge bytes, not `ee1f3152\u2026` / `2ec237f5\u2026`. Record coordinator acceptance only after a complete four-agent reconciliation of **this** candidate. Do not treat Faraday\u2019s one-line audit, merge of omniagent-plus#28, or `verify-triage.mjs` exit 0 as that panel.\n\n2. **CASE-HY-6 third-edge proof is still hash-only.** Disposition and roadmap now name `packages/identity-isolation/src/types.ts` with the same `OmnigentProviderMode` \u2192 `../../omnigent-transport/src/types.js` edge as `process-profile.ts` and `omnigent-isolation-policy.ts`. The TRIAGE checker is documented as **membership, not import syntax**. Inlined bundle text does not show the three import lines or kind (`import type` vs value). Before freezing \u201cexactly three type-only edges,\u201d inline those lines (or equivalent source-grounded notes) against the claimed SHA-256s (`0bd7cbee\u2026`, `1c92c58f\u2026`, `cda851d8\u2026`). If `types.ts` is a value import or a different specifier, PREP scope and the AST baseline are wrong.\n\n3. **Closeout hash inventory omits the edited TRIAGE receipt.** `amended_candidate_sha256` lists roadmap, GUARD plan, disposition, and `verify-triage.mjs`, but not `plans/evidence/v2/TRIAGE.json` (the diff adds `manual_closeout_followup`; by-reference SHA-256 `b667636e\u2026`) and not the closeout file itself. Add those digests so the acceptance object cannot drift from the reviewed bytes.\n\n4. **GUARD\u2194COORD env/role contract is underspecified.** SL-0 creates `GUARD_TEST_DATABASE_URL` as `guard_client` and uses `SET ROLE service_role` (BYPASSRLS) for `coordination_acquire_lease` / `coordination_query_leases`. Existing suites, including owned `packages/worktree-leasing/src/supabase-lease-store.test.ts`, may still speak `DATABASE_URL`. Freeze: installer URL never exported as `DATABASE_URL`; default integration identity remains `session_user=guard_client` without inherited BYPASSRLS; `SET ROLE service_role` is a GUARD existence check only; COORD owns client RLS/RPC and must not inherit a service-role default. Superuser SQL remaining in helpers would falsify the privilege story.\n\n5. **SL-0 ownership list is not closed under the tasks.** Tasks add a reusable verification workflow and a local owned-container launcher. Named files are `package.json`, lockfile, vitest/eslint/tsconfigs, `ci.yml` / `verify.yml` / `publish.yml`, `scripts/verify.mjs`, `scripts/prepare-test-postgres.mjs`, `scripts/check-dependency-boundaries.mjs`, `tests/guard/**`, `tests/helpers/**`, and four process tests. Any new `.github/workflows/*reusable*` or docker launcher path needs a reviewed ownership amendment **before** implementation. `tests/helpers/**` is too broad for \u201cno product-semantics change\u201d; limit it to gate/SQL/process-harness helpers.\n\n6. **IF-0-GUARD-2 \u201cpacked consumer smoke\u201d can steal PREP\u2019s HY-4.** Freeze GUARD smoke as workspace/transport pack resolve-and-import only. Isolated tarball version/fixture/declaration proof stays CASE-HY-4 / omniagent-plus#27. Do not let `pnpm verify` close PREP packaging.\n\n7. **EC-GUARD-2 bounds are not yet falsifiable numbers.** Hung child/descendant, SQL `statement_timeout`/`connect`, and job timeout are \u201cbounded\u201d with no values. Record numeric limits in the plan or `tests/guard/**` so a live child after N ms is a hard fail. Path-entered stage-fail tests using fakes must not replace one full real `pnpm verify` with disposable SQL.\n\n8. **Baseline 348-test claim is not in the closeout verification array.** Only `node plans/evidence/v2/verify-triage.mjs` (exit 0, plus an agent-harness#819 warning) is recorded. The 348/1-skip figure cannot be used as GUARD starting evidence without command, cwd, build-before-test, and skip identity. It still would not prove PostgreSQL, pack, or RLS.\n\n9. **Prior GUARD panel is not approval.** `GUARD-plan-reviews.md` Round 1: three PARTIALLY AGREE, Fable `claude_tui_stalled` with no content. Unavailable/degraded seats are not votes. Fable must use the subscription TUI; this note is coordinator evidence only.\n\n## Non-blockers (do not hold TRIAGE/GUARD planning)\n\nLicense (HY-2), ID-1 source repair, isolated consumer, production-wide `no-floating-promises`, blocked-query/stale-registration/recovery provenance, hosted Supabase RLS, fleet/Dagger offload, and npm publication all stay with their existing owners. Hosted Ubuntu plus zero registered runners is an acceptable initial topology. `no_spec_delta` / SL-2 `no_doc_delta` is consistent if the parent, not SL-0/1/2, lands the roadmap amendment.\n\n## Coordinator actions\n\n- Keep `TRIAGE.json` historical status pending; accept only `TRIAGE-closeout.json` after exact-input four-agent reconciliation.\n- Source-check the three identity-isolation imports before locking CASE-HY-6.\n- Patch closeout hashes, GUARD env/ownership/pack-smoke/timeout notes; resubmit those bytes if they change the plan.\n- Then implement GUARD; do not repair agent-harness#831 as a prerequisite; do not treat validator closeout-import warnings as FABPUB/SHIP.\n\nPARTIALLY AGREE\n",
+        "detail": null,
+        "seat_key": "grok:grok-4.6:max:adversarial"
+      },
+      {
+        "leg": "claude",
+        "status": "DEGRADED",
+        "text": "",
+        "detail": null,
+        "seat_key": "claude:claude-fable-5-1:max:correctness"
+      },
+      {
+        "leg": "codex",
+        "status": "OK",
+        "text": "The manual acceptance route is sound: it preserves the failed runner state and requires separate review and coordinator acceptance. The supplied evidence supports conditional GUARD planning, but does not establish completed TRIAGE acceptance.\n\n- **P1 \u2014 Acceptance evidence remains incomplete.** `plans/evidence/v2/TRIAGE-closeout.json` correctly remains `pending_amendment_review`, with no produced IF gates. `GUARD-plan-reviews.md` records an incomplete prior panel. The source files, structural checker and historical reviews are supplied only by reference; their contents and claimed hashes cannot be independently confirmed from this payload. In particular, the three-edge inventory correction is explicit but not source-demonstrated here. Acceptance requires usable current-candidate reviews, reconciliation and an explicit manual prerequisite receipt. Historical approval and a reported structural-check exit cannot substitute for those.\n\n- **P1 \u2014 Publication binding needs an artifact contract.** `plans/phase-plan-v2-GUARD.md`, SL-0, requires matching checkout SHA, lockfile and public manifest digests in `.github/workflows/publish.yml`. Those checks alone do not bind generated package contents to verification: a changed distribution file can retain all three identities. Specify publication from verified artifacts with checked digests, or an equivalently enforced build contract. Include a falsifier that changes publishable content while leaving Git HEAD and manifest/lockfile digests unchanged. This is GUARD\u2019s publication-integrity responsibility; PREP retains distribution-correctness ownership.\n\n- **P2 \u2014 Make full-gate test inclusion explicit.** The same plan defines `pnpm verify` as running one root suite while separately defining `test:guard` and `test:integration`. State how that root invocation necessarily collects both required sets, receives the admitted client connection and fails on missing integration execution. Verify this through the real orchestration path; separate successful focused commands would not prove the shared release gate includes them.\n\nThe SQL design appropriately separates the installer from `guard_client` and limits its claims. Executing as BYPASSRLS `service_role` does not establish ordinary-client RLS behavior; COORD retains behavioral RPC acceptance. DATA/WIRE/INTEG fixes, PREP\u2019s import repair and license decision, and SHIP\u2019s release authority remain downstream responsibilities. Their owned unresolved cases do not block TRIAGE inventory acceptance or GUARD planning.\n\nPARTIALLY AGREE",
+        "detail": null,
+        "seat_key": "codex:gpt-6-astra:max:red-team"
+      },
+      {
+        "leg": "gemini",
+        "status": "OK",
+        "text": "# Independent Plan and Closeout Review: omniagent-plus v2 TRIAGE Acceptance & GUARD Execution Readiness\n\n## 1. Executive Summary\n\nThis independent review evaluates the candidate bundle for **omniagent-plus v2 TRIAGE acceptance** and **GUARD execution readiness** under the explicit maintainer authorization of manual execution alternatives to broken Agent Harness automation (incident `agent-harness#831`). \n\nThe evaluation concludes that:\n1. **TRIAGE Manual Closeout Amendment & Evidence**: The candidate establishes a rigorous, transparent alternative closeout route in `specs/phase-plans-v2.md` and `plans/evidence/v2/TRIAGE-closeout.json`. It avoids fabricating runner verdicts, preserves historical runner state in `plans/evidence/v2/TRIAGE.json`, demonstrates passing structural verification via `plans/evidence/v2/verify-triage.mjs`, and properly baselines the newly discovered third pre-existing `ID-1` import edge in `packages/identity-isolation/src/types.ts` without violating phase ownership boundaries.\n2. **GUARD Execution Readiness**: The revised plan in `plans/phase-plan-v2-GUARD.md` thoroughly resolves the findings from Round 1. It establishes strict failure-propagation controls for `pnpm verify`, aligns PR/main and release workflow topologies with immutable `github.sha` checkouts and manifest/lockfile digest verification, enforces clear privilege boundaries for the disposable PostgreSQL service (separating installer superuser from the non-superuser `guard_client` test role), bounds child process execution, and scopes claims honestly.\n\nThe candidate is accepted for TRIAGE closeout and GUARD execution, subject to the prioritized implementation proof gaps detailed below.\n\n---\n\n## 2. Evaluation of TRIAGE Acceptance & Manual Closeout Route\n\n### 2.1 Validity of Manual Alternative Route (`specs/phase-plans-v2.md` & `TRIAGE-closeout.json`)\n- **Authority and Scope**: The amendment in `specs/phase-plans-v2.md` (\"Manual Execution and Closeout Amendment (2026-09-12)\") explicitly establishes that the Agent Harness is development orchestration tooling, not an npm runtime dependency or a prerequisite for repository integrity.\n- **State Integrity**: Crucially, `plans/evidence/v2/TRIAGE-closeout.json` documents that `runner_state_modified` is `false` and `runner_verification_claimed` is `false`. Historical runner artifacts and snapshots in `plans/evidence/v2/TRIAGE.json` are retained untouched rather than mutated to indicate a false automated pass.\n- **Structural Conformance**: Verification script `plans/evidence/v2/verify-triage.mjs` executes cleanly (exit code 0), verifying all 55 audit finding IDs across 8 valid roadmap phases, 28 N/Q cases, 4 cross-cutting cases, and 6 negative controls.\n\n### 2.2 Third Import Edge Discovery & CASE-HY-6 Correction\n- **Inventory Completeness**: Prior planning accounted for two relative type import edges crossing into transport source (`packages/identity-isolation/src/process-profile.ts` and `packages/identity-isolation/src/omnigent-isolation-policy.ts`). Source auditing identified a third pre-existing edge in `packages/identity-isolation/src/types.ts` importing `OmnigentProviderMode` from `../../omnigent-transport/src/types.js`.\n- **Phase Ownership Discipline**: The amendment updates `CASE-HY-6` in `plans/audit-remediation-disposition-20260905.md` and `specs/phase-plans-v2.md` to baseline exactly these three edges. It resists the anti-pattern of prematurely fixing the source file in GUARD, correctly preserving ownership of runtime source resolution and baseline removal under `omniagent-plus#27` in PREP.\n\n---\n\n## 3. Evaluation of GUARD Execution Plan (`plans/phase-plan-v2-GUARD.md`)\n\n### 3.1 Shared Gate & Failure Propagation (SL-0)\n- **Gate Parity (`IF-0-GUARD-2`)**: The freeze gate mandates `pnpm verify` as the single full verification command across PR, main branch, and publication.\n- **Release Verification Binding**: Workflow definitions (`.github/workflows/verify.yml` and `.github/workflows/publish.yml`) checkout the immutable `github.sha`. The verification job emits the source SHA, lockfile digest, and public package manifest digests; the publication job strictly asserts digest equality prior to executing npm publish actions. OIDC `id-token` write permissions are isolated strictly to the publish job.\n- **Negative & Path-Entered Controls**: Gate orchestration tests in `tests/guard/**` verify path-entered failure propagation: each stage exiting nonzero aborts subsequent stages, child process spawn errors are handled, and no environment bypass or CI skip flags exist.\n\n### 3.2 Privilege Boundaries & Disposable Database Architecture (SL-0)\n- **Service Isolation**: Pinned disposable PostgreSQL (`postgres:17.6-bookworm`) is mandated. Ambient `DATABASE_URL` configurations, remote hosts, or non-disposable environments are rejected at admission before any write operation.\n- **Role Separation**:\n  - Installer: Disposable `postgres` superuser (runs bootstrapping migrations with `psql -X` and `ON_ERROR_STOP=1`).\n  - Test Runner: A distinct, unprivileged role `guard_client` (`LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT`, granted membership in `service_role`).\n  - Connection Isolation: Integration tests are provided `GUARD_TEST_DATABASE_URL` connecting strictly as `guard_client`. The runner validates `session_user = 'guard_client'` and verifies non-superuser status before executing `SET ROLE service_role`. Superuser test credentials trigger immediate admission rejection.\n- **Honest Evidence Scope**: The plan explicitly documents that executing SQL migrations and RPC functions (`coordination_acquire_lease`, `coordination_query_leases`) with `service_role` privileges does *not* constitute proof of client-level RLS or RPC security for `anon` or `authenticated` callers. Behavioral RLS/RPC proof remains strictly assigned to COORD.\n\n### 3.3 Boundary Checks & AST Controls (SL-0)\n- **Recursive AST Enforcement**: `scripts/check-dependency-boundaries.mjs` implements TypeScript AST parsing to enforce module boundaries. Dynamic imports, re-exports, and type imports cannot evade inspection.\n- **Baseline Rigidity**: The baseline is pinned strictly to the three identified files importing `OmnigentProviderMode`. Any modification to import name, target, import kind, or addition of new edges fails the check. Stale baseline entries fail once removed in PREP.\n\n### 3.4 Process Lifecycle & Concurrency (SL-0)\n- **Bounded Suites**: Bounded execution timeouts and process group management are introduced for the four existing process test suites (`packages/state-ledger/src/cross-process.test.ts`, `packages/worktree-leasing/src/locks.test.ts`, `packages/worktree-leasing/src/race-proof.test.ts`, and `packages/worktree-leasing/src/supabase-lease-store.test.ts`).\n- **Cleanup Hygiene**: Cleanup logic terminates only test-owned process groups, preventing orphaned children or disruption to external test environments. Behavioral assertions within these suites remain untouched.\n\n### 3.5 Readiness & Claims Alignment (SL-1)\n- **Truth in Documentation**: SL-1 accurately scopes claims in `README.md` and `docs/hardening-readiness.md` to implemented primitives. It dismantles unsupported claims of autonomous supervision, clarifying that current capabilities consist of caller-driven retries, process cleanup, and heartbeat renewals.\n- **Ownership Alignment**: Section-6 audit claims are mapped directly to phase owners (DATA, COORD, WIRE, INTEG, PREP). License selection remains deferred to PREP as agreed in the disposition.\n\n### 3.6 Integrated Acceptance & Multi-Agent CR (SL-2)\n- **Panel Integrity**: SL-2 mandates four-agent code review on the integrated candidate before merge. In particular, it enforces using the canonical subscription TUI adapter for Fable, rejecting degraded or stalled attempts as approvals.\n- **No Early Release**: SL-2 maintains `no_doc_delta` for release notes/changelogs and forbids triggering publication or bumping package versions, maintaining the boundary to SHIP.\n\n---\n\n## 4. Phase Responsibility & Ownership Matrix\n\nThe plan strictly preserves phase boundaries without leakage:\n- **GUARD (Current)**: Shared gate (`pnpm verify`), failure propagation, disposable PostgreSQL fixture and admission controls, AST-based dependency boundary controls, process test timeouts/cleanup, truthful readiness claim inventory.\n- **DATA (`omniagent-plus#21`)**: Process profile validation, dangerous environment inheritance, state-ledger durable state, secret scrubbing.\n- **COORD (`omniagent-plus#22`)**: Distributed locking behavior, lease acquisition RPC logic, Supabase RLS and RPC caller permissions, race condition handling.\n- **WIRE (`omniagent-plus#23`)**: Transport protocol implementation, OpenAPI delta validation, client connection resilience.\n- **INTEG (`omniagent-plus#25`)**: End-to-end integration flows across packages.\n- **PREP (`omniagent-plus#27`)**: License file and metadata selection, ID-1 runtime source repair (removing the CASE-HY-6 baseline), consumer tarball packaging, tsx runtime dependency cleanup.\n- **SHIP (`omniagent-plus#26`)**: Final npm release execution, registry publication, provenance verification.\n\n---\n\n## 5. Prioritized Actionable Findings & Implementation Proof Gaps\n\nWhile the plan is structurally and architecturally sound, the following proof gaps must be actively demonstrated during GUARD execution:\n\n### Priority 1: OIDC Provenance with Immutable SHA Checkout\n- **Proof Gap**: In `.github/workflows/publish.yml`, checking out `github.sha` in a detached `HEAD` state must be verified against npm's automated provenance generation (`npm publish --provenance`).\n- **Action**: Verify during SL-0 workflow implementation that GitHub Actions OIDC token exchange succeeds when publishing from an immutable commit SHA without requiring a detached-HEAD workaround.\n\n### Priority 2: Local Docker Container & Process Trap Cleanup\n- **Proof Gap**: If a local run of `scripts/prepare-test-postgres.mjs` or `pnpm test:integration` receives `SIGINT` or `SIGTERM`, docker containers and bound loopback ports could leak.\n- **Action**: Ensure `scripts/prepare-test-postgres.mjs` installs signal traps (`SIGINT`, `SIGTERM`, `exit`) to ensure owned container instances and temporary migration directories are cleaned up under abnormal termination.\n\n### Priority 3: Negative Control for Superuser Admission Rejection\n- **Proof Gap**: The database admission control must not rely solely on caller cooperation.\n- **Action**: Implement an explicit negative test in `tests/guard/**` verifying that passing superuser connection credentials to `GUARD_TEST_DATABASE_URL` immediately fails admission with exit code nonzero and performs zero database writes.\n\n### Priority 4: Path Alias and Dynamic Form Handling in Boundary Checker\n- **Proof Gap**: `scripts/check-dependency-boundaries.mjs` must not be circumvented by alternative TypeScript path mapping, re-exports, or dynamic imports.\n- **Action**: Include deliberate negative test fixtures verifying that dynamic `import()`, `export * from ...`, and tsconfig path aliases attempting relative escapes into transport source are detected and rejected.\n\n### Priority 5: Post-Panel Status Transition in TRIAGE Closeout Record\n- **Proof Gap**: `plans/evidence/v2/TRIAGE-closeout.json` currently records `\"status\": \"pending_amendment_review\"`.\n- **Action**: Following coordinator reconciliation of this review round, update `plans/evidence/v2/TRIAGE-closeout.json` status to `accepted` and record the final panel consensus.\n\n---\n\n## 6. Terminal Verdict\n\nThe roadmap amendment, TRIAGE manual closeout evidence, and GUARD phase execution plan are cohesive, rigorous, and preserve all safety, boundary, and privilege constraints.\n\nAGREE\n",
+        "detail": null,
+        "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach"
+      }
+    ],
+    "president": null,
+    "president_findings": []
+  },
+  "acceptance": "raw review evidence only; coordinator reconciliation required",
+  "policy": {
+    "required_seats": [
+      "fable",
+      "sol",
+      "gemini",
+      "grok"
+    ],
+    "requires_president": false
+  },
+  "authority": "User 2026-09-12 authorizes manual alternatives to broken orchestration; see roadmap amendment. No automated president ruling claimed."
+}
