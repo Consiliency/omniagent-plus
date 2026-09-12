@@ -137,7 +137,7 @@ including 55 findings, 28 N/Q cases, four cross-cutting cases and six negative
 controls. Default validation also accepted eight roadmap phases, with the
 existing agent-harness#819 import warning; no FAB closeout success is claimed.
 
-### Current Decision
+### Decision After Round 3
 
 Fable review availability is no longer the blocker. This is successful
 review-text recovery and useful four-vendor feedback, not an accepted plan
@@ -146,3 +146,44 @@ obtain exact-current-input review with complete Grok coverage and reconcile
 before accepting TRIAGE manually or implementing GUARD. The plan, roadmap,
 TRIAGE acceptance receipt and historical runner state remain unchanged by
 this evidence-only update. No implementation, merge or release occurred.
+
+## Grok Targeted Follow-up
+
+The maintainer explicitly requested the follow-up after the prior Grok
+session had ended. Evidence: `reviews/GUARD-grok-followup.json`, with the
+exact staged `reviews/GUARD-grok-followup-bundle.md` and
+`reviews/GUARD-grok-followup-brief.md`. This was one fresh Grok 4.6 subscription
+seat through the unchanged brokered runtime, not a restart of the four-agent
+panel. No other reviewer was invoked and prior results remain unchanged.
+
+The 25476-byte bundle contained ten bounded sections: command freeze; the
+complete SL-1-through-EOF plan tail; manual roadmap amendment; complete pending
+closeout receipt; explicitly labelled historical-state JSON projection;
+ID-1/HY-6 matrix rows; three source import excerpts; and complete checker.
+Each section was linked to its full source hash and had a unique end marker.
+Grok returned native OK / PARTIALLY AGREE, acknowledged all ten end markers
+and the bundle terminator, and gave specific facts consistent with each
+supplied section. Source, bundle and brief hashes stayed unchanged.
+
+Grok explicitly resolved its missing-evidence objection for the supplied
+SL-1/SL-2 tail, manual amendment, CASE-HY-6 source sites and pending receipt.
+This establishes coverage of those omissions, not fresh full-corpus or
+amended-plan approval. It did not withdraw earlier substantive findings.
+
+| Retained finding | Reconciliation |
+| --- | --- |
+| Manual amendment and receipt remain pending | Correct. No accepted EC/IF or runner success is fabricated; record an explicit decision only after the current candidate is fully reconciled. |
+| Receipt panel-history field still describes rounds 1/2 | Intentional preserved input, not current Fable availability. Parent owns the recording update and before/after field/digest binding already accepted in round 3. |
+| Three source windows do not establish exhaustive inventory | Correct scope limitation. The literal full-package scan is separately recorded above; no literal scan substitutes for GUARD's future AST controls. Carry the exact inventory evidence into the amended receipt and review bundle. |
+| GUARD behavioral controls have not run | Execution and SL-2 obligations, not new planning failures. No runtime bug is declared fixed by this follow-up. |
+| ID-1 repair, license selection and historical runner reconciliation | Retain PREP and tooling ownership. No source repair, license decision or historical state mutation is pulled into this review. |
+
+### Current Decision
+
+The specific Grok missing-input concern is resolved, as is the earlier Fable
+availability concern. The remaining next step is the existing plan/receipt
+amendment and fresh exact-candidate four-seat review. Do not rerun unchanged
+reviewers merely to repeat this targeted follow-up, or silently reinterpret
+PARTIALLY AGREE as accepted. No plan, receipt, product source, version or
+historical runner state changed during this follow-up; no phase was accepted,
+implemented, merged or published.
