@@ -1,5 +1,10 @@
 # GUARD Plan Review Reconciliation
 
+Latest amendment: 2026-09-14. Round-3 and targeted Grok findings are now
+incorporated in the existing GUARD plan and pending TRIAGE receipt. See the
+round-4 and later sections below for current-candidate review; earlier
+decisions are historical and do not establish approval of these new bytes.
+
 ## Round 1
 
 Evidence: `reviews/GUARD-plan-round1.json`. Inputs remained unchanged during
@@ -178,7 +183,7 @@ amended-plan approval. It did not withdraw earlier substantive findings.
 | GUARD behavioral controls have not run | Execution and SL-2 obligations, not new planning failures. No runtime bug is declared fixed by this follow-up. |
 | ID-1 repair, license selection and historical runner reconciliation | Retain PREP and tooling ownership. No source repair, license decision or historical state mutation is pulled into this review. |
 
-### Current Decision
+### Decision After Targeted Grok Follow-up (2026-09-12)
 
 The specific Grok missing-input concern is resolved, as is the earlier Fable
 availability concern. The remaining next step is the existing plan/receipt
@@ -187,3 +192,147 @@ reviewers merely to repeat this targeted follow-up, or silently reinterpret
 PARTIALLY AGREE as accepted. No plan, receipt, product source, version or
 historical runner state changed during this follow-up; no phase was accepted,
 implemented, merged or published.
+
+## Round 4 - Amendment Review (2026-09-14)
+
+Evidence: `reviews/GUARD-plan-round4.json`, with the exact `-bundle.md`,
+`-brief.md` and `-observation.json` companions. The entire plan and receipt
+plus bounded source sections S1-S9 were staged inline in a 46652-byte bundle.
+All recorded input hashes remained unchanged throughout review. The reviewed
+plan was `bbaa004c4847b67fbb98d10f95ab60eac33d10f42b9f9ad2eeb450f286c1690a`.
+
+Codex and Grok returned native OK / PARTIALLY AGREE with usable findings.
+Gemini returned complete affirmative text but native DEGRADED because its
+terminal line was `**Verdict**: **AGREE**`, not accepted by the native parser.
+Do not relabel that result OK or use it as accepted review. Fable returned
+DEGRADED with no answer; the native adapter reported claude_tui_stalled after
+294.2 seconds, with 278.1 seconds since meaningful progress. Its read-only
+session observation is diagnostic evidence, never an override of that result.
+No provider was killed, nudged or replaced by the coordinator. No refusal is
+established. This panel is incomplete.
+
+| Finding | Reconciliation in the round-5 candidate |
+| --- | --- |
+| PR github.sha may be a synthetic merge, not the reviewed head | Accepted Codex's defect. Freeze event-derived tested_source_sha inside verification and consumers: PR head for pull_request, github.sha for release/dispatch, no caller-selected ref. Bind checkout, manifests, rehearsal and closeout consistently and test distinct merge/head values. Grok's no-caller-ref constraint is retained without treating the synthetic merge as PR-head proof. |
+| Immutable receipt contract describes itself as pending | Accepted. Replace the contract's decision with an immutable acceptance precondition; only top-level status carries current state. Keep the recording-field allowlist and external before/after digest binding. |
+| New lint rules could cause unowned fixes | Accepted. New type-aware overrides name only SL-0-owned scripts, guard tests/helpers and four existing process suites. Preserve other lint coverage. Wider ownership requires an amendment. |
+| Ambiguous focused commands | Accepted. test:guard runs tooling/setup controls plus designated DB cases; test:integration runs the same DB cases only. Each standalone command owns its fixture; verify runs one full root suite. |
+| New publish CLI path or only existing-version skips may not prove artifact reuse | Accepted. Modes are mutually exclusive; a stub NPM_CLI E404 control must exercise the non-skip retained-tarball path, reject tampering and prove no pnpm pack occurs. Preserve the positional interface. Hosted skip-only evidence is insufficient. |
+| Required CI check unnamed | Accepted. Freeze guard-required and its failed/skipped/cancelled dependency falsifiers. SL-2 checks protection requires it; protection changes remain maintainer-owned and cannot be silently waived. |
+| Source appendix is bounded, not the whole corpus | Preserve limitation. Full smoke/migration/process-suite behavior has not been executed or exhaustively reviewed in this planning round. Unexpected migration prerequisites or unowned implementation changes fail closed into a scoped amendment. |
+| Preserve cleanup, empty-selection and no_doc_delta obligations | Already explicit; retained as implementation requirements. Affirmative Gemini prose supplies useful feedback but does not repair its degraded review status. |
+
+The literal-target source scan was repeated on 2026-09-14 and again returned
+the same three imports. The receipt records its exact command, output and
+scope limitation. Registry metadata established the plan's linux/amd64
+PostgreSQL manifest digest; the image was not locally cached, downloaded or
+started. Read-only inspection found the sole current migration's public
+tables, core gen_random_uuid(), PL/pgSQL and named-role prerequisites. No
+database, migration, build, product test or publication ran in this planning
+amendment. The product baseline remains expressly dated 2026-09-12.
+
+The corrected plan's dispatch-hint validation returned no findings, and the
+plan validator parsed three serial lanes. Its semicolon-interface and
+release-shaped heuristic warnings are retained, not treated as execution or
+release authority. Lane-IR parsing returned no diagnostics; this is structural
+planning evidence, not tested automatic scheduler readiness.
+
+## Round 5 - Corrected Candidate (2026-09-14)
+
+Evidence: `reviews/GUARD-plan-round5.json` and its exact bundle, brief and
+read-only observation companions. Inputs remained unchanged. Reviewed plan
+SHA-256: `1e807d175559146fd661afb7ae772b680a6da9bbf3b5baa7a667f0cae28a8351`;
+reviewed receipt: `ddfddc77b68b4aae26b8bc42ef7d2149a8f084cc16426854a53a497ac36d979b`.
+
+| Seat | Native outcome | Reconciliation |
+| --- | --- | --- |
+| Codex gpt-6-astra, max | OK / AGREE | Complete input/S1-S9/end-marker coverage; no established blocking defect. Accept explicit main-push mapping to github.sha and a routing falsifier as a precision improvement. |
+| Grok grok-4.6, max | OK / PARTIALLY AGREE | Complete input/S1-S9/end-marker coverage. Findings independently assessed below, not treated as blanket approval. |
+| Fable claude-fable-5-1, max | DEGRADED / empty | Native subscription TUI reported claude_tui_stalled at 298.3 seconds, 282.2 seconds since meaningful progress. No recoverable answer. |
+| Gemini gemini-3.8-flash, high | ERROR / empty | Native agy stream parser rejected the stream before collecting a terminal result. Not an accepted review or a provider refusal. |
+
+Fable's observed final session was 73710 bytes. Its path/session identity
+hashes and full digest exactly match native cleanup metadata:
+`334eef2804db4876ac0ca2bee0fee4b2489b7719b6bb29959e845d2e9db9b0f2`.
+The correlated observer found no assistant text, so there is no hidden review
+to promote. Cleanup and quiescence passed. Gemini's metadata reports
+provider_stream_outcome=parse_error, result_count=0, child_returncode=0 and
+no timeout; its raw stream is represented only by digest/length. The retained
+evidence does not reveal the exact rejected event, so no specific cause is
+invented. No coordinator kill, nudge, runtime patch or model substitution.
+
+| Grok finding | Coordinator disposition |
+| --- | --- |
+| P1: fixture variables could change existing non-DB tests | The claimed current failure is unproven: the package-test source scan found no reads of GUARD_TEST_DATABASE_URL, DATABASE_URL or the listed PG connection variables. Four process suites do spread process.env to children. Accept preventive isolation of DB/non-DB workers within the single root invocation and a zero-leakage control including descendants; do not claim an existing runtime defect was reproduced. |
+| P2: destructive setup controls could mutate the admitted fixture or disappear from verify | Accepted substantive planning gap. Run destructive controls serially in separate owned disposable instances, never the admitted integration fixture. Require their IDs in the full gate and a suppression falsifier. |
+| P3: new floating-promise lint may exceed timeout/readiness/cleanup-only ownership | No actual violation was supplied. Remove the ambiguity conservatively: the four process suites keep their existing lint rules; new promise rules cover owned tooling/guard tests/helpers only. No behavioral source edits are added. |
+| P4: legacy publication route might still repack | The previous candidate already prohibited rebuild/repack and required same-run artifact identity. Make implementation wiring explicit: the id-token job needs the producing verify job, invokes only --verified-artifact and accepts no caller artifact ID; test those constraints. |
+| P5: required case identity unnamed | Accepted. tests/guard/required-cases.json, already inside SL-0 ownership, names setup/DB case IDs; dropped, renamed or skipped IDs fail the gate. This is not a minimum-count-only approximation. |
+| P6: hypothetical unowned zero-edge boundary test | Read-only package-test scans found no such assertion. The prior unchanged-product baseline passed with all three edges; it is historical evidence, not a new run. Retain the existing ownership stop rule for any newly discovered unowned fix. Do not invent a new failing test or expand ownership speculatively. |
+
+These material changes were incorporated into the round-6 candidate and
+submitted for a fresh complete four-seat review. Round-5 Codex approval and
+earlier Fable/Gemini results do not approve those later bytes. All historical
+evidence remains intact. TRIAGE is still pending and no IF gate is produced.
+
+## Round 6 - Final Panel Attempt (2026-09-14)
+
+Evidence: `reviews/GUARD-plan-round6.json`, with exact bundle, brief and
+observation companions. The 50496-byte bundle contained the full candidate
+plan/receipt and bounded S1-S9 source appendix. All inputs remained unchanged
+through completion. Reviewed plan:
+`8da696bb928431c7821aff58fba5850e47bbad414c3d46356163ddf5a0fc2250`;
+reviewed receipt:
+`d9f24ca1b112af8fd395c300d75566f42e4c513d71a0b173b7279f0369c1d39d`.
+
+| Seat | Native result | Coverage / disposition |
+| --- | --- | --- |
+| Codex gpt-6-astra, max | OK / AGREE | All input/source/end markers confirmed. No blocking plan defect; retain existing implementation and acceptance obligations. |
+| Gemini gemini-3.8-flash, high | OK / AGREE | All markers confirmed, stream ingestion accepted. Earlier parser failures are historical, not current Gemini unavailability. |
+| Grok grok-4.6, max | OK / PARTIALLY AGREE | All supplied markers confirmed; bounded omitted source remains explicitly outside this review. Six findings reconciled below. |
+| Fable claude-fable-5-1, max | DEGRADED / empty | No review text; native claude_tui_stalled at 302.7 seconds, 286.3 seconds since meaningful progress. Not approval or refusal. |
+
+Fable's correlated final session was 75632 bytes, with no assistant answer.
+Observer and native cleanup digests match exactly:
+`0dd604820c5eb3e971708841d8523d77e4b6d24594589ac7af94cf42c8221565`.
+Session identity, cleanup and quiescence metadata agree. No coordinator
+signals, runtime overrides or model substitutions occurred. Three materially
+different candidate rounds in this turn failed to produce a Fable review;
+another unchanged attempt is not evidence of progress. Preserve the specified
+subscription TUI route and diagnose its result boundary before resubmission.
+This is missing review evidence, not a new package/runtime dependency on
+Agent Harness or permission to waive the panel.
+
+| Finding | Coordinator reconciliation |
+| --- | --- |
+| Grok 1: plain pnpm test could inherit DB-enable mode | Accepted final wording gap. Explicitly clear DB enablement/connection variables and exclude DB cases in plain pnpm test even when pre-set; only admitted verify/test:guard/test:integration paths enable DB collection. Require a hostile ambient-enable control. This material post-review amendment is not approved by round 6. |
+| Grok 2: process assertions must survive environment scrubbing | Already required jointly by zero fixture leakage to non-DB workers/descendants, preserved real lock/race assertions and unchanged DATA/COORD assertions. SL-0 must demonstrate these together; no relaxed assertion or new production edit is authorized. |
+| Grok 3: live setup falsifiers belong under the DB selector/required manifest | Already covered by all live-SQL-dependent cases using *.db.test.ts and the required setup/DB case-ID manifest. This includes admission, destructive, role, privilege and function controls, not just the happy-path query. |
+| Grok 4: omitted smoke tail, acquire body and package manifests | Agreed limitation. No full-corpus or runtime/publication acceptance is claimed. SL-0 owns preserved smoke assertions, package identity checks and signature-only acquire inspection; real results are due at implementation/SL-2. |
+| Grok 5: unowned writes / plan-review versus implementation-review files | Retain existing ownership amendment requirement. Parent GUARD-plan-reviews.md is not SL-2 GUARD-reviews.md; no ownership expansion is inferred. |
+| Grok 6: receipt writes and four usable seats | Retain. The final plan change below is explicitly material, not an allowlisted recording-only update. Receipt stays pending; no acceptance binding or IF success is fabricated. |
+| Gemini: worker isolation implementation | Keep the zero-leakage obligation. Choose/test an appropriate worker configuration in owned vitest.config.ts during SL-0; do not adopt an unverified general claim about shared thread environments or require broad pool changes without evidence. |
+| Gemini: AST controls | Already required, including exact baseline and stale-exception rejection. Source removal remains PREP-owned. |
+| Gemini: real OIDC only on release events | Do not adopt that narrowing. The reviewed plan deliberately also allows explicitly selected dispatch publish mode while default dispatch/PR remain dry-run. Preserve existing authorization and routing controls. |
+| Gemini/Codex: acceptance binding and later evidence | Retain current procedure and ownership. Review, structural validation, phase acceptance, implementation, hosted CI and registry publication remain distinct. |
+
+## Current Decision
+
+The plan and pending receipt incorporate the reconciled findings. The final
+post-round-6 candidate is:
+
+- GUARD plan SHA-256: `80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537`.
+- TRIAGE receipt SHA-256: `dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a`.
+
+**Not accepted / not execution-ready.** Final launcher-only enablement wording
+and its updated receipt need fresh exact-current-input four-seat review and
+coordinator reconciliation. No earlier approval is carried to these bytes.
+The substantive findings have dispositions; the unresolved gate is complete
+review evidence. Do not restart panels blindly, substitute a reviewer, infer
+success from authenticated access, or label a degraded seat an approval.
+
+After that gate, explicitly accept TRIAGE with its external recording-only
+digest binding, then execute the existing serial GUARD lanes. No new roadmap
+or detailed-plan fork is needed. All runtime findings and later owners remain
+open. This turn changed planning/evidence only: no product implementation,
+build/test run, migration, phase acceptance, merge, release or worktree prune.

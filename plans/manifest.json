@@ -838,11 +838,11 @@
       "updated_at": "2026-06-30T22:06:33Z"
     },
     {
-      "acceptance_criteria_count": null,
+      "acceptance_criteria_count": 3,
       "created_at": "2026-09-12T02:05:55Z",
       "execution_authorized": false,
       "file": "plans/phase-plan-v2-GUARD.md",
-      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260912-guard-grok-followup.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260914-guard-amendment.md",
       "if_gates_produced": [],
       "lanes": [
         "SL-0",
@@ -854,7 +854,7 @@
       "phase_alias": "GUARD",
       "reflection_ref": null,
       "registry_status_note": "committed denotes authored artifact, not accepted phase or completed execution",
-      "review_status": "grok_omissions_resolved_plan_amendment_and_review_required",
+      "review_status": "amended_reconciled_final_candidate_review_pending_fable_tui_incomplete",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "phase-plans-v2",
@@ -863,9 +863,9 @@
       },
       "slug": "phase-plan-v2-GUARD",
       "status": "committed",
-      "task_summary": null,
+      "task_summary": "Amend existing GUARD plan and TRIAGE receipt; preserve rounds 4-6 and reconciled findings. Final candidate needs fresh four-seat review; no execution or phase acceptance.",
       "type": "phase",
-      "updated_at": "2026-09-12T08:38:35Z"
+      "updated_at": "2026-09-14T02:23:26Z"
     },
     {
       "acceptance_criteria_count": 3,
