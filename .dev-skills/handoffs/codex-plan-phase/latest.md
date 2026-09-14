@@ -54,7 +54,7 @@ e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287
 Three usable seats are preserved; only Fable's full-input review is missing.
 Do not restart Codex/Gemini/Grok or carry the small canary as a Fable vote.
 
-## Next Decision
+## Next Decision (Superseded By Approval Below)
 
 The user was asked asynchronously whether to allow a temporary 15-minute
 Fable quiet window with a 20-minute maximum, preserving model, subscription
@@ -87,14 +87,43 @@ automation:
   status: blocked
   next_skill: none
   next_command: none
-  human_required: true
+  human_required: false
   blocker_class: contract_bug
-  blocker_summary: Fable full-input TUI review remains missing; bounded diagnostic timing-override approval requested
-  required_human_inputs:
-    - Allow the bounded Fable diagnostic quiet-window override or retain stock limits
+  blocker_summary: Bounded Fable retry approved; corrected native launcher exited 143 without a result or correlated provider transcript
+  required_human_inputs: []
   verification_status: passed
   review_status: three_current_seats_usable_fable_missing
   artifact: plans/phase-plan-v2-GUARD.md
   artifact_state: committed
   produced_if_gates: []
 ```
+
+## Approved Retry Continuation
+
+User subsequently approved the 900-second quiet / 1200-second maximum diagnostic
+on 2026-09-14. Do not ask again for that already-granted timing permission.
+Read the appended section in `plans/evidence/v2/GUARD-plan-reviews.md` first.
+
+Attempt 1 was refused before provider launch because a transcript observer
+wrapped a protected execution function. The guard was honored; no production
+identity binding was altered. Attempt 2 removed that wrapper, kept native
+execution functions and the approved process-local timing override, then exited
+143 without a native result. Cause/signal sender unknown. No coordinator kill,
+model substitution, rerun of other seats, or acceptance. Retained inputs do not
+prove a provider launch; no correlated transcript was found. Diagnose that
+termination before repeating. Script and refusal evidence are in the review
+directory; raw scratch and both attempts remain private and untouched.
+
+Separate authorized agent-harness work completed during this continuation:
+generation 1 -> 2 rotation under operator comment 5668140934 on
+Consiliency/agent-harness#789; result comment 5668314096. Agent-harness#828
+merged to remote main as bb7627fd5126b6ebf9b4df0b3934a4c2d921fe9b;
+agent-harness#811 closed. Its worktree and remote branch were removed after
+evidence preservation; the locked bootstrap worktree and dirty primary remain.
+Agent-harness#843 tracks optional authority-builder hardening; agent-harness#842
+remains open. No new agent-harness publication is permitted until the broker
+confirmation fix lands, except that fix's own PR; another pr-head-unconfirmed
+requires stopping and a new operator decision, not a third rotation.
+
+Do not conflate that successful FABPUB recovery with this incomplete omniagent
+plan review. The GUARD plan and pending TRIAGE receipt remain unchanged.

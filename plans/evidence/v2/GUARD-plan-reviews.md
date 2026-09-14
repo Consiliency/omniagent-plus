@@ -459,3 +459,37 @@ runner state changed in this continuation. No product build/test, database,
 migration, implementation, merge, release or prune occurred. The live
 structural recheck and diagnostic availability are not substitutes for the
 missing review. Agent Harness remains tooling, not an npm runtime dependency.
+
+## Approved Bounded Retry: 2026-09-14
+
+The maintainer subsequently said "Approved for bound fable retry". This
+supersedes the pending-approval status above, not the review gate. The approved
+diagnostic profile is a 900-second quiet window and 1200-second maximum for
+only claude-fable-5-1 at max effort through the same subscription TUI.
+
+The first entrypoint wrapped the TUI function for transcript observation. The
+native invoker refused before launch with UNAVAILABLE and
+`unbound_review_execution_replacement_refused`. Its unchanged native result is
+archived in `reviews/GUARD-fable-bounded-retry-20260914-prelaunch-refusal.json`.
+The rejected entrypoint is retained privately with that run. No guard was
+disabled or relabeled to get past this refusal.
+
+The corrected entrypoint retains the production execution functions and only
+overrides the process-local broker silence threshold/profile, with an explicit
+1200-second per-leg timeout. Source is archived in
+`reviews/GUARD-fable-bounded-retry-20260914.py`. It staged the unchanged archived
+bundle/brief, but the launcher exited 143 before returning a native result.
+The cause/sender of the signal is unknown. Retained scratch contains the staged
+inputs and broker allocation, but no correlated Claude transcript or provider
+execution evidence was found. Provider launch and consumption of the proposed
+timing profile are therefore unproven; this is not a Fable timeout, refusal,
+review vote, or production liveness diagnosis. No coordinator kill was issued.
+Native cleanup completion is also unproven. Private scratch was preserved;
+host-probe contents were not read or copied into public evidence.
+
+Installed `panel_invoker.py` remains SHA256
+`74ffe98271b41ccb72e59e5eb32e7a891f7e1cee32c34f9da47910f29c7d3016`.
+Plan and TRIAGE receipt hashes are unchanged. The other three seats were not
+restarted. The exact-input Fable review remains missing; investigate the
+launcher termination before another provider attempt. No phase acceptance,
+product implementation, merge or publication follows from this diagnostic.
