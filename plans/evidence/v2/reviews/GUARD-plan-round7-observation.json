@@ -1,0 +1,29 @@
+{
+  "schema": "read-only-review-observation.v1",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537",
+    "plans/evidence/v2/TRIAGE-closeout.json": "dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a",
+    ".phase-loop/guard-source-evidence.md": "4985ddd7c1ffc4f5dbf48c3b24589862a25b72a477024d705c9a064dcebdd36f",
+    ".phase-loop/guard-plan-round7/review-instructions.md": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+    ".phase-loop/guard-plan-round7/review-bundle.md": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b"
+  },
+  "marker": "GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d",
+  "acceptance": "Diagnostic text only; never overrides native adapter status",
+  "sessions": [
+    {
+      "transcript_path_sha256": "d95e105fda7698fe145ee010ba7284b597e28c0b0beb569a54d29c3772216957",
+      "session_id_sha256": "230a03f4453c782e29a3a69a13c804e9e6bc9dc3213c13753c0999b4b723a6f5",
+      "observed_bytes": 76349,
+      "observed_sha256": "b6b556d6f5a515541b522f2556a8f5bf97cda3c3fbb832d4982334f71660b396",
+      "marker_verified": true,
+      "assistant_text": [],
+      "event_counts": {
+        "user": 1
+      },
+      "assistant_block_counts": {},
+      "api_error_count": 0,
+      "terminal_categories": []
+    }
+  ],
+  "observer_errors": []
+}

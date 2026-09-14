@@ -1,0 +1,33 @@
+{
+  "schema": "read-only-review-observation.v1",
+  "input_sha256": {
+    ".phase-loop/guard-fable-diagnostic-20260914/review-instructions.md": "70cb452b52d5e0a8ac1323a5095fa87b3aecd53d88b847add979d8703d5e5735",
+    ".phase-loop/guard-fable-diagnostic-20260914/review-bundle.md": "70141ad846794416c5909b543c5bb6bee505e8d885ee6e08e20bf862834be006"
+  },
+  "marker": "GUARD-FABLE-DIAGNOSTIC-11aad7b2167440688bb078f5fa163a6c",
+  "acceptance": "Diagnostic text only; never overrides native adapter status",
+  "sessions": [
+    {
+      "transcript_path_sha256": "052c965ae26c883a7b5009ce0d897a37236d9dc9da77b1aba7e2c21f6c97cc6e",
+      "session_id_sha256": "e6d3dae2ceb7e37a37699b498099a2729dd7cf97380a9477df21142218385261",
+      "observed_bytes": 38275,
+      "observed_sha256": "03647fbb68a905e40ff6533fb338da91b4136867c3686f0cc7931dc07419d837",
+      "marker_verified": true,
+      "assistant_text": [
+        "GUARD-FABLE-DIAGNOSTIC-11aad7b2167440688bb078f5fa163a6c\nAGREE"
+      ],
+      "event_counts": {
+        "user": 1,
+        "assistant": 2,
+        "system": 1
+      },
+      "assistant_block_counts": {
+        "thinking": 1,
+        "text": 1
+      },
+      "api_error_count": 0,
+      "terminal_categories": []
+    }
+  ],
+  "observer_errors": []
+}

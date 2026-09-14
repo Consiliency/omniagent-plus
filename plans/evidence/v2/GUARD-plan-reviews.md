@@ -316,7 +316,7 @@ Agent Harness or permission to waive the panel.
 | Gemini: real OIDC only on release events | Do not adopt that narrowing. The reviewed plan deliberately also allows explicitly selected dispatch publish mode while default dispatch/PR remain dry-run. Preserve existing authorization and routing controls. |
 | Gemini/Codex: acceptance binding and later evidence | Retain current procedure and ownership. Review, structural validation, phase acceptance, implementation, hosted CI and registry publication remain distinct. |
 
-## Current Decision
+## Decision After Round 6
 
 The plan and pending receipt incorporate the reconciled findings. The final
 post-round-6 candidate is:
@@ -336,3 +336,126 @@ digest binding, then execute the existing serial GUARD lanes. No new roadmap
 or detailed-plan fork is needed. All runtime findings and later owners remain
 open. This turn changed planning/evidence only: no product implementation,
 build/test run, migration, phase acceptance, merge, release or worktree prune.
+
+## Availability Diagnostic and Round 7 (2026-09-14)
+
+The maintainer requested the next step. The final plan and pending receipt
+were frozen at the hashes above; no further material amendment was made.
+Live metadata confirmed first-party subscription authentication. Installed
+phase-loop-runtime remains 0.7.14, Claude Code is 2.1.270, and the installed
+panel_invoker.py SHA-256 remains
+`74ffe98271b41ccb72e59e5eb32e7a891f7e1cee32c34f9da47910f29c7d3016`.
+No installed runtime file, model, authentication route or liveness limit was
+changed. Existing agent-harness#730 and agent-harness#734 document related
+terminal-error and quiet-wait classification failures; those reports do not
+establish the cause of these sessions.
+
+The small native Fable diagnostic succeeded in 15.72 seconds: 1480-byte
+provider input, correct correlation marker and native OK / AGREE. Its
+38275-byte final transcript matched the observer and native cleanup digest
+`03647fbb68a905e40ff6533fb338da91b4136867c3686f0cc7931dc07419d837`.
+The sanitized observation counted one user event, two assistant events, one
+text block and one thinking block; no thinking content was retained. No
+synthetic API-error event was observed. This is current small-request
+availability, not review of any plan. Evidence:
+`reviews/GUARD-fable-diagnostic-20260914.json` and its three companions.
+
+Following that positive control, round 7 submitted the unchanged final plan,
+receipt and bounded source appendix. The brief requested concise findings
+without omitting blockers. All supplied bytes remained unchanged. Evidence:
+`reviews/GUARD-plan-round7.json` and its exact bundle/brief/observation files.
+
+| Seat | Native result | Disposition |
+| --- | --- | --- |
+| Codex gpt-6-astra, max | OK / AGREE | Complete supplied coverage. No material corrective finding, including the final plain-test enablement clarification. |
+| Grok grok-4.6, max | OK / PARTIALLY AGREE | Complete supplied coverage. Explicitly recognizes closure of the earlier ambient-enable gap. Remaining comments reconciled below; verdict is not relabeled AGREE. |
+| Fable claude-fable-5-1, max | DEGRADED / empty | No assistant response to the full request. Native stock adapter reclaimed at 303.6 seconds after 287.3 seconds without recorded progress. |
+| Gemini gemini-3.8-flash, high | ERROR / empty | Native stream parse_error before any parsed terminal result; no timeout. One same-input focused follow-up also returned ERROR / parse_error. |
+
+The full Fable provider input was 54686 bytes. Its 76349-byte final transcript
+matched native cleanup exactly:
+`b6b556d6f5a515541b522f2556a8f5bf97cda3c3fbb832d4982334f71660b396`.
+The observer counted one bound user event and no assistant blocks or synthetic
+API-error events. No answer can be recovered from that session. Cleanup and
+quiescence passed. Small-request success plus larger-request silence does not
+distinguish long inference from client/service failure, nor prove quota or
+login contention. No coordinator killed, nudged or substituted a reviewer.
+
+The standalone Gemini follow-up retained the same exact bundle and brief;
+no other seat was restarted. It ended in 106.84 seconds, child return code 0,
+parse_error, zero collected terminal results and verified quiescence. The
+native result remained ERROR; its raw stream is represented only by native
+digest/length. Evidence: `reviews/GUARD-plan-round7-gemini-followup.json`.
+
+### Grok Reconciliation
+
+| Comment | Coordinator assessment |
+| --- | --- |
+| Hosted destructive-fixture topology | Retain as an SL-0 implementation check, not proof that the plan is impossible. The owned prepare-test-postgres.mjs launcher and tests/guard files already cover separate destructive instances; the full hosted gate must execute their required IDs and may not substitute mocks or the shared cluster. GitHub's Ubuntu 24.04 runner inventory lists Docker client/server. Selecting the launcher-backed mechanism on that hosted runner is within existing ownership; SL-2 must prove it actually ran. |
+| Acquire-signature/query read-only falsifiers | Existing missing-function setup negatives, signature-only acquire inspection, prohibition on acquire execution and read-only query requirement jointly cover these obligations. SL-0 must bind the relevant required-case IDs and assert zero acquire invocation; no runtime behavior or ownership change is adopted. |
+| Enablement variable and dispatch input names | Internal setting/input names remain SL-0-owned implementation details, not an externally consumed API. SL-0 must name them before its tests, preserve plain-test rejection of ambient enablement and default-dry-run dispatch, and test the implemented names. No current command contract, scope or user authorization is changed by naming them. |
+| Semicolon warning, bounded smoke excerpt and pending receipt | Retain the documented validation warning and supplied-source limitation. SL-2 no_doc_delta is already reconciled with SL-1-owned docs. No approval, acceptance or additional source proof is inferred. |
+
+Hosted tool inventory source (read 2026-09-14, image 20260907.300.1):
+[GitHub Ubuntu 24.04 runner image](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md).
+This is tool availability evidence, not observed CI or database execution.
+
+The original TRIAGE structural command was rerun successfully: 55 findings,
+28 N/Q cases, four cross-cutting cases, six negative controls and eight valid
+roadmap phases. The existing fab_gate import warning remains; successful
+structural validation is not FAB closeout or TRIAGE phase acceptance.
+
+### Gemini Diagnostic Follow-up
+
+After the two native parse errors, one diagnostic attempt observed the
+unchanged native parser's return tuple before higher-level result reduction.
+The observer called the original parser once and returned that exact result;
+it changed no parser rule, provider route, result status, liveness policy or
+installed file. It retained only native return code, whitelisted reason
+category and existing stream metadata, not raw stream or thinking content.
+Its exact entrypoint is archived as source evidence, not a runnable script
+from its archive location:
+`reviews/GUARD-plan-round7-gemini-diagnostic.py` (SHA-256
+`81daa49127c5be6327cf01dcfe59e088d71e086cdb0359b9cceed42b68305cbb`).
+
+This request succeeded in 178.62 seconds: native OK / AGREE, accepted stream
+ingestion with two results, complete supplied-input/end-marker coverage,
+unchanged inputs and verified quiescence. Evidence:
+`reviews/GUARD-plan-round7-gemini-diagnostic.json`.
+The successful stream did not reproduce the rejection, so the earlier parser
+failures remain unexplained; no parser fix or upgrade is claimed.
+
+Native provider input SHA-256 is identical across round 7 and both Gemini
+follow-ups:
+`8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516`.
+Bundle and brief digests also match exactly. This usable Gemini assessment
+therefore supplements the same frozen candidate, without restarting Codex
+or Grok and without converting either failed Gemini attempt into approval.
+
+Gemini found no blocking correction. Its expansive description of a
+"leak-proof" gate is not adopted as an implementation claim; all SQL,
+isolation, artifact and CI tests are still future evidence obligations.
+Directory shorthand in the review does not override the plan's explicit
+public package names or distinction between stub falsifiers and hosted
+rehearsal. No plan or receipt changes follow from this review.
+
+## Current Decision
+
+Three usable current-input seats are retained: Codex AGREE, Gemini AGREE and
+Grok PARTIALLY AGREE with the dispositions above. The substantive plan/receipt
+and roadmap remain unchanged. **The required Fable full-input review is still
+missing, so neither plan-panel acceptance nor TRIAGE acceptance is recorded.**
+
+The maintainer has been asked whether to permit a temporary diagnostic
+15-minute Fable quiet window with a 20-minute maximum, retaining the same
+subscription TUI, model, isolation and review requirements. No approval has
+been received and no such override was used. An approval would authorize a
+bounded diagnostic follow-up only, not a production runtime fix, skipped
+review or phase acceptance. Preserve this exact bundle/brief and the three
+usable seats; do not restart the full board merely to retry Fable.
+
+No product source, package version, plan, acceptance receipt or historical
+runner state changed in this continuation. No product build/test, database,
+migration, implementation, merge, release or prune occurred. The live
+structural recheck and diagnostic availability are not substitutes for the
+missing review. Agent Harness remains tooling, not an npm runtime dependency.

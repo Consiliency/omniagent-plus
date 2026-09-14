@@ -842,7 +842,7 @@
       "created_at": "2026-09-12T02:05:55Z",
       "execution_authorized": false,
       "file": "plans/phase-plan-v2-GUARD.md",
-      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260914-guard-amendment.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260914-guard-review-continuation.md",
       "if_gates_produced": [],
       "lanes": [
         "SL-0",
@@ -854,7 +854,7 @@
       "phase_alias": "GUARD",
       "reflection_ref": null,
       "registry_status_note": "committed denotes authored artifact, not accepted phase or completed execution",
-      "review_status": "amended_reconciled_final_candidate_review_pending_fable_tui_incomplete",
+      "review_status": "round7_three_usable_seats_fable_full_review_missing",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "phase-plans-v2",
@@ -863,9 +863,9 @@
       },
       "slug": "phase-plan-v2-GUARD",
       "status": "committed",
-      "task_summary": "Amend existing GUARD plan and TRIAGE receipt; preserve rounds 4-6 and reconciled findings. Final candidate needs fresh four-seat review; no execution or phase acceptance.",
+      "task_summary": "Frozen final plan reviewed in round 7; Codex/Gemini AGREE, Grok PARTIALLY AGREE reconciled. Fable small diagnostic succeeds but full review is missing; timing-override approval pending. No phase acceptance.",
       "type": "phase",
-      "updated_at": "2026-09-14T02:23:26Z"
+      "updated_at": "2026-09-14T07:06:10Z"
     },
     {
       "acceptance_criteria_count": 3,
