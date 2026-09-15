@@ -9,7 +9,8 @@ function fixture() {
   const write = (path: string, value: string) => { mkdirSync(dirname(join(root, path)), { recursive: true }); writeFileSync(join(root, path), value); };
   for (const pkg of ["identity-isolation", "omnigent-transport", "core-contracts", "other"]) {
     write(`packages/${pkg}/package.json`, JSON.stringify({ name: `@test/${pkg}`, exports: { ".": "./src/index.ts" } }));
-    write(`packages/${pkg}/tsconfig.json`, JSON.stringify({ compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", noLib: true }, include: ["src/**/*.ts"] }));
+    // Synthetic programs must not load the workspace's ambient dependency types.
+    write(`packages/${pkg}/tsconfig.json`, JSON.stringify({ compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", noLib: true, types: [] }, include: ["src/**/*.ts"] }));
     write(`packages/${pkg}/src/index.ts`, "export const publicValue = 1;");
   }
   for (const name of ["process-profile.ts", "omnigent-isolation-policy.ts", "types.ts"]) write(`packages/identity-isolation/src/${name}`, 'import type { OmnigentProviderMode } from "../../omnigent-transport/src/types.js";');
