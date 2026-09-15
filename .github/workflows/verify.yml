@@ -1,0 +1,62 @@
+name: verify
+on:
+  workflow_call:
+    outputs:
+      tested_source_sha:
+        value: ${{ jobs.verify.outputs.tested_source_sha }}
+      artifact_manifest_sha256:
+        value: ${{ jobs.verify.outputs.artifact_manifest_sha256 }}
+      artifact_id:
+        value: ${{ jobs.verify.outputs.artifact_id }}
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      TESTED_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    outputs:
+      tested_source_sha: ${{ steps.gate.outputs.tested_source_sha }}
+      artifact_manifest_sha256: ${{ steps.gate.outputs.artifact_manifest_sha256 }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+    services:
+      postgres:
+        image: postgres@sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3
+        env:
+          POSTGRES_DB: omniagent_guard
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: guard-disposable-ci-only
+        options: --platform linux/amd64
+        ports:
+          - 127.0.0.1::5432
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TESTED_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - id: gate
+        run: pnpm verify --fixture-mode github-service
+        env:
+          GUARD_FIXTURE_CONTAINER_ID: ${{ job.services.postgres.id }}
+          GUARD_FIXTURE_PORT: ${{ job.services.postgres.ports['5432'] }}
+          GUARD_FIXTURE_DATABASE: omniagent_guard
+          GUARD_FIXTURE_INSTALLER_USER: postgres
+          GUARD_FIXTURE_INSTALLER_PASSWORD: guard-disposable-ci-only
+      - name: Recheck retained artifacts
+        run: node scripts/verify-publish-artifacts.mjs "${{ steps.gate.outputs.artifact_path }}/manifest.json" "${{ steps.gate.outputs.artifact_manifest_sha256 }}"
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: guard-verified-packages
+          path: ${{ steps.gate.outputs.artifact_path }}
+          if-no-files-found: error

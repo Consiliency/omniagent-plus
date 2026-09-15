@@ -1,0 +1,25 @@
+{
+  "observedAt": "2026-09-15T08:17:08.901773+00:00",
+  "prior_inventory_sha256": "0881aef37c15555923d2bf32e23d006058679ddded8a7b71c594be2e80473c19",
+  "comparisonBase": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
+  "sourceHead": "332c9accf121d828b6817eabd79f63eb37be9641",
+  "basePackagesTree": "ba300e481e74180ed581ab8c7b0ebebab1644eb1",
+  "headPackagesTree": "ba300e481e74180ed581ab8c7b0ebebab1644eb1",
+  "workingRegularPackageFilesEqualHead": 237,
+  "untrackedPackageFiles": [],
+  "trackedSymlinks": [],
+  "packageImportMaps": [],
+  "source_sha256": {
+    "packages/core-contracts/src/coordination-contract.ts": "a70112c7cba4dc965a38719b2000922b655541857a722a0eee2d325f50d2173d",
+    ".github/workflows/publish.yml": "d206cbc26d5d225c3173fd7f755317e7ab42e3b69b056611552786258dffb97f",
+    "scripts/publish-package-if-needed.sh": "65741c00ba9860bc45e5f9058482390a075a90b4ec570513d880614494fe189c",
+    "scripts/smoke-packed-omnigent-transport.mjs": "0fa4b5b5fe5d00645347ab34e559d95491a77c90419db3288eb7f162dbe4cb52",
+    "docs/omnigent-live-smoke.md": "ac379bf26a50fde75b84278b1c1a0ac67b2c5872dbda4e3871c3ebec78ada5b5",
+    "packages/omnigent-transport/src/live-omnigent-smoke.test.ts": "21d051492a927a3b5f6c83cb9727e657c52fb62d8b45f31b2d6adaed1315da48",
+    "package.json": "6d5562f5fbc57425fb2b36fc94b743ea5d943e0722f6aedbad040feee07d6344",
+    "vitest.config.ts": "3e3f74e5886cdbdc3b6a0b279c85aef3489519858b3766807c0fbc639fc3c90d",
+    "eslint.config.mjs": "7399dab160b92515dcfb9b84299a0eff13d379e001317f76919cb343d457fb5c",
+    "supabase/migrations/20260708215513_coordination_leases.sql": "9457176ceb3c71220c13c22bd4ec222ed57ae3104c42c73c96d23f03b680d224"
+  },
+  "scope": "Read-only source comparison; no enforcement, database or provider proof."
+}

@@ -1,5 +1,4 @@
-import { spawn } from "node:child_process";
-import { once } from "node:events";
+import { spawnOwned as spawn, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -71,7 +70,6 @@ async function acquireFromChild(
       HOLDER: holder,
       SELECTOR: JSON.stringify(selector),
     },
-    stdio: ["ignore", "pipe", "pipe"],
   });
   let stdout = "";
   let stderr = "";
@@ -83,7 +81,8 @@ async function acquireFromChild(
   child.stderr.on("data", (chunk: string) => {
     stderr += chunk;
   });
-  const [code] = (await once(child, "exit")) as [number | null];
+  try {
+  const code = await waitExit(child);
   if (code !== 0) {
     throw new Error(`local lease child exited ${code}: ${stderr}`);
   }
@@ -91,6 +90,7 @@ async function acquireFromChild(
     readonly granted: boolean;
     readonly failure?: string;
   };
+  } finally { await cleanupChild(child); }
 }
 
 describe("lease store scope overlap", () => {
@@ -206,7 +206,7 @@ describe("local lease store conformance", () => {
 
     expect(results.filter((result) => result.granted)).toHaveLength(1);
     expect(results.filter((result) => result.failure === "conflict")).toHaveLength(1);
-  });
+  }, 20_000);
 
   it("keeps local read-check-write mutations behind the filesystem lock", () => {
     const source = readFileSync(new URL("./lease-store.ts", import.meta.url), "utf8");

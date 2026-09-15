@@ -1,0 +1,85 @@
+{
+  "schema": "guard-review-followup.v1",
+  "authority": "User 2026-09-14: Approved for bound fable retry",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537",
+    "plans/evidence/v2/TRIAGE-closeout.json": "dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a",
+    ".phase-loop/guard-source-evidence.md": "4985ddd7c1ffc4f5dbf48c3b24589862a25b72a477024d705c9a064dcebdd36f",
+    ".phase-loop/guard-plan-round7/review-instructions.md": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+    ".phase-loop/guard-plan-round7/review-bundle.md": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b"
+  },
+  "inputs_unchanged": true,
+  "installed_runtime_sha256": "74ffe98271b41ccb72e59e5eb32e7a891f7e1cee32c34f9da47910f29c7d3016",
+  "installed_runtime_files_changed": false,
+  "profile": "diagnostic_only_quiet900_max1200",
+  "elapsed_s": 0.0022648650337941945,
+  "board": {
+    "name": "guard-fable-bounded-retry",
+    "purpose": "review-followup",
+    "seats": [
+      {
+        "model": "claude-fable-5-1",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "observations": [],
+  "other_seats_restarted": false,
+  "acceptance": "One seat only; no production liveness, phase or publication acceptance",
+  "result": {
+    "legs": [
+      {
+        "leg": "claude",
+        "status": "UNAVAILABLE",
+        "text": "",
+        "detail": "unbound_review_execution_replacement_refused",
+        "seat_key": "claude:claude-fable-5-1:max:correctness",
+        "harden_isolation_evidence": null
+      }
+    ],
+    "president": null,
+    "president_findings": []
+  }
+}

@@ -1,9 +1,8 @@
-import { once } from "node:events";
 import { readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnOwned as spawn, runProcess, waitReady, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -93,10 +92,10 @@ describe("race proof", () => {
           }),
           HOLD_OPEN: "1",
         },
-        stdio: ["pipe", "pipe", "pipe"],
       },
     );
-    const [readyBuffer] = (await once(firstChild.stdout, "data")) as [Buffer];
+    try {
+    const readyBuffer = await waitReady(firstChild);
     const firstResult = JSON.parse(readyBuffer.toString("utf8").trim()) as {
       readonly acquired: boolean;
       readonly lease: {
@@ -113,7 +112,7 @@ describe("race proof", () => {
         readonly dirtyState: "clean";
       };
     };
-    const second = spawnSync(
+    const second = await runProcess(
       "pnpm",
       ["exec", "vite-node", "--script", scriptPath],
       {
@@ -133,12 +132,11 @@ describe("race proof", () => {
           }),
           HOLD_OPEN: "0",
         },
-        encoding: "utf8",
       },
     );
 
     expect(firstResult.acquired).toBe(true);
-    const secondResult = JSON.parse(second.stdout.trim()) as {
+    const secondResult = JSON.parse(second.trim()) as {
       readonly acquired: boolean;
     };
     expect(secondResult.acquired).toBe(false);
@@ -176,6 +174,7 @@ describe("race proof", () => {
     expect(dirtyCleanup.reason).toBe("dirty_worktree");
 
     firstChild.stdin.end("\n");
-    await once(firstChild, "exit");
-  });
+    expect(await waitExit(firstChild)).toBe(0);
+    } finally { await cleanupChild(firstChild); }
+  }, 50_000);
 });
