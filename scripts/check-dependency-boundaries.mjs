@@ -56,13 +56,13 @@ export function checkBoundaries(root = process.cwd()) {
       if (ts.isParenthesizedExpression(node)) return isCreateRequire(node.expression);
       if (ts.isPropertyAccessExpression(node) && node.name.text === "createRequire") {
         const namespace = checker.getSymbolAtLocation(node.expression)?.declarations?.[0];
-        if (namespace && ts.isNamespaceImport(namespace)) {
-          const module = namespace.parent.parent.moduleSpecifier;
-          return ts.isStringLiteral(module) && module.text === "node:module";
+        if (namespace && (ts.isNamespaceImport(namespace) || ts.isImportClause(namespace))) {
+          const module = ts.isNamespaceImport(namespace) ? namespace.parent.parent.moduleSpecifier : namespace.parent.moduleSpecifier;
+          return ts.isStringLiteral(module) && ["node:module", "module"].includes(module.text);
         }
       }
       const declaration = checker.getSymbolAtLocation(node)?.declarations?.[0];
-      return declaration && ts.isImportSpecifier(declaration) && (declaration.propertyName?.text ?? declaration.name.text) === "createRequire" && ts.isStringLiteral(declaration.parent.parent.parent.moduleSpecifier) && declaration.parent.parent.parent.moduleSpecifier.text === "node:module";
+      return declaration && ts.isImportSpecifier(declaration) && (declaration.propertyName?.text ?? declaration.name.text) === "createRequire" && ts.isStringLiteral(declaration.parent.parent.parent.moduleSpecifier) && ["node:module", "module"].includes(declaration.parent.parent.parent.moduleSpecifier.text);
     }
     function isLoader(node, visited = new Set()) {
       if (ts.isParenthesizedExpression(node)) return isLoader(node.expression, visited);
@@ -120,7 +120,11 @@ export function checkBoundaries(root = process.cwd()) {
         } else if (ts.isImportTypeNode(node)) specifier(ts.isLiteralTypeNode(node.argument) ? node.argument.literal : node.argument, node);
         else if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword || isLoader(node.expression))) specifier(node.arguments[0], node);
         else if (ts.isCallExpression(node) && ts.isCallExpression(node.expression) && isCreateRequire(node.expression.expression)) fail(file, "Unresolved module-loader form");
-        else if (ts.isPropertyAccessExpression(node) && (node.name.text === "require" || (node.name.text === "resolve" && isLoader(node.expression)))) fail(file, "Unsupported module-loader form");
+        else if (ts.isPropertyAccessExpression(node) && (node.name.text === "require" || (node.name.text === "resolve" && isLoader(node.expression)) || (node.name.text === "createRequire" && !(isCreateRequire(node) && ts.isCallExpression(node.parent) && node.parent.expression === node)))) fail(file, "Unsupported module-loader form");
+        else if (ts.isBindingElement(node)) {
+          const name = node.propertyName ?? node.name;
+          if ((ts.isIdentifier(name) || ts.isStringLiteral(name)) && name.text === "createRequire") fail(file, "Unsupported createRequire destructuring");
+        }
         else if (ts.isElementAccessExpression(node) && (isLoader(node.expression) || (ts.isStringLiteral(node.argumentExpression) && ["require", "createRequire"].includes(node.argumentExpression.text)))) fail(file, "Unsupported module-loader form");
         else if (ts.isIdentifier(node) && isCreateRequire(node) && !ts.isImportSpecifier(node.parent) && !(ts.isCallExpression(node.parent) && node.parent.expression === node)) fail(file, "Unresolved createRequire alias");
         else if (ts.isIdentifier(node) && isLoader(node) && !(ts.isVariableDeclaration(node.parent) && node.parent.name === node) && !(ts.isCallExpression(node.parent) && node.parent.expression === node)) fail(file, "Unresolved require binding usage");

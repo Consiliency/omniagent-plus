@@ -48,7 +48,7 @@ jobs:
         run: pnpm verify --fixture-mode github-service
         env:
           GUARD_FIXTURE_CONTAINER_ID: ${{ job.services.postgres.id }}
-          GUARD_FIXTURE_PORT: ${{ job.services.postgres.ports[5432] }}
+          GUARD_FIXTURE_PORT: ${{ job.services.postgres.ports['5432'] }}
           GUARD_FIXTURE_DATABASE: omniagent_guard
           GUARD_FIXTURE_INSTALLER_USER: postgres
           GUARD_FIXTURE_INSTALLER_PASSWORD: guard-disposable-ci-only

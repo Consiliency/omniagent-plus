@@ -28,6 +28,7 @@ function policy(w: ReturnType<typeof workflows>) {
   expect(job.services.postgres.options).toBe(`--platform ${PLATFORM}`);
   expect(job.services.postgres.ports).toEqual(["127.0.0.1::5432"]);
   expect(job.steps.filter((step: { run?: string }) => step.run?.startsWith("pnpm verify"))).toHaveLength(1);
+  expect(job.steps.find((step: { id?: string }) => step.id === "gate").env.GUARD_FIXTURE_PORT).toBe("${{ job.services.postgres.ports['5432'] }}");
   expect(job.outputs.artifact_manifest_sha256).toBe("${{ steps.gate.outputs.artifact_manifest_sha256 }}");
   expect(w.ci.jobs["guard-required"].needs).toBe("verify");
   expect(w.ci.jobs["guard-required"].if).toBe("${{ always() }}");
