@@ -1,75 +1,84 @@
 name: publish
-
-# Tokenless publish of the three public @consiliency/* seam packages via npm OIDC
-# trusted publishing (no NODE_AUTH_TOKEN). Modeled on consiliency-contract's
-# publish.yml (node 24, id-token: write, `npm publish` with no token), adapted for
-# this pnpm workspace: only the three non-private seam packages publish; the seven
-# `"private": true` @omniagent-plus/* workspace packages are skipped by npm/pnpm.
-#
-# Requires (per package, one-time, maintainer's gate):
-#   - a Trusted Publisher configured on npmjs.com for
-#     @consiliency/{runtime-provider,pipeline-provider-adapter,omnigent-transport}
-#     pointing at repo Consiliency/omniagent-plus + workflow `publish.yml`.
-#   - a first authenticated `npm publish` for each package to create it (a Trusted
-#     Publisher can only attach to an existing package — same constraint as the gp
-#     packages). After that, releases publish tokenlessly here.
-#
-# Mechanic note: this uses `pnpm pack` + `npm publish <tarball>` rather than
-# `pnpm publish`. `pnpm pack` resolves `workspace:*` deps to real versions in the
-# tarball; `npm publish` (node 24 bundles npm >= 11.5, OIDC-capable) performs the
-# OIDC id-token exchange. This sidesteps pnpm#11513 (pnpm 11 `pnpm publish` OIDC
-# 404). Publish order is topological: runtime-provider first (the others depend on
-# it).
-#   - the unchanged runtime-provider and pipeline-provider-adapter package
-#     manifests retain their former-repository metadata until their next package
-#     release; this transport-only release does not republish them.
 on:
+  pull_request:
   release:
     types: [published]
   workflow_dispatch:
-
+    inputs:
+      mode:
+        type: choice
+        default: dry-run
+        options: [dry-run, publish]
+permissions:
+  contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/verify.yml
     permissions:
       contents: read
+  rehearsal:
+    needs: verify
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode != 'publish') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      TESTED_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 11.1.1
+          ref: ${{ env.TESTED_SOURCE_SHA }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -r build
-      - run: pnpm --filter @consiliency/omnigent-transport test:pack
-      # Every workspace test script delegates to the root Vitest config. Run it
-      # once instead of launching one complete suite per package concurrently.
-      - run: pnpm test
-
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.verify.outputs.artifact_id }}
+          path: .phase-loop/guard/download
+          merge-multiple: true
+      - name: Verify producer binding
+        run: |
+          test "$TESTED_SOURCE_SHA" = "${{ needs.verify.outputs.tested_source_sha }}"
+          node scripts/verify-publish-artifacts.mjs .phase-loop/guard/download/manifest.json "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
+      - name: Rehearse retained packages in dependency order
+        env:
+          NPM_PUBLISH_DRY_RUN: '1'
+        run: |
+          bash scripts/publish-package-if-needed.sh --verified-artifact .phase-loop/guard/download/manifest.json @consiliency/runtime-provider --expected-manifest-sha256 "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
+          bash scripts/publish-package-if-needed.sh --verified-artifact .phase-loop/guard/download/manifest.json @consiliency/pipeline-provider-adapter --expected-manifest-sha256 "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
+          bash scripts/publish-package-if-needed.sh --verified-artifact .phase-loop/guard/download/manifest.json @consiliency/omnigent-transport --expected-manifest-sha256 "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
   publish-npm:
     needs: verify
+    if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'publish' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.ref_protected == true) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
-      id-token: write   # npm OIDC trusted publishing (no NODE_AUTH_TOKEN)
       contents: read
+      id-token: write
+    env:
+      TESTED_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 11.1.1
+          ref: ${{ env.TESTED_SOURCE_SHA }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"   # bundles an OIDC-capable npm (>= 11.5) — no self-upgrade needed
-          registry-url: "https://registry.npmjs.org"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm -r build
-      # Topological order: runtime-provider first (the adapter + transport depend on it).
-      - name: Publish @consiliency/runtime-provider
-        run: bash scripts/publish-package-if-needed.sh packages/core-contracts
-      - name: Publish @consiliency/pipeline-provider-adapter
-        run: bash scripts/publish-package-if-needed.sh packages/governed-pipeline-adapter
-      - name: Publish @consiliency/omnigent-transport
-        run: bash scripts/publish-package-if-needed.sh packages/omnigent-transport
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.verify.outputs.artifact_id }}
+          path: .phase-loop/guard/download
+          merge-multiple: true
+      - name: Verify producer binding
+        run: |
+          test "$TESTED_SOURCE_SHA" = "${{ needs.verify.outputs.tested_source_sha }}"
+          node scripts/verify-publish-artifacts.mjs .phase-loop/guard/download/manifest.json "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
+      - name: Publish retained packages in dependency order
+        run: |
+          bash scripts/publish-package-if-needed.sh --verified-artifact .phase-loop/guard/download/manifest.json @consiliency/runtime-provider --expected-manifest-sha256 "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
+          bash scripts/publish-package-if-needed.sh --verified-artifact .phase-loop/guard/download/manifest.json @consiliency/pipeline-provider-adapter --expected-manifest-sha256 "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
+          bash scripts/publish-package-if-needed.sh --verified-artifact .phase-loop/guard/download/manifest.json @consiliency/omnigent-transport --expected-manifest-sha256 "${{ needs.verify.outputs.artifact_manifest_sha256 }}"
