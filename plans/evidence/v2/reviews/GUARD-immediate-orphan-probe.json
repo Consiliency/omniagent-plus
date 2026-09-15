@@ -1,0 +1,89 @@
+{
+  "at": "2026-09-15T10:40:57.773Z",
+  "control": "immediate-parent-exit-detached-child",
+  "helper_sha256": "d7f67d4d1b27c05ca8095094d71b01c5184df69e915fb00852e991a6fe9e79a4",
+  "rows": [
+    {
+      "trial": 0,
+      "pid": 1822240,
+      "start": "46789839",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 1,
+      "pid": 1822324,
+      "start": "46789844",
+      "state": "S",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 2,
+      "pid": 1822361,
+      "start": "46789850",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 3,
+      "pid": 1822397,
+      "escaped": false,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 4,
+      "pid": 1822434,
+      "start": "46789860",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 5,
+      "pid": 1822463,
+      "start": "46789865",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 6,
+      "pid": 1822494,
+      "escaped": false,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 7,
+      "pid": 1822527,
+      "start": "46789877",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 8,
+      "pid": 1822555,
+      "start": "46789883",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    },
+    {
+      "trial": 9,
+      "pid": 1822589,
+      "start": "46789888",
+      "state": "R",
+      "escaped": true,
+      "cleanup_quiescent": true
+    }
+  ],
+  "escaped": 8,
+  "all_probe_children_quiescent": true,
+  "accepted": false,
+  "method_sha256": "f7fbe84235b5ddee78d94b24ac1cea8a584f443cc158bd0e78aedc345c13997a",
+  "method_source": "import fs from 'node:fs';\nimport { createHash, randomUUID } from 'node:crypto';\nimport { runProcess } from '/mnt/workspace/worktrees/omniagent-plus-v2-guard-sl0-20260915/tests/helpers/guard-process.ts';\n\nconst output = new URL('./guard-immediate-parent-exit-r2.json', import.meta.url);\nif (fs.existsSync(output)) throw new Error('Preserve previous probe evidence');\nconst marker = `guard-probe-${randomUUID()}`;\nconst leaf = 'setInterval(()=>{},1000)';\nconst identity = pid => {\n  try {\n    const fields = fs.readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ')[1].split(' ');\n    return { start: fields[19], state: fields[0] };\n  } catch (error) { if (error.code !== 'ENOENT' && error.code !== 'ESRCH') throw error; return null; }\n};\nconst alive = entry => { const now = identity(entry.pid); return Boolean(now && now.start === entry.start && !['Z', 'X'].includes(now.state)); };\nconst rows = [];\ntry {\n  for (let trial = 0; trial < 10; trial++) {\n    const code = `const{spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',${JSON.stringify(leaf)},${JSON.stringify(marker)}],{detached:true,stdio:'ignore'});console.log(c.pid);c.unref();`;\n    const pid = Number(await runProcess(process.execPath, ['-e', code]));\n    const entry = { trial, pid, ...identity(pid), escaped: false, cleanup_quiescent: false };\n    rows.push(entry);\n    entry.escaped = alive(entry);\n    if (entry.escaped) {\n      const args = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf8').split('\\0');\n      if (!args.includes(marker) || !args.includes(leaf) || !alive(entry)) throw new Error('Probe custody mismatch');\n      process.kill(pid, 'SIGTERM');\n    }\n    const deadline = Date.now() + 2_000;\n    while (alive(entry) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 20));\n    entry.cleanup_quiescent = !alive(entry);\n    if (!entry.cleanup_quiescent) throw new Error('Probe cleanup did not quiesce');\n  }\n} finally {\n  const helper = fs.readFileSync('/mnt/workspace/worktrees/omniagent-plus-v2-guard-sl0-20260915/tests/helpers/guard-process.ts');\n  const result = { at: new Date().toISOString(), control: 'immediate-parent-exit-detached-child', helper_sha256: createHash('sha256').update(helper).digest('hex'), rows, escaped: rows.filter(row => row.escaped).length, all_probe_children_quiescent: rows.every(row => row.cleanup_quiescent), accepted: false };\n  fs.writeFileSync(output, JSON.stringify(result, null, 2) + '\\n', { flag: 'wx' });\n  console.log(JSON.stringify(result));\n}\n",
+  "method_portability": "Retained executed diagnostic source, not a repository command or new runtime implementation."
+}

@@ -14,9 +14,12 @@ automation:
 Implements the GUARD section of the v2 roadmap and omniagent-plus#20.
 The user authorizes execution, four-agent reviews, reconciled merges and later
 release, including explicit manual alternatives to broken orchestration.
-TRIAGE substantive checks pass; its manual amendment and this plan require
-current-candidate panel acceptance before implementation. Preserve all
-historical runner state. Do not repair agent-harness as a prerequisite.
+TRIAGE and the prior GUARD plan were accepted after round 9. Production review
+found repairable GUARD defects; the process-custody amendment below is pending
+fresh four-seat review and the maintainer's Linux-only verification decision.
+Do not execute newly added ownership until both are recorded. Historical
+TRIAGE/round-9 bindings remain immutable evidence, not approval of this amendment.
+Preserve historical runner state. Do not repair agent-harness as a prerequisite.
 
 Recorded 2026-09-12 baseline: frozen install, build, lint and typecheck pass; after build the
 root suite passes 348 tests with one explicitly opt-in live-provider skip.
@@ -45,6 +48,13 @@ separately and SL-0's recursive AST controls enforce it.
   This is test infrastructure only, not a production PostgreSQL recommendation.
 - Existing pnpm11.1.1 and Node24 toolchain; dependency lockfile unchanged unless
   declared test-only tooling requires an explicit lockfile update.
+- Proposed process-custody prerequisite, pending amendment approval: Linux
+  kernel >=5.3, Python >=3.10 with standard-library ctypes, os.pidfd_open and
+  signal.pidfd_send_signal, permitted PR_SET_CHILD_SUBREAPER/GET and pidfd
+  operations, and readable owned /proc task/children metadata. No pip/npm
+  runtime dependency, privileged cgroup, global subreaper or host setting change.
+  Check capabilities before any guarded payload, not just version strings.
+  Establish these prerequisites in verification and artifact-consumer jobs.
 - Pre-SL-0 inventory: `plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915.json`
   covers all 213 tracked package source files (all .ts), static/dynamic literal
   imports, exports, type queries and references. Exactly the three CASE-HY-6
@@ -56,7 +66,7 @@ separately and SL-0's recursive AST controls enforce it.
   receipt base and inventory HEAD, working-byte checks, import maps, symlinks,
   and current publish-helper/smoke digests. Preserve both dated records;
   subsequent inventories use new filenames, never overwrite reviewed evidence.
-  The sole current workflow is publish.yml,
+  That inventory's then-current sole workflow was publish.yml,
   with all three publish-helper calls. Recheck before SL-0; newly discovered
   unowned edges or publishing workflows require an ownership amendment.
 
@@ -142,6 +152,7 @@ SL-2 — Integrated acceptance and docs sweep
   `scripts/pack-verified-packages.mjs`, `scripts/verify-publish-artifacts.mjs`,
   `scripts/publish-package-if-needed.sh`, `scripts/smoke-packed-omnigent-transport.mjs`,
   `tests/guard/**`, `tests/helpers/guard-process.ts`,
+  `tests/helpers/guard-supervisor.py`,
   `tests/helpers/guard-postgres.ts`, `tests/helpers/guard-stages.ts`,
   `packages/state-ledger/src/cross-process.test.ts`,
   `packages/worktree-leasing/src/locks.test.ts`,
@@ -352,6 +363,8 @@ SL-2 — Integrated acceptance and docs sweep
     only test-owned process groups on cleanup, never external reviewers.
     Spawn POSIX children with detached:true and track owned group IDs before
     any group signal; assert the parent runner and unrelated processes survive.
+    The pending Process Custody Amendment below supersedes group/poll-only
+    ownership for guarded launches; it does not relax any timing bound.
     Avoid broad test-pool changes or arbitrary coverage thresholds; record
     current timing and clearly defer coverage instrumentation if unsupported.
   - verify: `pnpm test:guard`, `pnpm test:integration`, `pnpm lint`,
@@ -414,11 +427,180 @@ SL-2 — Integrated acceptance and docs sweep
     the post-merge main verification run for the actual merged SHA; PR-head
     verification is not automatically proof of the distinct merge commit.
 
+## Process Custody Amendment
+
+Status: revised after four usable PARTIALLY AGREE reviews; pending a fresh
+four-seat review and maintainer Linux-only decision. This is
+an SL-0 tooling repair, not an automatic product supervisor. No change to
+packages/omnigent-transport/src/process-manager.ts or other product runtime,
+package versions, migrations, authority crypto, published contract or release
+dispatch is authorized. Existing SL-1/SL-2 ownership and serial execution stay
+unchanged. Only tests/helpers/guard-supervisor.py is newly owned; its callers,
+workflow prerequisites and tests are already SL-0-owned. SL-1 may update its
+existing command/prerequisite documentation after the helper is verified.
+
+Reason: production review identified interrupted detached children. The first
+repair's 20 ms ancestry polling still misses children whose parent exits
+immediately; the coordinator's repeated control observed 8 escapes in 10
+trials, then cleaned every marked probe child using its own PID/start identity.
+The existing 100 ms-delay positive is insufficient. Passing ordinary suites
+does not supersede this counterexample. Preserve both failed review and probe
+evidence; do not shorten polling intervals or add readiness sleeps as the fix.
+
+- Custody: launch a dedicated, unprivileged Linux subreaper supervisor per
+  owned command. Set and read back kernel subreaper status before spawning the
+  payload. The supervisor is the sole fork/exec parent of the payload; Node
+  never launches a sibling payload. Use isolated Python (-I -S -B), standard library only, shell-free
+  argv, and the existing explicit environment/cwd policy. No global process
+  enumeration or signaling based only on matching names, labels or stale PIDs.
+  Retain pidfds for signal identity; serialize reaping and ownership updates.
+  Traverse only owned ancestry/adopted children. Kernel reparenting preserves
+  custody after intermediate exit, including double forks and new sessions.
+  For non-adopted descendants, bind discovery to an opened /proc directory,
+  parent/start identity, live owned ancestry and post-open pidfd fdinfo identity;
+  never signal if any check differs. Direct/adopted children remain unreaped
+  until identity-sensitive work is finished. Reap zombies without requiring a
+  pidfd first; close descriptors on reap, and fail closed on resource exhaustion.
+- Admission: use dedicated control/status file descriptors, never payload
+  stdout/stderr. The Node owner registers the supervisor and acknowledges its
+  successful capability handshake before payload admission. Refuse absent
+  Python, unsupported platform/kernel, denied capabilities, malformed/closed
+  handshake, or cancellation before admission without launching the payload.
+  Never silently fall back to polling or turn unsupported custody into a skip.
+  Under the proposed Linux-only decision all GUARD verification commands,
+  including pnpm test, require this backend; published runtime portability
+  is unchanged. If the maintainer declines, revise this proposal before execution.
+  Handshake silence consumes the existing operation budget, starting at spawn;
+  it never earns an additional timeout. Admission commits when the supervisor
+  receives the owner's single valid ADMIT frame after READY. Cancellation before
+  that point forbids payload exec; cancellation afterward drains admitted work.
+  Both endpoints exclusively own their respective control/status ends. Close
+  all payload copies before exec, use CLOEXEC and close_fds, and verify this in
+  a payload descriptor-leak falsifier. Version/nonce/sequence-bind every frame;
+  reject duplicate, truncated, out-of-order and foreign-nonce records. Use a
+  bounded, nonblocking status writer so a full pipe cannot stop kernel draining.
+- Control/API freeze: protocol version 1 uses READY, ADMIT, FORWARD, SHUTDOWN,
+  WORK_DRAINED and RESULT frame types. READY carries actual capability results;
+  FORWARD names the signal without escalating; SHUTDOWN carries an epoch,
+  cooperative/forced mode and immutable absolute deadlines. RESULT contains
+  payload_pid, either exact exit code or signal (or typed not_started), typed
+  spawn/custody errors, quiescent/unproven custody and adopted/force-killed counts.
+  No argv/env/output content enters metadata. child.pid and native child events
+  identify the supervisor, not the payload; the payload identity/status live
+  in validated protocol state. waitExit/runProcess consume that state and
+  require agreement with supervisor termination. signalOwned routes through
+  the control protocol and never directly kills the last custodian. Existing
+  test-only callers adapt lifecycle handling without changing behavioral asserts.
+- Completion: preserve command argv/cwd/stdin/stdout/stderr and direct payload
+  exit code or signal semantics. A payload exit starts descendant cleanup,
+  even when that payload succeeded. Withhold successful completion until the
+  supervisor has reaped all owned/adopted children. One serialized reaper saves
+  the payload's raw wait status; never let Popen.wait/poll compete or substitute
+  zero after ChildProcessError/ECHILD. Use waitpid(-1, WNOHANG | __WALL), with
+  Linux __WALL=0x40000000 and SIGCHLD default/no automatic reaping. This avoids
+  waitid(P_PIDFD)'s higher kernel floor. A wait result of zero is not exhaustion.
+  Quiescence combines __WALL-inclusive ECHILD, empty per-thread children lists,
+  and exit readiness of retained pidfds, re-evaluated after adoption/reaping.
+  An empty /proc snapshot or a guardian exit alone is not proof. Require an owned-pipe final quiescence
+  record and successful control-protocol completion; malformed/missing final
+  evidence fails closed. Do not expose credentials or payloads in diagnostics.
+  A missing payload status is a protocol fault unless admission never occurred.
+  Write the final record before mirroring the payload exit/re-raised signal;
+  successful payload plus failed custody is always failure. Adoption outside
+  teardown starts the same bounded drain; SL-2 explicitly reviews unexpected
+  adopted/forced counts instead of silently converting rescue into approval.
+- Cancellation: the custody supervisor, not the Node owner, is the sole
+  escalation owner for its payload subtree. Parent-requested teardown sends
+  TERM to owned payloads, escalates at one absolute 500 ms deadline, and must
+  reach kernel-confirmed quiescence within the following 2 seconds. Newly
+  adopted descendants inherit those deadlines; they do not receive fresh grace.
+  The 250 ms hung-operation, 15-second process-operation and other frozen
+  budgets remain. Node must not kill its last custody supervisor at 500 ms.
+  Reentrant teardown, controller-channel EOF and nested supervisor exit must
+  share the same drain operation; descendants transfer to the living outer
+  subreaper when an inner supervisor dies.
+  Both owner and supervisor enforce the same absolute deadline, with protocol
+  completion inside the existing two-second window, not extra grace afterward.
+  On timeout the surviving owner records custody-unproven with supervisor
+  PID/start identity, retains custody and never sends an emergency kill to a
+  potentially live last keeper. Missing final evidence always fails. If all
+  observers die, neither a final record nor cleanup can be promised.
+- Interruption/resource ordering: distinguish forwarding an external
+  SIGINT/SIGTERM to a cooperative launcher from a parent's explicit forced
+  teardown request, so the launcher can drain its children and run bounded
+  fixture cleanup before exit. Test both paths. Preserve the existing rule
+  that SIGKILL cannot guarantee container traps; never claim process custody
+  proves cleanup of an external Docker daemon's resources. Loss of the final
+  custodian, unavailable kernel operations, or deadline exhaustion produces
+  unproven cleanup/failure evidence, never success or broad emergency kills.
+  Repeated FORWARD requests do not become forced requests or reset deadlines.
+  Before resource effects, a cooperative launcher registers finite cleanup
+  slots and its existing operation/job deadline. With T=2.5 seconds and
+  U=15+T=17.5 seconds per cleanup command, reserve
+  E(node)=T+max(E(children),0)+U*remaining_cleanup_slots; ordinary work has E=T.
+  A known-ID fixture requires one slot; creation recovery requires at most three
+  (ps, inspect, rm), with multiple candidate IDs failing closed before removal.
+  This yields 22.5/57.5-second maximum single-launcher shutdown reservations,
+  including the final forced tail; two nested worst-case owners require 112.5
+  seconds total, not reset allowances. Clamp all reservations to already
+  admitted operation/job deadlines; inability to fit is failure, not extension.
+  Delegate time to children only after reserving the parent's own slots and
+  final T tail. Forced takeover consumes the existing remaining allocation.
+  Require WORK_DRAINED for ordinary subtrees before resource callbacks; requiring
+  whole-launcher ECHILD before its own callback would be circular. Cleanup
+  commands get fresh supervisors under the remaining reserved deadline, not
+  an unlimited context escape. The final command proof follows callbacks and
+  launcher exit. Inner failure remains failure even if outer rescue succeeds.
+- Tests: in tests/guard/process.test.ts and the existing orchestration,
+  environment, artifacts and fixture.setup.db tests, remove the artificial
+  parent delay and run at least 100 immediate-exit trials locally and hosted,
+  requiring zero escapes/reap failures. Retain the old probe and its executable
+  method as a failing positive control, with independent rescue excluded from
+  the pre-cleanup observation. Add immediate double-fork/new-session, normal-success-with-orphans,
+  signal/nonzero/spawn failures, concurrent/reentrant cleanup, control EOF,
+  denied/missing capability with no payload effect, and malformed/missing
+  completion controls. Test pidfd identity rejection and clone-child exhaustion
+  semantics. Include nested supervisors with competing cancellation deadlines,
+  inner custodian loss under an outer owner, build interruption and admitted
+  root-suite interruption. Assert children are quiescent before fixture cleanup
+  and launcher exit, the parent/unrelated process survives, and real lock/race
+  assertions are unchanged. Fault controls must retain their own cleanup custody.
+  Include clone children with zero/non-SIGCHLD exit signals, non-leader-thread
+  creation, discovery-to-pidfd PID reuse/disappearance, descriptor churn,
+  stalled handshake transitions, controller death, stdin EOF, trailing/high-volume
+  stdout/stderr and backpressure. Reaping assertions require process absence,
+  not merely zombie tolerance. Remove obsolete Darwin/Windows fallback tests
+  only after the Linux-only decision; replace them with no-launch refusals.
+- Verification: Node/Vitest remains the test runner. Run focused process,
+  orchestration, environment, artifact and SQL setup controls; check the Python
+  helper with isolated standard-library compilation and behavioral tests (no
+  host/global bytecode writes). Then build, lint, workspace/tooling typecheck,
+  CI=true plain suite, focused GUARD/integration and clean integrated full verify,
+  followed by hosted CI/rehearsal and a fresh complete production panel. Record
+  timings without broad pool changes, new skips or arbitrary timeout increases.
+  Capability admission actually executes subreaper set/readback, self pidfd
+  open/signal-zero, owned children-file access and a probe child reaped with
+  __WALL. Record interpreter/kernel metadata, not credentials. Artifact consumers
+  do need this admission because their Node verifier calls guarded git/tar.
+  Validate -I/-S isolation with a local shadow-module control; Python 3.10 already
+  excludes the script directory under -I. No new 3.11 floor is justified by it.
+  Keep process custody quiescent/unproven separate from actual Docker cleanup
+  status; failed or unconfirmed removal gets an explicit unproven SQL receipt.
+- Approval/evidence: preserve the old accepted plan bytes in Git and its
+  immutable TRIAGE binding. A new GUARD review/amendment receipt binds this
+  exact plan hash, prior accepted hash, scoped ownership, source/probe hashes,
+  four usable reviewer results, reconciled dispositions and actual operator
+  platform decision. No vote transfer; plan approval is not code acceptance.
+  Existing main-protection and post-merge proof gates remain, and GUARD does
+  not publish a product release.
+
 ## Execution Notes
 
-Plan-budget exception: the roughly 3300 words retain exact, panel-requested
+Plan-budget exception: the plan exceeds 3000 words to retain exact, panel-requested
 database, credential, artifact-binding and ownership constraints. Trimming
 those constraints to meet 3000 words would make the execution boundary ambiguous.
+The process-custody amendment adds explicit failure/ownership contracts after
+a reproduced race; it is not permission to expand product runtime scope.
 
 The coordinator assigns one isolated worktree per worker, records actual
 paths/branch/base in ignored scheduling evidence and verifies disjoint changed
@@ -458,7 +640,8 @@ missing required integration setup may never become skip-only green.
   release dependency.
 - [ ] EC-GUARD-2 - Proven by `pnpm test:guard` and `pnpm test:integration`;
   falsified by skipped DB setup, altered migration, unexpected caller/role,
-  leaked stalled child or empty focused execution passing.
+  leaked stalled child, escaped immediate orphan, unreaped descendant or empty
+  focused execution passing.
 - [ ] EC-GUARD-3 - Proven by `pnpm exec vitest run packages/cli/src/hardening-readiness.test.ts` plus source-grounded review of
   section-6 inventory; falsified by unsupported automatic supervision or
   unowned/deceptively completed HY subclaims.

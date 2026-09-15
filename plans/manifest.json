@@ -840,9 +840,11 @@
     {
       "acceptance_criteria_count": 3,
       "created_at": "2026-09-12T02:05:55Z",
-      "execution_authorized": true,
+      "execution_authorized": false,
+      "execution_blocker": "product_decision_missing",
       "file": "plans/phase-plan-v2-GUARD.md",
-      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260915-guard-round9.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260915-guard-custody-gate.md",
+      "human_required": true,
       "if_gates_produced": [],
       "lanes": [
         "SL-0",
@@ -866,11 +868,12 @@
           "transition": "executing"
         }
       ],
+      "new_custody_ownership_authorized": false,
       "owner_skill": "codex-plan-phase",
       "phase_alias": "GUARD",
       "reflection_ref": null,
       "registry_status_note": "committed denotes authored artifact, not accepted phase or completed execution",
-      "review_status": "round9_four_usable_exact_input_agree_reconciled",
+      "review_status": "custody_round1_partial_reconciled_revision_pending",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "phase-plans-v2",
@@ -879,9 +882,9 @@
       },
       "slug": "phase-plan-v2-GUARD",
       "status": "executing",
-      "task_summary": "Round 9 plan review: four usable native AGREE results reconciled. TRIAGE accepted with external receipt binding; GUARD implementation and production CR remain pending.",
+      "task_summary": "GUARD repair checkpoint tested; immediate-orphan custody remains blocking. Revised Linux subreaper plan awaits maintainer platform decision and fresh four-seat review. No phase acceptance.",
       "type": "phase",
-      "updated_at": "2026-09-15T08:43:53Z"
+      "updated_at": "2026-09-15T11:13:35.207025+00:00"
     },
     {
       "acceptance_criteria_count": 3,
