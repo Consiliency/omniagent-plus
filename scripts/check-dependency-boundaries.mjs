@@ -102,6 +102,7 @@ export function checkBoundaries(root = process.cwd()) {
         if (!target) { if (text.startsWith(".") || text.startsWith("#") || text.startsWith("/")) fail(file, "Unresolved source import"); return; }
         const real = realpathSync(target);
         const targetRel = relative(root, real);
+        if (targetRel.startsWith("packages/") && real.endsWith(".test.ts")) { fail(file, "Production import of test source"); return; }
         if (targetRel.startsWith("packages/")) {
           const targetPackage = JSON.parse(readFileSync(resolve(root, owner(real), "package.json"), "utf8"));
           if (text === targetPackage.name && targetPackage.exports?.["."]) return;

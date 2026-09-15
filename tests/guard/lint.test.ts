@@ -2,7 +2,8 @@ import { ESLint } from "eslint";
 import { expect, it } from "vitest";
 
 it("type-aware tooling lint rejects floating promises and accepts awaited ones", async () => {
-  const eslint = new ESLint();
+  // lintText changes the same virtual file; CI's immutable Program heuristic cannot model that.
+  const eslint = new ESLint({ overrideConfig: { languageOptions: { parserOptions: { disallowAutomaticSingleRunInference: true } } } });
   const path = "tests/guard/lint.test.ts";
   const floating = await eslint.lintText('Promise.resolve("floating");\n', { filePath: path });
   const awaited = await eslint.lintText('await Promise.resolve("awaited");\n', { filePath: path });

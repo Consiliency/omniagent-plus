@@ -17,7 +17,15 @@ export function sourceIdentity(eventName, event, githubSha) {
   return { tested_source_sha: tested, github_sha: githubSha, pr_head_sha: event.pull_request?.head?.sha ?? null, pr_base_sha: event.pull_request?.base?.sha ?? null };
 }
 export async function checkoutInputs(root) {
+  try { await runProcess("git", ["diff", "--quiet", "HEAD", "--"], { cwd: root }); }
+  catch { throw new Error("Dirty tracked verification inputs"); }
+  // Ignore only known generated roots, not .gitignore rules that could hide new source.
+  const untracked = await runProcess("git", ["ls-files", "--others", "-z", "--exclude=/node_modules/", "--exclude=/packages/*/node_modules/", "--exclude=/packages/*/dist/", "--exclude=/dist/", "--exclude=/.phase-loop/"], { cwd: root });
+  if (untracked) throw new Error("Untracked verification inputs");
   return { source_sha: await runProcess("git", ["rev-parse", "HEAD"], { cwd: root }), lockfile_sha256: sha256(readFileSync(resolve(root, "pnpm-lock.yaml"))), package_manifest_sha256: Object.fromEntries(PUBLIC_PACKAGES.map(([name, dir]) => [name, sha256(readFileSync(resolve(root, dir, "package.json")))])) };
+}
+export async function assertUnchangedInputs(root, expected, inputs = checkoutInputs) {
+  if (JSON.stringify(await inputs(root)) !== JSON.stringify(expected)) throw new Error("Verification inputs changed during gate");
 }
 export async function verifyArtifacts(manifestPath, expectedDigest, root = process.cwd(), expectedSource) {
   if (!/^[a-f0-9]{64}$/.test(expectedDigest ?? "")) throw new Error("Independent manifest digest required");

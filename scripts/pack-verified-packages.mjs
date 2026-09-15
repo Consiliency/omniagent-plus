@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { runProcess } from "../tests/helpers/guard-process.ts";
-import { checkoutInputs, PUBLIC_PACKAGES, sha256 } from "./verify-publish-artifacts.mjs";
+import { assertUnchangedInputs, checkoutInputs, PUBLIC_PACKAGES, sha256 } from "./verify-publish-artifacts.mjs";
 
 export async function packVerified(root, destination, identity) {
   mkdirSync(destination, { recursive: true });
@@ -14,6 +14,7 @@ export async function packVerified(root, destination, identity) {
     if (pkg.name !== name || pkg.private === true) throw new Error("Unexpected/private pack identity");
     const before = readdirSync(destination);
     await runProcess("pnpm", ["pack", "--pack-destination", destination], { cwd: resolve(root, dir) });
+    await assertUnchangedInputs(root, inputs);
     const added = readdirSync(destination).filter((file) => !before.includes(file));
     const tarball = added[0];
     if (added.length !== 1 || !tarball || !tarball.endsWith(".tgz")) throw new Error("Pack must produce one tarball");

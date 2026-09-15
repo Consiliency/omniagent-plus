@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { cleanEnvironment, runProcess } from "../tests/helpers/guard-process.ts";
+import { cleanEnvironment, runProcess, currentProcessScope, outsideProcessScope, ProcessScope } from "../tests/helpers/guard-process.ts";
 
 export const IMAGE = "postgres@sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3";
 export const PLATFORM = "linux/amd64";
@@ -14,7 +14,8 @@ export function connectionEnvironment(fixture, user = "postgres", password = fix
   return { ...cleanEnvironment(), PGHOST: "127.0.0.1", PGHOSTADDR: "127.0.0.1", PGPORT: String(fixture.port), PGDATABASE: DATABASE, PGUSER: user, PGPASSWORD: password, PGCONNECT_TIMEOUT: "5", PGOPTIONS: "-c statement_timeout=10000", PGSSLMODE: "disable", PGSERVICEFILE: join(fixture.runDir, "absent-service"), PGPASSFILE: join(fixture.runDir, "absent-pass") };
 }
 export async function sql(fixture, statement, user = "postgres", password = fixture.password, timeout = 15_000) {
-  return await runProcess("psql", ["-X", "-qAt", "-v", "ON_ERROR_STOP=1"], { env: connectionEnvironment(fixture, user, password), input: statement, timeout });
+  const operation = () => runProcess("psql", ["-X", "-qAt", "-v", "ON_ERROR_STOP=1"], { env: connectionEnvironment(fixture, user, password), input: statement, timeout });
+  return await (fixture.scope ? fixture.scope.run(operation) : operation());
 }
 export function validateMetadata(container, image, fixture) {
   const ports = container.NetworkSettings?.Ports?.["5432/tcp"];
@@ -37,17 +38,29 @@ export async function awaitReadiness(fixture, { now = Date.now, sleep = (ms) => 
 }
 export async function createFixture({ mode = "local", source = process.env, root = process.cwd(), run = runProcess } = {}) {
   if (!["local", "github-service"].includes(mode)) throw new Error("Invalid fixture mode");
+  const inherited = currentProcessScope();
+  const scope = inherited ?? new ProcessScope();
+  let cleanup = async () => {};
+  const operation = scope.run(() => createInScope({ mode, source, root, run }, scope, (resource) => { cleanup = resource; }));
+  scope.addCleanup(async () => { await operation.catch(() => {}); await cleanup(); });
+  try {
+    const fixture = await operation;
+    return { ...fixture, scope, cleanup: inherited ? () => outsideProcessScope(cleanup) : () => scope.close() };
+  } catch (error) {
+    if (!inherited) await scope.close();
+    throw error;
+  }
+}
+async function createInScope({ mode, source, root, run }, scope, registerCleanup) {
   const runDir = resolve(root, ".phase-loop/guard", `${Date.now()}-${randomBytes(6).toString("hex")}`);
   mkdirSync(runDir, { recursive: true });
   const fixture = { id: "", port: 0, host: "127.0.0.1", database: DATABASE, password: randomBytes(20).toString("hex"), clientPassword: randomBytes(20).toString("hex"), runDir, mode, receipt: { image: IMAGE, platform: PLATFORM, container_id: "", port: 0, admitted: false, migrations: [], roles: [], probe: "not-run", cleanup: "pending" } };
   const ownerLabel = `omniagent.guard.run=${randomBytes(16).toString("hex")}`;
-  const controller = new AbortController();
   let creationStarted = false;
-  let established = false;
-  const activeRun = (command, args, options = {}) => run(command, args, { ...options, signal: controller.signal });
-  let cleaned = false;
-  async function cleanup() {
-    if (cleaned) return;
+  const activeRun = (command, args, options = {}) => { scope.check(); return run(command, args, { ...options, signal: scope.controller.signal }); };
+  /** @type {Promise<void> | undefined} */
+  let cleaning;
+  const cleanup = () => cleaning ??= outsideProcessScope(async () => {
     if (mode === "local" && creationStarted && !fixture.id) {
       const ids = await run("docker", ["ps", "--all", "--quiet", "--no-trunc", "--filter", `label=${ownerLabel}`]);
       for (const id of ids.split("\n").filter(Boolean)) {
@@ -59,16 +72,8 @@ export async function createFixture({ mode = "local", source = process.env, root
     if (mode === "local" && fixture.id) await run("docker", ["rm", "--force", fixture.id]);
     fixture.receipt.cleanup = mode === "local" ? "removed-owned-container" : "workflow-owned-service";
     writeFileSync(join(runDir, "sql-setup.json"), JSON.stringify(fixture.receipt, null, 2) + "\n");
-    cleaned = true;
-    process.off("SIGINT", interrupt);
-    process.off("SIGTERM", interrupt);
-  }
-  function interrupt() {
-    controller.abort();
-    if (established) cleanup().then(() => process.exit(1), () => process.exit(1));
-  }
-  process.once("SIGINT", interrupt);
-  process.once("SIGTERM", interrupt);
+  });
+  registerCleanup(cleanup);
   try {
     if (mode === "local") {
       await pullImage(activeRun);
@@ -86,10 +91,9 @@ export async function createFixture({ mode = "local", source = process.env, root
     validateMetadata(container, image, fixture);
     fixture.receipt.container_id = fixture.id;
     fixture.receipt.port = fixture.port;
-    await awaitReadiness(fixture, { signal: controller.signal });
-    if (controller.signal.aborted) throw new Error("Fixture creation interrupted");
-    established = true;
-    return { ...fixture, cleanup };
+    await awaitReadiness(fixture, { signal: scope.controller.signal });
+    scope.check();
+    return fixture;
   } catch (error) { await cleanup(); throw error; }
 }
 

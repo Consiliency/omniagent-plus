@@ -79,6 +79,14 @@ it("pins the original createRequire binding while allowing unrelated line shifts
     expect(() => checkBoundaries(f.root)).toThrow("Computed");
   } finally { f.close(); }
 });
+it.each(['export * from "./bridge.test.js";', 'import("./bridge.test.js");', 'require("./bridge.test.js");'])("rejects production-to-test source relays: %s", (code) => {
+  const f = fixture();
+  try {
+    f.write("packages/other/src/index.ts", code);
+    f.write("packages/other/src/bridge.test.ts", 'export * from "../../omnigent-transport/src/types.js";');
+    expect(() => checkBoundaries(f.root)).toThrow("Production import of test source");
+  } finally { f.close(); }
+});
 it("rejects path aliases, import maps, symlinks and unsupported extensions", () => {
   for (const kind of ["paths", "imports", "symlink", "extension"]) {
     const f = fixture();
