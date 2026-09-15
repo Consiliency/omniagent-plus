@@ -45,6 +45,20 @@ separately and SL-0's recursive AST controls enforce it.
   This is test infrastructure only, not a production PostgreSQL recommendation.
 - Existing pnpm11.1.1 and Node24 toolchain; dependency lockfile unchanged unless
   declared test-only tooling requires an explicit lockfile update.
+- Pre-SL-0 inventory: `plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915.json`
+  covers all 213 tracked package source files (all .ts), static/dynamic literal
+  imports, exports, type queries and references. Exactly the three CASE-HY-6
+  edges were found; tsconfigs contain no path aliases. The one computed require
+  in core-contracts/coordination-contract.ts has the fixed published-package
+  prefix @consiliency/contract/, not a relative source prefix. This is inventory,
+  not evasion-proof enforcement. Supplement it with the parent-owned
+  GUARD-pre-SL0-inventory-20260915-r2.json: package subtree equality between
+  receipt base and inventory HEAD, working-byte checks, import maps, symlinks,
+  and current publish-helper/smoke digests. Preserve both dated records;
+  subsequent inventories use new filenames, never overwrite reviewed evidence.
+  The sole current workflow is publish.yml,
+  with all three publish-helper calls. Recheck before SL-0; newly discovered
+  unowned edges or publishing workflows require an ownership amendment.
 
 ## Interface Freeze Gates
 
@@ -71,13 +85,28 @@ pre-set. Only verify/test:guard/test:integration may enable DB collection after
 fixture admission; test hostile ambient enablement through plain pnpm test.
 In admitted runs, a missing connection, empty DB collection or skipped required
 DB case fails.
+Both plain test and every GUARD launcher remove OMNIAGENT_PLUS_LIVE_OMNIGENT*,
+OMNIGENT_*, and provider credential/route variables from child environments;
+build them from a tested noncredentialed allowlist, never inherit process.env
+wholesale. Test hostile live opt-in, endpoint, bearer and provider-key values:
+no live smoke or provider call may occur. Fixture parameters are injected only
+after admission. Preserve separately documented explicit live-smoke invocation
+outside GUARD: after build, an operator may run
+`pnpm exec vitest run packages/omnigent-transport/src/live-omnigent-smoke.test.ts`
+with the existing explicit live environment gate. SL-1 documents this direct
+invocation; pnpm test never enables it. The full-root skip set must equal exactly the named live case
+in packages/omnigent-transport/src/live-omnigent-smoke.test.ts; additional
+skipped/todo cases fail. Focused GUARD/integration runs permit no skipped cases.
 The full gate isolates DB/non-DB workers within one root invocation; only DB
 workers receive fixture parameters. Test zero fixture-environment leakage to
 non-DB workers and descendants. Required setup/DB case IDs live in
-tests/guard/required-cases.json; dropped, renamed or skipped IDs fail the gate.
+tests/guard/required-cases.json, partitioned into setup and integration IDs;
+dropped, renamed or skipped command-required IDs fail the gate.
 The full gate asserts that the designated integration cases actually executed;
-test:guard runs tooling/setup falsifiers and the designated *.db.test.ts cases;
-test:integration runs those same DB cases only. Both are focused subsets of
+test:guard runs tooling plus setup and integration IDs; test:integration runs
+only integration IDs, never destructive setup controls. Use distinct
+*.setup.db.test.ts and *.integration.db.test.ts selectors. The manifest maps
+each command to its required IDs; verify requires both partitions. Both focused runs are subsets of
 verify's single full-root suite, not substitutes for it. An orchestration falsifier suppressing DB suite collection
 must make the real gate fail, not rely on a separate focused success.
 Focused selectors never replace the full gate. Network upstream monitoring
@@ -129,7 +158,8 @@ SL-2 — Integrated acceptance and docs sweep
     status must fail, never compare as numeric zero. Dependency injection
     for tests must not expose a CI environment bypass or production skip flag.
     Test workflow topology: PR/main and release call the same gate; publishing
-    needs verification, with id-token only on real publication. Assert
+    needs verification, with id-token:write only at the real publication job
+    level, never workflow-level or inherited by verification/rehearsal. Assert
     verification inherits no secrets and references no repository secrets.
     Freeze tested_source_sha from event context inside verify.yml and each
     consumer job: pull_request uses github.event.pull_request.head.sha; release,
@@ -149,6 +179,11 @@ SL-2 — Integrated acceptance and docs sweep
     dependency inputs, and uploads only that artifact set. Publication downloads
     that same run's artifact ID, checks all digests and package identities and
     publishes those exact tarballs without reinstalling, rebuilding or repacking.
+    Emit artifact_manifest_sha256 as a producer job output, outside the uploaded
+    artifact. Rehearsal/publication consume only that producing job's output and
+    reject a downloaded manifest with a different digest before reading tarball
+    entries. Test replacement of both manifest and tarball together; internally
+    consistent replacement cannot bypass the independent expected digest.
     The id-token job needs that producing verify job and invokes only
     --verified-artifact; no caller-supplied artifact ID. Test these constraints.
     A tampered tarball with unchanged HEAD and manifest/lockfile identities
@@ -166,13 +201,22 @@ SL-2 — Integrated acceptance and docs sweep
     publication order/OIDC unchanged; no agent-harness/FABPUB dependency.
     Preserve publish-package-if-needed.sh <package-directory> and its existing
     NPM_PUBLISH_DRY_RUN=1 path. Add mutually exclusive --verified-artifact
-    <manifest> <package-name> mode that never packs/builds; retain existing-version skips and fail on
+    <manifest> <package-name> --expected-manifest-sha256 <digest> mode that
+    requires the producing job's independent digest, checks it inside the
+    helper before manifest entries or any registry operation, and never
+    packs/builds. Missing/mismatched digest and replaced manifest-plus-tarball
+    controls must exercise this same helper entrypoint. Retain existing-version skips and fail on
     registry errors other than E404 in both modes. Within publish.yml, PR runs
     and workflow_dispatch default to dry-run. A separate no-id-token rehearsal
     job downloads the same run's verified artifact ID, validates all source,
     manifest and tarball identities, and invokes verified-artifact mode with
     NPM_PUBLISH_DRY_RUN=1. Only release-published or explicitly selected dispatch
-    publish mode may run the separate id-token publication job. Test mode
+    publish mode may run the separate id-token publication job. Dispatch publish
+    additionally requires github.ref to equal the repository's default-branch
+    ref and github.ref_protected=true; reject other refs before starting that
+    job. Protection remains maintainer-owned and SL-2 verified. Release-published
+    routing remains unchanged. Assert rehearsal/publication set no NPM_CLI
+    override; stubs are local test-only inputs. Test mode
     routing, tampered-artifact rejection and absence of npm mutation in rehearsal.
     Add a stub NPM_CLI falsifier that returns E404 and proves the non-skip
     verified-artifact path passes the retained tarball to npm, never pnpm pack;
@@ -185,7 +229,10 @@ SL-2 — Integrated acceptance and docs sweep
     migration directory, never production files. Run destructive setup controls
     serially in separate owned disposable instances, never the admitted shared
     integration fixture. Their required case IDs must execute in verify;
-    dropping them fails its real orchestration. Mock commands alone do not
+    hosted destructive controls also use the local Docker launcher for their
+    own containers; the workflow service remains only the shared integration
+    fixture. Missing Docker support fails, never skips those controls.
+    Dropping required controls fails the real orchestration. Mock commands alone do not
     establish SQL acceptance.
   - impl: Reject missing/non-disposable DB configuration before any write. The
     test launcher owns a fresh PostgreSQL container/service with loopback
@@ -205,7 +252,20 @@ SL-2 — Integrated acceptance and docs sweep
     identity must fail with zero role-creation/migration calls. A local
     launcher records its owned container ID/port and cleans only that instance.
     Hosted configuration uses the workflow-owned service, never production
-    secrets. Implement the local launcher inside prepare-test-postgres.mjs;
+    secrets. Freeze --fixture-mode local|github-service (default local).
+    Local mode ignores all ambient GUARD_FIXTURE_* values. The explicit hosted
+    mode requires GitHub Actions and the workflow-provided tuple
+    GUARD_FIXTURE_CONTAINER_ID (job.services.postgres.id), GUARD_FIXTURE_PORT
+    (the mapped service port), GUARD_FIXTURE_DATABASE=omniagent_guard,
+    GUARD_FIXTURE_INSTALLER_USER=postgres and GUARD_FIXTURE_INSTALLER_PASSWORD
+    (synthetic workflow-service password, never a repo secret). Host is fixed
+    to 127.0.0.1. Configure the hosted Docker port mapping explicitly with
+    127.0.0.1 as HostIp, not Docker's default all-interface binding; assert the
+    workflow mapping and runtime metadata agree. Read-only Docker metadata must match that exact owned service's
+    pinned image/platform and loopback mapping before SQL admission; reject
+    missing/mismatched identity before bootstrap. Do not propagate this installer
+    tuple to test workers. Test forged/missing mode inputs and ambient URLs.
+    Implement the local launcher inside prepare-test-postgres.mjs;
     verify.yml is the reusable workflow. No additional launcher/workflow
     paths are implicitly owned. No ineligibility flag can waive these checks. Use `psql -X` and
     `ON_ERROR_STOP=1`, bounded connection/statement times, sorted complete
@@ -214,7 +274,9 @@ SL-2 — Integrated acceptance and docs sweep
     BYPASSRLS, with no CREATEDB/CREATEROLE/REPLICATION. The installer is the
     disposable postgres superuser; verify attributes. Create a distinct
     guard_client LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT test role with none
-    of CREATEDB/CREATEROLE/REPLICATION, grant service_role membership and
+    of CREATEDB/CREATEROLE/REPLICATION, grant service_role membership with
+    explicit ADMIN FALSE, INHERIT FALSE and SET TRUE options, assert those
+    membership attributes, and
     use its explicit GUARD_TEST_DATABASE_URL for integration, never the
     installer URL. Assert session_user=guard_client and non-superuser before
     SET ROLE service_role; superuser test credentials must fail admission.
@@ -236,12 +298,26 @@ SL-2 — Integrated acceptance and docs sweep
     No stubs or migration rewrites are authorized. Changed prerequisites fail
     and require a scoped amendment. SL-0's producer emits a metadata-only SQL
     receipt: image/platform, admitted role attributes, migration hashes, probe
-    status and cleanup. Parent SL-2 alone retains the final run's receipt at
+    status and cleanup. Its runtime output is the owned ignored run directory
+    .phase-loop/guard/<run-id>/sql-setup.json, never a plans/evidence file.
+    Parent SL-2 alone retains the final run's receipt at
     plans/evidence/v2/GUARD-sql-setup.json; no credentials or URLs are retained.
   - test: Add TypeScript AST-based recursive production source import controls:
     public exports pass, new relative source escapes fail, dynamic import,
-    re-export, import-type, type-query import("...") expressions, triple-slash
-    path references and tsconfig path-alias forms cannot evade inspection.
+    re-export, literal require, TypeScript import-equals, import-type,
+    type-query import("...") expressions, triple-slash path references,
+    package.json imports maps and tsconfig path-alias forms cannot evade inspection.
+    Resolve mapped paths and tracked symlink targets before owner comparison;
+    reject unsupported source extensions or unresolved module-loader forms.
+    Computed import/require fails closed except the exact existing
+    loadCoordinationContractArtifact call in core-contracts/coordination-contract.ts,
+    require(`@consiliency/contract/${path}`), with its current createRequire
+    binding. Pin that single source location and AST shape, not a blanket
+    computed-prefix exemption. Preserve the published-contract loader without
+    rewriting it. Positive control: that existing call passes. Negative controls:
+    a computed relative prefix, new computed call, changed prefix/binding,
+    literal cross-package require/import-equals, mapped or symlink source escape.
+    This is a source-boundary rule, not a general JavaScript sandbox.
     Include an alias-to-another-package-source negative control. Baseline only
     the exact three type-only OmnigentProviderMode imports in CASE-HY-6;
     changing name/target/kind or adding another edge fails. Fail stale unused
@@ -266,6 +342,10 @@ SL-2 — Integrated acceptance and docs sweep
     (test-level timeouts allow the documented number of operations). The hung
     child control uses a 250 ms budget, escalates test-owned groups after
     500 ms, and requires no live descendant within 2 seconds of escalation.
+    Pull the exact image digest/platform in a separate 300-second bounded
+    step before local/destructive container creation and the 30-second readiness
+    clock. Hosted shared-service readiness follows the runner's image pull.
+    Test a slow cold pull independently from readiness; failed pull fails setup.
     Local fixture cleanup handles SIGINT/SIGTERM and failure paths; SIGKILL
     cannot promise traps and leaves only a labeled disposable instance.
     Bound synchronous process tests and async readiness/exit waits; kill
@@ -280,7 +360,7 @@ SL-2 — Integrated acceptance and docs sweep
 ### SL-1 - Readiness and claim inventory
 
 - **Scope**: Replace unsupported operational claims with evidence-scoped wording.
-- **Owned files**: `README.md`, `docs/hardening-readiness.md`,
+- **Owned files**: `README.md`, `docs/hardening-readiness.md`, `docs/omnigent-live-smoke.md`,
   `fixtures/hardening/readiness/docs-contract.json`,
   `packages/cli/src/hardening-readiness.test.ts`.
 - **Interfaces provided**: Audit section-6 claim inventory and truthful current commands.
@@ -330,8 +410,15 @@ SL-2 — Integrated acceptance and docs sweep
     check context and verifies protection requires it. Protection changes stay
     maintainer-owned, never silently waived. Reconcile ambiguous prior effects first. Then plan DATA
     on main; GUARD dispatches no release.
+    Record whether branch protection requires up-to-date branches, and retain
+    the post-merge main verification run for the actual merged SHA; PR-head
+    verification is not automatically proof of the distinct merge commit.
 
 ## Execution Notes
+
+Plan-budget exception: the roughly 3300 words retain exact, panel-requested
+database, credential, artifact-binding and ownership constraints. Trimming
+those constraints to meet 3000 words would make the execution boundary ambiguous.
 
 The coordinator assigns one isolated worktree per worker, records actual
 paths/branch/base in ignored scheduling evidence and verifies disjoint changed
@@ -341,8 +428,9 @@ The parent owns roadmap/plan/TRIAGE-amendment records separately from execution
 lanes, including manifest/handoff updates. Any newly required source ownership
 is amended and reviewed before implementation.
 
-SL-2 records no_doc_delta for README/CHANGELOG/release notes: SL-1 owns the
-README/readiness changes and SL-2 checks those outputs without rewriting them.
+Phase documentation status is docs_updated via SL-1's README/readiness/live-smoke
+changes; SL-2 records no additional doc delta and checks those outputs without
+rewriting them. CHANGELOG/release notes need no delta.
 GUARD does not dispatch a release or change package versions. The validator's
 release-shaped heuristic warning does not authorize a SHIP action here.
 

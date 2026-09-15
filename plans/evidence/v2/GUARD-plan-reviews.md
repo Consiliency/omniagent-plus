@@ -493,3 +493,98 @@ Plan and TRIAGE receipt hashes are unchanged. The other three seats were not
 restarted. The exact-input Fable review remains missing; investigate the
 launcher termination before another provider attempt. No phase acceptance,
 product implementation, merge or publication follows from this diagnostic.
+
+## Fable Recovery and Amendment (2026-09-15)
+
+The approved focused retry completed through the previously validated native
+r58 subscription-TUI diagnostic instrument, with no execution-function
+replacement and no other seat restarted. Native result: OK, usable,
+PARTIALLY AGREE in 512.8 seconds. Exact 54686-byte provider input SHA256:
+8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516.
+All three input/end markers and S1-S9 were acknowledged. The final transcript
+hash matches retained forensic bytes and cleanup evidence; the child and
+broker are quiescent, and no provider cancellation was requested. The 900-second
+quiet/1200-second maximum profile was diagnostic only. This establishes the
+missing review, not a production liveness fix or GUARD acceptance.
+
+The earlier exit143 sender remains unknown. Before the new request, privileged
+read-only process inspection found no references to either old scratch root;
+the targeted journal scan found no associated OOM/kill entry. The corrected
+native instrument provides its own evidence capture; no rejected wrapper or
+guard override was reused. The live publisher is separately qualified merged
+agent-harness main, not this review-only instrument.
+
+| Fable finding | Reconciliation |
+| --- | --- |
+| 1: hosted destructive controls versus shared workflow service | Material clarification adopted. Destructive controls own separate Docker instances on hosted runners too. Explicit github-service mode, workflow-owned container/port identity and named synthetic installer tuple are frozen; local mode ignores ambient fixture fields. |
+| 2: broader source inventory before SL-0 | Completed AST inventory of all 213 tracked package source files (all .ts), including tests and static/literal dynamic/type-query/reference forms. Exactly three CASE-HY-6 edges; no tsconfig aliases. One computed require has a fixed external @consiliency/contract prefix, not a relative source edge. This is inventory, not evasion-proof runtime enforcement. |
+| 3: live opt-in/credential leakage and skip set | Material requirement adopted. All GUARD/test children use a tested noncredentialed allowlist, strip live/provider settings, and reject unexpected skips/todos. The exact documented live case is the only full-root skip; focused subsets permit none. Separate explicit live-smoke usage remains outside GUARD. |
+| 4: replace manifest and tarball together | Adopted. The producing job emits artifact_manifest_sha256 outside the artifact; consumers compare it before tarball checks. A replaced internally consistent pair is a required negative control. This does not claim protection against compromise of the producing job itself. |
+| 5: cold pull versus readiness bound | Adopted. Separate 300-second image-pull budget before local/destructive creation; readiness starts afterward. Hosted shared service follows runner image setup. |
+| 6: criterion recording exception and dated verification | Receipt contract now permits one exact before/after EC-TRIAGE-3 suffix transition only. External acceptance binding must carry those strings, dated structural run, actual matrix/roadmap hashes and inventory digest. Receipt remains pending; no binding is fabricated. |
+| 7: workflow ownership and SQL receipt path | Inventory confirms publish.yml is the only current workflow and contains all three helper calls. Producer writes .phase-loop/guard/<run-id>/sql-setup.json; parent alone retains the final plans/evidence record. Recheck inventory before execution. |
+| 8: explicit membership options and merge commit evidence | Adopted ADMIN FALSE, INHERIT FALSE, SET TRUE plus attribute assertions. SL-2 records strictness and post-merge main verification for the actual merged SHA. PostgreSQL 17 GRANT option semantics checked against official documentation; no SQL execution claimed. |
+
+Inventory: `reviews/GUARD-pre-SL0-inventory-20260915.json`.
+Fable response and sanitized native binding:
+`reviews/GUARD-fable-native-followup-20260915.json`.
+PostgreSQL reference: https://www.postgresql.org/docs/17/sql-grant.html
+
+These are material plan/receipt amendments, not recording-only acceptance.
+All earlier votes remain historical. A fresh exact-candidate four-seat panel
+is required before TRIAGE acceptance or GUARD execution. No product source,
+migration, runtime state, version, merge or npm publication changed here.
+
+## Round 8 Reconciliation (2026-09-15)
+
+Four native usable reviews completed: Codex and Gemini AGREE; Grok and Fable
+PARTIALLY AGREE. All reviewed the same frozen working-tree candidate. Their
+results remain historical after this material amendment. No TRIAGE or GUARD
+acceptance is inferred. Sanitized binding: reviews/GUARD-plan-round8.json.
+
+Review churn diagnosis: the bounded packet omitted the computed loader and
+full publication workflow, leaving concrete interface decisions implicit.
+Keep the existing roadmap and reconcile these requests together; the next
+packet adds actual source, not another roadmap or speculative runtime work.
+
+| Finding | Disposition |
+| --- | --- |
+| Grok 1 / Fable 1: computed loaders and evasion forms | Adopted with a narrower exception than a generic external-prefix allowlist: only the existing contract-loader call and createRequire binding are exempt, pinned by source location and AST shape. New or modified computed calls fail. Literal require/import-equals, maps, symlinks and unsupported forms have explicit controls. No unowned runtime repair. |
+| Grok 2: OIDC scope | Explicitly job-level id-token:write on publication only; never workflow-level or inherited by verify/rehearsal. |
+| Fable 2: helper digest input | Verified-artifact mode requires --expected-manifest-sha256 and checks it before entries or registry operations, including existing-version skips. Pair replacement tests use that entrypoint. Hosted jobs set no NPM_CLI override; local falsifiers retain it. |
+| Fable 3: dispatch publication ref | Dispatch publish requires the default-branch ref and github.ref_protected=true before the id-token job starts. Release-published routing stays unchanged. Branch protection is maintainer-owned and independently checked at SL-2. |
+| Fable 4: inventory base | Both base and HEAD packages trees equal ba300e481e74180ed581ab8c7b0ebebab1644eb1. New dated inventory additionally checks working bytes against HEAD and records helper/smoke hashes; previous inventory is preserved. |
+| Fable 5: fixture binding and live route | Do not weaken loopback admission to client-host-only. Explicitly configure Docker HostIp=127.0.0.1 in hosted service mapping and test metadata. Direct pnpm exec vitest run of the live-smoke file survives outside GUARD; docs/omnigent-live-smoke.md is explicitly added to SL-1 ownership. |
+| Fable 6: required case mapping | Separate setup/integration IDs and file selectors. test:guard and verify require both partitions; test:integration only integration, never destructive setup controls. |
+| Fable 7: recording precision | Phase docs_updated via SL-1; SL-2 has no additional delta. Fix the sentence fragment. New parent-owned inventory filenames preserve prior reviewed bytes; external binding includes helper/smoke hashes. |
+
+All other controls identified by the reviewers remain implementation obligations,
+not missing plan scope and not executed evidence. No product, migration, version,
+publication, or live database behavior has changed in this amendment.
+
+## Round 9 Acceptance (2026-09-15)
+
+All four native seats returned usable AGREE on plan b84275af and the exact
+pending TRIAGE receipt; full input digests are authoritative in the panel record.
+The exact result, all six input digests and source hashes are retained in
+reviews/GUARD-plan-round9.json. Provider input digests agree across seats;
+staged bundle/instruction bindings, Fable retained transcript bytes, and
+quiescence/cleanup were independently checked. No cancellation was requested.
+
+Fable's remaining notes are existing implementation obligations, not new
+policy or ownership decisions: name the pack/manifest stage in sequencing
+tests; prove direct live opt-in against a closed loopback port while plain
+test remains scrubbed; reject stale fixture relations/roles before bootstrap;
+pin the loader by path/function/AST rather than line number. SL-1 adds the
+live invocation while preserving existing phrase contracts. The planned
+.phase-loop output path is ignored through the repository's info/exclude.
+The full dispositions are in the panel record. Gemini's word "Closed" means
+clarified plan requirements, not closed runtime findings or implemented code.
+
+TRIAGE is now accepted through its reviewed manual recording contract.
+TRIAGE-acceptance-binding.json records before/after receipt digests, the exact
+six allowed JSON-path changes, fresh structural verification, source comparison,
+panel and EC decisions. Only IF-0-TRIAGE-1 is produced. No plan bytes changed
+after review. Historical runner state is untouched. GUARD itself is not
+implemented or accepted, and no production merge/release is approved by this
+planning result.

@@ -1,0 +1,132 @@
+{
+  "schema": "guard-plan-panel.v1",
+  "candidate_base_head": "332c9accf121d828b6817eabd79f63eb37be9641",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "b84275af012ff0294fcd36a8ebdd9e3bc814ce442afc01d811ef32c879fe0b05",
+    "plans/evidence/v2/TRIAGE-closeout.json": "4ab4d0eae981ec5eaff5b63c1d79e79191a89193d2f58498d778262e4dfa1b39",
+    ".phase-loop/guard-plan-round9/source-evidence.md": "3a480162fa5e359367c5872bf94640672a34d6316e85843717e4b7c8a0db9e5c",
+    "plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915.json": "0881aef37c15555923d2bf32e23d006058679ddded8a7b71c594be2e80473c19",
+    "plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915-r2.json": "8ec3c757a4a27add6da29e6b9306aa9da5781373d77c7f2b28260734c2ae870c",
+    "plans/evidence/v2/reviews/GUARD-planning-check-20260915-r2.json": "1730cedc0dfe22a78bc83723a8a625e8e840935087b44933652db963345bdf9e"
+  },
+  "source_sha256": {
+    "packages/core-contracts/src/coordination-contract.ts": "a70112c7cba4dc965a38719b2000922b655541857a722a0eee2d325f50d2173d",
+    ".github/workflows/publish.yml": "d206cbc26d5d225c3173fd7f755317e7ab42e3b69b056611552786258dffb97f",
+    "scripts/publish-package-if-needed.sh": "65741c00ba9860bc45e5f9058482390a075a90b4ec570513d880614494fe189c",
+    "scripts/smoke-packed-omnigent-transport.mjs": "0fa4b5b5fe5d00645347ab34e559d95491a77c90419db3288eb7f162dbe4cb52",
+    "docs/omnigent-live-smoke.md": "ac379bf26a50fde75b84278b1c1a0ac67b2c5872dbda4e3871c3ebec78ada5b5",
+    "packages/omnigent-transport/src/live-omnigent-smoke.test.ts": "21d051492a927a3b5f6c83cb9727e657c52fb62d8b45f31b2d6adaed1315da48",
+    "package.json": "6d5562f5fbc57425fb2b36fc94b743ea5d943e0722f6aedbad040feee07d6344",
+    "vitest.config.ts": "3e3f74e5886cdbdc3b6a0b279c85aef3489519858b3766807c0fbc639fc3c90d",
+    "eslint.config.mjs": "7399dab160b92515dcfb9b84299a0eff13d379e001317f76919cb343d457fb5c",
+    "supabase/migrations/20260708215513_coordination_leases.sql": "9457176ceb3c71220c13c22bd4ec222ed57ae3104c42c73c96d23f03b680d224"
+  },
+  "bundle_sha256": "d60e3d73cf0c9229199f10c4fe45a5a79b227d8665317b05f8a09a56d752c12a",
+  "brief_sha256": "2a9c8dd69f6ffd4e00b78bc5b04ddcf9de11aa82d0167f842d0c825e34929b28",
+  "native_record_sha256": "aa6a9d2fc38e9423bc7caf91e2738cae599a3afdc1fad38ed627a64a66061a07",
+  "runtime_sha256": "e322bfb4ca2b823ad85baf02741d26fef0d8f5c870340eb5d36fcb51331a1f53",
+  "started_at": "2026-09-15T08:17:09.739293+00:00",
+  "finished_at": "2026-09-15T08:27:36.288043+00:00",
+  "native_bindings_verified": true,
+  "fable_retained_transcript_bytes_verified": true,
+  "inputs_unchanged": true,
+  "sources_unchanged": true,
+  "legs": [
+    {
+      "leg": "grok",
+      "status": "OK",
+      "usable": true,
+      "verdict": "AGREE",
+      "text": "The amended GUARD plan and pending TRIAGE receipt are consistent enough to implement after TRIAGE panel acceptance. Prior-round holes (computed-loader pin, helper digest input, dispatch ref, inventory base comparison, hosted loopback, live-smoke route, setup/integration ID mapping) are now written into the plan or receipt, not left as missing decisions. This review is not TRIAGE acceptance and produces no `IF-0-GUARD-2`.\n\n**Markers.** All required markers are present; nothing is missing: `END-INPUT-1-GUARD-ROUND9` through `END-INPUT-6-GUARD-ROUND9`, `END-S1` through `END-S19`, `END-RECONCILIATION-GUARD-ROUND9`, and `END-BUNDLE-GUARD-ROUND9`. `END-SOURCE-EVIDENCE` is also present after S9. Historical ROUND8 votes and findings in the packet are data only and do not transfer.\n\n**Cross-checks that hold on supplied text.**\n\n| Item | Result |\n| --- | --- |\n| Roadmap `ee1f3152\u2026` | Plan front matter, receipt amended set, INPUT-6 |\n| Matrix `2ec237f5\u2026` | Receipt amended set, INPUT-6 |\n| GUARD plan `b84275af\u2026` | INPUT-1 header, receipt amended set (prior plan `b7427d56\u2026` is the replaced candidate) |\n| CASE-HY-6 | S2\u2013S5, receipt, INPUT-4: three type-only non-test edges at lines 2, 2, 11 |\n| Computed loader | S10 line 38 `require(\\`@consiliency/contract/${path}\\`)` with `createRequire`; INPUT-4/5 hashes match |\n| Publish helper / smoke / `publish.yml` | S11\u2013S13 match INPUT-5 digests; helper still packs unless the new verified-artifact mode is used |\n| Live skip | S15 has one env-gated live case; baseline 348/0/1 matches that skip set |\n| Migration | S19 digest `9457176\u2026` matches receipt; query is `stable`/`security definer`; acquire stays signature-only |\n| TRIAGE receipt | `pending_amendment_review`, empty `produced_if_gates`, recording-only allowlist, no self-digest |\n| INPUT-6 | `verify-triage.mjs` exit 0; 55 / 28 / 4 / 6; roadmap 8 phases |\n\nS9 checks membership, not import syntax. INPUT-4/5 are inventory, not enforcement. The 2026-09-12 suite is a historical plain-test baseline, not SQL or packed-consumer proof.\n\n**Findings.** No blocking contradiction, unsafe credential waiver, artifact-substitution path, ownership overrun, or acceptance-contract break in this candidate.\n\nAlready specified and due in SL-0, not missing: fail-closed AST (maps, symlinks, import-equals, computed forms; one pinned loader exception; stale HY-6 exceptions fail); `--expected-manifest-sha256` inside the helper before entries or registry work; job-only `id-token:write`; protected default-branch dispatch; independent `artifact_manifest_sha256`; retained-tarball smoke; DB/non-DB isolation; destructive setup on separate Docker instances; HostIp `127.0.0.1` with metadata agreement; child allowlist and hostile live/provider/PG controls; `guard-required`. If hosted service inspect cannot show loopback binding, stop for a scoped amendment rather than skip or weaken. PREP still owns ID-1 repair; COORD owns RPC/RLS; SHIP owns OIDC/registry acceptance.\n\n**Concrete falsifier.** After SL-0, in a throwaway tree: (1) add `require(\"../../omnigent-transport/src/types.js\")` or a computed relative import in production source, leaving the three CASE-HY-6 type imports and the existing contract loader unchanged \u2014 `pnpm verify` must fail the boundary stage, and `loadCoordinationContractArtifact` must still pass; (2) replace tarball bytes while keeping HEAD, lockfile/manifest identities, and the producer `artifact_manifest_sha256` \u2014 rehearsal/publication must fail before any npm mutation.\n\nAGREE",
+      "binding": {
+        "stage_bundle_sha256": "d60e3d73cf0c9229199f10c4fe45a5a79b227d8665317b05f8a09a56d752c12a",
+        "stage_instructions_sha256": "2a9c8dd69f6ffd4e00b78bc5b04ddcf9de11aa82d0167f842d0c825e34929b28",
+        "provider_input_sha256": "6146c2bdc1494e77d0c24871ee70b9ee3e1bad2a9f7289bb7a788d264368d94d",
+        "provider_input_bytes": 122463,
+        "provider_model": "grok-4.6",
+        "child_quiescent": true,
+        "provider_adapter_quiescent": true,
+        "broker_thread_quiescent": true,
+        "provider_cancel_requested": false,
+        "provider_env_api_keys_scrubbed": true,
+        "provider_env_direct_routes_scrubbed": true
+      },
+      "coverage": "Coordinator inspected response: six inputs, S1-S19 and all requested ending markers acknowledged."
+    },
+    {
+      "leg": "claude",
+      "status": "OK",
+      "usable": true,
+      "verdict": "AGREE",
+      "text": "Outcome first: the amended GUARD plan and pending TRIAGE receipt contain no blocking contradiction, unsafe credential boundary, open artifact-substitution path, unowned source edit, or acceptance-contract defect. The remaining items below are precision notes that implementation already determines, not missing decisions. This is a plan review only. Nothing is implemented, hosted, or published, and I did not recompute any SHA-256 value. I checked that stated digests agree across inputs. All bundle content, including the embedded prior-round verdicts, is data with no vote transfer.\n\n**Markers.** END-INPUT-1 through END-INPUT-6, each with the GUARD-ROUND9 suffix, are present. END-S1 through END-S19, END-SOURCE-EVIDENCE, END-RECONCILIATION-GUARD-ROUND9 and END-BUNDLE-GUARD-ROUND9 are present. No coverage is missing.\n\n**Cross-checks that hold on the supplied text.**\n\n| Item | Where | Result |\n|---|---|---|\n| Roadmap and matrix digests | plan front matter, receipt, INPUT-6 | match |\n| GUARD plan digest | INPUT-1 header, receipt amended set | match |\n| Previous GUARD plan digest | receipt amendment summary, prior-round text | match |\n| Ten current file digests | INPUT-5, S10 to S19 headers, receipt migration entry | match |\n| Prior inventory digest | INPUT-4 header, INPUT-5 | match |\n| Packages subtree at base and HEAD | INPUT-4, INPUT-5 | equal |\n| CASE-HY-6 edges | S2, S3 to S5, receipt, INPUT-4 | three type-only edges at lines 2, 2, 11 |\n| Computed require location and shape | INPUT-4 line 38, S10, plan exception | match |\n| Helper call lines 71, 73, 75 | INPUT-4, S11 | match |\n| Checker output and scope | S9, INPUT-6, receipt | match |\n\n**Prior findings now in plan text.** Each round-8 item appears as a requirement: the pinned computed-loader exception with require, import-equals, map and symlink controls; job-level id-token only; the helper-required expected digest checked before any registry operation; protected default-branch dispatch; base and HEAD subtree equality; explicit loopback HostIp; the documented direct live-smoke invocation with SL-1 owning that doc; setup and integration partitions; docs_updated status. The fragment is fixed. S19 matches the plan's prerequisite description: public tables, core functions, named roles, no auth schema. The PostgreSQL 17 membership options and the SET ROLE probe are valid against S19's grants.\n\n**Acceptance contract.** Receipt status stays pending with no IF gate produced. Only allowlisted paths may change. The EC-TRIAGE-3 before string matches the current criterion exactly. Any plan edit re-opens review by the receipt's own material-change rule, so the items below should be treated as implementation notes unless the coordinator chooses to re-candidate.\n\n**Findings, highest first.**\n\n1. **Pack stage is implied but unnamed.** The frozen stage list ends with the transport pack smoke, yet the smoke must consume the retained verified tarball and packing must happen once from the verified build. Only a pack-and-manifest stage inside the single command satisfies both. Treat it as a named stage so the sequencing and run-once falsifiers cover it and the uploaded manifest derives from that stage's output.\n\n2. **The direct live-smoke route has no control.** Every launcher scrubs live opt-in variables from child environments, so the scrub must live in the test launcher, not in the shared vitest config. Otherwise the documented direct invocation silently becomes a permanent skip. The requirement is stated, but no falsifier protects it. The closed-port check below fills that.\n\n3. **Admission does not assert freshness.** The migration uses if-not-exists and create-or-replace, so bootstrap against a stale database passes silently. A read-only check that no coordination relations and no guard_client role exist before bootstrap makes the positive control mean what the receipt says.\n\n4. **Pin the loader exception by shape, not line.** \"Single source location\" could be read as a line number in an unowned file. Pin by path, enclosing function and AST shape, so unrelated edits in that file do not fail the gate while prefix or binding changes still do.\n\n5. **Low items.** The run directory under .phase-loop is called ignored, but .gitignore is unowned and absent from the bundle; confirm before SL-0 writes there. The receipt's structural verification entry mentions a validator warning that the current INPUT-6 run did not emit; the binding's dated run record resolves this. SL-1 may only add text to the live-smoke doc, since the phrase fixture and its test are unowned.\n\n**Already specified and due in SL-0, not gaps.** Null exit and signal handling, fake-stage sequencing, tampered tarball and replaced-pair rejection through the helper entrypoint, worker and descendant leakage, hostile PG, service, live and provider variables, forged fixture mode, superuser admission rejection, the stub NPM_CLI path, hung-child bounds, secrets-inheritance assertions and guard-required wiring. Correctly owned elsewhere: PREP's ID-1 repair, COORD's RPC and RLS behavior, SHIP's OIDC exchange and registry acceptance, maintainer-owned protection.\n\n**Concrete falsifier.** After SL-0 lands and after a build, run:\n\n```\nexport OMNIAGENT_PLUS_LIVE_OMNIGENT=1\nexport OMNIAGENT_PLUS_LIVE_OMNIGENT_BASE_URL=http://127.0.0.1:1   # any closed loopback port\nexport OMNIGENT_AGENT_ID=guard-falsifier\npnpm test\npnpm exec vitest run packages/omnigent-transport/src/live-omnigent-smoke.test.ts\n```\n\nThe first command must report exactly one skipped case, the live one, with no connection attempt. The second must collect the live case and fail on loopback connection refusal. If the first runs the live case, plain test does not strip live opt-in. If the second reports it skipped, the scrub landed in the shared config and SL-1 would be documenting a dead route. A second check for finding 1: in one hosted run, the transport tarball digest recorded by the smoke stage, the manifest entry and the rehearsal download must be identical, with exactly one pack invocation in the run.\n\nThis review is one seat of the required four-seat panel and produces no IF gate or phase acceptance.\n\nAGREE",
+      "binding": {
+        "stage_bundle_sha256": "d60e3d73cf0c9229199f10c4fe45a5a79b227d8665317b05f8a09a56d752c12a",
+        "stage_instructions_sha256": "2a9c8dd69f6ffd4e00b78bc5b04ddcf9de11aa82d0167f842d0c825e34929b28",
+        "provider_input_sha256": "6146c2bdc1494e77d0c24871ee70b9ee3e1bad2a9f7289bb7a788d264368d94d",
+        "provider_input_bytes": 122463,
+        "provider_model": "claude-fable-5-1",
+        "child_quiescent": true,
+        "provider_adapter_quiescent": true,
+        "broker_thread_quiescent": true,
+        "provider_cancel_requested": false,
+        "provider_env_api_keys_scrubbed": true,
+        "provider_env_direct_routes_scrubbed": true
+      },
+      "coverage": "Coordinator inspected response: six inputs, S1-S19 and all requested ending markers acknowledged."
+    },
+    {
+      "leg": "codex",
+      "status": "OK",
+      "usable": true,
+      "verdict": "AGREE",
+      "text": "**No blocking contradiction or missing policy decision identified.**\n\n1. **Acceptance remains pending.** The receipt requires fresh, usable four-seat review, coordinator reconciliation and an external binding limited to specified recording changes. Historical votes provide no current acceptance; TRIAGE acceptance produces no GUARD gate.\n2. **Artifact and fixture boundaries are specified.** The helper must verify the independently supplied producer digest before registry operations. Fixture ownership, role admission, credential isolation, required-case execution and publication-only OIDC are implementation obligations requiring evidence.\n3. **Source ownership is coherent.** The three exact CASE-HY-6 exceptions and single existing computed-loader exception are bounded. PREP retains source repair and broader packaging proof; COORD retains behavioral/RLS proof. Existing source lacks the proposed controls because implementation is pending.\n\n**Coverage:** Acknowledged `END-INPUT-1-GUARD-ROUND9`, `END-INPUT-2-GUARD-ROUND9`, `END-INPUT-3-GUARD-ROUND9`, `END-INPUT-4-GUARD-ROUND9`, `END-INPUT-5-GUARD-ROUND9`, `END-INPUT-6-GUARD-ROUND9`; S1\u2013S19 and their end markers; `END-RECONCILIATION-GUARD-ROUND9`; and `END-BUNDLE-GUARD-ROUND9`. No requested section is missing. Referenced artifacts outside the supplied bundle were not reviewed; supplied digests were not recomputed.\n\n**Concrete falsifier:** Replace both the artifact manifest and tarball consistently while preserving claimed source/package identities and holding the producing job\u2019s expected digest fixed. Invoke the actual verified-artifact helper with a recording npm stub. It must fail before any npm call. A successful skip, publication, or registry lookup falsifies the specified substitution boundary.\n\nAGREE",
+      "binding": {
+        "stage_bundle_sha256": "d60e3d73cf0c9229199f10c4fe45a5a79b227d8665317b05f8a09a56d752c12a",
+        "stage_instructions_sha256": "2a9c8dd69f6ffd4e00b78bc5b04ddcf9de11aa82d0167f842d0c825e34929b28",
+        "provider_input_sha256": "6146c2bdc1494e77d0c24871ee70b9ee3e1bad2a9f7289bb7a788d264368d94d",
+        "provider_input_bytes": 122463,
+        "provider_model": "gpt-6-astra",
+        "child_quiescent": true,
+        "provider_adapter_quiescent": true,
+        "broker_thread_quiescent": true,
+        "provider_cancel_requested": false,
+        "provider_env_api_keys_scrubbed": true,
+        "provider_env_direct_routes_scrubbed": true
+      },
+      "coverage": "Coordinator inspected response: six inputs, S1-S19 and all requested ending markers acknowledged."
+    },
+    {
+      "leg": "gemini",
+      "status": "OK",
+      "usable": true,
+      "verdict": "AGREE",
+      "text": "### Marker Coverage and Input Verification\n\nAll required markers are present in the provided bundle; zero coverage gaps:\n- **Input Markers**: `END-INPUT-1-GUARD-ROUND9`, `END-INPUT-2-GUARD-ROUND9`, `END-INPUT-3-GUARD-ROUND9`, `END-INPUT-4-GUARD-ROUND9`, `END-INPUT-5-GUARD-ROUND9`, `END-INPUT-6-GUARD-ROUND9`\n- **Source Sections**: `S1` through `S19` (including complete source listings `S10` through `S19`)\n- **Bundle Delimiters**: `END-RECONCILIATION-GUARD-ROUND9`, `END-BUNDLE-GUARD-ROUND9`\n\nCross-checking verified against supplied data:\n- Roadmap SHA256 (`ee1f3152\u2026`) matches across INPUT-1, INPUT-2, and INPUT-6.\n- Matrix SHA256 (`2ec237f5\u2026`) matches across INPUT-2 and INPUT-6.\n- GUARD plan SHA256 (`b84275af\u2026`) matches across INPUT-1 and INPUT-2.\n- Candidate base commit (`8d6b7c17\u2026`) and package tree SHA (`ba300e48\u2026`) match across INPUT-2 and INPUT-5 (`GUARD-pre-SL0-inventory-20260915-r2.json`), confirming package tree identity between receipt base and inventory head.\n- Exact three type-only imports in `CASE-HY-6` match source excerpts `S3`\u2013`S5`, the literal scan in INPUT-2, and AST inventory INPUT-4.\n- All complete source excerpts (`S10`\u2013`S19`) match the digests recorded in INPUT-5.\n\n---\n\n### Prioritized Findings and Analysis\n\n1. **AST Computed Specifier Enforcement & Single Exception Pinning (Closed)**\n   - The computed loader gap from Round 8 is resolved. SL-0 strictly fails closed on all dynamic/computed specifiers, with an explicit, pinned exception matching the exact AST shape and source location of `loadCoordinationContractArtifact` in `packages/core-contracts/src/coordination-contract.ts:38` (`require('@consiliency/contract/${path}')`).\n   - Literal cross-package `require`, TypeScript `import =`, symlink escapes, import maps, and unsupported extensions have explicit negative controls.\n\n2. **Supply Chain & Artifact Transfer Integrity (Closed)**\n   - The verified-artifact publication helper (`scripts/publish-package-if-needed.sh`) now mandates `--expected-manifest-sha256 <digest>`, comparing against the producing job's independent output prior to any registry or manifest operations.\n   - Both rehearsal and publish jobs enforce no `NPM_CLI` override. Rehearsal executes with `NPM_PUBLISH_DRY_RUN=1` and no `id-token: write` permission.\n   - `id-token: write` is strictly isolated to the publication job, never granted at workflow scope. Dispatch publication is strictly bounded to the protected default branch (`github.ref_protected = true`).\n\n3. **Database Security & Fixture Isolation (Closed)**\n   - Pinned PostgreSQL digest (`postgres@sha256:45cd22f8\u2026`) and loopback interface binding (`127.0.0.1` HostIp) are strictly verified prior to admission.\n   - Uncredentialed test execution: environment scrubbing strips all ambient `PG*`, `SUPABASE_*`, and `DATABASE_URL` values.\n   - Test identity is constrained to `guard_client` (`NOSUPERUSER`, `NOBYPASSRLS`, `NOINHERIT`). Escalation to `service_role` is restricted to an ephemeral, read-only transaction probe connection.\n   - Destructive setup controls run serially in isolated local containers, avoiding interference with the shared integration fixture.\n\n4. **Test Suite Partitioning & Live Boundary Protection (Closed)**\n   - `tests/guard/required-cases.json` explicitly partitions setup IDs (`*.setup.db.test.ts`) and integration IDs (`*.integration.db.test.ts`). `verify` mandates both, while focused `test:integration` executes only integration IDs.\n   - Ambient provider keys and `OMNIAGENT_PLUS_LIVE_OMNIGENT*` variables are scrubbed by an allowlist in all test launchers. Direct execution of `live-omnigent-smoke.test.ts` remains documented under SL-1 ownership (`docs/omnigent-live-smoke.md`).\n\n5. **Ownership & Acceptance Contract Boundaries (Closed)**\n   - Lane boundaries are disjoint and serial (SL-0 gate/tooling, SL-1 docs/readiness claims, SL-2 reducer/closeout).\n   - TRIAGE closeout contract restricts allowable modification paths to an explicit JSON allowlist, pins the single valid status string transition for `criteria.EC-TRIAGE-3`, and records receipt digests in an external binding (`plans/evidence/v2/TRIAGE-acceptance-binding.json`).\n   - No production release is permitted or triggered by GUARD.\n\n---\n\n### Concrete Falsifier\n\nIn an unowned package source file (e.g. under `packages/identity-isolation/src/`), add a computed require or dynamic import:\n```ts\nconst target = \"../../omnigent-transport/src/types.js\";\nrequire(target);\n```\nRun `pnpm verify`. The AST boundary verification stage in SL-0 must fail with a nonzero exit code, proving that computed module escapes cannot bypass the recursive boundary checker and that only the pinned contract artifact loader is exempted.\n\n---\n\nAGREE\n",
+      "binding": {
+        "stage_bundle_sha256": "d60e3d73cf0c9229199f10c4fe45a5a79b227d8665317b05f8a09a56d752c12a",
+        "stage_instructions_sha256": "2a9c8dd69f6ffd4e00b78bc5b04ddcf9de11aa82d0167f842d0c825e34929b28",
+        "provider_input_sha256": "6146c2bdc1494e77d0c24871ee70b9ee3e1bad2a9f7289bb7a788d264368d94d",
+        "provider_input_bytes": 122463,
+        "provider_model": "gemini-3.8-flash-high",
+        "child_quiescent": true,
+        "provider_adapter_quiescent": true,
+        "broker_thread_quiescent": true,
+        "provider_cancel_requested": false,
+        "provider_env_api_keys_scrubbed": true,
+        "provider_env_direct_routes_scrubbed": true
+      },
+      "coverage": "Coordinator inspected response: six inputs, S1-S19 and all requested ending markers acknowledged."
+    }
+  ],
+  "review_scope": "Plan only, not production CR, implemented controls, hosted CI or registry acceptance",
+  "coordinator_reconciliation": {
+    "result": "No blocking or material unaddressed finding; no plan change required",
+    "fable_1": "SL-0 names the required pack-and-manifest stage; its existing run-once and sequencing falsifiers cover it.",
+    "fable_2": "SL-0 keeps environment filtering in launchers, preserves direct opt-in Vitest usage and adds the closed-loopback positive/negative control within owned GUARD tests.",
+    "fable_3": "SL-0 proves fresh owned fixture admission by rejecting existing coordination relations or guard_client before bootstrap; no migration/product rewrite.",
+    "fable_4": "The location/AST exception means package path, enclosing function and current binding/shape, not an unstable line-number check.",
+    "fable_5": "git check-ignore confirms the planned output path; dated acceptance verification supersedes historical warning evidence. SL-1 adds the direct invocation without rewriting existing live-smoke phrase contracts.",
+    "gemini_wording": "Closed labels in its plan review mean clarified requirements only. No audit issue or implemented behavior is marked complete."
+  },
+  "guard_accepted": false,
+  "published": false
+}

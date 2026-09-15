@@ -1,0 +1,140 @@
+{
+  "observedAt": "2026-09-15T07:47:28.630Z",
+  "sourceHead": "332c9accf121d828b6817eabd79f63eb37be9641",
+  "sourceTree": "ba300e481e74180ed581ab8c7b0ebebab1644eb1",
+  "typescript": "5.9.3",
+  "scope": "All tracked packages/*/src files, including tests; static import/export, literal dynamic/require, import-type, import-equals and triple-slash references. Not an evasion-proof production gate.",
+  "sourceFiles": 213,
+  "extensions": [
+    ".ts"
+  ],
+  "unsupportedFiles": [],
+  "crossPackageRelativeSourceEdges": [
+    {
+      "file": "packages/identity-isolation/src/omnigent-isolation-policy.ts",
+      "line": 2,
+      "kind": "import",
+      "target": "../../omnigent-transport/src/types.js",
+      "resolved": "packages/omnigent-transport/src/types.js",
+      "typeOnly": true,
+      "test": false
+    },
+    {
+      "file": "packages/identity-isolation/src/process-profile.ts",
+      "line": 2,
+      "kind": "import",
+      "target": "../../omnigent-transport/src/types.js",
+      "resolved": "packages/omnigent-transport/src/types.js",
+      "typeOnly": true,
+      "test": false
+    },
+    {
+      "file": "packages/identity-isolation/src/types.ts",
+      "line": 11,
+      "kind": "import",
+      "target": "../../omnigent-transport/src/types.js",
+      "resolved": "packages/omnigent-transport/src/types.js",
+      "typeOnly": true,
+      "test": false
+    }
+  ],
+  "computedModuleExpressions": [
+    {
+      "file": "packages/core-contracts/src/coordination-contract.ts",
+      "line": 38
+    }
+  ],
+  "tsconfigs": [
+    {
+      "file": "packages/agent-harness-adapter/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/cli/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/coordinator/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/core-contracts/tsconfig.build.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/core-contracts/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/governed-pipeline-adapter/tsconfig.build.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/governed-pipeline-adapter/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/identity-isolation/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/omnigent-transport/tsconfig.build.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/omnigent-transport/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/rate-limit-catalog/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/state-ledger/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "packages/worktree-leasing/tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "tsconfig.base.json",
+      "baseUrl": null,
+      "paths": {}
+    },
+    {
+      "file": "tsconfig.json",
+      "baseUrl": null,
+      "paths": {}
+    }
+  ],
+  "workflows": [
+    ".github/workflows/publish.yml"
+  ],
+  "publishingWorkflows": [
+    {
+      "file": ".github/workflows/publish.yml",
+      "sha256": "d206cbc26d5d225c3173fd7f755317e7ab42e3b69b056611552786258dffb97f",
+      "helperCallLines": [
+        71,
+        73,
+        75
+      ]
+    }
+  ],
+  "noSourceChanges": true,
+  "noDatabaseOrProviderEffects": true
+}
