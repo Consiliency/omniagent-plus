@@ -841,9 +841,9 @@
       "acceptance_criteria_count": 3,
       "created_at": "2026-09-12T02:05:55Z",
       "execution_authorized": false,
-      "execution_blocker": "product_decision_missing",
+      "execution_blocker": "account_or_billing_setup",
       "file": "plans/phase-plan-v2-GUARD.md",
-      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260915-guard-custody-gate.md",
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-phase/20260915-guard-custody-r2-quota.md",
       "human_required": true,
       "if_gates_produced": [],
       "lanes": [
@@ -871,9 +871,10 @@
       "new_custody_ownership_authorized": false,
       "owner_skill": "codex-plan-phase",
       "phase_alias": "GUARD",
+      "platform_decision": "approved_linux_only_guard_runtime_unchanged",
       "reflection_ref": null,
       "registry_status_note": "committed denotes authored artifact, not accepted phase or completed execution",
-      "review_status": "custody_round1_partial_reconciled_revision_pending",
+      "review_status": "custody_round2_three_usable_fable_quota_reconciled_revision_pending",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "phase-plans-v2",
@@ -882,9 +883,9 @@
       },
       "slug": "phase-plan-v2-GUARD",
       "status": "executing",
-      "task_summary": "GUARD repair checkpoint tested; immediate-orphan custody remains blocking. Revised Linux subreaper plan awaits maintainer platform decision and fresh four-seat review. No phase acceptance.",
+      "task_summary": "Linux-only GUARD approved; custody amendment revised after three usable reviews and Fable quota exhaustion. Independent boundary repair/full gate pass; no phase acceptance or provider upgrade.",
       "type": "phase",
-      "updated_at": "2026-09-15T11:13:35.207025+00:00"
+      "updated_at": "2026-09-15T19:09:04.817104+00:00"
     },
     {
       "acceptance_criteria_count": 3,

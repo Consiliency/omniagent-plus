@@ -16,8 +16,10 @@ The user authorizes execution, four-agent reviews, reconciled merges and later
 release, including explicit manual alternatives to broken orchestration.
 TRIAGE and the prior GUARD plan were accepted after round 9. Production review
 found repairable GUARD defects; the process-custody amendment below is pending
-fresh four-seat review and the maintainer's Linux-only verification decision.
-Do not execute newly added ownership until both are recorded. Historical
+fresh four-seat review. On 2026-09-15 the maintainer approved the recommended
+Linux-only GUARD verification scope by responding "Continue as recommended"
+to that explicit question; published runtime portability remains unchanged.
+Do not execute newly added ownership until fresh review is reconciled. Historical
 TRIAGE/round-9 bindings remain immutable evidence, not approval of this amendment.
 Preserve historical runner state. Do not repair agent-harness as a prerequisite.
 
@@ -429,8 +431,10 @@ SL-2 — Integrated acceptance and docs sweep
 
 ## Process Custody Amendment
 
-Status: revised after four usable PARTIALLY AGREE reviews; pending a fresh
-four-seat review and maintainer Linux-only decision. This is
+Status: revised after custody rounds 1 and 2; pending a fresh complete
+four-seat review. Round 2 had three usable partial reviews and a Fable quota
+failure with no recoverable final review. Maintainer Linux-only approval is
+recorded in Context. This is
 an SL-0 tooling repair, not an automatic product supervisor. No change to
 packages/omnigent-transport/src/process-manager.ts or other product runtime,
 package versions, migrations, authority crypto, published contract or release
@@ -454,33 +458,51 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   argv, and the existing explicit environment/cwd policy. No global process
   enumeration or signaling based only on matching names, labels or stale PIDs.
   Retain pidfds for signal identity; serialize reaping and ownership updates.
-  Traverse only owned ancestry/adopted children. Kernel reparenting preserves
-  custody after intermediate exit, including double forks and new sessions.
-  For non-adopted descendants, bind discovery to an opened /proc directory,
-  parent/start identity, live owned ancestry and post-open pidfd fdinfo identity;
-  never signal if any check differs. Direct/adopted children remain unreaped
-  until identity-sensitive work is finished. Reap zombies without requiring a
-  pidfd first; close descriptors on reap, and fail closed on resource exhaustion.
+  Signal direct/adopted children only, holding them unreaped during pidfd
+  acquisition and parent/start/fdinfo checks. Do not signal non-child descendants:
+  terminate an owned intermediate and let the kernel adopt its children.
+  Kernel reparenting preserves custody after intermediate exit, including
+  double forks and new sessions. There is no raw-PID/PGID signaling fallback
+  or Node polling backup. Zombies can be reaped immediately without pidfds;
+  their children were already reparented before they became reapable. Preserve
+  raw status before retiring identity, close descriptors on reap, and fail
+  unproven on resource exhaustion. A thread-leader Z state alone is not process
+  death; live non-leader threads remain capable of creating children.
 - Admission: use dedicated control/status file descriptors, never payload
   stdout/stderr. The Node owner registers the supervisor and acknowledges its
   successful capability handshake before payload admission. Refuse absent
   Python, unsupported platform/kernel, denied capabilities, malformed/closed
   handshake, or cancellation before admission without launching the payload.
   Never silently fall back to polling or turn unsupported custody into a skip.
-  Under the proposed Linux-only decision all GUARD verification commands,
+  Under the approved Linux-only decision all GUARD verification commands,
   including pnpm test, require this backend; published runtime portability
-  is unchanged. If the maintainer declines, revise this proposal before execution.
+  is unchanged. Native macOS/Windows process containment is deferred.
   Handshake silence consumes the existing operation budget, starting at spawn;
-  it never earns an additional timeout. Admission commits when the supervisor
-  receives the owner's single valid ADMIT frame after READY. Cancellation before
-  that point forbids payload exec; cancellation afterward drains admitted work.
+  it never earns an additional timeout. Admission authorization linearizes at
+  the owner: after READY, synchronously check cancellation and enqueue the one
+  ADMIT record with no intervening await. Cancellation before authorization
+  forbids ADMIT; after authorization the payload may start and must drain.
+  The supervisor may exec only after validating ADMIT. Do not promise that an
+  owner-side cancellation can overtake an already buffered record; test buffered
+  ADMIT followed by cancellation/EOF explicitly. A failed/partial write is a
+  protocol failure, never evidence that payload execution was impossible.
   Both endpoints exclusively own their respective control/status ends. Close
   all payload copies before exec, use CLOEXEC and close_fds, and verify this in
   a payload descriptor-leak falsifier. Version/nonce/sequence-bind every frame;
   reject duplicate, truncated, out-of-order and foreign-nonce records. Use a
   bounded, nonblocking status writer so a full pipe cannot stop kernel draining.
-- Control/API freeze: protocol version 1 uses READY, ADMIT, FORWARD, SHUTDOWN,
-  WORK_DRAINED and RESULT frame types. READY carries actual capability results;
+- Control/API freeze: protocol version 1 uses UTF-8 JSON-line frames, one JSON
+  object per newline, at most 64 KiB including delimiter; oversized input fails
+  before payload admission. Each direction has its own strictly increasing
+  sequence from zero, a fixed version and a per-launch nonce. Frame types are
+  READY, ADMIT, FORWARD, SHUTDOWN, WORK_DRAINED and RESULT. ADMIT carries command,
+  argv, cwd, an explicit already-scrubbed environment map, inherited umask,
+  stdin/stdout/stderr descriptor mapping, operation deadline and pre-admitted
+  cooperative cleanup ceiling (slots, child reservation and completion deadline).
+  The existing allowlist and fixture injection remain the only env sources;
+  neither endpoint inherits ambient env wholesale. ADMIT is private transport,
+  not a log or evidence payload; never retain its argv/env values as metadata.
+  READY carries actual capability results;
   FORWARD names the signal without escalating; SHUTDOWN carries an epoch,
   cooperative/forced mode and immutable absolute deadlines. RESULT contains
   payload_pid, either exact exit code or signal (or typed not_started), typed
@@ -490,12 +512,21 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   in validated protocol state. waitExit/runProcess consume that state and
   require agreement with supervisor termination. signalOwned routes through
   the control protocol and never directly kills the last custodian. Existing
-  test-only callers adapt lifecycle handling without changing behavioral asserts.
+  test-only callers adapt lifecycle identity/status handling without weakening
+  lock, race or exit-outcome assertions. Normal waitExit uses the payload result,
+  not a bare supervisor close code; missing RESULT or mismatched supervisor
+  termination fails. A cooperative-completion wait uses the pre-admitted
+  shutdown deadline, not a fresh caller-relative timeout. Successful custody
+  mirrors the payload code/signal after RESULT; failed custody cannot mirror
+  payload success. signalOwned(supervisorPid, signal) sends FORWARD, never a
+  raw kill to the custodian. Direct OS INT/TERM to the supervisor are explicitly
+  handled as cooperative forwarding; they cannot use Python's default exit.
 - Completion: preserve command argv/cwd/stdin/stdout/stderr and direct payload
   exit code or signal semantics. A payload exit starts descendant cleanup,
   even when that payload succeeded. Withhold successful completion until the
   supervisor has reaped all owned/adopted children. One serialized reaper saves
-  the payload's raw wait status; never let Popen.wait/poll compete or substitute
+  the payload's raw wait status. Spawn via fork/exec or posix_spawn, never a
+  Popen object whose destructor or wait/poll can compete. Never substitute
   zero after ChildProcessError/ECHILD. Use waitpid(-1, WNOHANG | __WALL), with
   Linux __WALL=0x40000000 and SIGCHLD default/no automatic reaping. This avoids
   waitid(P_PIDFD)'s higher kernel floor. A wait result of zero is not exhaustion.
@@ -517,14 +548,19 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   The 250 ms hung-operation, 15-second process-operation and other frozen
   budgets remain. Node must not kill its last custody supervisor at 500 ms.
   Reentrant teardown, controller-channel EOF and nested supervisor exit must
-  share the same drain operation; descendants transfer to the living outer
-  subreaper when an inner supervisor dies.
+  share the same drain operation. Descendants transfer only to a living
+  ancestor subreaper when an inner supervisor dies, never to a sibling keeper.
+  Last/sibling keeper loss without a proven owned ancestor is unproven and
+  potentially unreclaimable; do not infer adoption from ProcessScope membership.
   Both owner and supervisor enforce the same absolute deadline, with protocol
   completion inside the existing two-second window, not extra grace afterward.
   On timeout the surviving owner records custody-unproven with supervisor
   PID/start identity, retains custody and never sends an emergency kill to a
   potentially live last keeper. Missing final evidence always fails. If all
-  observers die, neither a final record nor cleanup can be promised.
+  observers die, neither a final record nor cleanup can be promised. A hung
+  last keeper can leave local work alive past the deadline: record failure
+  and retained identity, not bounded-cleanup success. No detached/group setting
+  alone proves custody, and hosted cgroup teardown is not a GUARD receipt.
 - Interruption/resource ordering: distinguish forwarding an external
   SIGINT/SIGTERM to a cooperative launcher from a parent's explicit forced
   teardown request, so the launcher can drain its children and run bounded
@@ -534,23 +570,44 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   custodian, unavailable kernel operations, or deadline exhaustion produces
   unproven cleanup/failure evidence, never success or broad emergency kills.
   Repeated FORWARD requests do not become forced requests or reset deadlines.
-  Before resource effects, a cooperative launcher registers finite cleanup
-  slots and its existing operation/job deadline. With T=2.5 seconds and
+  Freeze the routing matrix: external INT/TERM forwards cooperatively to the
+  launcher; its ProcessScope shuts down ordinary work using one forced epoch,
+  then executes bounded resource callbacks. Explicit parent forced close/abort
+  and controller EOF use forced drain, not renewed cooperative reservations.
+  The caller declares maximum cleanup slots/child reservation in ADMIT before
+  payload exec. ProcessScope registers callbacks locally within that ceiling,
+  before resource effects; it has no supervisor-control descriptor and cannot
+  dynamically increase the parent's allowance. Propagate the admitted ceiling
+  explicitly through known launcher calls, not ambient user configuration.
+  No registered allowance means ordinary-work custody only. With T=2.5 seconds and
   U=15+T=17.5 seconds per cleanup command, reserve
   E(node)=T+max(E(children),0)+U*remaining_cleanup_slots; ordinary work has E=T.
   A known-ID fixture requires one slot; creation recovery requires at most three
   (ps, inspect, rm), with multiple candidate IDs failing closed before removal.
-  This yields 22.5/57.5-second maximum single-launcher shutdown reservations,
-  including the final forced tail; two nested worst-case owners require 112.5
-  seconds total, not reset allowances. Clamp all reservations to already
-  admitted operation/job deadlines; inability to fit is failure, not extension.
+  With an ordinary work child E=T, this yields 22.5/57.5-second maximum
+  single-launcher shutdown reservations; with no child the figures are 20/55.
+  Two nested three-slot owners over ordinary work require 112.5 seconds total.
+  T is already each node's final tail; do not add it twice. Normal operation
+  deadlines remain unchanged. Reserve a separate absolute shutdown-completion
+  ceiling at admission, within inherited job/scope limits; cancellation chooses
+  the earlier of that ceiling and now+E, never a reset allowance. Inability to
+  fund a declared reservation is failure before resource effects, not extension.
+  Adapt cooperative test wait bounds to that admitted ceiling rather than
+  guessing 15/30-second replacements or increasing ordinary operation budgets.
   Delegate time to children only after reserving the parent's own slots and
   final T tail. Forced takeover consumes the existing remaining allocation.
   Require WORK_DRAINED for ordinary subtrees before resource callbacks; requiring
   whole-launcher ECHILD before its own callback would be circular. Cleanup
   commands get fresh supervisors under the remaining reserved deadline, not
   an unlimited context escape. The final command proof follows callbacks and
-  launcher exit. Inner failure remains failure even if outer rescue succeeds.
+  launcher exit. If ordinary-work drain is unproven, any bounded best-effort
+  resource callback must preserve unproven ordering/cleanup and fail the launcher;
+  it cannot establish successful WORK_DRAINED. Inner failure remains failure
+  even if outer rescue succeeds. Lost Docker creation acknowledgment plus an
+  empty recovery lookup is unproven unless a terminal daemon outcome is known:
+  a submitted create may finish after the CLI and lookup exit. Failed or
+  unconfirmed removal likewise writes an unproven SQL receipt, never
+  removed-owned-container. Test delayed creation crossing the empty lookup.
 - Tests: in tests/guard/process.test.ts and the existing orchestration,
   environment, artifacts and fixture.setup.db tests, remove the artificial
   parent delay and run at least 100 immediate-exit trials locally and hosted,
@@ -566,11 +623,18 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   and launcher exit, the parent/unrelated process survives, and real lock/race
   assertions are unchanged. Fault controls must retain their own cleanup custody.
   Include clone children with zero/non-SIGCHLD exit signals, non-leader-thread
-  creation, discovery-to-pidfd PID reuse/disappearance, descriptor churn,
+  creation and leader exit while non-leader threads continue forking,
+  discovery-to-pidfd identity rejection/disappearance, descriptor churn,
   stalled handshake transitions, controller death, stdin EOF, trailing/high-volume
   stdout/stderr and backpressure. Reaping assertions require process absence,
   not merely zombie tolerance. Remove obsolete Darwin/Windows fallback tests
-  only after the Linux-only decision; replace them with no-launch refusals.
+  under the recorded Linux-only decision; replace them with no-launch refusals.
+  Include sibling/last-keeper loss and explicit unproven results, buffered
+  ADMIT cancellation, OS-signal/protocol routing, declarative cleanup ceilings,
+  SIGCHLD automatic-reaping refusal and delayed Docker creation. Fault-injection
+  tests use a real outer custodian for their own cleanup; that rescue is never
+  evidence of the deliberately failed inner keeper. Foreign PID namespace
+  containment is outside this test backend's claimed proof and fails unproven.
 - Verification: Node/Vitest remains the test runner. Run focused process,
   orchestration, environment, artifact and SQL setup controls; check the Python
   helper with isolated standard-library compilation and behavioral tests (no
@@ -578,7 +642,10 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   CI=true plain suite, focused GUARD/integration and clean integrated full verify,
   followed by hosted CI/rehearsal and a fresh complete production panel. Record
   timings without broad pool changes, new skips or arbitrary timeout increases.
-  Capability admission actually executes subreaper set/readback, self pidfd
+  SL-0 must update verify.yml and both publish.yml consumer jobs for Python
+  and actual admission; SL-1's Linux-only command docs land in the same integrated
+  candidate, never as a later post-merge correction. Capability admission
+  actually executes subreaper set/readback, self pidfd
   open/signal-zero, owned children-file access and a probe child reaped with
   __WALL. Record interpreter/kernel metadata, not credentials. Artifact consumers
   do need this admission because their Node verifier calls guarded git/tar.

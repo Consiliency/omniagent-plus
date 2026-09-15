@@ -1,0 +1,71 @@
+{
+  "schema": "guard-repair-checkpoint.v1",
+  "at": "2026-09-15T19:07:48.896Z",
+  "head": "e35f07e0fc04641e8624abfe88fc37384f9bbd3f",
+  "comparison_head": "b526db89483c2706fc647b88cf180380349452f1",
+  "changed_files": [
+    "tests/guard/boundaries.test.ts"
+  ],
+  "command": "env CI=true pnpm verify",
+  "exit": 0,
+  "passed": 470,
+  "skipped": 1,
+  "report": ".phase-loop/guard/1789499155447-862833/tests.json",
+  "report_sha256": "b75b9c0a4d8b680f1587aa24efac11e215680b487d5dc8040bb621ecd4d852c1",
+  "manifest": ".phase-loop/guard/1789499155447-862833/artifacts/manifest.json",
+  "manifest_sha256": "65971ff7e3082ac1add543fda0179bb9473c041b66d5ce13c480fdfa6b17e6d9",
+  "packages": [
+    {
+      "name": "@consiliency/runtime-provider",
+      "version": "0.2.0",
+      "tarball": "consiliency-runtime-provider-0.2.0.tgz",
+      "sha256": "701c35459fcde12bf391cdf0607f2a45538d653d38387ac3646af4ac841f3074"
+    },
+    {
+      "name": "@consiliency/pipeline-provider-adapter",
+      "version": "0.2.0",
+      "tarball": "consiliency-pipeline-provider-adapter-0.2.0.tgz",
+      "sha256": "95b4eccac4d95e7b0d7f1b93ecfe1552084ad886d7dd67c95b9ef2271ce09c24"
+    },
+    {
+      "name": "@consiliency/omnigent-transport",
+      "version": "0.7.0",
+      "tarball": "consiliency-omnigent-transport-0.7.0.tgz",
+      "sha256": "99cf0decb7f81006ba1e972b5a8c10dd2fa24e8533f11b49e8a246b3684f9dbf"
+    }
+  ],
+  "clean_after": true,
+  "other_checks": {
+    "independent_boundary_file": {
+      "passed": 35,
+      "skipped": 0
+    },
+    "build_exit": 0,
+    "lint_exit": 0,
+    "typecheck_exit": 0
+  },
+  "source_change": "Synthetic TypeScript fixture types:[] only; checker semantics, assertions and timing bounds unchanged",
+  "worker_reproduction": {
+    "cpu_count": 1,
+    "before_case29_ms": 6072,
+    "before_error": "Test timed out in 5000ms",
+    "after_case29_ms": 285,
+    "ambient_dependency_files_before": 108,
+    "ambient_dependency_files_after": 0
+  },
+  "hosted_original_exception_confirmed": false,
+  "integrated_code_head": "d2424956a294dd43a1cbd41cfb80e7698c9b79ed",
+  "product_runtime_migrations_versions_unchanged": true,
+  "unresolved": {
+    "issue": "omniagent-plus#20",
+    "finding": "immediate-parent-exit-detached-child",
+    "probe_sha256": "c78186dbcc1016dc31217da3d4c4a8f016748c6779a8a5f6c60fcba8bf4dc130",
+    "trials": 10,
+    "escaped": 8,
+    "all_probe_children_quiescent": true
+  },
+  "phase_accepted": false,
+  "merge_approved": false,
+  "new_custody_backend_implemented": false,
+  "limitation": "Mechanical gate passes do not supersede the independent orphan-custody counterexample."
+}
