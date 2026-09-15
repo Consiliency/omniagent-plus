@@ -7,21 +7,31 @@ worktree leases through one local entrypoint:
 
 `pnpm --filter @omniagent-plus/cli cli -- <command>`
 
-`control snapshot` is read-only, replays the durable ledger without requiring
-live Omnigent, and returns the same redacted `UiControlSnapshot` in both JSON
-and deterministic human output. The existing CLI commands still support
-`--json`, read or write the selected `--state-root`, keep output
-`metadata_only`, and map nonzero exit code categories for argument errors,
+`control snapshot` is read-only, projects existing ledger records without
+requiring live Omnigent, and returns `UiControlSnapshot` in both JSON and
+deterministic human output. The repository does not yet connect provider
+sessions, turns, events, or approvals to ledger writers: their replay evidence
+is fixture-seeded, not a provider-to-ledger restart workflow. The existing CLI
+commands support `--json`, read or write the selected `--state-root`, target
+`metadata_only` output, and map nonzero exit code categories for argument errors,
 missing records, validation failures, policy blocks, cleanup blocks, route
 blocks, and unexpected internal failures.
 
-The current release remains alpha and local-operator focused. It is not production,
+The current release remains alpha and local operator focused. It is not production,
 not public beta, and not multi-user SaaS.
+
+The retry storm decisions and crash recovery helpers are caller-driven primitives,
+not an automatic supervisor. Durable-state recovery, content scanning, and
+exported path restrictions still have known gaps; a `metadata_only` label is
+not proof of sanitized content. See the source-grounded
+[readiness inventory](docs/hardening-readiness.md) for limits and phase owners.
 
 CS-2.2 adds an opt-in off-device coordination backend for fleet leases. The
 lease/channel contract is pinned to `@consiliency/contract@0.6.3`, the local
 backend remains available under `--state-root`, and the Supabase backend is
-enabled only when redacted coordinator credentials are provided. See
+enabled only when coordinator credentials are configured locally. Never put
+credential values in output or evidence. Local SQL tests are not hosted
+Supabase acceptance. See
 `docs/coordination-backend.md`.
 
 ## Workspace Surface
@@ -45,8 +55,11 @@ enabled only when redacted coordinator credentials are provided. See
   `identities preflight`, `worktrees list`, `worktrees cleanup`, and
   `coordination leases/inbox` commands under one local entrypoint. `control
   snapshot` replays durable state without writing records, while
-  `classify-limit` and `route-task` default to dry-run and only persist
-  metadata-only records when `--record` is passed.
+  `classify-limit` and `route-task` default to dry-run. `--record` persists
+  classification/route records; with coordination scope, `route-task --record`
+  can also acquire a lease and send inbox messages. It does not launch a
+  provider. Even dry-run routing currently opens the ledger and can rewrite
+  indexes/manifest; DATA owns nonmutating reads and COORD owns effect semantics.
 - `fixtures/cli/` carries metadata_only JSON fixtures for the operator CLI
   suites, `fixtures/ui/` carries the frozen read-model fixtures, and
   `fixtures/identity/`, `fixtures/state-ledger/`, and `fixtures/worktree/`
@@ -54,24 +67,46 @@ enabled only when redacted coordinator credentials are provided. See
 - `docs/architecture.md` and `docs/ui-read-model.md` describe the package
   boundary, `state-root` behavior, `--json` envelope contract, redaction
   posture, read-only control snapshot surface, non-goals, and the
-  `no_spec_delta` closeout decision for this phase.
+  historical `no_spec_delta` closeout decision. The readiness inventory qualifies
+  their audit-identified claims pending the assigned behavioral phases.
 
 ## Verification
 
-Run the HARDEN gate from the repo root:
+Use Node 24 and pnpm 11.1.1. From the repo root, the shared GUARD command is:
+
+```bash
+pnpm verify
+```
+
+It runs frozen install, build, lint, workspace/tooling typecheck, source-boundary
+checks, mandatory disposable PostgreSQL setup, one full root suite, and packed
+transport consumer smoke using the retained verified tarball. Local full-gate
+execution requires Docker and `psql`; missing SQL setup fails rather than skips.
+The fixture is owned and disposable, not an ambient or production database.
+
+For deterministic local tests or focused docs checks, build first:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm test -- --run packages/coordinator/src/hardening-recovery.test.ts packages/omnigent-transport/src/hardening-recovery.test.ts packages/worktree-leasing/src/hardening-recovery.test.ts packages/state-ledger/src/hardening-replay.test.ts packages/omnigent-transport/src/live-omnigent-smoke.test.ts packages/cli/src/hardening-readiness.test.ts
 pnpm build
-pnpm lint
-pnpm typecheck
 pnpm test
-find fixtures/hardening -name '*.json' -print | sort | xargs -r -n1 python3 -m json.tool >/dev/null
-phase-loop validate-roadmap specs/phase-plans-v1.md
+pnpm exec vitest run packages/cli/src/hardening-readiness.test.ts
 ```
 
-The verification gate now also checks retry storm handling, crash recovery,
-worktree locks, interrupted state-ledger replay, the skip-by-default live
-Omnigent smoke contract, and the alpha/local operator readiness language across
-README and docs.
+`pnpm test` excludes SQL-dependent cases before collection and clears inherited
+DB enablement, live opt-in, and provider credentials/routes. `pnpm test:guard`
+runs tooling falsifiers plus required SQL setup/integration cases;
+`pnpm test:integration` runs only integration cases. Both focused commands own
+a disposable fixture when run standalone, require the existing build, and are
+subsets, not substitutes for `pnpm verify`. Required DB tests cannot skip.
+
+The one permitted full-root skip is the explicitly opt-in live Omnigent case.
+`pnpm test` never enables it, even with inherited live variables; use the separate
+[live smoke invocation](docs/omnigent-live-smoke.md) after build. GUARD evidence
+stays metadata_only and does not require live provider credentials.
+
+`IF-0-HARDEN-13` is historical, not current GUARD acceptance. The external
+phase-loop command is a planning tool, not a product-gate dependency. Workflow
+wiring is not hosted CI validation: hosted runs, branch protection, integrated
+review, and phase acceptance remain pending SL-2. License choice remains
+pending PREP; GUARD does not release or change versions.
