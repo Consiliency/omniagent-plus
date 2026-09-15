@@ -9,13 +9,19 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, isAbsolute } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const packageDir = join(repoRoot, "packages/omnigent-transport");
 const scratch = mkdtempSync(join(tmpdir(), "omnigent-transport-pack-"));
 const consumer = join(scratch, "consumer");
+const args = process.argv.slice(2);
+if (args.length && (args.length !== 2 || args[0] !== "--tarball" || !args[1] || !isAbsolute(args[1]))) throw new Error("Expected --tarball <absolute-path>");
+const retained = args[1];
+const digest = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
+const beforeDigest = retained ? digest(retained) : undefined;
 
 try {
   mkdirSync(consumer);
@@ -23,19 +29,19 @@ try {
     join(consumer, "package.json"),
     JSON.stringify({ private: true, type: "module" }),
   );
-  execFileSync("pnpm", ["pack", "--pack-destination", scratch], {
+  if (!retained) execFileSync("pnpm", ["pack", "--pack-destination", scratch], {
     cwd: packageDir,
     stdio: "pipe",
   });
   const tarballName = readdirSync(scratch).find((name) => name.endsWith(".tgz"));
-  if (tarballName === undefined) {
+  if (!retained && tarballName === undefined) {
     throw new Error("pnpm pack produced no tarball");
   }
 
   execFileSync(
     "npm",
-    ["install", "--prefix", consumer, join(scratch, tarballName), "--ignore-scripts"],
-    { stdio: "pipe" },
+    ["install", "--prefix", consumer, retained ?? join(scratch, tarballName ?? ""), "--ignore-scripts"],
+    { stdio: "pipe", timeout: 15_000 },
   );
   const installedPackage = JSON.parse(
     readFileSync(
@@ -62,7 +68,7 @@ try {
       "--ignore-scripts",
       "typescript@5.9.3",
     ],
-    { stdio: "pipe" },
+    { stdio: "pipe", timeout: 15_000 },
   );
   execFileSync(
     process.execPath,
@@ -225,6 +231,7 @@ void signal;
     { cwd: consumer, stdio: "pipe" },
   );
   console.log("packed Omnigent transport smoke: OK");
+  if (retained && digest(retained) !== beforeDigest) throw new Error("Retained tarball changed during smoke");
 } finally {
   rmSync(scratch, { force: true, recursive: true });
 }
