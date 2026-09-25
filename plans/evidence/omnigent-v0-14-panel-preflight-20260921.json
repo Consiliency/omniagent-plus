@@ -1,0 +1,105 @@
+{
+  "schema": "manual_plan_panel_preflight.v1",
+  "observed_at": "2026-09-21T22:00:56.496742+00:00",
+  "plan": "plans/detailed-omnigent-v0-14-accommodation-20260921-1133.md",
+  "plan_sha256": "17da104104c8b788c7136a96c2426a8fa26696773bf60ba2a3a8ed11a055296d",
+  "runtime_version": "0.7.15",
+  "runtime_commit": "dc47379d6ebc51f7dc2b2536a930be7271d4b4df",
+  "panel_invoker_sha256": "8e0307f5bbcdb59b382d011228ff05a9491b90cfbc136d039d1846944e9ec6e2",
+  "board": {
+    "name": "code-review",
+    "purpose": "code-review",
+    "seats": [
+      {
+        "model": "grok-4.6",
+        "effort": "max",
+        "harness": "grok",
+        "lens": "adversarial",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "claude-opus-5",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gpt-6-astra",
+        "effort": "max",
+        "harness": "codex",
+        "lens": "red-team",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "monitoring_policy": "heartbeat_only",
+  "operator_authorized_substitution": {
+    "from": "claude-fable-5-1",
+    "to": "claude-opus-5",
+    "reason": "User reports Fable credit exhausted"
+  },
+  "provider_calls": 0,
+  "auth_probes": 0,
+  "review_rounds_consumed": 0,
+  "invoke_board_called": false,
+  "review_accepted": false,
+  "file_pointer_delivery_qualified": false,
+  "retained_guard_session_touched": false,
+  "follow_up_issue": "https://github.com/Consiliency/agent-harness/issues/940",
+  "follow_up_pr": "https://github.com/Consiliency/agent-harness/pull/944",
+  "status": "refused_before_dispatch",
+  "reason": "review_monitoring_unsupported_route:gemini"
+}

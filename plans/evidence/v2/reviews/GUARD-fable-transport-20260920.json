@@ -1,0 +1,45 @@
+{
+  "schema": "guard_review_transport.v1",
+  "scope": "Tiny transport-only diagnostic; no plan/code coverage or approval",
+  "candidate_base_head": "160a770c5daf86ef384f9643e844ff47d68b4cea",
+  "started_at": "2026-09-20T00:39:10.978131+00:00",
+  "finished_at": "2026-09-20T00:40:40.233276+00:00",
+  "runtime_version": "0.7.14",
+  "runtime_panel_invoker_sha256": "74ffe98271b41ccb72e59e5eb32e7a891f7e1cee32c34f9da47910f29c7d3016",
+  "private_result_sha256": "721d92668810b3d9b7d8dc3ac5612bd65fad2142fa260af4f05c399a65cfd43f",
+  "bundle_sha256": "72d776671aa8df5b3488420498904dd5a0295320985629aeed8998a8960acff2",
+  "brief_sha256": "0539d96040190a295ceebc8667d604659f2cc5af080cc5ac36d721b969fdaf19",
+  "legs": [
+    {
+      "leg": "claude",
+      "seat_key": "claude:claude-fable-5-1:max:correctness",
+      "status": "OK",
+      "usable": true,
+      "detail": null,
+      "text": "Your message contained only the pasted reviewer prompt, so I'm treating its digest-bound authoritative frame as the request: a transport-only diagnostic, no tools, no review, and no landing approval. Both frames arrived with byte counts matching their headers.\n\nDiagnostic token: FABLE-TRANSPORT-20260920\n\nAGREE",
+      "evidence": {
+        "provider_model": "claude-fable-5-1",
+        "provider_input_sha256": "b82597c24f046b59d01cbaa677cc17eb38929dfd6b51decebf2458e0526039f0",
+        "provider_input_bytes": 1412,
+        "provider_response_sha256": "cb49e2c2d8ec5d162731f341508612359256c0a9f5c24fcafa1bbf1bb0f76ca1",
+        "provider_response_bytes": 311,
+        "provider_liveness_profile": "broker_prompt_scaled_v1",
+        "provider_liveness_stall_threshold_s": 183.0,
+        "claude_transcript_sha256": "bd9db0bc24531ff6d7e1d784d023fa3d060ba9fab6736667e2634234cdfd0dbd",
+        "claude_transcript_bytes": 59107,
+        "claude_transcript_cleanup_verified": true,
+        "provider_cancel_requested": false
+      },
+      "cleanup_verified": true
+    }
+  ],
+  "runtime_unchanged": true,
+  "phase_accepted": false,
+  "new_ownership_authorized": false,
+  "produced_if_gates": [],
+  "manual_signals_sent": false,
+  "model_substitution": false,
+  "runtime_modified": false,
+  "automatic_retry": false,
+  "diagnostic_only": true
+}

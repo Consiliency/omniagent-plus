@@ -1,0 +1,297 @@
+{
+  "schema": "manual_fable_file_review.v1",
+  "candidate_base_head": "160a770c5daf86ef384f9643e844ff47d68b4cea",
+  "plan_sha256": "0fe1020f36db66c1e99902e89281f2e6dd80676bd3a946aec63ab6a1cef50036",
+  "started_at": "2026-09-20T01:30:54.064167+00:00",
+  "finished_at": "2026-09-20T01:35:31.281452+00:00",
+  "prompt_bytes": 347,
+  "prompt_sha256": "fb8bddad37a25111aec088dc5de9814af264c210404ea6fb2a8cf42a356e8f71",
+  "runtime_panel_invoker_sha256": "74ffe98271b41ccb72e59e5eb32e7a891f7e1cee32c34f9da47910f29c7d3016",
+  "runtime_modified": false,
+  "route": "native subscription self-PTY; frozen snapshot; Read only",
+  "governed_board_receipt": false,
+  "phase_accepted": false,
+  "model": "claude-fable-5-1",
+  "effort": "max",
+  "model_substitution": false,
+  "read_calls": [
+    {
+      "id": "toolu_01CjQ7rPj4jvpKGTtRLND4Ft",
+      "name": "Read",
+      "file": "REVIEW.md"
+    },
+    {
+      "id": "toolu_01SrZVHW7NLKxXyGp5fTzZHC",
+      "name": "Read",
+      "file": "manifest.json"
+    },
+    {
+      "id": "toolu_01A2BcaTHYWVFMsoAjLHG1rw",
+      "name": "Read",
+      "file": "read-canary.txt"
+    },
+    {
+      "id": "toolu_017qZ2aARW4XVhL45szNUjh8",
+      "name": "Read",
+      "file": "plans/phase-plan-v2-GUARD.md"
+    },
+    {
+      "id": "toolu_011m1QxjRnpSKxEddNosWF9Z",
+      "name": "Read",
+      "file": "specs/phase-plans-v2.md"
+    },
+    {
+      "id": "toolu_01PTKGQveco5shSCY24XWDzR",
+      "name": "Read",
+      "file": "tests/helpers/guard-process.ts"
+    },
+    {
+      "id": "toolu_013JVYfKfmQgytHs84EKvwG1",
+      "name": "Read",
+      "file": "scripts/verify.mjs"
+    },
+    {
+      "id": "toolu_019o4Kw1gCUQP4BcRUeppJUt",
+      "name": "Read",
+      "file": "scripts/prepare-test-postgres.mjs"
+    },
+    {
+      "id": "toolu_01US34Vr8sqc7X1feKg65eSq",
+      "name": "Read",
+      "file": "tests/guard/orchestration.test.ts"
+    },
+    {
+      "id": "toolu_01WXNiUEh6sFgwSHLEH4McFi",
+      "name": "Read",
+      "file": "tests/guard/fixture.setup.db.test.ts"
+    },
+    {
+      "id": "toolu_01BoLaKCLrbvtXv5m5j1VH2c",
+      "name": "Read",
+      "file": "tests/guard/required-cases.json"
+    },
+    {
+      "id": "toolu_01SAi5F2GaaU6mAoyyQraP6D",
+      "name": "Read",
+      "file": "packages/state-ledger/src/cross-process.test.ts"
+    },
+    {
+      "id": "toolu_016Xdy4JvxgXzvbnML1Y8yti",
+      "name": "Read",
+      "file": "packages/worktree-leasing/src/locks.test.ts"
+    },
+    {
+      "id": "toolu_0118EzgcnXwRsmxrBN2Uo25G",
+      "name": "Read",
+      "file": "packages/worktree-leasing/src/race-proof.test.ts"
+    },
+    {
+      "id": "toolu_019Rs1168jxYAfY3MbJGFLnB",
+      "name": "Read",
+      "file": "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+    }
+  ],
+  "read_results": [
+    {
+      "id": "toolu_01CjQ7rPj4jvpKGTtRLND4Ft",
+      "error": false
+    },
+    {
+      "id": "toolu_01SrZVHW7NLKxXyGp5fTzZHC",
+      "error": false
+    },
+    {
+      "id": "toolu_01A2BcaTHYWVFMsoAjLHG1rw",
+      "error": false
+    },
+    {
+      "id": "toolu_017qZ2aARW4XVhL45szNUjh8",
+      "error": false
+    },
+    {
+      "id": "toolu_011m1QxjRnpSKxEddNosWF9Z",
+      "error": false
+    },
+    {
+      "id": "toolu_01PTKGQveco5shSCY24XWDzR",
+      "error": false
+    },
+    {
+      "id": "toolu_013JVYfKfmQgytHs84EKvwG1",
+      "error": false
+    },
+    {
+      "id": "toolu_019o4Kw1gCUQP4BcRUeppJUt",
+      "error": false
+    },
+    {
+      "id": "toolu_01US34Vr8sqc7X1feKg65eSq",
+      "error": false
+    },
+    {
+      "id": "toolu_01WXNiUEh6sFgwSHLEH4McFi",
+      "error": false
+    },
+    {
+      "id": "toolu_01BoLaKCLrbvtXv5m5j1VH2c",
+      "error": false
+    },
+    {
+      "id": "toolu_01SAi5F2GaaU6mAoyyQraP6D",
+      "error": false
+    },
+    {
+      "id": "toolu_016Xdy4JvxgXzvbnML1Y8yti",
+      "error": false
+    },
+    {
+      "id": "toolu_0118EzgcnXwRsmxrBN2Uo25G",
+      "error": false
+    },
+    {
+      "id": "toolu_019Rs1168jxYAfY3MbJGFLnB",
+      "error": false
+    }
+  ],
+  "file_coverage": [
+    {
+      "file": "REVIEW.md",
+      "start_line": 1,
+      "lines": 27,
+      "total_lines": 27
+    },
+    {
+      "file": "manifest.json",
+      "start_line": 1,
+      "lines": 15,
+      "total_lines": 15
+    },
+    {
+      "file": "read-canary.txt",
+      "start_line": 1,
+      "lines": 2,
+      "total_lines": 2
+    },
+    {
+      "file": "plans/phase-plan-v2-GUARD.md",
+      "start_line": 1,
+      "lines": 859,
+      "total_lines": 859
+    },
+    {
+      "file": "specs/phase-plans-v2.md",
+      "start_line": 1,
+      "lines": 492,
+      "total_lines": 492
+    },
+    {
+      "file": "tests/helpers/guard-process.ts",
+      "start_line": 1,
+      "lines": 222,
+      "total_lines": 222
+    },
+    {
+      "file": "scripts/verify.mjs",
+      "start_line": 1,
+      "lines": 116,
+      "total_lines": 116
+    },
+    {
+      "file": "scripts/prepare-test-postgres.mjs",
+      "start_line": 1,
+      "lines": 146,
+      "total_lines": 146
+    },
+    {
+      "file": "tests/guard/orchestration.test.ts",
+      "start_line": 1,
+      "lines": 142,
+      "total_lines": 142
+    },
+    {
+      "file": "tests/guard/fixture.setup.db.test.ts",
+      "start_line": 1,
+      "lines": 115,
+      "total_lines": 115
+    },
+    {
+      "file": "tests/guard/required-cases.json",
+      "start_line": 1,
+      "lines": 6,
+      "total_lines": 6
+    },
+    {
+      "file": "packages/state-ledger/src/cross-process.test.ts",
+      "start_line": 1,
+      "lines": 131,
+      "total_lines": 131
+    },
+    {
+      "file": "packages/worktree-leasing/src/locks.test.ts",
+      "start_line": 1,
+      "lines": 132,
+      "total_lines": 132
+    },
+    {
+      "file": "packages/worktree-leasing/src/race-proof.test.ts",
+      "start_line": 1,
+      "lines": 181,
+      "total_lines": 181
+    },
+    {
+      "file": "packages/worktree-leasing/src/supabase-lease-store.test.ts",
+      "start_line": 1,
+      "lines": 312,
+      "total_lines": 312
+    }
+  ],
+  "visible_assistant_text": [
+    {
+      "timestamp": "2026-09-20T01:31:10.814Z",
+      "stop_reason": "tool_use",
+      "synthetic": false,
+      "text": "I'll open REVIEW.md in the snapshot directory, then read each frozen file it names and produce the review."
+    },
+    {
+      "timestamp": "2026-09-20T01:31:15.362Z",
+      "stop_reason": "tool_use",
+      "synthetic": false,
+      "text": "Next I need the manifest, the canary, the full GUARD plan, and the GUARD section of the spec. None depend on each other, so I'll read them together."
+    },
+    {
+      "timestamp": "2026-09-20T01:36:33.941Z",
+      "stop_reason": "stop_sequence",
+      "synthetic": true,
+      "text": "No response requested."
+    }
+  ],
+  "hidden_thinking_exported": false,
+  "returncode": 1,
+  "reason": "claude_tui_stalled",
+  "adapter_usable": false,
+  "snapshot_unchanged": true,
+  "source_inputs_unchanged": true,
+  "runtime_unchanged": true,
+  "transcript_retained": true,
+  "transcript_sha256": "c08571a6b882e9c67b252dcc23588e0cbbae84eae19b857eeda847498eceefb1",
+  "transcript_bytes": 466080,
+  "session_path_correction": {
+    "cause": "Installed project-dir helper preserved dot; Claude 2.1.278 replaces dot with hyphen",
+    "exact_uuid_preserved": true,
+    "alias_to_native_file": true,
+    "raw_transcript_edited": false,
+    "original_helper_path_sha256": "1df87812bd2e90a1c56dd6fa9853c43bd3b41b4aa682e57032ef2e09a196d0a8",
+    "actual_native_path_sha256": "d95f909ef553ac48c002e1c78793d3483e22c961b07e7eb0cc50c37e37644c20"
+  },
+  "same_session_nudge": {
+    "started_at": "2026-09-20T01:36:33.360213+00:00",
+    "finished_at": "2026-09-20T01:39:44.448299+00:00",
+    "prompt_bytes": 406,
+    "prompt_sha256": "43ab8765067d2a6a04ab26ff8f5b3eda9694415d223e6d4439557022f2caef2f",
+    "reason": "claude_tui_stalled",
+    "usable": false,
+    "prior_prefix_unchanged": true
+  },
+  "reconciliation": "File-pointer delivery proven; no usable review verdict recovered; no phase acceptance",
+  "nudge_reader_limit": "Native paste wrapper prevents the driver exact-string prompt match; independently inspect structured post-nudge text before concluding no verdict"
+}

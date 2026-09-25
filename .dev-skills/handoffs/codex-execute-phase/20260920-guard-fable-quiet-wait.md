@@ -1,42 +1,20 @@
 ---
-from: codex-plan-phase
-timestamp: 2026-09-21T04:55:00Z
+from: codex-execute-phase
+timestamp: 2026-09-20T22:15:00Z
 repo: omniagent-plus
 repo_root: /mnt/workspace/worktrees/omniagent-plus-v2-guard-20260912
 branch: codex/v2-guard-20260912
 branch_slug: codex-v2-guard-20260912
 commit: 160a770c5daf86ef384f9643e844ff47d68b4cea
-run_id: 20260921-guard-track-ah926
+run_id: 20260920-guard-fable-quiet-wait
 artifact: plans/phase-plan-v2-GUARD.md
 artifact_state: staged
 next_skill: codex-advisor-panel
-next_command: Check agent-harness#926 for a tested fix and real startup receipt; no duplicate local diagnosis or automatic provider retry
+next_command: Diagnose the native startup refusal while preserving the retained session and current policies
 next_phase: GUARD
 ---
 
-# Track Agent Harness Startup Fix
-
-The operator approved consolidating the existing evidence on agent-harness#926.
-Consumer observation: https://github.com/Consiliency/agent-harness/issues/926#issuecomment-5755586262 .
-The issue was OPEN with no linked fix identified at the current check. Our
-retained-session failure matches its typed symptom, not a proven root cause;
-its fresh-directory reproduction used a different runtime pin.
-
-Stop duplicate local diagnosis and automatic Fable retries. Preserve the exact
-session, snapshot and staged plan. At the next continuation, check this issue
-for a tested commit/installable artifact plus a real single-Claude startup
-receipt. Qualify any candidate fix and its preserved trust/isolation boundaries
-before another review attempt; issue closure alone is not acceptance.
-No model substitution or blanket trust bypass. Post-read liveness on
-agent-harness#734 and draft heartbeat repair agent-harness#908 remain separate.
-This is a review-tooling dependency, not an omniagent-plus product dependency.
-
-No provider invocation, runtime installation, tests or implementation edits in
-this tracking-only step. The earlier 10 reader tests and upstream checks below
-are September 20 evidence, not rerun results. Public issue status is synchronized;
-local handoffs/manifest/evidence remain staged, not committed or pushed.
-
-## Preserved September 20 Checkpoint
+# Fable Continuation and Upstream Check
 
 Current plan SHA256:
 `0fe1020f36db66c1e99902e89281f2e6dd80676bd3a946aec63ab6a1cef50036`.
@@ -97,9 +75,9 @@ automation:
   terminal_status: blocked
   human_required: false
   blocker_class: reviewer_transport_incomplete
-  blocker_summary: Waiting for a tested agent-harness#926 startup fix; duplicate local diagnosis paused
+  blocker_summary: Retained-session continuation stopped at workspace trust before prompt delivery
   next_skill: codex-advisor-panel
-  next_command: Check agent-harness#926 for tested startup recovery before any retained-session retry
+  next_command: Diagnose native TUI startup with sanitized terminal-tail retention; preserve session and policies; no blind review retry
   next_phase: GUARD
   verification_status: reader_tests_pass_startup_refusal_no_review
   artifact_state: staged

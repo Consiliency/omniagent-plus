@@ -1,0 +1,139 @@
+{
+  "schema": "guard_review_transport.v1",
+  "scope": "Full plan consistency and executability; no source-code coverage or merge acceptance",
+  "candidate_base_head": "160a770c5daf86ef384f9643e844ff47d68b4cea",
+  "started_at": "2026-09-20T00:42:42.788580+00:00",
+  "finished_at": "2026-09-20T00:47:59.305501+00:00",
+  "runtime_version": "0.7.14",
+  "runtime_panel_invoker_sha256": "74ffe98271b41ccb72e59e5eb32e7a891f7e1cee32c34f9da47910f29c7d3016",
+  "private_result_sha256": "83696ac02a379f6a42e5b2a833c4482f8f09c82b2adc0233dd95164bede3465c",
+  "bundle_sha256": "39719a37fca9213f0c76066600aafa1bc726ef9a810a84f9e6ea62c2d2a2e75c",
+  "brief_sha256": "b3128de9a4a6190937947e7038ffc0e0ddb13484bffa9264d5c722eaf0b36651",
+  "legs": [
+    {
+      "leg": "grok",
+      "seat_key": "grok:grok-4.6:max:adversarial",
+      "status": "OK",
+      "usable": true,
+      "detail": null,
+      "text": "Coverage: the supplied plan is complete through **END-FULL-PLAN-GUARD-R5** (context, IF-0-GUARD-2, SL-0/1/2, process-custody amendment, execution notes, verification, EC-GUARD-1/2/3, spec closeout). No source files or prior votes were inspected. Linux-only verification, unchanged product portability, and frozen numeric budgets are consistent with the recorded maintainer decision. Polling is stated broken; the replacement is unimplemented. Findings are plan-contract issues only.\n\n**Already assigned implementation falsifiers (not plan defects):** 100 immediate-exit trials, double-fork/new-session, probe reaping, pidfd identity, clock-origin handshake, descriptor-leak, subreaper/pidfd/children-file admission, nested deadlines, buffered ADMIT, hostile env, and hosted CI. Those remain later proofs, not present evidence.\n\n**What is coherent:** sole-parent Python subreaper; Node never sibling-execs the payload; probe teardown inside admission/forced-drain with `not_started` plus failed custody if unreaped; signal-mask restore before exec; owner-built ADMIT env with no ambient/Python re-filter; root reservation validated before arming/Docker; separate lifecycle vs control/status with per-direction sequences; local `WORK_DRAINED` from owned ordinary children, not from the enclosing supervisor; cooperative RESULT due at a supervisor-published cutoff, forced ordinary drain at 500 ms + 2 s. EC-GUARD-3 stays aligned (tooling helper only; no product supervisor).\n\n**Remaining contradictions**\n\n1. **Owner ADMIT write vs supervisor-validated ADMIT.** After enqueue, the owner \u201cmust drain\u201d; the supervisor may still reject a buffered ADMIT on pre-validation EOF/INT/TERM and emit `not_started`. Counterexample: owner finishes the ADMIT write, EOF arrives before read, owner waits started-and-drain while RESULT is successful `not_started`. **Remedy:** supervisor-validated ADMIT is the only admission event. A completed write without validation is protocol failure/unproven, never successful `not_started` cleanup.\n\n2. **Forced vs cooperative under nesting.** Forced drain requires TERM, 500 ms escalate, 2 s quiescence and no extra callback time; post-admission OS INT/TERM to the supervisor is cooperative FORWARD, and a cooperative launcher may run until 22.5/57.5 s. Counterexample: outer forced drain TERMs a nested Node launcher; the inner path treats TERM as cooperative and outlives the outer bound. SHUTDOWN also carries \u201cimmutable\u201d deadlines while the supervisor later `min(ceiling, now+E)`, so two selectors exist. **Remedy:** Node FORWARD = cooperative; parent forced SHUTDOWN, controller EOF, and OS TERM from an owning subreaper = forced `DRAIN_NOTICE` using the frozen 500 ms+2 s window. Owner SHUTDOWN carries mode/epoch only; the first supervisor transition is the unique cutoff on both channels.\n\n3. **Superseded group/poll text.** SL-0 still says `detached:true` and group kills; the amendment forbids PGID/raw-PID fallback. **Remedy:** void that path for every SL-0 guarded launch.\n\n4. **`WORK_DRAINED` / EC-GUARD-2 mapping.** Frame direction is not frozen; `pnpm test:integration` cannot prove orphan/escape, and `process.test.ts` is not a required `test:guard` ID. **Remedy:** freeze `WORK_DRAINED` as child-supervisor\u2192owner status (not a lifecycle success token) and name the orphan/escape controls as `test:guard` required tooling IDs.\n\nNo larger budgets or product-runtime work are required.\n\nPARTIALLY AGREE\n",
+      "evidence": {
+        "provider_model": "grok-4.6",
+        "provider_input_sha256": "b61622e0f8d907c1f24164c342ad9913c6364e58370184c049da6c7e2377b130",
+        "provider_input_bytes": 60463,
+        "provider_response_sha256": "df5a76ff2cfef7a278d49d99200c0c77d665ef862242b8df89960cfef2feafe5",
+        "provider_response_bytes": 3452,
+        "provider_cancel_requested": false
+      },
+      "cleanup_verified": true
+    },
+    {
+      "leg": "claude",
+      "seat_key": "claude:claude-fable-5-1:max:correctness",
+      "status": "DEGRADED",
+      "usable": false,
+      "detail": null,
+      "text": "",
+      "evidence": {
+        "provider_model": "claude-fable-5-1",
+        "provider_input_sha256": "b61622e0f8d907c1f24164c342ad9913c6364e58370184c049da6c7e2377b130",
+        "provider_input_bytes": 60463,
+        "provider_response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provider_response_bytes": 0,
+        "provider_liveness_profile": "broker_prompt_scaled_v1",
+        "provider_liveness_stall_threshold_s": 299.0,
+        "claude_transcript_sha256": "57b8ce4bd0d77b7fe104403b51b7f2119f67d9f469cc1b59a779247c84e3e0b2",
+        "claude_transcript_bytes": 78902,
+        "claude_transcript_cleanup_verified": true,
+        "provider_cancel_requested": false
+      },
+      "cleanup_verified": true
+    },
+    {
+      "leg": "codex",
+      "seat_key": "codex:gpt-6-astra:max:red-team",
+      "status": "OK",
+      "usable": true,
+      "detail": null,
+      "text": "Reviewed the complete inline plan through **END-FULL-PLAN-GUARD-R5**. This assessment uses only the supplied plan; no source inspection or prior-vote validation is claimed.\n\nI identify no remaining plan-level contradiction requiring a counterexample and remedy. The amendment coherently specifies:\n\n- Sole-parent subreaper custody, serialized reaping, pidfd identity checks, and capability-probe cleanup before successful admission cleanup.\n- Child signal restoration and explicit scrubbed environments that preserve declared synthetic inputs and fixture-worker boundaries.\n- Root reservations before arming or resource effects, separate lifecycle/control/status channels, and independent per-channel sequences.\n- Supervisor-selected, immutable monotonic completion cutoffs and local ordinary-child drain proofs before resource callbacks.\n\nThe deadline contracts distinguish cooperative completion from forced teardown. Ordinary/forced draining includes final protocol completion within the existing escalation window. Cooperative launchers use their selected, funded completion cutoff; explicit forced close/abort and controller EOF cannot renew cooperative allowances. The stated reservation arithmetic is consistent.\n\nThese contracts remain compatible with EC-GUARD-1/2/3: failures propagate, cleanup uncertainty cannot become successful custody evidence, and verification tooling does not justify product-supervision claims. Last-keeper loss or exhaustion may leave work alive, but the plan explicitly requires failure/unproven reporting and excludes outer rescue from proof of the failed inner keeper.\n\nThe immediate-orphan, clone/thread, signal-restoration, environment, descriptor, admission-interleaving, deadline, and delayed-Docker controls are **already assigned implementation-proof requirements**, not missing plan work. Their eventual results must establish behavior; neither this review nor the declared contracts establish implementation acceptance.\n\nThe wider gate, SQL admission, artifact binding, serial ownership, readiness documentation, and closeout requirements remain consistent with the amendment. Linux-only verification leaves published portability and frozen budgets unchanged.\n\nAGREE",
+      "evidence": {
+        "provider_model": "gpt-6-astra",
+        "provider_input_sha256": "b61622e0f8d907c1f24164c342ad9913c6364e58370184c049da6c7e2377b130",
+        "provider_input_bytes": 60463,
+        "provider_response_sha256": "c7c5738c8ef636baee6ce911eeaecbc013603fb070bc6be8e6e12c2f5425c8e2",
+        "provider_response_bytes": 2212,
+        "provider_cancel_requested": false
+      },
+      "cleanup_verified": true
+    },
+    {
+      "leg": "gemini",
+      "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach",
+      "status": "OK",
+      "usable": true,
+      "detail": null,
+      "text": "### Plan Review: GUARD Phase Plan (Process-Custody Amendment)\n\n#### 1. Plan Coverage Confirmation\nFull plan coverage is confirmed through the terminal marker `END-FULL-PLAN-GUARD-R5`. No sections or lines were truncated or omitted from the review scope.\n\n#### 2. Process-Custody Contract Validation\nThe amended process-custody specification establishes an internally consistent, closed-loop contract resolving prior polling escapes without introducing circular dependencies or unbudgeted grace:\n\n- **Sole-Parent Custody & Identity**: The unprivileged Python supervisor (`-I -S -B`) acts as the sole direct fork/exec parent of the payload and Linux subreaper (`PR_SET_CHILD_SUBREAPER`). Process signaling strictly uses verified `pidfd`s and direct/adopted kernel-reparented relationships, with immediate `__WALL` reaping of zombies. It explicitly eliminates raw-PID/PGID fallback and ambient polling.\n- **Admission & Probe Reaping**: Admission linearizes through dedicated control/status descriptors via `READY`/`ADMIT`. Pre-admission abort/interrupt latches cancellation, suppresses payload execution, reaps capability probe children under `__WALL`, verifies quiescence within the admission budget, and emits typed `not_started`.\n- **Signal Restoration**: The supervisor explicitly resets blocked signal masks and restores default dispositions (specifically including `SIGPIPE`, `SIGINT`, `SIGTERM`) before payload `exec`, preventing keeper handler leakage.\n- **Explicit Environments**: Environment construction is strictly owner-side from `cleanEnvironment` plus literal test variables or admitted fixture credentials. Wholesale `process.env` inheritance, ambient variable reads, and prefix allowlists are eliminated.\n- **Root Reservation Before Arming**: Standalone root `ProcessScope` instances declare and validate absolute shutdown allowances prior to arming or external container interaction, failing closed before resource creation if unfunded.\n- **Separate Lifecycle Channels & Sequences**: Cooperative payloads communicate via a dedicated, launch-owned lifecycle channel (`BEGIN_DRAIN` / `DRAIN_NOTICE`) completely decoupled from owner control/status pipes. Sequence numbering is strictly per-channel and per-direction starting at zero.\n- **Immutable Deadlines**: Deadlines use single-domain `CLOCK_MONOTONIC` integer nanosecond strings synchronized during capability handshake, eliminating wall-clock skew and deadline renewal.\n- **Local Ordinary-Child Drain Proof**: The cooperative payload's `ProcessScope` aggregates `WORK_DRAINED` / `RESULT` solely across its own owned child supervisors. It avoids circularity by not awaiting an enclosing supervisor's `WORK_DRAINED` prior to executing bounded cleanup callbacks.\n- **Forced vs. Cooperative Teardown**: Teardown distinguishes forwarded signals (`FORWARD` with cooperatively selected drain deadlines derived from declared reservation limits `E`) from forced abort/EOF (escalating at 500 ms with a 2-second hard quiescence bound).\n\n#### 3. Consistency with EC-GUARD-1/2/3\nNo contradictions exist with declared freeze gates or exit criteria:\n- **EC-GUARD-1**: Preserved via single entrypoint `pnpm verify`, digest-pinned tarball manifest verification, and tamper falsifiers.\n- **EC-GUARD-2**: Supported by deterministic capability checks, immediate-exit orphan tests, strict non-zero exit handling, and container cleanup tracking.\n- **EC-GUARD-3**: Aligned by scoping readiness claims to documented primitives and excluding automatic supervisor claims from product runtime.\n\nAll stated mechanisms represent valid proposed behavioral contracts whose enforcement is assigned to forthcoming implementation falsifiers.\n\nAGREE\n",
+      "evidence": {
+        "provider_model": "gemini-3.8-flash-high",
+        "provider_input_sha256": "b61622e0f8d907c1f24164c342ad9913c6364e58370184c049da6c7e2377b130",
+        "provider_input_bytes": 60463,
+        "provider_response_sha256": "ca751cfe82fc8635b5d22bad5ac8e0318ecdda48065df9aa697520c6f1a308a1",
+        "provider_response_bytes": 3683,
+        "provider_cancel_requested": false
+      },
+      "cleanup_verified": true
+    }
+  ],
+  "runtime_unchanged": true,
+  "phase_accepted": false,
+  "new_ownership_authorized": false,
+  "produced_if_gates": [],
+  "manual_signals_sent": false,
+  "model_substitution": false,
+  "runtime_modified": false,
+  "automatic_retry": false,
+  "plan_sha256": "f722e598cfbc00afab8383036c9edf3c5ea00c9e8a7d6b6ff9de13e5578bb453",
+  "plan_unchanged": true,
+  "head_unchanged": true,
+  "post_review_plan_sha256": "0fe1020f36db66c1e99902e89281f2e6dd80676bd3a946aec63ab6a1cef50036",
+  "post_review_plan_accepted": false,
+  "reconciliation": {
+    "codex_gemini": "AGREE on reviewed f722e598 only; no transfer to revised bytes",
+    "grok_coverage": "Explicit full-plan coverage; no contradictory truncation or source-inspection claim",
+    "grok_admission": "Reject blanket unproven remedy: owner authorization is not execution proof; validated not_started plus probe quiescence can establish canceled admission. Clarified owner reduction against validated protocol.",
+    "grok_nested_force": "Clarified that outer forced deadlines cannot be extended by inner cooperative TERM handling. Do not classify authority from signal sender identity; retain owned ancestor/adoption constraints and add the exact nesting falsifier.",
+    "grok_deadline_authority": "SHUTDOWN deadline fields are immutable upper bounds; supervisor alone selects the effective cutoff, never later than those bounds or its applicable budget.",
+    "grok_historical_group_text": "Already explicitly superseded; removed historical imperative wording to avoid implementation ambiguity.",
+    "grok_work_drained": "Clarified child-supervisor-to-owner status direction; never a lifecycle token or replacement for final RESULT.",
+    "grok_required_controls": "Confirmed required-cases manifest and checkResults cover only DB cases today. Plan now mandates four exact-file custody IDs for verify/test:guard, with suppression and wrong-file controls; integration remains DB-only."
+  },
+  "fable_diagnosis": {
+    "reason": "claude_tui_stalled",
+    "elapsed_s": 315.5,
+    "last_progress_age_s": 299.4,
+    "tiny_probe_succeeded": true,
+    "root_cause_proven": false,
+    "further_automatic_retry": false,
+    "opus_substitution": "operator choice requested; not executed"
+  },
+  "verification": {
+    "dispatch_hint_validation": "passed",
+    "runtime_tests": "not_run_planning_only",
+    "push": false,
+    "merge": false,
+    "publication": false
+  },
+  "direct_observation": {
+    "observed_at": "2026-09-20T00:43:32.308Z",
+    "observations": 1,
+    "session_path_sha256": "630ef9fbb8317e55e1e58a58431a5e852dd0e8983fb4273cd77e6de8b467887a",
+    "transcript_sha256": "ca37907a98b81bdf3a4e44093d4d3e1f4110fbe3bdb3a013ab7bf82a78152695",
+    "transcript_bytes": 78405,
+    "assistant_text_blocks": [],
+    "retained_thinking": false,
+    "review_accepted": false,
+    "manual_signals_sent": false
+  },
+  "direct_observation_matches_cleanup": false,
+  "observation_limit": "The last sampled transcript predates cleanup and is not the final transcript. It contained no assistant text; independently the native final response is empty. No claim of inspecting every final event."
+}

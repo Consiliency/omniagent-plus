@@ -1,0 +1,50 @@
+{
+  "schema": "guard_plan_review_receipt.v1",
+  "date_utc": "2026-09-24",
+  "plan": "plans/phase-plan-v2-GUARD.md",
+  "plan_sha256": "d7e3cf7b111ae9f95e7a15e0a3176bd6d8a8e9bde4af1ca702b8bc26a38a45e4",
+  "runtime_source_sha": "3ed2b43b6062bffd7cac1a3ca15828034ebdd38a",
+  "runtime_release_status": "unreleased_source; published_version_v0.7.16",
+  "board_invocation": "ce29e35d68d6434eb1c05212171c7fc2",
+  "monitoring_policy": "heartbeat_only",
+  "gemini_image_sha256": "1dbb10f8295cc1ad2e558bd006c7808fe53b6c7f678a887eb557b576bb591711",
+  "seats": [
+    {
+      "model": "grok-4.7",
+      "status": "OK",
+      "verdict": "AGREE",
+      "file": "GUARD-plan-r9-grok.verdict.json",
+      "file_sha256": "55ca1c8b43a65f125eed2be06a9c36af8e5befbfd08e1b6ed67940ed469cdd42"
+    },
+    {
+      "model": "claude-opus-5-5",
+      "status": "OK",
+      "verdict": "PARTIALLY AGREE",
+      "file": "GUARD-plan-r9-opus.verdict.json",
+      "file_sha256": "08f3be53a2c380a6c4e17bd3135f7e3b62b25968b8b3d1e04a1d122dbdf9f8cd"
+    },
+    {
+      "model": "gpt-6-astra",
+      "status": "OK",
+      "verdict": "AGREE",
+      "file": "GUARD-plan-r9-astra.verdict.json",
+      "file_sha256": "ab71f756303b59951c2b52b139a3eb5d03711e170bae570ffe6ed16b270934e5"
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "status": "OK",
+      "verdict": "AGREE",
+      "file": "GUARD-plan-r9-gemini.verdict.json",
+      "file_sha256": "c4d42d3b114cc14dcec4926ec38476580e1ec4331063d907c3a087f63dbd5bb0"
+    }
+  ],
+  "conclusion": "not_approved",
+  "blocking_findings": [
+    "B1: required adoption cases can pass without proving pre-exit detection or passive post-exit waiting",
+    "B2: work cutoff versus shutdown ceiling is ambiguous and local fixture-owning entrypoints lack frozen root lifetimes",
+    "B3: every-run hosted non-loopback refusal evidence is recorded but not an admission gate"
+  ],
+  "route_provenance": "incomplete; stable per-seat CLI metadata and transcript digests not retained",
+  "source_acceptance": false,
+  "merge_authorized": false
+}
