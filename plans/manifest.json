@@ -1,6 +1,43 @@
 {
   "plans": [
     {
+      "acceptance_criteria_count": 11,
+      "account_switching_retirement_authorized": false,
+      "artifact_state": "untracked",
+      "created_at": "2026-09-22T16:31:20.398706+00:00",
+      "execution_authorized": false,
+      "file": "plans/cliproxyapi-evaluation-20260922.md",
+      "git_committed": false,
+      "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/cliproxyapi-evaluation-20260922.md",
+      "if_gates_produced": [],
+      "lanes": [],
+      "lifecycle": [
+        {
+          "at": "2026-09-22T16:31:20.398706+00:00",
+          "by": "codex-plan-detailed",
+          "metadata": {
+            "artifact": "plans/cliproxyapi-evaluation-20260922.md",
+            "git_committed": false
+          },
+          "transition": "committed"
+        }
+      ],
+      "live_credential_canary_authorized": false,
+      "owner_skill": "codex-plan-detailed",
+      "parallel_research_only": true,
+      "phase_alias": null,
+      "plan_sha256": "735e1fbd862360c7bcc99976b8ffa6f94a833afb6656a1bead13ad36eac1f313",
+      "publication_authorized": false,
+      "reflection_ref": null,
+      "review_status": "parent_reconciled_not_panel_reviewed",
+      "roadmap_ref": null,
+      "slug": "cliproxyapi-evaluation-20260922",
+      "status": "committed",
+      "task_summary": "Evaluate CLIProxyAPI without retiring existing account switching.",
+      "type": "detailed",
+      "updated_at": "2026-09-22T16:31:20.398706+00:00"
+    },
+    {
       "acceptance_criteria_count": 10,
       "created_at": "2026-07-08T20:55:13Z",
       "file": "plans/detailed-cs-2-2-off-device-lease-coordinator-20260708-205513.md",
@@ -87,8 +124,8 @@
             "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
             "publication_effects": "none",
             "publication_transaction": "abandoned_before_admission",
-            "review_reconciliation_path": ".dev-skills/handoffs/codex-advisor-board/20260903T164731Z-omnigent-v012-exact-head-reconciliation.md",
             "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/fcd59ee9/codex-omnigent-v0-12/20260903T061405Z-omnigent-v012-execution.md",
+            "review_reconciliation_path": ".dev-skills/handoffs/codex-advisor-board/20260903T164731Z-omnigent-v012-exact-head-reconciliation.md",
             "run_id": "20260903T061405Z-omnigent-v012-execution",
             "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260903T163441Z-omnigent-v012-verification.md",
             "verification_status": "blocked_after_all_executable_checks_passed"
@@ -112,8 +149,8 @@
             "plan_sha256": "02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7",
             "pr_url": "https://github.com/Consiliency/omniagent-plus/pull/17",
             "publication_status": "published_to_pr_via_authenticated_fabpub",
-            "reviewed_implementation_head": "744468b872e4871390807152ce785f458e42271c",
             "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-detailed/reflections/fcd59ee9/codex-omnigent-v0-12/20260903T061405Z-omnigent-v012-execution.md",
+            "reviewed_implementation_head": "744468b872e4871390807152ce785f458e42271c",
             "run_id": "20260903T061405Z-omnigent-v012-execution",
             "verification_artifact_path": ".dev-skills/handoffs/codex-execute-detailed/20260903T163441Z-omnigent-v012-verification.md",
             "verification_status": "passed"
