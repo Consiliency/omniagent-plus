@@ -46,11 +46,23 @@ It is research evidence, not executor acceptance evidence.
 | [GitHub target release](https://api.github.com/repos/omnigent-ai/omnigent/releases/tags/v0.15.0) | HTTP 404; tagged CHANGELOG's first release section is also v0.14.0 |
 | [npm transport metadata](https://registry.npmjs.org/@consiliency%2Fomnigent-transport) | `latest=0.7.0`; candidate 0.8.0 unoccupied at capture, not reserved |
 
-Package publication plus the matching stable source tag are the proposed target
-authority despite absent GitHub release notes. Do not describe the old release
-body or CHANGELOG as v0.15 notes. Distribution hashes above are registry-reported;
+At the September 22 capture, package publication plus the matching stable
+source tag established the proposed target despite absent GitHub release notes.
+The table preserves that dated observation rather than rewriting its evidence.
+Distribution hashes above are registry-reported;
 wheel/sdist bytes were not downloaded or executed and wheel-to-tag equivalence
 was not established. Unreleased `main` is neither target nor evidence of release.
+
+Release-status addendum, checked 2026-09-28: the [formal v0.15.0 GitHub
+release](https://github.com/omnigent-ai/omnigent/releases/tag/v0.15.0) was
+published on 2026-09-24 and points to the same `c8b9b85f822f2c9203ff995c10f3cc49d064bbe5`
+tag commit used for the contract inventory. GitHub now marks it latest; PyPI
+still lists 0.15.0 as the stable release. The release notes describe upstream
+product behavior, but do not replace tagged OpenAPI/source or local behavioral
+tests as transport compatibility evidence. This addendum changes release
+authority only: the target tag, contract delta, ownership prerequisites,
+acceptance cases and current v0.12 support claim remain unchanged. Recheck
+release and registry state at execution as prerequisite 3 requires.
 
 | Tagged OpenAPI | Commit | SHA256 | Paths / operations / schemas / events |
 | --- | --- | --- | --- |
@@ -488,7 +500,7 @@ automation:
 New required work beyond v0.14: deleted-cursor recovery, target-versus-legacy
 event inventory, removed snapshot skills fields, and the additive response/error
 contract regressions. Preserve notice/identity/passive-event fixes in full.
-The published target is v0.15.0 despite stale GitHub release notes; it remains
+The formal GitHub release now confirms the v0.15.0 target; it remains
 unsupported locally until implementation and qualification. GUARD/DATA/WIRE
 ownership and review gates are outstanding, not waived by this refresh.
 
