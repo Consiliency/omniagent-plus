@@ -133,11 +133,11 @@
     },
     {
       "acceptance_criteria_count": 8,
-      "artifact_state": "untracked",
+      "artifact_state": "tracked",
       "created_at": "2026-09-22T16:31:20.398706+00:00",
       "execution_authorized": false,
       "file": "plans/detailed-omnigent-v0-15-accommodation-20260922.md",
-      "git_committed": false,
+      "git_committed": true,
       "handoff_ref": ".dev-skills/handoffs/codex-plan-detailed/detailed-omnigent-v0-15-accommodation-20260922.md",
       "if_gates_produced": [],
       "lanes": [],
@@ -150,21 +150,33 @@
             "git_committed": false
           },
           "transition": "committed"
+        },
+        {
+          "at": "2026-09-28T07:44:10Z",
+          "by": "codex-advisor-board",
+          "metadata": {
+            "evidence": "plans/evidence/omnigent-v015-plan-review-20260928.md",
+            "final_plan_sha256": "7e091cb1c4b16b6f7256fc73ba06e1ca10293b66ab8cb896b69903ff10ee85d1",
+            "plan_level_blockers": 0,
+            "review_status": "panel_agree_prerequisites_open",
+            "reviewed_seats": 3
+          },
+          "transition": "reviewed"
         }
       ],
       "owner_skill": "codex-plan-detailed",
       "parallel_research_only": true,
       "phase_alias": null,
-      "plan_sha256": "03369fcd64219aa3486633fdb236ed403adb69a3a7d522f8dbc623d46c03ad04",
+      "plan_sha256": "7e091cb1c4b16b6f7256fc73ba06e1ca10293b66ab8cb896b69903ff10ee85d1",
       "publication_authorized": false,
       "reflection_ref": null,
-      "review_status": "parent_reconciled_not_panel_reviewed",
+      "review_status": "panel_agree_prerequisites_open",
       "roadmap_ref": null,
       "slug": "detailed-omnigent-v0-15-accommodation-20260922",
       "status": "committed",
       "task_summary": "Refresh Omnigent compatibility planning through published v0.15.0.",
       "type": "detailed",
-      "updated_at": "2026-09-22T16:31:20.398706+00:00",
+      "updated_at": "2026-09-28T07:44:10Z",
       "upstream_commit": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
       "upstream_target": "v0.15.0"
     },
