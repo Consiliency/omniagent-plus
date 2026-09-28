@@ -154,6 +154,42 @@ describe("http provider", () => {
     expect(events.filter((event) => event.type === "runtime.text.delta")).toEqual([]);
   });
 
+  it("v0.15 B preserves a distinct preview after a late historical alias", async () => {
+    const snapshot = {
+      active_response_id: "response-late-alias", agent_id: "agent-late-alias",
+      created_at: 1_780_272_000, id: "session-late-alias", items: [],
+      status: "running", title: "Late alias", updated_at: 1_780_272_001,
+    };
+    const item = {
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_001, id: "durable-a", response_id: "response-late-alias",
+      role: "assistant", status: "completed", type: "message",
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.endsWith("/stream")) return new Response(
+          `data: ${JSON.stringify({ type: "response.output_item.done", response_id: "response-late-alias", item: { ...item, stream_message_id: "stream-a" } })}\n\ndata: ${JSON.stringify({ type: "response.output_text.delta", response_id: "response-late-alias", message_id: "stream-b", delta: "same", index: 0 })}\n\n`,
+          { headers: { "content-type": "text/event-stream" } },
+        );
+        if (url.includes("/items")) return new Response(JSON.stringify({
+          data: [item], first_id: item.id, has_more: false, last_id: item.id,
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "late-alias-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const history = await provider.readHistory(session.id);
+    const events = await collectAsync(provider.streamEvents(session.id, { afterSequence: history.nextCursor }));
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+  });
+
   it("v0.15 B preserves previews after a stream ID collision and history reload", async () => {
     const snapshot = {
       active_response_id: "response-collision", agent_id: "agent-collision",
@@ -200,6 +236,58 @@ describe("http provider", () => {
     const cursor = Math.max(history.nextCursor ?? 0, ...firstStream.map((event) => event.sequence));
     const secondStream = await collectAsync(provider.streamEvents(session.id, { afterSequence: cursor }));
     expect(secondStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+  });
+
+  it("v0.15 B retains a collision when reloaded history is empty", async () => {
+    const snapshot = {
+      active_response_id: "response-empty-reload", agent_id: "agent-empty-reload",
+      created_at: 1_780_272_000, id: "session-empty-reload", items: [],
+      status: "running", title: "Empty reload", updated_at: 1_780_272_001,
+    };
+    const firstItem = {
+      content: [{ text: "alpha", type: "output_text" }],
+      created_at: 1_780_272_001, id: "durable-a", response_id: "response-empty-reload",
+      role: "assistant", status: "completed", stream_message_id: "shared", type: "message",
+    };
+    let streamReads = 0;
+    let includeHistory = true;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.endsWith("/stream")) {
+          streamReads += 1;
+          const events = streamReads === 1
+            ? [{ type: "response.output_item.done", item: { ...firstItem, id: "durable-b", content: [{ text: "beta", type: "output_text" }] } }]
+            : [
+                { type: "response.output_text.delta", response_id: "response-empty-reload", message_id: "shared", delta: "gamma", index: 0 },
+                { type: "response.output_item.done", item: { ...firstItem, id: "durable-c", content: [{ text: "gamma more", type: "output_text" }] } },
+              ];
+          return new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""), {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) {
+          const data = includeHistory ? [firstItem] : [];
+          return new Response(JSON.stringify({
+            data, first_id: data[0]?.id ?? null, has_more: false, last_id: data[0]?.id ?? null,
+          }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "empty-reload-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const history = await provider.readHistory(session.id);
+    const first = await collectAsync(provider.streamEvents(session.id, { afterSequence: history.nextCursor }));
+    includeHistory = false;
+    const cursor = Math.max(history.nextCursor ?? 0, ...first.map((event) => event.sequence));
+    const second = await collectAsync(provider.streamEvents(session.id, { afterSequence: cursor }));
+    expect(second.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["gamma", "gamma more"]);
   });
 
   it("v0.15 B preserves a new equal-text durable message with a different stream ID", async () => {

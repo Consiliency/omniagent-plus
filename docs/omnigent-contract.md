@@ -25,8 +25,9 @@ mutations are never retried by this policy. The SSE route remains live-tail, and
 neutral `afterSequence` is a local sequence rather than an upstream cursor.
 
 This candidate does not supersede the frozen v0.12 interface until the GUARD and
-DATA freezes, exclusive transport ownership, and full qualification gates in
-`plans/detailed-omnigent-v0-15-accommodation-20260922.md` are accepted. New
+DATA freezes and full qualification gates in
+`plans/detailed-omnigent-v0-15-accommodation-20260922.md` are accepted.
+Exclusive transport ownership is recorded in Consiliency/omniagent-plus#25. New
 project-order, skills, model-options, file-sharing, import, fork, and resource
 surfaces remain observed upstream non-capabilities.
 

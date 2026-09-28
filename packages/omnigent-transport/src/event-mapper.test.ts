@@ -428,6 +428,34 @@ describe("event mapper", () => {
     )).toEqual([["response-a", "same"], ["response-b", "same"]]);
   });
 
+  it("v0.15 B does not credit another stream after a late historical alias", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-b", [
+      { id: "late-a", itemId: "durable-a", item: { type: "message", id: "durable-a", role: "assistant", stream_message_id: "stream-a", content: [{ text: "same" }] }, occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_item.done" },
+      { delta: "same", id: "preview-b", message_id: "stream-b", occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+    ], { historicalMessagesByTurnId: [["response-b", [{ messageId: "durable-a", text: "same" }]]], seenItemIds: ["durable-a"] });
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+  });
+
+  it("v0.15 B invalidates remaining inferred credit after a late explicit alias", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-b", [
+      { delta: "he", id: "preview-b-1", message_id: "stream-b", occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+      { id: "late-a", itemId: "durable-a", item: { type: "message", id: "durable-a", role: "assistant", stream_message_id: "stream-a", content: [{ text: "hello" }] }, occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_item.done" },
+      { delta: "llo", id: "preview-b-2", message_id: "stream-b", occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+    ], { historicalMessagesByTurnId: [["response-b", [{ messageId: "durable-a", text: "hello" }]]], seenItemIds: ["durable-a"] });
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["llo"]);
+  });
+
+  it("v0.15 B preserves content when a stream ID collides with history", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-b", [
+      { delta: "gamma", id: "preview-b", message_id: "shared", occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+      { id: "done-b", itemId: "durable-b", item: { type: "message", id: "durable-b", role: "assistant", stream_message_id: "shared", content: [{ text: "gamma" }] }, occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_item.done" },
+    ], { historicalMessagesByTurnId: [["response-b", [{ messageId: "durable-a", streamMessageId: "shared", text: "alpha" }]]], seenItemIds: ["durable-a"] });
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["gamma", "gamma"]);
+  });
+
   it("prefers an exact persisted message over an earlier compatible prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

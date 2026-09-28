@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.v0_15_accommodation_execution.v1",
   "status": "provisional_implementation_pending_gates",
-  "recorded_at": "2026-09-28T15:23:01Z",
+  "recorded_at": "2026-09-28T15:51:27Z",
   "branch": "codex/omnigent-v015-implementation-20260928",
   "base_head": "6b464e94e55fd8483a1ae42ec61d93f07738a320",
   "plan": {
@@ -17,8 +17,8 @@
   },
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
-    "packages/omnigent-transport/src/http-provider.ts": "a5eeabb4ea677815b304a4e196f45bd9a91f8922a13e515c0a8c5af750876034",
-    "packages/omnigent-transport/src/event-mapper.ts": "1aa88b8754189ab1777fa506d3610368d9de2b28634e6a97a244f1d1828db41b",
+    "packages/omnigent-transport/src/http-provider.ts": "5482f235cdddcfde75eca5a7d2b1ebf90c13f7914cd496038174ac36051c64a0",
+    "packages/omnigent-transport/src/event-mapper.ts": "ce782e8d98b4baf9ebbd4c3259232e3fbbff222c3125430103e449967ea986a3",
     "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
     "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
     "fixtures/omnigent/http/v0-15-wire-contract.json": "5fa285a9846ce1bbd05c6b8bb4dd407032cd4dc922a27a829c3ae911293db72a"
@@ -99,5 +99,24 @@
     "lint_exit_code": 0,
     "merge_ready": false,
     "reason": "accepted GUARD/DATA freezes, full gate and exact new-head review remain pending"
+  },
+  "panel_review_of_59645ee": {
+    "reviewed_head": "59645ee8146cffe5b0be85b6efa311b3dacb99a5",
+    "seats": {
+      "sol": "DISAGREE: late alias could consume a distinct stream; collision duplication raised and reconciled as plan-required fail-open preservation",
+      "astra": "PARTIALLY AGREE: reproduced late-alias loss; DISAGREE on merge gates",
+      "opus_5_5_tui": "DISAGREE: invalid collision association lost after an empty history reload; capability snapshot version claim and coverage gaps",
+      "gemini_3_1_pro_high_tui": "No code blocker reported on initial pass; DISAGREE on merge gates; did not identify the reproduced identity defects"
+    },
+    "reconciliation": "The late-alias and empty-history collision defects were reproduced and narrowed with regression tests. Conflicting stream IDs remain fail-open: durable content is preserved even if preview text is repeated. A partial legacy text match before a contradictory late alias still loses its already-suppressed prefix; full identity acceptance remains open. The capability snapshot's v0.15 target versus current v0.12 support claim also needs reviewed disposition.",
+    "verification_after_fixes": {
+      "workspace_tests": { "passed": 373, "skipped_live_opt_in": 1, "exit_code": 0 },
+      "workspace_build_exit_code": 0,
+      "workspace_typecheck_exit_code": 0,
+      "lint_exit_code": 0,
+      "packed_smoke": { "exit_code": 0, "tarball_sha256": "2653d9097a104c9a4a4afa574178beb9c1a45a5f51b9f26ec323e8a7a8286ff4" }
+    },
+    "merge_ready": false,
+    "open_acceptance": ["GUARD/DATA accepted freezes", "full non-skipping gate", "candidate npm publish dry run", "late-alias suppressed-prefix recovery", "capability snapshot version disposition", "remaining plan A-E cases", "exact new-head panel approval"]
   }
 }

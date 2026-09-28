@@ -747,12 +747,12 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           options?.afterSequence ?? 0,
         ) + 1;
       const invalidStreamIdsByTurnId = new Map<string, string[]>();
-      for (const turnId of mappedSnapshot.historicalMessagesByTurnId.keys()) {
-        const aliases = this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${turnId}`);
-        const invalid = [...(aliases ?? [])]
+      for (const [turnKey, aliases] of this.explicitMessageAliasesByTurnKey) {
+        if (!turnKey.startsWith(`${sessionId}:`)) continue;
+        const invalid = [...aliases]
           .filter(([, durableId]) => durableId.startsWith("\u0000invalid:"))
           .map(([streamId]) => streamId);
-        if (invalid.length > 0) invalidStreamIdsByTurnId.set(turnId, invalid);
+        if (invalid.length > 0) invalidStreamIdsByTurnId.set(turnKey.slice(sessionId.length + 1), invalid);
       }
       const mapper = new OmnigentEventMapper(sessionId, {
         invalidStreamIdsByTurnId,

@@ -29,7 +29,8 @@ legacy required-agent JSON create shape and canonical `omnigent server
 
 Fake-server, contract, and packed-consumer tests do not install or exercise an
 upstream Omnigent runtime. The candidate cannot claim v0.15 compatibility or
-v2 closure until the accepted GUARD gate, DATA interface freeze, exclusive
-transport-owner record, and full plan verification are complete. The older
+v2 closure until the accepted GUARD gate, DATA interface freeze, and full plan
+verification are complete. Exclusive transport ownership is recorded in
+Consiliency/omniagent-plus#25. The older
 2026-09-03 development-main probe is historical only and has no release
 authority.

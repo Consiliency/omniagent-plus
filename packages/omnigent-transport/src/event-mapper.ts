@@ -81,6 +81,7 @@ export class OmnigentEventMapper {
   >;
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
+  private readonly inferredHistoryCreditByMessageKey = new Map<string, string>();
   private readonly historicalStreamTextByTurnId = new Map<string, Map<string, string>>();
   private readonly historicalPreviewByTurnId = new Map<string, Map<string, string>>();
   private readonly invalidStreamIdsByTurnId = new Map<string, Set<string>>();
@@ -106,11 +107,13 @@ export class OmnigentEventMapper {
     this.historicalTextByMessageId = new Map(
       options.historicalTextByMessageId ?? [],
     );
-    const previouslyInvalidStreamIds = new Map(options.invalidStreamIdsByTurnId ?? []);
+    for (const [turnId, streamIds] of options.invalidStreamIdsByTurnId ?? []) {
+      this.invalidStreamIdsByTurnId.set(turnId, new Set(streamIds));
+    }
     for (const [turnId, messages] of this.historicalMessagesByTurnId) {
       const byStream = new Map<string, string>();
       const durableByStream = new Map<string, string>();
-      const invalid = new Set(previouslyInvalidStreamIds.get(turnId) ?? []);
+      const invalid = this.invalidStreamIdsByTurnId.get(turnId) ?? new Set<string>();
       for (const message of messages) {
         if (!message.streamMessageId) continue;
         durableByStream.set(message.streamMessageId, message.messageId);
@@ -169,6 +172,24 @@ export class OmnigentEventMapper {
               const byStream = this.historicalStreamTextByTurnId.get(rawEvent.turnId) ?? new Map<string, string>();
               byStream.set(streamMessageId, text);
               this.historicalStreamTextByTurnId.set(rawEvent.turnId, byStream);
+              const historicalMessages = this.historicalMessagesByTurnId.get(rawEvent.turnId);
+              const legacyIndex = historicalMessages?.findIndex((message) =>
+                message.messageId === messageId && !message.streamMessageId,
+              ) ?? -1;
+              if (historicalMessages && legacyIndex >= 0) {
+                historicalMessages.splice(legacyIndex, 1);
+                if (historicalMessages.length === 0) {
+                  this.historicalMessagesByTurnId.delete(rawEvent.turnId);
+                }
+              }
+              this.historicalTextByMessageId.delete(messageId);
+              this.historicalTextByMessageId.delete(scopedMessageKey(rawEvent.turnId, messageId));
+              for (const [creditKey, durableKey] of this.inferredHistoryCreditByMessageKey) {
+                if (durableKey === scopedMessageKey(rawEvent.turnId, messageId)) {
+                  this.historicalTextByMessageId.delete(creditKey);
+                  this.inferredHistoryCreditByMessageKey.delete(creditKey);
+                }
+              }
             }
           }
         }
@@ -349,6 +370,7 @@ export class OmnigentEventMapper {
               historyKey,
               historicalMessage.text,
             );
+            this.inferredHistoryCreditByMessageKey.set(historyKey, scopedMessageKey(rawEvent.turnId, historicalMessage.messageId));
           }
         }
       }
@@ -357,6 +379,7 @@ export class OmnigentEventMapper {
           const next = remaining.slice(delta.length);
           if (next.length === 0) {
             this.historicalTextByMessageId.delete(historyKey);
+            this.inferredHistoryCreditByMessageKey.delete(historyKey);
           } else {
             this.historicalTextByMessageId.set(historyKey, next);
           }
@@ -371,12 +394,14 @@ export class OmnigentEventMapper {
           const next = remaining.slice(replayOffset + delta.length);
           if (next.length === 0) {
             this.historicalTextByMessageId.delete(historyKey);
+            this.inferredHistoryCreditByMessageKey.delete(historyKey);
           } else {
             this.historicalTextByMessageId.set(historyKey, next);
           }
           return [];
         }
         this.historicalTextByMessageId.delete(historyKey);
+        this.inferredHistoryCreditByMessageKey.delete(historyKey);
         if (delta.startsWith(remaining)) {
           delta = delta.slice(remaining.length);
           if (delta.length === 0) {
