@@ -112,8 +112,10 @@ SessionHistory, capability, approval, lease and authority vocabulary is unchange
    executor's isolated worktree; never execute in the primary or GUARD checkout.
 4. Require a reconciled plan review before implementation. The user authorized
    Opus instead of exhausted Fable and a three-seat Opus/Astra/Grok board with
-   Gemini recorded ABSENT. Preserve heartbeat-only monitoring and small file
-   pointers; bind new review evidence to this refreshed plan, not the predecessor.
+   Gemini recorded ABSENT. Preserve heartbeat-only monitoring. Use small file
+   pointers only for seats with file-read tools; stage the full digest-bound plan
+   for a no-tools seat. Bind new review evidence to this refreshed plan, not the
+   predecessor.
    Current reader blockers are agent-harness#848 and agent-harness#934/#941;
    the old agent-harness#926 startup failure is not the active refusal reason.
    No further seat substitution, broker bypass, synthetic verdict or automatic
@@ -353,7 +355,7 @@ runtime feature. Start only after A-D behavior and retained regressions pass.
 | `packages/omnigent-transport/src/index.ts` | Export new loader; preserve old exports |
 | `packages/omnigent-transport/src/conformance.test.ts` | Separate latest authority assertions from historical fixture assertions; test target inventory and all dispositions |
 | `fixtures/omnigent/http/v0-15-wire-contract.json` | Create sanitized source-derived samples, explicitly labeled adversarial vectors, target 55-event list, schema/operation deltas, commits/hashes and cursor envelopes |
-| `fixtures/omnigent/discovery/source-metadata.json` | Refresh current target to package/tag authority, recording absent GitHub release notes separately |
+| `fixtures/omnigent/discovery/source-metadata.json` | Refresh current target to the v0.15.0 package, tag and formal GitHub release; retain the September 22 missing-release observation only as dated historical evidence |
 | `fixtures/omnigent/discovery/http-surface.json` | Refresh inventories, removed skills surface, precise restart/replay semantics and non-capabilities |
 | `fixtures/omnigent/discovery/cli-surface.json` | Refresh tagged authority only; preserve canonical server lifecycle |
 | `fixtures/omnigent/discovery/capability-probes.json` | Record observed additions without supported capability expansion |
@@ -486,7 +488,9 @@ automation:
   corruption; mutations and unrelated errors never retry. V1-D/V2.
 - [ ] E: Exact 55-event target and 56-type accepted historical union are distinct;
   every schema/HTTP delta has a disposition and old fixture bytes/loaders remain.
-  V1-E/V2/V3 plus diff inspection against the recorded fixture baseline.
+  Current discovery metadata identifies the formal v0.15.0 GitHub release and
+  does not present the September 22 absence as current. V1-E/V2/V3 plus diff
+  inspection against the recorded fixture baseline.
 - [ ] Required-agent create/send, CLI lifecycle and capability/content boundaries
   are unchanged; removed/additive fields need no new public authority. V2/V3/V4.
 - [ ] Accepted full gate, installed-consumer behavior and actually executed dry
