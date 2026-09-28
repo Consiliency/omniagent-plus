@@ -328,6 +328,28 @@ describe("history mapper", () => {
     )).toEqual(["same"]);
   });
 
+  it("v0.15 B still deduplicates response-local history when another response uses its stream id", () => {
+    const history = mapOmnigentConversationHistory("session-explicit", [{
+      content: [{ text: "beta", type: "output_text" }],
+      created_at: 1_780_272_000,
+      id: "durable-b", response_id: "response-b", role: "assistant",
+      status: "completed", type: "message",
+    }]);
+    const mapper = new OmnigentEventMapper("session-explicit", history);
+    const occurredAt = "2026-08-12T19:00:00.000Z";
+    expect(mapper.map({
+      id: "done-a", itemId: "durable-a",
+      item: { type: "message", id: "durable-a", role: "assistant", stream_message_id: "shared-stream", content: [{ text: "alpha" }] },
+      occurredAt, sessionId: "session-explicit", turnId: "response-a",
+      type: "response.output_item.done",
+    }).filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["alpha"]);
+    expect(mapper.map({
+      delta: "beta", id: "preview-b", message_id: "shared-stream",
+      occurredAt, sessionId: "session-explicit", turnId: "response-b",
+      type: "response.output_text.delta",
+    })).toEqual([]);
+  });
+
   it("v0.15 B learns a late alias from an already-seen durable item", () => {
     const history = mapOmnigentConversationHistory("session-explicit", [{
       content: [{ text: "hello", type: "output_text" }],

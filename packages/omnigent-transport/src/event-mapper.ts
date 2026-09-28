@@ -80,7 +80,6 @@ export class OmnigentEventMapper {
   >;
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
-  private readonly historicalStreamIds = new Set<string>();
   private readonly historicalStreamTextByTurnId = new Map<string, Map<string, string>>();
   private readonly historicalPreviewByTurnId = new Map<string, Map<string, string>>();
   private readonly invalidStreamIdsByTurnId = new Map<string, Set<string>>();
@@ -112,7 +111,6 @@ export class OmnigentEventMapper {
       const invalid = new Set<string>();
       for (const message of messages) {
         if (!message.streamMessageId) continue;
-        this.historicalStreamIds.add(message.streamMessageId);
         durableByStream.set(message.streamMessageId, message.messageId);
         if (byStream.has(message.streamMessageId)) {
           invalid.add(message.streamMessageId);
@@ -152,7 +150,6 @@ export class OmnigentEventMapper {
       const streamMessageId = typeof item.stream_message_id === "string" &&
         item.stream_message_id.length > 0 ? item.stream_message_id : undefined;
       if (messageId && streamMessageId) {
-        this.historicalStreamIds.add(streamMessageId);
         const durableByStream = this.durableByStreamIdByTurnId.get(rawEvent.turnId) ?? new Map<string, string>();
         const invalidStreamIds = this.invalidStreamIdsByTurnId.get(rawEvent.turnId) ?? new Set<string>();
         const existing = durableByStream.get(streamMessageId);
@@ -307,9 +304,11 @@ export class OmnigentEventMapper {
       }
     }
     if (rawEvent.message_id && !matchedExplicitHistory &&
-      !this.historicalStreamIds.has(rawEvent.message_id) &&
       !(rawEvent.turnId && this.invalidStreamIdsByTurnId.get(rawEvent.turnId)?.has(rawEvent.message_id))) {
-      let remaining = this.historicalTextByMessageId.get(rawEvent.message_id);
+      const scopedKey = scopedMessageKey(rawEvent.turnId, rawEvent.message_id);
+      let historyKey = this.historicalTextByMessageId.has(scopedKey)
+        ? scopedKey : rawEvent.message_id;
+      let remaining = this.historicalTextByMessageId.get(historyKey);
       if (rawEvent.turnId) {
         const historicalMessages =
           this.historicalMessagesByTurnId.get(rawEvent.turnId) ?? [];
@@ -343,8 +342,9 @@ export class OmnigentEventMapper {
           }
           if (remaining === undefined && historicalMessage) {
             remaining = historicalMessage.text;
+            historyKey = scopedKey;
             this.historicalTextByMessageId.set(
-              rawEvent.message_id,
+              historyKey,
               historicalMessage.text,
             );
           }
@@ -354,9 +354,9 @@ export class OmnigentEventMapper {
         if (delta.length > 0 && remaining.startsWith(delta)) {
           const next = remaining.slice(delta.length);
           if (next.length === 0) {
-            this.historicalTextByMessageId.delete(rawEvent.message_id);
+            this.historicalTextByMessageId.delete(historyKey);
           } else {
-            this.historicalTextByMessageId.set(rawEvent.message_id, next);
+            this.historicalTextByMessageId.set(historyKey, next);
           }
           return [];
         }
@@ -368,13 +368,13 @@ export class OmnigentEventMapper {
         ) {
           const next = remaining.slice(replayOffset + delta.length);
           if (next.length === 0) {
-            this.historicalTextByMessageId.delete(rawEvent.message_id);
+            this.historicalTextByMessageId.delete(historyKey);
           } else {
-            this.historicalTextByMessageId.set(rawEvent.message_id, next);
+            this.historicalTextByMessageId.set(historyKey, next);
           }
           return [];
         }
-        this.historicalTextByMessageId.delete(rawEvent.message_id);
+        this.historicalTextByMessageId.delete(historyKey);
         if (delta.startsWith(remaining)) {
           delta = delta.slice(remaining.length);
           if (delta.length === 0) {

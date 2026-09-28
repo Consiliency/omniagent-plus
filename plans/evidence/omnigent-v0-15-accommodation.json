@@ -17,8 +17,8 @@
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
     "packages/omnigent-transport/src/http-provider.ts": "46cd278a24a3f28c533d0948b06d1352b4a8b8d95339e7b2c6365f6a4b58028c",
-    "packages/omnigent-transport/src/event-mapper.ts": "7768f1a71fff832782bc7f3d8bd661bbd0ebcf3b7185f1558cbfeaa5187aba35",
-    "packages/omnigent-transport/src/history-mapper.ts": "3b0aea8073242e35c1f7ad91c33f427cc2d9dc283964e1ad72d194e2fbafdd6c",
+    "packages/omnigent-transport/src/event-mapper.ts": "c27a22b215ac740fa6e99a5ee3c6a7d8edca825c48af74c69960feecab95469a",
+    "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
     "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
     "fixtures/omnigent/http/v0-15-wire-contract.json": "5fa285a9846ce1bbd05c6b8bb4dd407032cd4dc922a27a829c3ae911293db72a"
   },
@@ -72,12 +72,17 @@
     "grok_4_7": "UNAVAILABLE: usage balance exhausted",
     "disposition": "not merge-ready; code findings repaired after this review, exact-head re-review pending"
   },
+  "delta_review_of_0b80255": {
+    "opus_5_5": "AGREE on the delta; external gates remain",
+    "astra": "PARTIALLY AGREE; response-local history replay duplication reproduced",
+    "disposition": "response-local history replay repaired after this delta review; exact-head re-review pending"
+  },
   "review_fix_verification": {
-    "focused_mapper_tests": { "passed": 38, "exit_code": 0 },
-    "transport_tests": { "passed": 194, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "focused_mapper_tests": { "passed": 39, "exit_code": 0 },
+    "transport_tests": { "passed": 195, "skipped_live_opt_in": 1, "exit_code": 0 },
     "transport_typecheck_exit_code": 0,
     "transport_build_exit_code": 0,
-    "packed_smoke": { "exit_code": 0, "tarball_sha256": "a893aff3a2ede19b7983833a3ad65bd8d782442eb9fcc21db58c0519578dc579" },
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "0cedb3948ce28ddb749bf5c3c9930841af8c2d5c57e30af6907207b135749c1b" },
     "lint_exit_code": 0
   }
 }

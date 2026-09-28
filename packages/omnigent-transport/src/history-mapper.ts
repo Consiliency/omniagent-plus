@@ -211,7 +211,7 @@ export function mapOmnigentConversationHistory(
       const streamMessageId = typeof data.stream_message_id === "string" &&
         data.stream_message_id.length > 0
           ? data.stream_message_id : undefined;
-      historicalTextByMessageId.set(item.id, text.join(""));
+      historicalTextByMessageId.set(`${turnId}\u0000${item.id}`, text.join(""));
       if (text.length > 0) {
         const historicalMessages = historicalMessagesByTurnId.get(turnId) ?? [];
         historicalMessages.push({ messageId: item.id, streamMessageId, text: text.join("") });
