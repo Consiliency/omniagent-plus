@@ -693,48 +693,64 @@ export class OmnigentHttpClient {
     path: string,
     normalizeRow: (value: unknown) => T,
   ): Promise<T[]> {
-    const result: T[] = [];
-    let after: string | undefined;
-    const seenCursors = new Set<string>();
-    while (true) {
-      const query = new URLSearchParams({
-        limit: String(PAGE_LIMIT),
-        order: "asc",
-        ...(after === undefined ? {} : { after }),
-      });
-      const page = await this.requestJson<OmnigentWirePage<unknown>>(
-        "GET",
-        `${path}?${query.toString()}`,
-      );
-      if (!page || !Array.isArray(page.data) || typeof page.has_more !== "boolean") {
-        throw createRuntimeFailure({
-          actor: "provider",
-          category: "malformed_response",
-          message: `Omnigent paginated response for ${path} is malformed.`,
-          retryable: false,
-          scope: "session",
+    restartWalk: for (let walk = 0; ; walk += 1) {
+      const result: T[] = [];
+      let after: string | undefined;
+      const seenCursors = new Set<string>();
+      while (true) {
+        const query = new URLSearchParams({
+          limit: String(PAGE_LIMIT),
+          order: "asc",
+          ...(after === undefined ? {} : { after }),
         });
+        let page: OmnigentWirePage<unknown>;
+        try {
+          page = await this.requestJson<OmnigentWirePage<unknown>>(
+            "GET",
+            `${path}?${query.toString()}`,
+          );
+        } catch (error) {
+          const body = error instanceof OmnigentHttpError ? error.body : undefined;
+          const envelope = typeof body === "object" && body !== null && !Array.isArray(body)
+            ? (body as Record<string, unknown>).error : undefined;
+          if (walk === 0 && after && error instanceof OmnigentHttpError &&
+            error.statusCode === 400 && typeof envelope === "object" &&
+            envelope !== null && !Array.isArray(envelope) &&
+            (envelope as Record<string, unknown>).code === "stale_cursor") {
+            continue restartWalk;
+          }
+          throw error;
+        }
+        if (!page || !Array.isArray(page.data) || typeof page.has_more !== "boolean") {
+          throw createRuntimeFailure({
+            actor: "provider",
+            category: "malformed_response",
+            message: `Omnigent paginated response for ${path} is malformed.`,
+            retryable: false,
+            scope: "session",
+          });
+        }
+        result.push(...page.data.map(normalizeRow));
+        if (!page.has_more) {
+          return result;
+        }
+        if (
+          page.data.length === 0 ||
+          typeof page.last_id !== "string" ||
+          page.last_id.length === 0 ||
+          seenCursors.has(page.last_id)
+        ) {
+          throw createRuntimeFailure({
+            actor: "provider",
+            category: "malformed_response",
+            message: `Omnigent pagination for ${path} did not advance.`,
+            retryable: false,
+            scope: "session",
+          });
+        }
+        seenCursors.add(page.last_id);
+        after = page.last_id;
       }
-      result.push(...page.data.map(normalizeRow));
-      if (!page.has_more) {
-        return result;
-      }
-      if (
-        page.data.length === 0 ||
-        typeof page.last_id !== "string" ||
-        page.last_id.length === 0 ||
-        seenCursors.has(page.last_id)
-      ) {
-        throw createRuntimeFailure({
-          actor: "provider",
-          category: "malformed_response",
-          message: `Omnigent pagination for ${path} did not advance.`,
-          retryable: false,
-          scope: "session",
-        });
-      }
-      seenCursors.add(page.last_id);
-      after = page.last_id;
     }
   }
 

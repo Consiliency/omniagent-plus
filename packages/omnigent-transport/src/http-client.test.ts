@@ -288,6 +288,112 @@ describe("http client", () => {
     }
   });
 
+  it("v0.15 D restarts a stale cursor from page one and discards abandoned rows", async () => {
+    const requests: string[] = [];
+    const row = (id: string) => ({
+      agent_id: "agent-pagination", created_at: 1_780_272_000, id,
+      status: "idle", title: id, updated_at: 1_780_272_000,
+    });
+    const client = new OmnigentHttpClient({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input) => {
+        const url = new URL(String(input));
+        requests.push(url.search);
+        if (requests.length === 2) {
+          return new Response(JSON.stringify({ error: { code: "stale_cursor", message: "deleted" } }), { status: 400 });
+        }
+        const id = requests.length === 1 ? "abandoned" : "current";
+        return new Response(JSON.stringify({
+          data: requests.length === 4 ? [] : [row(id)],
+          has_more: requests.length !== 4,
+          last_id: id,
+        }));
+      },
+    });
+
+    expect((await client.listSessions()).map((session) => session.id)).toEqual(["current"]);
+    expect(requests).toHaveLength(4);
+    expect(requests[0]).toBe(requests[2]);
+  });
+
+  it("v0.15 D bounds stale recovery independently for all three paginated GETs", async () => {
+    const rows = {
+      session: { agent_id: "agent-d", created_at: 1_780_272_000, id: "session-d", status: "idle", title: "D", updated_at: 1_780_272_000 },
+      item: { created_at: 1_780_272_000, id: "item-d", response_id: "response-d", status: "completed", type: "message", role: "assistant", content: [] },
+      child: { created_at: 1_780_272_000, id: "child-d", parent_session_id: "session-d", updated_at: 1_780_272_000 },
+    };
+    for (const [kind, request] of [
+      ["session", (client: OmnigentHttpClient) => client.listSessions()],
+      ["item", (client: OmnigentHttpClient) => client.getHistory("session-d")],
+      ["child", (client: OmnigentHttpClient) => client.listChildSessions("session-d")],
+    ] as const) {
+      const cursors: (string | null)[] = [];
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async (input) => {
+          const after = new URL(String(input)).searchParams.get("after");
+          cursors.push(after);
+          return after === null
+            ? new Response(JSON.stringify({ data: [rows[kind]], has_more: true, last_id: rows[kind].id }))
+            : new Response(JSON.stringify({ error: { code: "stale_cursor", message: "gone" } }), { status: 400 });
+        },
+      });
+      await expect(request(client)).rejects.toEqual(expect.objectContaining({
+        body: { error: { code: "stale_cursor", message: "gone" } },
+        statusCode: 400,
+      }));
+      expect(cursors).toEqual([null, rows[kind].id, null, rows[kind].id]);
+    }
+  });
+
+  it("v0.15 D restarts history and child-list reads without old partial rows", async () => {
+    for (const [kind, request] of [
+      ["item", (client: OmnigentHttpClient) => client.getHistory("session-d")],
+      ["child", (client: OmnigentHttpClient) => client.listChildSessions("session-d")],
+    ] as const) {
+      let requests = 0;
+      const row = (id: string) => kind === "item"
+        ? { created_at: 1_780_272_000, id, response_id: "response-d", status: "completed", type: "message", role: "assistant", content: [] }
+        : { created_at: 1_780_272_000, id, parent_session_id: "session-d", updated_at: 1_780_272_000 };
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async () => {
+          requests += 1;
+          if (requests === 2) return new Response(JSON.stringify({ error: { code: "stale_cursor" } }), { status: 400 });
+          return new Response(JSON.stringify({
+            data: requests === 4 ? [] : [row(requests === 1 ? "abandoned" : "current")],
+            has_more: requests !== 4, last_id: requests === 1 ? "abandoned" : "current",
+          }));
+        },
+      });
+      expect((await request(client)).map((entry) => entry.id)).toEqual(["current"]);
+      expect(requests).toBe(4);
+    }
+  });
+
+  it("v0.15 D does not restart first-page or noncanonical cursor errors", async () => {
+    for (const [firstPage, body] of [
+      [true, { error: { code: "stale_cursor" } }],
+      [false, { detail: { code: "stale_cursor" } }],
+      [false, { error: { code: "stale_cursor_like" } }],
+      [false, "stale_cursor"],
+      [false, { error: ["stale_cursor"] }],
+    ] as const) {
+      let requests = 0;
+      const client = new OmnigentHttpClient({
+        baseUrl: "http://127.0.0.1:4010",
+        fetch: async () => {
+          requests += 1;
+          return !firstPage && requests === 1
+            ? new Response(JSON.stringify({ data: [{ agent_id: "agent-d", created_at: 1_780_272_000, id: "session-d", status: "idle", updated_at: 1_780_272_000 }], has_more: true, last_id: "session-d" }))
+            : new Response(JSON.stringify(body), { status: 400 });
+        },
+      });
+      await expect(client.listSessions()).rejects.toEqual(expect.objectContaining({ body, statusCode: 400 }));
+      expect(requests).toBe(firstPage ? 1 : 2);
+    }
+  });
+
   it("normalizes nullable session wire and preserves child routing metadata", async () => {
     const wire = loadOmnigentV09WireContract();
     const client = new OmnigentHttpClient({

@@ -57,6 +57,7 @@ export interface OmnigentEventMapperOptions {
 
 export interface OmnigentHistoricalMessage {
   readonly messageId: string;
+  readonly streamMessageId?: string;
   readonly text: string;
 }
 
@@ -75,6 +76,10 @@ export class OmnigentEventMapper {
   >;
   private readonly historicalItemIds: Set<string>;
   private readonly historicalTextByMessageId: Map<string, string>;
+  private readonly historicalStreamTextByTurnId = new Map<string, Map<string, string>>();
+  private readonly historicalPreviewByTurnId = new Map<string, Map<string, string>>();
+  private readonly invalidStreamIdsByTurnId = new Map<string, Set<string>>();
+  private readonly durableByStreamIdByTurnId = new Map<string, Map<string, string>>();
   private readonly emittedToolCallIds: Set<string>;
   private readonly emittedToolResultIds: Set<string>;
   private emittedSessionCreated = false;
@@ -96,6 +101,24 @@ export class OmnigentEventMapper {
     this.historicalTextByMessageId = new Map(
       options.historicalTextByMessageId ?? [],
     );
+    for (const [turnId, messages] of this.historicalMessagesByTurnId) {
+      const byStream = new Map<string, string>();
+      const durableByStream = new Map<string, string>();
+      const invalid = new Set<string>();
+      for (const message of messages) {
+        if (!message.streamMessageId) continue;
+        durableByStream.set(message.streamMessageId, message.messageId);
+        if (byStream.has(message.streamMessageId)) {
+          invalid.add(message.streamMessageId);
+          byStream.delete(message.streamMessageId);
+        } else if (!invalid.has(message.streamMessageId)) {
+          byStream.set(message.streamMessageId, message.text);
+        }
+      }
+      this.historicalStreamTextByTurnId.set(turnId, byStream);
+      this.invalidStreamIdsByTurnId.set(turnId, invalid);
+      this.durableByStreamIdByTurnId.set(turnId, durableByStream);
+    }
     this.emittedToolCallIds = new Set(options.historicalToolCallIds ?? []);
     this.emittedToolResultIds = new Set(options.historicalToolResultIds ?? []);
     this.legacySessionCreatedEvents =
@@ -107,6 +130,9 @@ export class OmnigentEventMapper {
   map(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     if (
       rawEvent.type === "response.elicitation_resolved" ||
+      rawEvent.type === "session.btw_sidechat" ||
+      rawEvent.type === "session.codex_approval_mode" ||
+      rawEvent.type === "session.skills" ||
       rawEvent.type === "session.permission_mode" ||
       rawEvent.type === "session.title"
     ) {
@@ -206,16 +232,56 @@ export class OmnigentEventMapper {
 
   private mapTextDelta(rawEvent: OmnigentRawEvent): RuntimeEvent[] {
     let delta = rawEvent.delta ?? "";
-    if (rawEvent.message_id) {
+    let matchedExplicitHistory = false;
+    if (rawEvent.message_id && rawEvent.turnId) {
+      const historical = this.historicalStreamTextByTurnId.get(rawEvent.turnId)?.get(rawEvent.message_id);
+      if (historical !== undefined) {
+        matchedExplicitHistory = true;
+        const previews = this.historicalPreviewByTurnId.get(rawEvent.turnId) ?? new Map<string, string>();
+        const previous = previews.get(rawEvent.message_id) ?? "";
+        const candidate = `${previous}${delta}`;
+        if (historical.startsWith(candidate)) {
+          previews.set(rawEvent.message_id, candidate);
+          this.historicalPreviewByTurnId.set(rawEvent.turnId, previews);
+          return [];
+        }
+        if (previous === historical && delta.length > 0 && historical.includes(delta)) {
+          previews.set(rawEvent.message_id, delta);
+          return [];
+        }
+        if (candidate.startsWith(historical)) {
+          previews.set(rawEvent.message_id, candidate);
+          this.historicalPreviewByTurnId.set(rawEvent.turnId, previews);
+          delta = candidate.slice(Math.max(historical.length, previous.length));
+          if (delta.length === 0) return [];
+        } else if (delta.length > 0 && historical.includes(delta)) {
+          previews.set(rawEvent.message_id, delta);
+          this.historicalPreviewByTurnId.set(rawEvent.turnId, previews);
+          return [];
+        } else if (delta.length > 0) {
+          for (let overlap = Math.min(historical.length, delta.length); overlap > 0; overlap -= 1) {
+            if (historical.endsWith(delta.slice(0, overlap))) {
+              delta = delta.slice(overlap);
+              break;
+            }
+          }
+          if (delta.length === 0) return [];
+        }
+      }
+    }
+    if (rawEvent.message_id && !matchedExplicitHistory &&
+      !(rawEvent.turnId && this.invalidStreamIdsByTurnId.get(rawEvent.turnId)?.has(rawEvent.message_id))) {
       let remaining = this.historicalTextByMessageId.get(rawEvent.message_id);
       if (rawEvent.turnId) {
         const historicalMessages =
           this.historicalMessagesByTurnId.get(rawEvent.turnId) ?? [];
         const exactMessageIndex = historicalMessages.findIndex(
-          ({ messageId }) => messageId === rawEvent.message_id,
+          ({ messageId, streamMessageId }) =>
+            (streamMessageId ?? messageId) === rawEvent.message_id,
         );
         const exactTextIndex = historicalMessages.findIndex(
-          ({ text }) => delta.length > 0 && text === delta,
+          ({ text, streamMessageId }) =>
+            !streamMessageId && delta.length > 0 && text === delta,
         );
         const compatibleMessageIndex =
           exactMessageIndex >= 0
@@ -223,7 +289,8 @@ export class OmnigentEventMapper {
             : exactTextIndex >= 0
               ? exactTextIndex
               : historicalMessages.findIndex(
-                  ({ text }) =>
+                  ({ text, streamMessageId }) =>
+                    !streamMessageId &&
                     delta.length > 0 &&
                     (text.startsWith(delta) ||
                       text.endsWith(delta)),
@@ -332,14 +399,33 @@ export class OmnigentEventMapper {
         return [];
       }
       const messageId = typeof item.id === "string" ? item.id : undefined;
+      const streamMessageId = typeof item.stream_message_id === "string" &&
+        item.stream_message_id.length > 0 ? item.stream_message_id : undefined;
+      const durableByStream = this.durableByStreamIdByTurnId.get(rawEvent.turnId) ?? new Map<string, string>();
+      const invalidStreamIds = this.invalidStreamIdsByTurnId.get(rawEvent.turnId) ?? new Set<string>();
+      if (streamMessageId && messageId) {
+        const existing = durableByStream.get(streamMessageId);
+        if (existing && existing !== messageId) {
+          invalidStreamIds.add(streamMessageId);
+          this.invalidStreamIdsByTurnId.set(rawEvent.turnId, invalidStreamIds);
+          this.historicalStreamTextByTurnId.get(rawEvent.turnId)?.delete(streamMessageId);
+        } else {
+          durableByStream.set(streamMessageId, messageId);
+          this.durableByStreamIdByTurnId.set(rawEvent.turnId, durableByStream);
+        }
+      }
+      const validStreamMessageId = streamMessageId && !invalidStreamIds.has(streamMessageId)
+        ? streamMessageId : undefined;
       const directEmitted = messageId
-        ? this.emittedTextByMessageId.get(messageId)
+        ? this.emittedTextByMessageId.get(validStreamMessageId ?? messageId)
         : undefined;
       const pendingMessageIds =
         this.pendingMessageIdsByTurnId.get(rawEvent.turnId) ?? [];
       const pendingMessageIndex =
         directEmitted !== undefined
-          ? pendingMessageIds.indexOf(messageId ?? "")
+          ? pendingMessageIds.indexOf(validStreamMessageId ?? messageId ?? "")
+          : streamMessageId
+            ? -1
           : pendingMessageIds.findIndex((pendingMessageId) => {
               const pendingText =
                 this.emittedTextByMessageId.get(pendingMessageId) ?? "";
@@ -373,6 +459,12 @@ export class OmnigentEventMapper {
       }
       if (messageId) {
         this.emittedTextByMessageId.set(messageId, text);
+        if (validStreamMessageId) {
+          this.emittedTextByMessageId.set(validStreamMessageId, text);
+          const historicalByStream = this.historicalStreamTextByTurnId.get(rawEvent.turnId) ?? new Map<string, string>();
+          historicalByStream.set(validStreamMessageId, text);
+          this.historicalStreamTextByTurnId.set(rawEvent.turnId, historicalByStream);
+        }
         this.emittedUnidentifiedTextByTurnId.delete(rawEvent.turnId);
       }
       if (delta.length === 0) {

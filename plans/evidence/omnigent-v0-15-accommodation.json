@@ -1,0 +1,63 @@
+{
+  "schema": "omnigent.v0_15_accommodation_execution.v1",
+  "status": "provisional_implementation_pending_gates",
+  "recorded_at": "2026-09-28T08:31:12Z",
+  "branch": "codex/omnigent-v015-implementation-20260928",
+  "base_head": "6b464e94e55fd8483a1ae42ec61d93f07738a320",
+  "plan": {
+    "path": "plans/detailed-omnigent-v0-15-accommodation-20260922.md",
+    "sha256": "7e091cb1c4b16b6f7256fc73ba06e1ca10293b66ab8cb896b69903ff10ee85d1",
+    "panel_receipt": "plans/evidence/omnigent-v015-plan-review-20260928.md"
+  },
+  "owner_and_freeze_receipts": {
+    "guard_accepted": false,
+    "data_accepted": false,
+    "exclusive_transport_owner_recorded_in_omniagent_plus_25": false
+  },
+  "source_sha256": {
+    "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
+    "packages/omnigent-transport/src/http-provider.ts": "46cd278a24a3f28c533d0948b06d1352b4a8b8d95339e7b2c6365f6a4b58028c",
+    "packages/omnigent-transport/src/event-mapper.ts": "fa0a241b273c6c13ad7aea9a1eb69a40d961d5a707100c2139c794e98e775f23",
+    "packages/omnigent-transport/src/history-mapper.ts": "9a1f1c43eed57297da453ddd9bbd48b7b3e2d115c716ba7aad148af0704f39a4",
+    "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
+    "fixtures/omnigent/http/v0-15-wire-contract.json": "5fa285a9846ce1bbd05c6b8bb4dd407032cd4dc922a27a829c3ae911293db72a"
+  },
+  "verification": [
+    { "command": "pnpm install --frozen-lockfile", "exit_code": 0, "phase": "V0" },
+    { "command": "pnpm build", "exit_code": 0, "phase": "V0" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src", "exit_code": 0, "phase": "baseline", "selected": 176, "skipped": 1 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/history-mapper.test.ts", "exit_code": 1, "phase": "V1-A expected red", "cause": "info-level error emitted start and failure" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/history-mapper.test.ts", "exit_code": 0, "phase": "V1-A focused green" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/http-client.test.ts -t 'v0.15 D'", "exit_code": 1, "phase": "V1-D expected red", "cause": "stale cursor propagated without restart" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 A'", "exit_code": 0, "phase": "V1-A final", "selected": 2, "skipped": 188 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 B'", "exit_code": 0, "phase": "V1-B checkpoint", "selected": 5, "skipped": 185, "note": "one provider identity case was added and passed in a later focused run" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 C'", "exit_code": 0, "phase": "V1-C final", "selected": 1, "skipped": 189 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 D'", "exit_code": 0, "phase": "V1-D checkpoint", "selected": 4, "skipped": 186, "note": "history/child success case was added and passed in a later focused run" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 E'", "exit_code": 0, "phase": "V1-E final", "selected": 1, "skipped": 189 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/http-client.test.ts packages/omnigent-transport/src/http-provider.test.ts", "exit_code": 0, "phase": "V1 final focused", "selected": 101 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src", "exit_code": 0, "phase": "V2 final", "selected": 191, "skipped": 1 },
+    { "command": "pnpm --filter @consiliency/omnigent-transport typecheck", "exit_code": 0, "phase": "V2" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs", "exit_code": 0, "phase": "V3" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs v0.12.0 v0.14.0", "exit_code": 0, "phase": "V3" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs v0.14.0 v0.15.0", "exit_code": 0, "phase": "V3" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs v0.12.0 v0.15.0", "exit_code": 0, "phase": "V3" },
+    { "command": "pnpm --filter @consiliency/omnigent-transport build", "exit_code": 0, "phase": "V4 prep" },
+    { "command": "pnpm --filter @consiliency/omnigent-transport test:pack", "exit_code": 0, "phase": "V4 partial", "tarball_sha256": "46a4afdd6a562898234ba7640e29cf68f9097f0092b929a3b907f315c2c0c5d1", "behavior": "installed JS/TypeScript consumer; info omission, identity in both orders, passive sidechat, stale restart and exhaustion" },
+    { "command": "pnpm lint", "exit_code": 0, "phase": "supplementary" },
+    { "command": "git diff --check", "exit_code": 0, "phase": "supplementary" }
+  ],
+  "unrun": [
+    { "command": "pnpm verify", "reason": "root verify script absent pending accepted GUARD gate" },
+    { "command": "NPM_PUBLISH_DRY_RUN=1 bash scripts/publish-package-if-needed.sh packages/omnigent-transport", "reason": "0.8.0 candidate and accepted release gates pending; 0.7.0 is already published" },
+    { "check": "live upstream Omnigent provider", "reason": "no live-provider qualification authorized or required by fake-server checks" }
+  ],
+  "registry_preflight": { "npm_latest": "0.7.0", "candidate_0_8_0_unoccupied": true },
+  "publication_authorized": false,
+  "published": false,
+  "draft_pr_attempt": {
+    "primitive": "phase_loop_runtime.publishing.publish_from_worktree",
+    "status": "publication_blocked",
+    "reason": "broker_required",
+    "detail": "publish mutation requires an admitted broker client"
+  }
+}

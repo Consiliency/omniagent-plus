@@ -7,6 +7,7 @@ import {
   loadOmnigentHttpSurface,
   loadOmnigentSourceMetadata,
   loadOmnigentV012WireContract,
+  loadOmnigentV015WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
@@ -16,8 +17,8 @@ import { FakeOmnigentServer } from "./fake-omnigent-server.js";
 import { OmnigentHttpError } from "./http-client.js";
 import { omnigentStreamEventTypes } from "./types.js";
 
-describe("official Omnigent v0.12 conformance", () => {
-  it("freezes the release authority without broadening neutral capabilities", () => {
+describe("Omnigent transport conformance", () => {
+  it("retains historical v0.12 behavior without broadening neutral capabilities", () => {
     const source = loadOmnigentSourceMetadata();
     const http = loadOmnigentHttpSurface();
     const cli = loadOmnigentCliSurface();
@@ -27,18 +28,17 @@ describe("official Omnigent v0.12 conformance", () => {
     const historicalV010Wire = loadOmnigentV010WireContract();
     const historicalV09Wire = loadOmnigentV09WireContract();
 
-    expect(source.freeze_target).toEqual(
+    expect(source.historical_freeze_target).toEqual(
       expect.objectContaining({
         commit: "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
         package_version: "0.12.0",
-        requires_python: ">=3.12",
         tag: "v0.12.0",
       }),
     );
     expect(wire.authority).toEqual(
       expect.objectContaining({
-        commit: source.freeze_target.commit,
-        tag: source.freeze_target.tag,
+        commit: source.historical_freeze_target?.commit,
+        tag: source.historical_freeze_target?.tag,
       }),
     );
     expect(historicalV010Wire.authority).toEqual(
@@ -59,38 +59,11 @@ describe("official Omnigent v0.12 conformance", () => {
         tag: "v0.9.0",
       }),
     );
-    expect(source.preflight_confirmation).toEqual(
-      expect.objectContaining({
-        added_operations: ["POST /v1/imports/local"],
-        added_paths: ["/v1/imports/local"],
-        added_schemas: [
-          "ImportedSessionRef",
-          "LocalImportRequest",
-          "LocalImportResponse",
-        ],
-        changed_schemas: [
-          "AutomaticSessionRenameRequest",
-          "ElicitationResolvedEvent",
-          "ImportSessionRequest",
-          "SessionForkRequest",
-          "SessionGitOptions",
-          "UpdateSessionRequest",
-        ],
-        newer_stable_release: false,
-        official_release_event_count: 54,
-        openapi_operation_count: 101,
-        openapi_path_count: 73,
-        openapi_schema_count: 146,
-        removed_operations: [],
-        removed_paths: [],
-        removed_schemas: [],
-      }),
-    );
     expect(http.openapi_delta).toEqual(
       expect.objectContaining({
-        operation_count: 101,
-        path_count: 73,
-        schema_count: 146,
+        operation_count: 117,
+        path_count: 88,
+        schema_count: 163,
       }),
     );
 
@@ -142,7 +115,7 @@ describe("official Omnigent v0.12 conformance", () => {
       expect(error.body).toBe(fixture.body);
     }
 
-    expect(omnigentStreamEventTypes).toHaveLength(54);
+    expect(omnigentStreamEventTypes).toHaveLength(56);
     expect(omnigentStreamEventTypes).toContain("session.permission_mode");
     expect(omnigentStreamEventTypes).toContain("session.title");
     expect(wire.session_response.background_tasks).toEqual([
@@ -277,6 +250,32 @@ describe("official Omnigent v0.12 conformance", () => {
           status: "metadata_only",
         }),
       ]),
+    );
+  });
+
+  it("v0.15 E separates the exact target inventory from accepted historical input", () => {
+    const source = loadOmnigentSourceMetadata();
+    const wire = loadOmnigentV015WireContract();
+    expect(source.freeze_target).toEqual(expect.objectContaining({
+      commit: wire.authority.commit,
+      package_version: "0.15.0",
+      tag: wire.authority.tag,
+    }));
+    expect(source.preflight_confirmation).toEqual(expect.objectContaining({
+      openapi_operation_count: 117,
+      openapi_path_count: 88,
+      openapi_schema_count: 163,
+      official_release_event_count: 55,
+      removed_stream_events: ["session.skills"],
+    }));
+    expect(wire.release_event_types).toHaveLength(55);
+    expect(new Set(wire.release_event_types).size).toBe(55);
+    expect(wire.historical_only_event_types).toEqual(["session.skills"]);
+    expect(wire.delta_from_v0_14.added_operations).toHaveLength(4);
+    expect(wire.delta_from_v0_14.removed_schemas).toEqual(["SessionSkillsEvent"]);
+    expect(wire.adversarial_vectors).toHaveLength(3);
+    expect([...omnigentStreamEventTypes].sort()).toEqual(
+      [...wire.release_event_types, ...wire.historical_only_event_types].sort(),
     );
   });
 

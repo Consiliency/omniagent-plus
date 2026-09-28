@@ -3,6 +3,15 @@
 `@consiliency/omnigent-transport@0.7.0` implements the official Omnigent
 `v0.12.0` boundary while preserving the neutral runtime-provider contract.
 
+An isolated v0.15 accommodation candidate adds informational-error omission,
+scoped persisted/stream message identity, passive sidechat and approval-mode
+event handling, and one fresh pagination walk after an exact stale-cursor error.
+The package's published support claim remains v0.12 until the accepted GUARD/DATA
+and transport-owner gates plus complete qualification are recorded. The
+`v0.15.0` target has 55 stream events; the parser accepts 56 including legacy
+`session.skills`. The adapter does not grant new approval, file-sharing, child,
+model, credential, or administrative authority.
+
 ## Modes
 
 - HTTP accepts an existing named agent, or uses an explicit agent-id resolver.

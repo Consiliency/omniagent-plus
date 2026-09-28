@@ -227,4 +227,85 @@ describe("history mapper", () => {
       expect(mapOmnigentConversationHistory("session-metadata", [item]).runtimeEvents).toEqual([]);
     }
   });
+
+  it("v0.15 A ignores informational persisted errors without losing their item identity", () => {
+    const items = [
+      {
+        created_at: 1_780_272_000,
+        id: "routing-info",
+        response_id: "response-info",
+        type: "error",
+        code: "routing_notice",
+        level: "info",
+        message: "Route selected",
+        source: "harness",
+        status: "completed",
+      },
+      {
+        created_at: 1_780_272_001,
+        id: "real-error",
+        response_id: "response-error",
+        type: "error",
+        code: "execution_failed",
+        level: "error",
+        message: "Execution failed",
+        source: "execution",
+        status: "completed",
+      },
+    ] as OmnigentConversationItem[];
+    const mapped = mapOmnigentConversationHistory("session-info", items);
+
+    expect(mapped.seenItemIds).toEqual(new Set(["routing-info", "real-error"]));
+    expect(mapped.runtimeEvents.map((event) => event.turnId)).toEqual([
+      "response-error",
+      "response-error",
+    ]);
+    expect(mapped.runtimeEvents.at(-1)?.type).toBe("runtime.turn.failed");
+  });
+
+  it("v0.15 B suppresses delayed chunked previews by explicit stream identity", () => {
+    const history = mapOmnigentConversationHistory("session-explicit", [{
+      content: [{ text: "Hello world", type: "output_text" }],
+      created_at: 1_780_272_000,
+      id: "durable-a",
+      response_id: "response-a",
+      role: "assistant",
+      status: "completed",
+      stream_message_id: "preview-a",
+      type: "message",
+    }]);
+    const mapper = new OmnigentEventMapper("session-explicit", history);
+    const preview = (id: string, delta: string) => mapper.map({
+      delta, id, message_id: "preview-a",
+      occurredAt: "2026-08-12T19:00:00.000Z",
+      sessionId: "session-explicit", turnId: "response-a",
+      type: "response.output_text.delta",
+    });
+    expect(preview("chunk-1", "Hello ")).toEqual([]);
+    expect(preview("chunk-2", "world")).toEqual([]);
+    expect(preview("chunk-3", "Hello world")).toEqual([]);
+    expect(preview("chunk-4", " world")).toEqual([]);
+    expect(preview("chunk-5", " world!").map((event) =>
+      event.type === "runtime.text.delta" ? event.payload.delta : "",
+    )).toEqual(["!"]);
+  });
+
+  it("v0.15 B preserves preview content when durable stream identities collide", () => {
+    const items = ["durable-a", "durable-b"].map((id) => ({
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_000,
+      id, response_id: "response-collision", role: "assistant",
+      status: "completed", stream_message_id: "colliding-stream",
+      type: "message",
+    })) as OmnigentConversationItem[];
+    const history = mapOmnigentConversationHistory("session-collision", items);
+    const mapper = new OmnigentEventMapper("session-collision", history);
+    const live = mapper.map({
+      delta: "same", id: "collision-preview", message_id: "colliding-stream",
+      occurredAt: "2026-08-12T19:00:00.000Z",
+      sessionId: "session-collision", turnId: "response-collision",
+      type: "response.output_text.delta",
+    });
+    expect(live.map((event) => event.type)).toEqual(["runtime.text.delta"]);
+  });
 });

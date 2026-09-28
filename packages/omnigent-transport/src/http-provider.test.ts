@@ -46,6 +46,148 @@ function createHttpProvider(options: OmnigentHttpClientOptions) {
 }
 
 describe("http provider", () => {
+  it("v0.15 D closes bootstrap SSE after bounded stale history exhaustion", async () => {
+    const snapshot = {
+      active_response_id: null, agent_id: "agent-stale",
+      created_at: 1_780_272_000, id: "session-stale", items: [],
+      status: "idle", title: "Stale", updated_at: 1_780_272_001,
+    };
+    let streamAborted = false;
+    const itemRequests: (string | null)[] = [];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = new URL(String(input));
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.pathname.endsWith("/stream")) {
+          init?.signal?.addEventListener("abort", () => { streamAborted = true; });
+          return new Response(new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: "response.output_text.delta", response_id: "response-stale", message_id: "stream-stale", delta: "partial" })}\n\n`));
+          },
+        }), { headers: { "content-type": "text/event-stream" } });
+        }
+        if (url.pathname.endsWith("/items")) {
+          const after = url.searchParams.get("after");
+          itemRequests.push(after);
+          return after
+            ? new Response(JSON.stringify({ error: { code: "stale_cursor", message: "deleted" } }), { status: 400 })
+            : new Response(JSON.stringify({ data: [{ id: "abandoned", type: "message", role: "assistant", content: [{ text: "partial" }], response_id: "response-stale", status: "completed", created_at: 1_780_272_001 }], has_more: true, last_id: "abandoned" }));
+        }
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "stale-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    await expect(collectAsync(provider.streamEvents(session.id))).rejects.toEqual(
+      expect.objectContaining({ statusCode: 400, body: { error: { code: "stale_cursor", message: "deleted" } } }),
+    );
+    expect(itemRequests).toEqual([null, "abandoned", null, "abandoned"]);
+    expect(streamAborted).toBe(true);
+    expect((await provider.getSessionInfo(session.id))?.lastError).toBeUndefined();
+  });
+  it("v0.15 A keeps informational history from failing an active session", async () => {
+    const snapshot = {
+      active_response_id: "response-info", agent_id: "agent-info",
+      created_at: 1_780_272_000, id: "session-info", items: [],
+      status: "running", title: "Info", updated_at: 1_780_272_001,
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (String(input).includes("/items")) return new Response(JSON.stringify({
+          data: [{ id: "info-row", type: "error", response_id: "response-info", status: "completed", created_at: 1_780_272_001, code: "route", level: "info", message: "Route selected", source: "harness" }],
+          first_id: "info-row", has_more: false, last_id: "info-row",
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "info-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    expect((await provider.readHistory(session.id)).events).toEqual([]);
+    const current = await provider.getSessionInfo(session.id);
+    expect(current?.lastError).toBeUndefined();
+    expect(current?.state).not.toBe("failed");
+  });
+  it("v0.15 B keeps explicit preview identity deduped across history and stream cursors", async () => {
+    const snapshot = {
+      active_response_id: "response-explicit", agent_id: "agent-explicit",
+      created_at: 1_780_272_000, id: "session-explicit", items: [],
+      status: "running", title: "Explicit", updated_at: 1_780_272_001,
+    };
+    const item = {
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_001, id: "durable-a",
+      response_id: "response-explicit", role: "assistant",
+      status: "completed", stream_message_id: "stream-a", type: "message",
+    };
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.endsWith("/stream")) return new Response(
+          `data: ${JSON.stringify({ type: "response.output_text.delta", response_id: "response-explicit", message_id: "stream-a", delta: "same", index: 0 })}\n\n`,
+          { headers: { "content-type": "text/event-stream" } },
+        );
+        if (url.includes("/items")) return new Response(JSON.stringify({
+          data: [item], first_id: item.id, has_more: false, last_id: item.id,
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "explicit-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const history = await provider.readHistory(session.id);
+    const events = await collectAsync(provider.streamEvents(session.id, { afterSequence: history.nextCursor }));
+    expect(history.events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+    expect(events.filter((event) => event.type === "runtime.text.delta")).toEqual([]);
+  });
+
+  it("v0.15 B preserves a new equal-text durable message with a different stream ID", async () => {
+    const snapshot = {
+      active_response_id: null, agent_id: "agent-equal",
+      created_at: 1_780_272_000, id: "session-equal", items: [],
+      status: "idle", title: "Equal", updated_at: 1_780_272_001,
+    };
+    const item = (id: string) => ({
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_001, id: `durable-${id}`,
+      response_id: "response-equal", role: "assistant", status: "completed",
+      stream_message_id: `stream-${id}`, type: "message",
+    });
+    let history = [item("a")];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (String(input).includes("/items")) return new Response(JSON.stringify({
+          data: history, first_id: history[0]?.id, has_more: false,
+          last_id: history.at(-1)?.id,
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "equal-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const first = await provider.readHistory(session.id);
+    history = [item("a"), item("b")];
+    const second = await provider.readHistory(session.id, { afterSequence: first.nextCursor });
+    expect(second.events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+  });
   it("preserves v0.5 MCP startup metadata without synthesizing empty metadata", async () => {
     const snapshot = {
       active_response_id: "item-control-1",

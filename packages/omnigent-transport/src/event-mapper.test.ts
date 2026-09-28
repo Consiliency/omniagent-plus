@@ -401,6 +401,22 @@ describe("event mapper", () => {
     expect(runtimeEvents).toEqual([]);
   });
 
+  it("v0.15 B reconciles preview first with explicit durable identity", () => {
+    const events = mapOmnigentEventSequence("session-b", [
+      { delta: "Hello", id: "preview-1", message_id: "stream-a", occurredAt: "2026-06-30T00:00:00.000Z", sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+      { id: "done-a", itemId: "durable-a", item: { type: "message", id: "durable-a", role: "assistant", stream_message_id: "stream-a", content: [{ text: "Hello world" }] }, occurredAt: "2026-06-30T00:00:01.000Z", sessionId: "session-b", turnId: "response-b", type: "response.output_item.done" },
+      { delta: "Hello world", id: "preview-late", message_id: "stream-a", occurredAt: "2026-06-30T00:00:02.000Z", sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+    ]);
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["Hello", " world"]);
+  });
+
+  it("v0.15 B keeps equal text with different explicit stream identities", () => {
+    const events = mapOmnigentEventSequence("session-b", [
+      { delta: "same", id: "preview-other", message_id: "stream-b", occurredAt: "2026-06-30T00:00:00.000Z", sessionId: "session-b", turnId: "response-b", type: "response.output_text.delta" },
+    ], { historicalMessagesByTurnId: [["response-b", [{ messageId: "durable-a", streamMessageId: "stream-a", text: "same" }]]] });
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+  });
+
   it("prefers an exact persisted message over an earlier compatible prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

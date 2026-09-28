@@ -161,6 +161,7 @@ function textGroupsCompatible(
 function matchDeliveredTextGroups(
   currentGroups: readonly RuntimeTextGroup[],
   deliveredGroups: readonly DeliveredTextGroup[],
+  aliases: ReadonlyMap<string, string> = new Map(),
 ): Map<RuntimeTextGroup, DeliveredTextGroup> {
   const matched = new Map<RuntimeTextGroup, DeliveredTextGroup>();
   const remainingCurrent = new Set(currentGroups);
@@ -186,15 +187,19 @@ function matchDeliveredTextGroups(
   match(
     (current, delivered) =>
       current.messageId !== undefined &&
-      current.messageId === delivered.messageId,
+      (current.messageId === delivered.messageId ||
+        (aliases.has(current.messageId) && aliases.get(current.messageId) === aliases.get(delivered.messageId ?? ""))),
   );
+  const identityCompatible = (current: RuntimeTextGroup, delivered: DeliveredTextGroup): boolean =>
+    !aliases.has(current.messageId ?? "") && !aliases.has(delivered.messageId ?? "");
   match(
     (current, delivered) =>
+      identityCompatible(current, delivered) &&
       current.occurredAt === delivered.occurredAt &&
       textGroupsCompatible(current, delivered),
   );
-  match((current, delivered) => current.text === delivered.text);
-  match(textGroupsCompatible);
+  match((current, delivered) => identityCompatible(current, delivered) && current.text === delivered.text);
+  match((current, delivered) => identityCompatible(current, delivered) && textGroupsCompatible(current, delivered));
   return matched;
 }
 
@@ -281,6 +286,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       }
     >
   >();
+  private readonly explicitMessageAliasesByTurnKey = new Map<string, Map<string, string>>();
   private readonly earlyCancellationProofKeys = new Set<string>();
   private readonly eventSequences = new Map<string, Map<string, number>>();
   private readonly latestTurnIds = new Map<string, string>();
@@ -570,6 +576,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     this.reconcileTurnsFromHistory(sessionId, items);
     this.reconcilePendingTurnsFromSnapshot(sessionId, snapshot, items);
     const mapped = mapOmnigentConversationHistory(sessionId, items);
+    this.registerMessageAliases(sessionId, mapped.historicalMessagesByTurnId);
     this.refreshTrackedSession(
       sessionId,
       snapshot,
@@ -707,6 +714,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (provisionalTurnIds.length === 0 ? activeTurnId : undefined),
       );
       const mappedSnapshot = mapOmnigentConversationHistory(sessionId, items);
+      this.registerMessageAliases(sessionId, mappedSnapshot.historicalMessagesByTurnId);
       const replayEvents =
         options?.afterSequence === undefined
           ? mappedSnapshot.runtimeEvents
@@ -752,7 +760,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       });
 
       for await (const rawEvent of stream.events) {
-        if (rawEvent.type === "response.elicitation_resolved") {
+        if (rawEvent.type === "response.elicitation_resolved" ||
+          rawEvent.type === "session.btw_sidechat" ||
+          rawEvent.type === "session.codex_approval_mode" ||
+          rawEvent.type === "session.skills") {
           continue;
         }
         const reopenedCancellationTurnId = this.recordConsumedPendingItem(
@@ -782,6 +793,22 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           continue;
         }
         const mappedEvents = mapper.map(rawEvent);
+        if (rawEvent.type === "response.output_item.done" && rawEvent.turnId &&
+          rawEvent.item?.type === "message" && typeof rawEvent.item.id === "string" &&
+          typeof rawEvent.item.stream_message_id === "string" && rawEvent.item.stream_message_id.length > 0) {
+          const key = `${sessionId}:${rawEvent.turnId}`;
+          const aliases = this.explicitMessageAliasesByTurnKey.get(key) ?? new Map<string, string>();
+          const existing = aliases.get(rawEvent.item.stream_message_id);
+          if (existing && existing !== rawEvent.item.id) {
+            aliases.set(existing, existing);
+            aliases.set(rawEvent.item.id, rawEvent.item.id);
+            aliases.set(rawEvent.item.stream_message_id, `\u0000invalid:${rawEvent.item.stream_message_id}`);
+          } else {
+            aliases.set(rawEvent.item.id, rawEvent.item.id);
+            aliases.set(rawEvent.item.stream_message_id, rawEvent.item.id);
+          }
+          this.explicitMessageAliasesByTurnKey.set(key, aliases);
+        }
         const replayEvents =
           options?.afterSequence === undefined
             ? mappedEvents
@@ -1541,6 +1568,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
       for (const [group, deliveredGroup] of matchDeliveredTextGroups(
         groups,
         delivered,
+        this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${turnId}`),
       )) {
         let remaining = deliveredGroup.text;
         for (const event of group.events) {
@@ -1575,6 +1603,29 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         } as RuntimeEvent,
       ];
     });
+  }
+
+  private registerMessageAliases(
+    sessionId: string,
+    messagesByTurnId: ReadonlyMap<string, readonly { messageId: string; streamMessageId?: string }[]>,
+  ): void {
+    for (const [turnId, messages] of messagesByTurnId) {
+      const counts = new Map<string, number>();
+      for (const message of messages) {
+        if (message.streamMessageId) counts.set(message.streamMessageId, (counts.get(message.streamMessageId) ?? 0) + 1);
+      }
+      const aliases = new Map<string, string>();
+      for (const message of messages) {
+        if (message.streamMessageId && counts.get(message.streamMessageId) === 1) {
+          aliases.set(message.messageId, message.messageId);
+          aliases.set(message.streamMessageId, message.messageId);
+        } else if (message.streamMessageId) {
+          aliases.set(message.messageId, message.messageId);
+          aliases.set(message.streamMessageId, `\u0000invalid:${message.streamMessageId}`);
+        }
+      }
+      this.explicitMessageAliasesByTurnKey.set(`${sessionId}:${turnId}`, aliases);
+    }
   }
 
   private recordDeliveredText(

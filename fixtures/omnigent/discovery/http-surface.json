@@ -1,41 +1,47 @@
 {
   "schema": "omnigent.http_surface.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-09-03T16:23:40Z",
+  "captured_at": "2026-09-28T08:01:37Z",
   "openapi_delta": {
-    "from_tag": "v0.11.0",
-    "to_tag": "v0.12.0",
-    "previous_operation_count": 100,
-    "operation_count": 101,
-    "previous_path_count": 72,
-    "path_count": 73,
-    "previous_schema_count": 143,
-    "schema_count": 146,
+    "from_tag": "v0.14.0",
+    "to_tag": "v0.15.0",
+    "previous_operation_count": 113,
+    "operation_count": 117,
+    "previous_path_count": 85,
+    "path_count": 88,
+    "previous_schema_count": 159,
+    "schema_count": 163,
     "added_operations": [
-      "POST /v1/imports/local"
+      "GET /v1/projects/order",
+      "GET /v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+      "GET /v1/skills",
+      "PUT /v1/projects/order"
     ],
     "removed_operations": [],
     "added_paths": [
-      "/v1/imports/local"
+      "/v1/projects/order",
+      "/v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+      "/v1/skills"
     ],
     "removed_paths": [],
     "added_schemas": [
-      "ImportedSessionRef",
-      "LocalImportRequest",
-      "LocalImportResponse"
+      "ErrorResponse",
+      "ImportFailureRef",
+      "ProjectOrderRequest",
+      "ProjectOrderResponse",
+      "SkillsResponse"
     ],
-    "removed_schemas": [],
+    "removed_schemas": ["SessionSkillsEvent"],
     "changed_schemas": [
-      "AutomaticSessionRenameRequest",
-      "ElicitationResolvedEvent",
-      "ImportSessionRequest",
+      "ErrorDetail",
+      "LocalImportResponse",
+      "RoutingDecisionData",
+      "ServerStreamEvent",
       "SessionForkRequest",
-      "SessionGitOptions",
-      "UpdateSessionRequest"
+      "SessionResponse"
     ],
     "annotation_only_fields_ignored": [
       "description",
-      "format",
       "title"
     ]
   },
@@ -199,7 +205,8 @@
       "open_stream",
       "get_snapshot",
       "get_all_history_pages",
-      "dedupe_by_item_id"
+      "restart_once_on_exact_stale_cursor",
+      "dedupe_by_item_and_explicit_stream_message_id"
     ],
     "event_families": [
       "session",
@@ -207,11 +214,23 @@
       "turn",
       "browser"
     ],
-    "official_release_event_count": 54,
+    "official_release_event_count": 55,
     "release_event_types": [
       "session.permission_mode",
-      "session.title"
-    ]
+      "session.title",
+      "session.btw_sidechat",
+      "session.codex_approval_mode"
+    ],
+    "historical_only_event_types": ["session.skills"],
+    "accepted_raw_event_count": 56
+  },
+  "stale_cursor_recovery": {
+    "consumers": ["GET /v1/sessions", "GET /v1/sessions/{session_id}/items", "GET /v1/sessions/{session_id}/child_sessions"],
+    "trigger": "HTTP 400 nested error.code exactly stale_cursor on nonempty after cursor",
+    "maximum_walks": 2,
+    "restart_from_first_page": true,
+    "discard_abandoned_rows": true,
+    "mutation_retry": false
   },
   "optional_release_surfaces": [
     {
@@ -387,6 +406,11 @@
     }
   ],
   "provenance": [
+    {
+      "kind": "tagged_source",
+      "path": "openapi.json",
+      "ref": "v0.15.0"
+    },
     {
       "kind": "tagged_source",
       "path": "omnigent/server/API.md",

@@ -1,17 +1,17 @@
 {
   "schema": "omnigent.capability_probe_matrix.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-09-03T16:23:40Z",
+  "captured_at": "2026-09-28T08:01:37Z",
   "release": {
-    "tag": "v0.12.0",
-    "commit": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595"
+    "tag": "v0.15.0",
+    "commit": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5"
   },
   "capabilities": [
     {
       "name": "create_session",
       "status": "supported",
       "evidence": [
-        "v0.12 legacy POST /v1/sessions requires agent_id and preserves initial_items",
+        "v0.15 retains legacy POST /v1/sessions required-agent shape and initial_items",
         "project-aware create is observed but not serialized by this provider",
         "named-agent JSON create is supported",
         "idempotency is process-local",
@@ -22,7 +22,7 @@
       "name": "send_turn",
       "status": "supported",
       "evidence": [
-        "v0.12 tagged message role/content event",
+        "v0.15 tagged message role/content event",
         "accepted and synchronous policy-denial acknowledgements"
       ]
     },
@@ -30,10 +30,10 @@
       "name": "stream_events",
       "status": "supported",
       "evidence": [
-        "v0.12 GET /stream",
-        "unchanged 54-event allowlist",
+        "v0.15 GET /stream",
+        "55 target events and one passive historical session.skills input",
         "tagged SSE normalization",
-        "elicitation verdict, session.permission_mode, and session.title are metadata-only"
+        "elicitation verdict, sidechat, approval mode, session.permission_mode, and session.title are metadata-only"
       ]
     },
     {
@@ -116,6 +116,12 @@
   ],
   "observed_non_capabilities": [
     {
+      "name": "v0_15_administrative_additions",
+      "evidence": "project ordering, skills discovery, sandbox model options, and optional file sharing are observed upstream surfaces",
+      "provider_capability": false,
+      "consiliency_authority": false
+    },
+    {
       "name": "bundle_root_isolation",
       "evidence": "stable v0.10 upstream runtime guarantee",
       "provider_capability": false,
@@ -141,7 +147,7 @@
     },
     {
       "name": "session_metadata_events",
-      "evidence": "permission mode and title are read-only transport metadata",
+      "evidence": "permission mode, title, sidechat, and Codex approval mode are read-only transport metadata",
       "provider_capability": false,
       "consiliency_authority": false
     },
