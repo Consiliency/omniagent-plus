@@ -12,7 +12,8 @@
   "owner_and_freeze_receipts": {
     "guard_accepted": false,
     "data_accepted": false,
-    "exclusive_transport_owner_recorded_in_omniagent_plus_25": false
+    "exclusive_transport_owner_recorded_in_omniagent_plus_25": true,
+    "exclusive_transport_owner_receipt": "https://github.com/Consiliency/omniagent-plus/issues/25#issuecomment-5873120581"
   },
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
@@ -97,6 +98,6 @@
     "packed_smoke": { "exit_code": 0, "tarball_sha256": "0f2e8dc562ec1ddbe9b39b0022956620718a230b34575956788573a5b38c1ad2" },
     "lint_exit_code": 0,
     "merge_ready": false,
-    "reason": "accepted GUARD/DATA freezes, exclusive transport ownership, full gate and exact new-head review remain pending"
+    "reason": "accepted GUARD/DATA freezes, full gate and exact new-head review remain pending"
   }
 }
