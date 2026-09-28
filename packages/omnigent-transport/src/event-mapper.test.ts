@@ -417,6 +417,17 @@ describe("event mapper", () => {
     expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
   });
 
+  it("v0.15 B keeps a reused stream identity separate across responses", () => {
+    const occurredAt = "2026-06-30T00:00:00.000Z";
+    const events = mapOmnigentEventSequence("session-b", [
+      { id: "done-a", itemId: "durable-a", item: { type: "message", id: "durable-a", role: "assistant", stream_message_id: "shared-stream", content: [{ text: "same" }] }, occurredAt, sessionId: "session-b", turnId: "response-a", type: "response.output_item.done" },
+      { id: "done-b", itemId: "durable-b", item: { type: "message", id: "durable-b", role: "assistant", stream_message_id: "shared-stream", content: [{ text: "same" }] }, occurredAt, sessionId: "session-b", turnId: "response-b", type: "response.output_item.done" },
+    ]);
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) =>
+      [event.turnId, event.payload.delta],
+    )).toEqual([["response-a", "same"], ["response-b", "same"]]);
+  });
+
   it("prefers an exact persisted message over an earlier compatible prefix", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

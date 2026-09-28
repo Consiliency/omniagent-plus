@@ -308,4 +308,48 @@ describe("history mapper", () => {
     });
     expect(live.map((event) => event.type)).toEqual(["runtime.text.delta"]);
   });
+
+  it("v0.15 B does not suppress another response reusing a historical stream id", () => {
+    const history = mapOmnigentConversationHistory("session-explicit", [{
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_000,
+      id: "durable-a", response_id: "response-a", role: "assistant",
+      status: "completed", stream_message_id: "shared-stream", type: "message",
+    }]);
+    const mapper = new OmnigentEventMapper("session-explicit", history);
+    const events = mapper.map({
+      delta: "same", id: "preview-b", message_id: "shared-stream",
+      occurredAt: "2026-08-12T19:00:00.000Z",
+      sessionId: "session-explicit", turnId: "response-b",
+      type: "response.output_text.delta",
+    });
+    expect(events.filter((event) => event.type === "runtime.text.delta").map((event) =>
+      event.payload.delta,
+    )).toEqual(["same"]);
+  });
+
+  it("v0.15 B learns a late alias from an already-seen durable item", () => {
+    const history = mapOmnigentConversationHistory("session-explicit", [{
+      content: [{ text: "hello", type: "output_text" }],
+      created_at: 1_780_272_000,
+      id: "durable-a", response_id: "response-a", role: "assistant",
+      status: "completed", type: "message",
+    }]);
+    const mapper = new OmnigentEventMapper("session-explicit", history);
+    expect(mapper.map({
+      id: "done-a", itemId: "durable-a",
+      item: { type: "message", id: "durable-a", role: "assistant", stream_message_id: "late-stream", content: [{ text: "hello" }] },
+      occurredAt: "2026-08-12T19:00:00.000Z",
+      sessionId: "session-explicit", turnId: "response-a",
+      type: "response.output_item.done",
+    })).toEqual([]);
+    for (const id of ["preview-1", "preview-2"]) {
+      expect(mapper.map({
+        delta: "hello", id, message_id: "late-stream",
+        occurredAt: "2026-08-12T19:00:00.000Z",
+        sessionId: "session-explicit", turnId: "response-a",
+        type: "response.output_text.delta",
+      })).toEqual([]);
+    }
+  });
 });

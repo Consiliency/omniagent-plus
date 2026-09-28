@@ -149,15 +149,6 @@ export function mapOmnigentConversationHistory(
   const historicalToolCallIds = new Set<string>();
   const historicalToolResultIds = new Set<string>();
   let sequence = 1;
-  const streamIdCounts = new Map<string, number>();
-  for (const item of items) {
-    if (item.type !== "message") continue;
-    const value = asRecord(item).stream_message_id;
-    if (typeof value !== "string" || value.length === 0) continue;
-    const key = `${item.response_id}\u0000${value}`;
-    streamIdCounts.set(key, (streamIdCounts.get(key) ?? 0) + 1);
-  }
-
   const append = (
     event: Omit<RuntimeEvent, "redaction" | "schema" | "sequence" | "sessionId">,
   ): void => {
@@ -220,10 +211,7 @@ export function mapOmnigentConversationHistory(
       const streamMessageId = typeof data.stream_message_id === "string" &&
         data.stream_message_id.length > 0
           ? data.stream_message_id : undefined;
-      const uniqueStreamMessageId = streamMessageId &&
-        streamIdCounts.get(`${turnId}\u0000${streamMessageId}`) === 1
-          ? streamMessageId : undefined;
-      historicalTextByMessageId.set(uniqueStreamMessageId ?? item.id, text.join(""));
+      historicalTextByMessageId.set(item.id, text.join(""));
       if (text.length > 0) {
         const historicalMessages = historicalMessagesByTurnId.get(turnId) ?? [];
         historicalMessages.push({ messageId: item.id, streamMessageId, text: text.join("") });
