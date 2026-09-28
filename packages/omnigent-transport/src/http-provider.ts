@@ -746,7 +746,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           (this.nextEventSequences.get(sessionId) ?? 1) - 1,
           options?.afterSequence ?? 0,
         ) + 1;
+      const invalidStreamIdsByTurnId = new Map<string, string[]>();
+      for (const turnId of mappedSnapshot.historicalMessagesByTurnId.keys()) {
+        const aliases = this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${turnId}`);
+        const invalid = [...(aliases ?? [])]
+          .filter(([, durableId]) => durableId.startsWith("\u0000invalid:"))
+          .map(([streamId]) => streamId);
+        if (invalid.length > 0) invalidStreamIdsByTurnId.set(turnId, invalid);
+      }
       const mapper = new OmnigentEventMapper(sessionId, {
+        invalidStreamIdsByTurnId,
         historicalMessagesByTurnId:
           mappedSnapshot.historicalMessagesByTurnId,
         historicalTextByMessageId: mappedSnapshot.historicalTextByMessageId,
@@ -1610,21 +1619,25 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     messagesByTurnId: ReadonlyMap<string, readonly { messageId: string; streamMessageId?: string }[]>,
   ): void {
     for (const [turnId, messages] of messagesByTurnId) {
+      const turnKey = `${sessionId}:${turnId}`;
       const counts = new Map<string, number>();
       for (const message of messages) {
         if (message.streamMessageId) counts.set(message.streamMessageId, (counts.get(message.streamMessageId) ?? 0) + 1);
       }
-      const aliases = new Map<string, string>();
+      const aliases = this.explicitMessageAliasesByTurnKey.get(turnKey) ?? new Map<string, string>();
       for (const message of messages) {
-        if (message.streamMessageId && counts.get(message.streamMessageId) === 1) {
+        if (!message.streamMessageId) continue;
+        const existing = aliases.get(message.streamMessageId);
+        if (counts.get(message.streamMessageId) === 1 &&
+          (existing === undefined || existing === message.messageId)) {
           aliases.set(message.messageId, message.messageId);
           aliases.set(message.streamMessageId, message.messageId);
-        } else if (message.streamMessageId) {
+        } else {
           aliases.set(message.messageId, message.messageId);
           aliases.set(message.streamMessageId, `\u0000invalid:${message.streamMessageId}`);
         }
       }
-      this.explicitMessageAliasesByTurnKey.set(`${sessionId}:${turnId}`, aliases);
+      this.explicitMessageAliasesByTurnKey.set(turnKey, aliases);
     }
   }
 

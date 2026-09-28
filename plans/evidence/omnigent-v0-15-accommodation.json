@@ -1,7 +1,7 @@
 {
   "schema": "omnigent.v0_15_accommodation_execution.v1",
   "status": "provisional_implementation_pending_gates",
-  "recorded_at": "2026-09-28T08:31:12Z",
+  "recorded_at": "2026-09-28T15:23:01Z",
   "branch": "codex/omnigent-v015-implementation-20260928",
   "base_head": "6b464e94e55fd8483a1ae42ec61d93f07738a320",
   "plan": {
@@ -16,8 +16,8 @@
   },
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
-    "packages/omnigent-transport/src/http-provider.ts": "46cd278a24a3f28c533d0948b06d1352b4a8b8d95339e7b2c6365f6a4b58028c",
-    "packages/omnigent-transport/src/event-mapper.ts": "c27a22b215ac740fa6e99a5ee3c6a7d8edca825c48af74c69960feecab95469a",
+    "packages/omnigent-transport/src/http-provider.ts": "a5eeabb4ea677815b304a4e196f45bd9a91f8922a13e515c0a8c5af750876034",
+    "packages/omnigent-transport/src/event-mapper.ts": "1aa88b8754189ab1777fa506d3610368d9de2b28634e6a97a244f1d1828db41b",
     "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
     "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
     "fixtures/omnigent/http/v0-15-wire-contract.json": "5fa285a9846ce1bbd05c6b8bb4dd407032cd4dc922a27a829c3ae911293db72a"
@@ -84,5 +84,19 @@
     "transport_build_exit_code": 0,
     "packed_smoke": { "exit_code": 0, "tarball_sha256": "0cedb3948ce28ddb749bf5c3c9930841af8c2d5c57e30af6907207b135749c1b" },
     "lint_exit_code": 0
+  },
+  "manual_tui_review_followup": {
+    "reviewed_head": "3152c6c39eb8c21b711f8bf1e8a2b9cc9905bd42",
+    "gemini_3_1_pro_high": "DISAGREE on merge: GUARD/DATA/owner and full verification gates absent",
+    "opus_5_5": "DISAGREE on merge: same gates; raised text-replay, alias retention and conflict-reset risks",
+    "reconciliation": "Conflicting stream IDs lost preview text after history reload; a focused provider regression failed on the reviewed head and passes after preserving the invalid association across reload and mapper construction. Same-ID delayed-preview text matching is required by plan B; unbounded per-session cache policy remains owned by WIRE/TR-4, not waived.",
+    "collision_regression": { "expected_red_exit_code": 1, "focused_green_exit_code": 0 },
+    "transport_tests": { "passed": 196, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "transport_typecheck_exit_code": 0,
+    "transport_build_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "0f2e8dc562ec1ddbe9b39b0022956620718a230b34575956788573a5b38c1ad2" },
+    "lint_exit_code": 0,
+    "merge_ready": false,
+    "reason": "accepted GUARD/DATA freezes, exclusive transport ownership, full gate and exact new-head review remain pending"
   }
 }

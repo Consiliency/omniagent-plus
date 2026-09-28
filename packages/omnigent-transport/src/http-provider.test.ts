@@ -154,6 +154,54 @@ describe("http provider", () => {
     expect(events.filter((event) => event.type === "runtime.text.delta")).toEqual([]);
   });
 
+  it("v0.15 B preserves previews after a stream ID collision and history reload", async () => {
+    const snapshot = {
+      active_response_id: "response-collision", agent_id: "agent-collision",
+      created_at: 1_780_272_000, id: "session-collision", items: [],
+      status: "running", title: "Collision", updated_at: 1_780_272_001,
+    };
+    const firstItem = {
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_001, id: "durable-a", response_id: "response-collision",
+      role: "assistant", status: "completed", stream_message_id: "shared-stream", type: "message",
+    };
+    let streamReads = 0;
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.endsWith("/stream")) {
+          streamReads += 1;
+          const event = streamReads === 1
+            ? { type: "response.output_item.done", item: {
+                ...firstItem, id: "durable-b", content: [{ text: "different", type: "output_text" }],
+              } }
+            : { type: "response.output_text.delta", response_id: "response-collision",
+                message_id: "shared-stream", delta: "same", index: 0 };
+          return new Response(`data: ${JSON.stringify(event)}\n\n`, {
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        if (url.includes("/items")) return new Response(JSON.stringify({
+          data: [firstItem], first_id: firstItem.id, has_more: false, last_id: firstItem.id,
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "collision-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const history = await provider.readHistory(session.id);
+    const firstStream = await collectAsync(provider.streamEvents(session.id, { afterSequence: history.nextCursor }));
+    expect(firstStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["different"]);
+    const cursor = Math.max(history.nextCursor ?? 0, ...firstStream.map((event) => event.sequence));
+    const secondStream = await collectAsync(provider.streamEvents(session.id, { afterSequence: cursor }));
+    expect(secondStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+  });
+
   it("v0.15 B preserves a new equal-text durable message with a different stream ID", async () => {
     const snapshot = {
       active_response_id: null, agent_id: "agent-equal",

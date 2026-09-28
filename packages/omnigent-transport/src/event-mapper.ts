@@ -45,6 +45,7 @@ function scopedMessageKey(turnId: string | undefined, messageId: string): string
 }
 
 export interface OmnigentEventMapperOptions {
+  readonly invalidStreamIdsByTurnId?: Iterable<readonly [string, readonly string[]]>;
   readonly historicalMessagesByTurnId?: Iterable<
     readonly [string, readonly OmnigentHistoricalMessage[]]
   >;
@@ -105,10 +106,11 @@ export class OmnigentEventMapper {
     this.historicalTextByMessageId = new Map(
       options.historicalTextByMessageId ?? [],
     );
+    const previouslyInvalidStreamIds = new Map(options.invalidStreamIdsByTurnId ?? []);
     for (const [turnId, messages] of this.historicalMessagesByTurnId) {
       const byStream = new Map<string, string>();
       const durableByStream = new Map<string, string>();
-      const invalid = new Set<string>();
+      const invalid = new Set(previouslyInvalidStreamIds.get(turnId) ?? []);
       for (const message of messages) {
         if (!message.streamMessageId) continue;
         durableByStream.set(message.streamMessageId, message.messageId);
