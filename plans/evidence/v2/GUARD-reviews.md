@@ -1,8 +1,42 @@
 # GUARD Review Reconciliation
 
-Updated 2026-09-15. GUARD is not accepted and omniagent-plus#29 must remain
-draft. No product release, version change, main merge or new custody backend
-implementation is approved by these records. omniagent-plus#20 stays open.
+Updated 2026-09-29. GUARD is not accepted and omniagent-plus#29 remains
+draft. No product release, version change or main merge is approved by these
+records. omniagent-plus#20 stays open.
+
+## 2026-09-29 Implementation Checkpoint
+
+- Linux subreaper/pidfd custody, scope cleanup, SQL fixture admission and
+  custody journaling are implemented through `3254f0a`. This is an implementation
+  checkpoint, not EC-GUARD-2 acceptance.
+- Hosted CI and publish rehearsal passed at `6103ff1`, `f5233e2` and
+  `3254f0a`. The `3254f0a` CI custody artifact contains a root gate journal
+  with 457 admissions and 457 terminals: 52 naturally reaped and 103 signaled
+  adopted descendants, zero unresolved and zero unproven. The signaled counts
+  occur in the explicit orphan controls; two additional retained test journals
+  each have 20 balanced, quiescent commands. The artifact is attached to CI run
+  `36530973291`. This survey does not prove the omitted fault scenarios.
+- Local `CI=true pnpm test` at `3254f0a` passed 469 cases with the one permitted
+  live-smoke skip; build, lint and focused GUARD typecheck passed. Post-head
+  fault-control additions are being verified separately.
+- Fresh production review of `6103ff1` did not accept the implementation:
+  Astra found fixture work before cleanup admission, unfunded inherited
+  reservations and missing adversarial controls; Sol found lost scope tracking
+  after cleanup timeout and missing evidence; Opus found incorrect interrupt
+  routing/forced-tail handling plus missing controls and acceptance receipts.
+  Gemini's manual tool-enabled TUI review found missing ADMIT cleanup slots,
+  buffered-ADMIT and descriptor-leak controls, and unhandled cooperative
+  pidfd signal errors. Its completed review text was recovered from the local
+  TUI transcript after the session stalled; the TUI was closed afterward.
+  Fixture admission, scope retention and interrupt routing were repaired by
+  `f5233e2`/`3254f0a`; later working-tree controls address several more
+  findings. The reservation and coverage findings remain. None of these
+  old-head reviews can accept a later head without reconciliation.
+- Remaining acceptance work includes immutable inherited cleanup budgets and
+  cancellation epochs, the specified clone/thread/keeper/protocol fault
+  controls, exact-head four-seat production review, SQL/custody acceptance
+  receipts and protection/merge checks. Historical evidence below records
+  earlier decisions and is not a current approval.
 
 ## Evidence
 

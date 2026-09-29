@@ -56,7 +56,7 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
   const args = ["exec", "vitest", "run", "--config", "vitest.config.ts", "--reporter=default", "--reporter=json", `--outputFile.json=${reportPath}`];
   if (command === "test:guard") args.push("tests/guard");
   if (command === "test:integration") args.push("--project=guard-db", "tests/guard/fixture.integration.db.test.ts");
-  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout: 900_000, shutdownReservationMs: NESTED_FIXTURE_SHUTDOWN_MS }); }
+  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout: 900_000, launcherBudget: { cleanupSlots: 3, maxChildReservationMs: NESTED_FIXTURE_SHUTDOWN_MS } }); }
   catch (error) {
     try {
       const failures = summarizeTestFailures(JSON.parse(readFileSync(reportPath, "utf8")));

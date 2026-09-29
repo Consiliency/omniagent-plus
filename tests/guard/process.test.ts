@@ -1,8 +1,9 @@
-import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readlinkSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import type { Writable } from "node:stream";
 import { expect, it } from "vitest";
 import { cleanupChild, ProcessScope, runProcess, signalOwned, spawnOwned, validateCustodyJournal, waitExit, waitReady, withCustodyContext } from "../helpers/guard-process.js";
 
@@ -11,6 +12,15 @@ it("fails spawn errors, nonzero children and signal/null exits", async () => {
   await expect(runProcess(process.execPath, ["-e", "process.exit(7)"])).rejects.toThrow("exit 7");
   await expect(runProcess(process.execPath, ["-e", "process.kill(process.pid,'SIGTERM')"])).rejects.toThrow("signal");
 }, 10_000);
+it("records a failed payload exec distinctly from a normal exit 127", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-exec-failure-"));
+  try {
+    await expect(withCustodyContext(dir, "exec-failure", () => runProcess("guard-command-does-not-exist", []))).rejects.toThrow();
+    expect(validateCustodyJournal(dir).admitted).toBe(1);
+    const rows = readFileSync(join(dir, "custody.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line) as { event: string; proof_error?: string });
+    expect(rows.find((row) => row.event === "terminal")?.proof_error).toBe("payload_spawn_failed");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 it("terminates a hung child and descendant without signaling unowned processes", async () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-hung-"));
   const pidFile = join(dir, "descendant");
@@ -115,6 +125,64 @@ it("drains large payload output without blocking custody completion", async () =
 });
 it("delivers stdin EOF through the supervisor", async () => {
   expect(await runProcess(process.execPath, ["-e", "process.stdin.resume();process.stdin.on('end',()=>console.log('eof'))"])).toBe("eof");
+});
+it("does not leak supervisor control or status pipes into the payload", async () => {
+  const script = `import os,sys
+expected=set(sys.stdin.read().splitlines())
+actual=set()
+for name in os.listdir('/proc/self/fd'):
+ try: actual.add(os.readlink('/proc/self/fd/'+name))
+ except FileNotFoundError: pass
+print('clean' if not expected.intersection(actual) else 'leaked')`;
+  const child = spawnOwned("python3", ["-I", "-S", "-B", "-c", script]);
+  child.stderr.resume();
+  try {
+    const pipes = [3, 4].map((index) => {
+      const descriptor = (child.stdio[index] as unknown as { _handle?: { fd?: number } })._handle?.fd;
+      if (descriptor === undefined) throw new Error("Missing supervisor pipe handle");
+      return readlinkSync(`/proc/self/fd/${descriptor}`);
+    });
+    child.stdin.end(pipes.join("\n"));
+    expect((await waitReady(child)).toString().trim()).toBe("clean");
+    expect(await waitExit(child)).toBe(0);
+  } finally { await cleanupChild(child); }
+});
+it("funds two nested three-slot scopes over ordinary work within 112.5 seconds", async () => {
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const inner = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);await scope.run(()=>runProcess(process.execPath,['-e','console.log(1)']));await scope.close();console.log('inner complete')`;
+  const outer = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);await scope.run(()=>runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(inner)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}}));await scope.close();console.log('funded')`;
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", outer], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 57_500 } })).toBe("funded");
+});
+it("cancels a buffered ADMIT before it can start payload effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-buffered-admit-"));
+  const marker = join(dir, "payload-started");
+  const controller = new AbortController();
+  const child = withCustodyContext(dir, "buffered-admit-control", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`], { signal: controller.signal }));
+  child.stdout.resume(); child.stderr.resume(); child.stdin.end();
+  const control = child.stdio[3] as Writable;
+  const originalWrite = control.write.bind(control);
+  Object.defineProperty(control, "write", { configurable: true, writable: true, value: (chunk: string | Uint8Array) => {
+    if (String(chunk).includes('"type":"ADMIT"')) { queueMicrotask(() => controller.abort()); return true; }
+    return originalWrite(chunk);
+  } });
+  try {
+    await expect(waitExit(child)).rejects.toThrow();
+    await expect(cleanupChild(child)).rejects.toThrow();
+    expect(existsSync(marker)).toBe(false);
+    expect(() => validateCustodyJournal(dir)).toThrow("unproven");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("refuses payload effects when the controller closes before admission", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-control-eof-"));
+  const marker = join(dir, "payload-started");
+  const child = withCustodyContext(dir, "control-eof-fault", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`]));
+  child.stdout.resume(); child.stderr.resume(); child.stdin.end();
+  (child.stdio[3] as Writable).end();
+  try {
+    await expect(waitExit(child)).rejects.toThrow();
+    await expect(cleanupChild(child)).rejects.toThrow();
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 it("leaves Linux child discovery to the custody supervisor", async () => {
   const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
@@ -222,6 +290,78 @@ while pid in s.active and time.monotonic()<deadline:
 assert pid not in s.active and s.adopted_unresolved==1 and s.adopted_natural==0 and s.adopted_signaled==0
 print('pidfd refusal retained')`;
   expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("pidfd refusal retained");
+});
+it("rejects a discovery-to-pidfd identity change without leaking the descriptor", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy
+m=runpy.run_path(${JSON.stringify(helper)})
+read,write=os.pipe()
+pid=os.fork()
+if pid==0:
+ os.close(write);os.read(read,1);os._exit(0)
+os.close(read)
+identity=m['verified_pidfd'].__globals__['proc_identity']
+calls=[0]
+def changed(target):
+ value=identity(target)
+ if value is None: return None
+ calls[0]+=1
+ return (value[0],value[1] if calls[0]==1 else value[1]+'changed',value[2])
+m['verified_pidfd'].__globals__['proc_identity']=changed
+before=set(os.listdir('/proc/self/fd'))
+try:
+ m['verified_pidfd'](pid)
+ raise AssertionError('identity change accepted')
+except m['CustodyError'] as error:
+ assert 'identity mismatch' in str(error)
+assert set(os.listdir('/proc/self/fd'))==before
+os.write(write,b'x');os.close(write);os.waitpid(pid,0)
+print('identity rejected')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("identity rejected");
+});
+it("retains an active child after a transient supervisor discovery error", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy,time
+m=runpy.run_path(${JSON.stringify(helper)})
+s=m['Supervisor']('fault-control')
+pid=os.fork()
+if pid==0:
+ while True: time.sleep(1)
+s.payload=pid
+s.register(pid)
+discover=s.discover
+attempts=[0]
+def flaky():
+ attempts[0]+=1
+ if attempts[0]==1: raise OSError('transient discovery failure')
+ return discover()
+s.discover=flaky
+s.retain_after_failure()
+assert attempts[0]>1 and pid not in s.active
+try: os.waitpid(pid,os.WNOHANG); raise AssertionError('child not reaped')
+except ChildProcessError: pass
+print('retained and reaped')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("retained and reaped");
+});
+it("retains custody when cooperative pidfd signaling fails", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy,signal,time
+m=runpy.run_path(${JSON.stringify(helper)})
+s=m['Supervisor']('fault-control')
+pid=os.fork()
+if pid==0:
+ while True: time.sleep(1)
+s.payload=pid
+s.register(pid)
+original=signal.pidfd_send_signal
+signal.pidfd_send_signal=lambda *_: (_ for _ in ()).throw(OSError('injected failure'))
+try: s.start_cooperative(signal.SIGINT)
+finally: signal.pidfd_send_signal=original
+assert s.error=='cooperative_signal_unproven' and s.forced
+s.retain_after_failure()
+assert pid not in s.active
+print('signal failure retained')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("signal failure retained");
 });
 it("rejects unbalanced custody receipts and an unexpected rescue beside an expected control", () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-journal-"));

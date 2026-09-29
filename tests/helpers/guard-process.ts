@@ -8,6 +8,8 @@ import type { Readable, Writable } from "node:stream";
 
 export const PROCESS_MS = 15_000;
 export const NESTED_FIXTURE_SHUTDOWN_MS = 112_500;
+const TAIL_MS = 2_500;
+const CLEANUP_SLOT_MS = 17_500;
 export function cleanEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {};
   for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SystemRoot", "LANG", "LC_ALL", "CI", "PNPM_HOME", "XDG_CACHE_HOME", "GUARD_CUSTODY_RUN_DIR", "GUARD_CUSTODY_STAGE"]) {
@@ -16,7 +18,9 @@ export function cleanEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJ
   return result;
 }
 
-type OwnedOptions = SpawnOptionsWithoutStdio & { timeout?: number; input?: string; custodyControlId?: string; shutdownReservationMs?: number };
+type LauncherBudget = { cleanupSlots: number; maxChildReservationMs: number };
+type AdmittedBudget = LauncherBudget & { operationNs: bigint; completionNs: bigint };
+type OwnedOptions = SpawnOptionsWithoutStdio & { timeout?: number; input?: string; custodyControlId?: string; shutdownReservationMs?: number; launcherBudget?: LauncherBudget };
 type CustodyResult = {
   payload_pid: number | null;
   outcome: { exit_code?: number; signal?: NodeJS.Signals; not_started?: boolean };
@@ -58,6 +62,8 @@ type OwnedChild = {
   stage: string;
   supervisorStart: string | null;
   shutdownReservationMs: number;
+  budgetSlots: number;
+  budgetChildMs: number;
   cooperativeDeadline?: bigint;
   shutdownDeadline?: bigint;
 };
@@ -182,7 +188,8 @@ function handleStatus(record: OwnedChild, chunk: Buffer): void {
       try {
         journal(record, "admission");
         record.admissionJournaled = true;
-        send(record, "ADMIT", { command: record.command, argv: record.args, cwd, env, umask: process.umask(), stdio: { stdin: 0, stdout: 1, stderr: 2 }, deadline_ns: String(record.started + BigInt(record.timeout) * 1_000_000n), shutdown_reservation_ns: String(BigInt(record.shutdownReservationMs) * 1_000_000n), shutdown_completion_ns: String(record.started + BigInt(record.timeout + record.shutdownReservationMs) * 1_000_000n) });
+        for (const key of Object.keys(env)) if (key.startsWith("GUARD_ADMITTED_")) delete env[key];
+        send(record, "ADMIT", { command: record.command, argv: record.args, cwd, env, umask: process.umask(), stdio: { stdin: 0, stdout: 1, stderr: 2 }, deadline_ns: String(record.started + BigInt(record.timeout) * 1_000_000n), shutdown_reservation_ns: String(BigInt(record.shutdownReservationMs) * 1_000_000n), shutdown_completion_ns: String(record.started + BigInt(record.timeout + record.shutdownReservationMs) * 1_000_000n), cleanup_slots: record.budgetSlots, child_reservation_ns: String(BigInt(record.budgetChildMs) * 1_000_000n) });
         record.admitted = true;
       } catch { record.fault = new Error("GUARD admission failed"); record.control.end(); }
     } else if (frame.type === "WORK_DRAINED" && record.admitted && !record.workDrained && !record.result && typeof frame.quiescent === "boolean") {
@@ -201,6 +208,7 @@ export class ProcessScope {
   readonly controller = new AbortController();
   readonly children = new Set<ChildProcessWithoutNullStreams>();
   private readonly cleanupSlots: number;
+  readonly admitted?: AdmittedBudget;
   private readonly cleanups = new Set<() => Promise<void>>();
   private closing?: Promise<void>;
   private cooperativeSignal?: NodeJS.Signals;
@@ -212,12 +220,23 @@ export class ProcessScope {
   constructor(cleanupSlots = 0) {
     if (!Number.isSafeInteger(cleanupSlots) || cleanupSlots < 0) throw new Error("Invalid GUARD cleanup reservation");
     this.cleanupSlots = cleanupSlots;
+    const keys = ["GUARD_ADMITTED_OPERATION_NS", "GUARD_ADMITTED_COMPLETION_NS", "GUARD_ADMITTED_CLEANUP_SLOTS", "GUARD_ADMITTED_CHILD_RESERVATION_MS"] as const;
+    const values = keys.map((key) => process.env[key]);
+    if (values.some((value) => value !== undefined)) {
+      if (values.some((value) => value === undefined || !/^\d+$/.test(value))) throw new Error("Invalid GUARD inherited reservation");
+      const [operationNs, completionNs, slots, childMs] = values as [string, string, string, string];
+      const admitted = { operationNs: BigInt(operationNs), completionNs: BigInt(completionNs), cleanupSlots: Number(slots), maxChildReservationMs: Number(childMs) };
+      const now = process.hrtime.bigint();
+      if (!Number.isSafeInteger(admitted.cleanupSlots) || !Number.isSafeInteger(admitted.maxChildReservationMs) || admitted.cleanupSlots < 0 || admitted.maxChildReservationMs < 0 || cleanupSlots > admitted.cleanupSlots || admitted.operationNs <= now || admitted.completionNs !== admitted.operationNs + BigInt(TAIL_MS + admitted.cleanupSlots * CLEANUP_SLOT_MS + admitted.maxChildReservationMs) * 1_000_000n || admitted.completionNs < now + BigInt(TAIL_MS + cleanupSlots * CLEANUP_SLOT_MS) * 1_000_000n) throw new Error("GUARD inherited cleanup reservation exhausted");
+      this.admitted = admitted;
+    }
     process.on("SIGINT", this.onInterrupt);
     process.on("SIGTERM", this.onTerminate);
   }
   private readonly onInterrupt = () => { this.cooperativeSignal = this.cooperativeSignal ?? "SIGINT"; this.interrupt(); };
   private readonly onTerminate = () => { this.cooperativeSignal = this.cooperativeSignal ?? "SIGTERM"; this.interrupt(); };
   run<T>(operation: () => T): T { return context.run(this, operation); }
+  get cleanupReservationSlots(): number { return this.cleanupSlots; }
   check(): void { if (this.controller.signal.aborted || this.closing) throw new Error("GUARD operation interrupted/closed"); }
   get cooperativeClosing(): boolean { return this.cooperativeSignal !== undefined; }
   addCleanup(cleanup: () => Promise<void>): void {
@@ -231,7 +250,8 @@ export class ProcessScope {
     this.controller.abort();
     const children = [...this.children];
     const childReservation = Math.max(0, ...children.map((child) => child.pid === undefined ? 2_500 : owned.get(child.pid)?.shutdownReservationMs ?? 2_500));
-    const cleanup = { deadline: process.hrtime.bigint() + BigInt(2_500 + childReservation + this.cleanupSlots * 17_500) * 1_000_000n, remainingSlots: this.cleanupSlots };
+    const requested = process.hrtime.bigint() + BigInt(TAIL_MS + childReservation + this.cleanupSlots * CLEANUP_SLOT_MS) * 1_000_000n;
+    const cleanup = { deadline: this.admitted && this.admitted.completionNs < requested ? this.admitted.completionNs : requested, remainingSlots: this.cleanupSlots };
     try {
       if (this.cooperativeSignal) for (const child of children) if (child.pid !== undefined && (owned.get(child.pid)?.shutdownReservationMs ?? 2_500) > 2_500) signalOwned(child.pid, this.cooperativeSignal);
       const results = await Promise.allSettled(children.map((child) => this.cooperativeSignal && child.pid !== undefined && (owned.get(child.pid)?.shutdownReservationMs ?? 2_500) > 2_500 ? waitForCooperativeChild(child) : cleanupChild(child)));
@@ -298,12 +318,20 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     cleanup.remainingSlots--;
     options = { ...options, timeout: Math.min(options.timeout ?? PROCESS_MS, remaining) };
   }
-  const shutdownReservationMs = options.shutdownReservationMs ?? 2_500;
-  if (!Number.isSafeInteger(shutdownReservationMs) || shutdownReservationMs < 2_500) throw new Error("Invalid GUARD shutdown reservation");
+  const slots = options.launcherBudget?.cleanupSlots ?? 0;
+  const childReservation = options.launcherBudget?.maxChildReservationMs ?? (options.shutdownReservationMs ?? TAIL_MS) - TAIL_MS;
+  if (![slots, childReservation].every((value) => Number.isSafeInteger(value) && value >= 0)) throw new Error("Invalid GUARD shutdown reservation");
+  const shutdownReservationMs = TAIL_MS + slots * CLEANUP_SLOT_MS + childReservation;
+  if (!Number.isSafeInteger(shutdownReservationMs) || options.shutdownReservationMs !== undefined && options.shutdownReservationMs !== shutdownReservationMs) throw new Error("Invalid GUARD shutdown reservation");
   const custody = custodyContext.getStore();
   const runDir = custody?.runDir ?? process.env.GUARD_CUSTODY_RUN_DIR;
   const stage = custody?.stage ?? process.env.GUARD_CUSTODY_STAGE ?? "standalone";
   const started = process.hrtime.bigint();
+  const requestedTimeout = options.timeout ?? PROCESS_MS;
+  if (!Number.isSafeInteger(requestedTimeout) || requestedTimeout <= 0) throw new Error("Invalid GUARD operation timeout");
+  const operationEnd = scope?.admitted?.operationNs;
+  const timeout = operationEnd === undefined ? requestedTimeout : Math.min(requestedTimeout, Number((operationEnd - started) / 1_000_000n));
+  if (timeout <= 0 || scope?.admitted && (shutdownReservationMs > scope.admitted.maxChildReservationMs || started + BigInt(timeout + shutdownReservationMs) * 1_000_000n > scope.admitted.completionNs - BigInt(TAIL_MS + scope.cleanupReservationSlots * CLEANUP_SLOT_MS) * 1_000_000n)) throw new Error("GUARD inherited child reservation exhausted");
   const nonce = randomUUID();
   const child = spawn("python3", ["-I", "-S", "-B", supervisorPath, nonce], { env: cleanEnvironment(), detached: true, stdio: ["pipe", "pipe", "pipe", "pipe", "pipe"] }) as ChildProcessWithoutNullStreams;
   if (child.pid !== undefined) {
@@ -312,7 +340,7 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     const finished = new Promise<CustodyResult>((yes, no) => { resolve = yes; reject = no; });
     let supervisorStart: string | null = null;
     try { supervisorStart = readFileSync(`/proc/${child.pid}/stat`, "utf8").split(") ").at(-1)?.split(" ")[19] ?? null; } catch { /* Spawn errors are handled by the status channel. */ }
-    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, finished, resolve, reject, timeout: options.timeout ?? PROCESS_MS, started, options, scope, runDir, stage, supervisorStart, shutdownReservationMs };
+    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, finished, resolve, reject, timeout, started, options, scope, runDir, stage, supervisorStart, shutdownReservationMs, budgetSlots: slots, budgetChildMs: childReservation };
     owned.set(child.pid, record);
     scope?.children.add(child);
     record.status.on("data", (chunk: Buffer) => handleStatus(record, chunk));

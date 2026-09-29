@@ -655,6 +655,9 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   With an ordinary work child E=T, this yields 22.5/57.5-second maximum
   single-launcher shutdown reservations; with no child the figures are 20/55.
   Two nested three-slot owners over ordinary work require 112.5 seconds total.
+  A root suite that can run a further nested three-slot verifier declares
+  E=2.5+3(17.5)+112.5=167.5 seconds for that suite launcher; this is a third
+  owner layer, not a revised allowance for the two-owner case.
   T is already each node's final tail; do not add it twice. Normal operation
   deadlines remain unchanged. Reserve a separate absolute shutdown-completion
   ceiling at admission, within inherited job/scope limits; cancellation chooses

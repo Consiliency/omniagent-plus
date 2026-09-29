@@ -173,9 +173,13 @@ def validate_admit(frame):
         deadline_ns = int(frame["deadline_ns"])
         shutdown_reservation_ns = int(frame["shutdown_reservation_ns"])
         shutdown_completion_ns = int(frame["shutdown_completion_ns"])
+        cleanup_slots = int(frame["cleanup_slots"])
+        child_reservation_ns = int(frame["child_reservation_ns"])
     except (KeyError, TypeError, ValueError) as error:
         raise CustodyError("invalid operation deadline") from error
-    if deadline_ns <= time.monotonic_ns() or shutdown_reservation_ns < TAIL_NS or shutdown_completion_ns < deadline_ns + shutdown_reservation_ns:
+    if (deadline_ns <= time.monotonic_ns() or cleanup_slots < 0 or child_reservation_ns < 0
+            or shutdown_reservation_ns != TAIL_NS + cleanup_slots * 17_500_000_000 + child_reservation_ns
+            or shutdown_completion_ns != deadline_ns + shutdown_reservation_ns):
         raise CustodyError("admission deadline elapsed")
     return deadline_ns, shutdown_reservation_ns, shutdown_completion_ns
 
@@ -273,7 +277,19 @@ class Supervisor:
             except ProcessLookupError:
                 pass
             except OSError:
-                self.error = "pidfd_signal_unproven"
+                self.error = self.error or "pidfd_signal_unproven"
+
+    def retain_after_failure(self):
+        while True:
+            try:
+                self.discover()
+                exhausted = self.reap()
+                self.signal_children(signal.SIGKILL)
+                if exhausted and not self.active and not direct_children():
+                    return
+            except BaseException:
+                pass
+            time.sleep(0.05)
 
     def start_drain(self, forced=False):
         if self.drain_start is None:
@@ -295,7 +311,13 @@ class Supervisor:
             self.cooperative_deadline_ns = min(self.shutdown_completion_ns - TAIL_NS, time.monotonic_ns() + self.shutdown_reservation_ns - TAIL_NS, requested_end if requested_end is not None else self.shutdown_completion_ns)
             entry = self.active.get(self.payload)
             if entry is not None and entry["fd"] is not None:
-                signal.pidfd_send_signal(entry["fd"], number)
+                try:
+                    signal.pidfd_send_signal(entry["fd"], number)
+                except ProcessLookupError:
+                    self.start_drain(True)
+                except OSError:
+                    self.error = self.error or "cooperative_signal_unproven"
+                    self.start_drain(True)
             else:
                 self.error = self.error or "cooperative_payload_identity_unproven"
                 self.start_drain(True)
@@ -333,6 +355,12 @@ class Supervisor:
         kind = frame.get("type")
         if kind == "ADMIT" and self.payload is None and self.in_seq == 1:
             self.deadline_ns, self.shutdown_reservation_ns, self.shutdown_completion_ns = validate_admit(frame)
+            frame["env"].update({
+                "GUARD_ADMITTED_OPERATION_NS": str(self.deadline_ns),
+                "GUARD_ADMITTED_COMPLETION_NS": str(self.shutdown_completion_ns),
+                "GUARD_ADMITTED_CLEANUP_SLOTS": str(frame["cleanup_slots"]),
+                "GUARD_ADMITTED_CHILD_RESERVATION_MS": str(int(frame["child_reservation_ns"]) // 1_000_000),
+            })
             self.payload, self.error_read = launch(frame, self.payload_out, self.payload_err)
             self.register(self.payload)
         elif kind == "FORWARD" and self.payload is not None:
@@ -405,6 +433,8 @@ class Supervisor:
                         self.start_cooperative(number)
                     else:
                         self.start_drain(True)
+            self.discover()
+            exhausted = self.reap()
             if self.error_read is not None:
                 try:
                     error_data = os.read(self.error_read, 32)
@@ -415,8 +445,6 @@ class Supervisor:
                         self.error_read = None
                 except BlockingIOError:
                     pass
-            self.discover()
-            exhausted = self.reap()
             if self.payload is None and (self.error or now >= self.deadline_ns):
                 self.error = self.error or "admission_deadline"
                 break
@@ -471,9 +499,12 @@ class Supervisor:
 def main():
     if len(sys.argv) != 2 or not sys.argv[1] or len(sys.argv[1]) > 128:
         return 125
+    supervisor = Supervisor(sys.argv[1])
     try:
-        return Supervisor(sys.argv[1]).run()
+        return supervisor.run()
     except BaseException:
+        if supervisor.payload is not None or supervisor.active:
+            supervisor.retain_after_failure()
         return 125
 
 

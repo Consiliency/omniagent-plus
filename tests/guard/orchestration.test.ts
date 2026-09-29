@@ -6,7 +6,7 @@ import { STAGES } from "../helpers/guard-stages.js";
 import { verify, checkResults, runSuite, summarizeTestFailures, LIVE_CASE } from "../../scripts/verify.mjs";
 import type { createFixture, setupFixture } from "../../scripts/prepare-test-postgres.mjs";
 import type { packVerified } from "../../scripts/pack-verified-packages.mjs";
-import { cleanupChild, NESTED_FIXTURE_SHUTDOWN_MS, spawnOwned, validateCustodyJournal, waitExit, waitReady } from "../helpers/guard-process.js";
+import { cleanupChild, spawnOwned, validateCustodyJournal, waitExit, waitReady } from "../helpers/guard-process.js";
 
 const inputs = async () => ({ source_sha: "a".repeat(40), lockfile_sha256: "b".repeat(64), package_manifest_sha256: {} });
 
@@ -22,7 +22,7 @@ const scope=new ProcessScope();await scope.run(async()=>{const child=spawnOwned(
   const script = `import {verify} from ${JSON.stringify(new URL("../../scripts/verify.mjs", import.meta.url).href)};import {runProcess} from ${JSON.stringify(helper)};
 try{await verify({root:${JSON.stringify(root)},inputs:async()=>({source_sha:'a'.repeat(40),lockfile_sha256:'b'.repeat(64),package_manifest_sha256:{}}),stageList:['build'],run:async()=>runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(worker)}],{shutdownReservationMs:7500})});}catch{process.exitCode=1;}`;
   const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
-  const launcher = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { shutdownReservationMs: NESTED_FIXTURE_SHUTDOWN_MS });
+  const launcher = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 55_000 } });
   let launcherError = "";
   launcher.stdout.resume(); launcher.stderr.on("data", (chunk: Buffer) => { launcherError += chunk.toString(); });
   try {

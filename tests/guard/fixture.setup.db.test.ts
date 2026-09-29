@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createFixture, setupFixture, sql, probeClient } from "../../scripts/prepare-test-postgres.mjs";
-import { cleanupChild, NESTED_FIXTURE_SHUTDOWN_MS, runProcess, spawnOwned, waitExit, waitReady } from "../helpers/guard-process.js";
+import { cleanupChild, runProcess, spawnOwned, waitExit, waitReady } from "../helpers/guard-process.js";
 
 describe.sequential("disposable SQL setup", () => {
   it.each(["SIGINT", "SIGTERM"] as const)("quiesces nested admitted root-suite ownership on %s before fixture cleanup/exit", async (signal) => {
@@ -20,7 +20,7 @@ const scope=new ProcessScope();await scope.run(async()=>{const child=spawnOwned(
     const script = `import {writeFileSync,readFileSync,existsSync} from 'node:fs';import {verify} from ${JSON.stringify(new URL("../../scripts/verify.mjs", import.meta.url).href)};import {createFixture} from ${JSON.stringify(new URL("../../scripts/prepare-test-postgres.mjs", import.meta.url).href)};import {runProcess} from ${JSON.stringify(helper)};
 try{await verify({inputs:async()=>({source_sha:'a'.repeat(40),lockfile_sha256:'b'.repeat(64),package_manifest_sha256:{}}),stageList:['sql-setup','root-suite'],run:async()=> 'a'.repeat(40),create:async(options)=>{const fixture=await createFixture({...options,run:async(command,args,options)=>{if(args[0]==='rm'&&existsSync(${JSON.stringify(ready)})){const pids=JSON.parse(readFileSync(${JSON.stringify(ready)},'utf8'));writeFileSync(${JSON.stringify(cleanupFile)},JSON.stringify({quiescent:pids.every(pid=>!existsSync('/proc/'+pid+'/stat')||readFileSync('/proc/'+pid+'/stat','utf8').split(') ')[1].startsWith('Z'))}));}return runProcess(command,args,options);}});writeFileSync(${JSON.stringify(fixtureFile)},JSON.stringify({id:fixture.id,runDir:fixture.runDir}));return fixture;},suite:async(_command,fixture)=>{if(!fixture.receipt.admitted||fixture.receipt.probe!=='passed-signature-and-read-only-query')throw Error('not admitted');await runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(worker)}],{shutdownReservationMs:7500});}});}catch{process.exitCode=1;}`;
     const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
-    const launcher = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { shutdownReservationMs: NESTED_FIXTURE_SHUTDOWN_MS });
+    const launcher = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 55_000 } });
     launcher.stdout.resume(); launcher.stderr.resume();
     try {
       await waitReady(unrelated);

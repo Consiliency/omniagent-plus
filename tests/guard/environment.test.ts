@@ -1,4 +1,7 @@
 import { expect, it } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { configDefaults } from "vitest/config";
 import config from "../../vitest.config.js";
 import { cleanEnvironment, ProcessScope, runProcess } from "../helpers/guard-process.js";
@@ -23,9 +26,9 @@ it("retains Vitest dependency exclusions when partitioning DB collection", () =>
   expect(project.test?.exclude).toEqual([...configDefaults.exclude, "tests/guard/**/*.db.test.ts"]);
 });
 it("leaks no fixture parameters to non-DB workers or their descendants", async () => {
-  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
+  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") && !key.startsWith("GUARD_ADMITTED_") || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
   expect(keys).toEqual([]);
-  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k)&&!k.startsWith('GUARD_CUSTODY_'))))"], { env: process.env });
+  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k)&&!k.startsWith('GUARD_CUSTODY_')&&!k.startsWith('GUARD_ADMITTED_'))))"], { env: process.env });
   expect(JSON.parse(output)).toEqual([]);
 });
 it("rejects absent and forged hosted fixture tuples without docker writes", async () => {
@@ -43,6 +46,48 @@ it("refuses fixture work before effects when cleanup admission is exhausted", as
     await Promise.resolve();
     expect(calls).toEqual([]);
   } finally { await scope.close(); }
+});
+it("marks a lost Docker creation acknowledgment unproven when lookup is empty", async () => {
+  const root = mkdtempSync(join(tmpdir(), "guard-delayed-create-"));
+  const calls: string[] = [];
+  let createdAfterLookup = false;
+  try {
+    await expect(createFixture({ root, run: async (_command, args) => {
+      calls.push(args[0]!);
+      if (args[0] === "run") {
+        setTimeout(() => { createdAfterLookup = true; }, 10);
+        throw new Error("Docker acknowledgment lost");
+      }
+      return "";
+    } })).rejects.toThrow("Container creation outcome unproven");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(createdAfterLookup).toBe(true);
+    expect(calls).toEqual(["pull", "run", "ps"]);
+    const runDir = join(root, ".phase-loop/guard", readdirSync(join(root, ".phase-loop/guard"))[0]!);
+    expect(JSON.parse(readFileSync(join(runDir, "sql-setup.json"), "utf8")).cleanup).toBe("unproven");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+it("rejects an underfunded fixture and ignores forged inherited slots before effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-unfunded-fixture-"));
+  const marker = join(dir, "effect");
+  const fixture = new URL("../../scripts/prepare-test-postgres.mjs", import.meta.url).href;
+  const script = `import{writeFileSync}from'node:fs';import{createFixture}from${JSON.stringify(fixture)};try{await createFixture({run:async()=>{writeFileSync(${JSON.stringify(marker)},'effect');return'';}})}catch(error){console.log(error.message)}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 0 }, env: { ...cleanEnvironment(), GUARD_ADMITTED_CLEANUP_SLOTS: "99", GUARD_ADMITTED_OPERATION_NS: "999999999999999999", GUARD_ADMITTED_COMPLETION_NS: "999999999999999999", GUARD_ADMITTED_CHILD_RESERVATION_MS: "999999" } });
+    expect(output).toContain("inherited cleanup reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("rejects a nested reservation larger than the parent grant before effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-unfunded-child-"));
+  const marker = join(dir, "effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);try{await scope.run(()=>runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}],{shutdownReservationMs:5000}))}catch(error){console.log(error.message)}finally{await scope.close()}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 2_500 } });
+    expect(output).toContain("inherited child reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 it("separates cold pull budget from readiness and propagates failed pulls", async () => {
   const calls: unknown[] = [];
@@ -77,5 +122,5 @@ it.each(["SIGINT", "SIGTERM"])("registers %s cleanup before the cold pull starts
   const script = `import {createFixture} from './scripts/prepare-test-postgres.mjs';
 try {await createFixture({run:async (_command,args,options)=>{if(args[0]!=='pull')throw Error('unexpected operation');process.kill(process.pid,${JSON.stringify(signal)});await new Promise(r=>setTimeout(r,25));if(options.signal.aborted)throw Error('aborted owned pull');return '';}});process.exitCode=3;}
 catch(error){if(error.message!=='aborted owned pull')throw error;console.log('signal safely rejected');}`;
-  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script])).toBe("signal safely rejected");
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 0 } })).toBe("signal safely rejected");
 });
