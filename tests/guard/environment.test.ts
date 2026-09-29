@@ -23,12 +23,17 @@ it("retains Vitest dependency exclusions without clearing the assertion worker's
   const configPath = new URL("../../vitest.config.ts", import.meta.url).href;
   const output = await runProcess(process.execPath, ["--input-type=module", "-e", `import config from ${JSON.stringify(configPath)}; console.log(JSON.stringify(config.test?.projects?.[0]?.test?.exclude))`]);
   expect(JSON.parse(output)).toEqual([...configDefaults.exclude, "tests/guard/**/*.db.test.ts"]);
+  if (process.env.OMNIAGENT_GUARD_CUSTODY_EXPECTED === "1") {
+    expect(before).toHaveProperty("GUARD_CUSTODY_RUN_DIR");
+    expect(before).toHaveProperty("GUARD_CUSTODY_STAGE");
+    expect(before).toHaveProperty("GUARD_ADMITTED_OPERATION_NS");
+  }
   expect(Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith("GUARD_CUSTODY_") || key.startsWith("GUARD_ADMITTED_") || key === "GUARD_JOB_STARTED_MS"))).toEqual(before);
 });
 it("leaks no fixture parameters to non-DB workers or their descendants", async () => {
-  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") && !key.startsWith("GUARD_ADMITTED_") || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
+  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") && !key.startsWith("GUARD_ADMITTED_") && key !== "GUARD_JOB_STARTED_MS" || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
   expect(keys).toEqual([]);
-  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k)&&!k.startsWith('GUARD_CUSTODY_')&&!k.startsWith('GUARD_ADMITTED_'))))"], { env: process.env });
+  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k)&&!k.startsWith('GUARD_CUSTODY_')&&!k.startsWith('GUARD_ADMITTED_')&&k!=='GUARD_JOB_STARTED_MS')))"], { env: process.env });
   expect(JSON.parse(output)).toEqual([]);
 });
 it("rejects absent and forged hosted fixture tuples without docker writes", async () => {

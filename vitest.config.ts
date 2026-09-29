@@ -6,6 +6,7 @@ const fixture = process.env.GUARD_INTEGRATION_REQUIRED === "1" ? {
   GUARD_FIXTURE_RUN_DIR: process.env.GUARD_FIXTURE_RUN_DIR,
 } : undefined;
 const custody = process.env.GUARD_CUSTODY_RUN_DIR && process.env.GUARD_CUSTODY_STAGE ? {
+  OMNIAGENT_GUARD_CUSTODY_EXPECTED: "1",
   GUARD_CUSTODY_RUN_DIR: process.env.GUARD_CUSTODY_RUN_DIR,
   GUARD_CUSTODY_STAGE: process.env.GUARD_CUSTODY_STAGE,
   GUARD_JOB_STARTED_MS: process.env.GUARD_JOB_STARTED_MS,
