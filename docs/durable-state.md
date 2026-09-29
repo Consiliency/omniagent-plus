@@ -44,9 +44,11 @@ pathname intact but do not fence arbitrary external tampering during a callback.
 Supported topology is one host/PID namespace on a local filesystem with SQLite
 locking, hard links, same-directory atomic rename, and file/directory fsync.
 Unsupported durability operations fail explicitly. Directory initialization
-syncs every ancestor through the filesystem root, even when another initializer
-created the entries. This prevents an initializer from acknowledging work before
-the creator has synced those entries. A lock
+syncs every writable ancestor, even when another initializer created the entries,
+and stops before the first ancestor this user cannot modify. Pre-existing
+execute-only workspace parents are not opened; this user cannot publish entries
+there. This prevents an initializer from acknowledging work before the creator
+has synced mutable entries. A lock
 candidate is initialized, closed and synced before exclusive hard-link
 publication and parent sync. No owner unlinks the canonical database.
 
@@ -133,7 +135,8 @@ Redaction is fail-closed:
   artifact refs
 
 The shared scanner checks retained metadata recursively, including encoded JSON,
-tool bodies and coordination messages. A finite corpus covers known secret and
+durable tool bodies and coordination messages. Public runtime tool bodies retain
+their unknown-value compatibility, including normal home paths and code. A finite corpus covers known secret and
 provider-payload shapes plus safe lookalikes; it is not universal secret detection.
 Unknown-field stripping/passthrough behavior remains boundary-specific. Authorized
 runtime prompts, including empty, whitespace and long multibyte messages, remain
@@ -150,7 +153,7 @@ This is a deliberate persistence-policy tightening, not transparent read
 compatibility for historical raw content. Readonly inspection reports a bounded
 error; writers do not silently redact, migrate, truncate or discard such records.
 Preserve the old root for private inspection and remediation before adopting a
-metadata-only root. Terminal runtime summaries/reasons are projected before
+metadata-only root. Terminal runtime summaries/reasons and tool bodies are projected before
 audit persistence; their source runtime events remain unchanged.
 
 Private ledger reads and writes derive omitted envelope scope from session,
@@ -181,7 +184,7 @@ fake-provider evidence, not real upstream lifecycle acceptance.
 ## Measured Append Work
 
 Thirty appends to identical 0/100/1000-record fixtures took about 16/27/161 ms
-before DATA and 72/73/84 ms in the candidate run on this host. These are single
+before DATA and 113/102/67 ms in the candidate run on this host. These are single
 run observations, not speed guarantees. The comparison uses the same session-record workload; stronger sync increases small-ledger latency. Separate candidate controls record zero append
 snapshot rescans and zero index rewrites for unchanged ledgers. Foreign writes
 invalidate the cache under the writer transaction; competing-process tests check

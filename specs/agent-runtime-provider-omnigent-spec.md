@@ -1112,6 +1112,8 @@ File and parent-directory sync, same-directory atomic checkpoint replacement,
 historical sequence high-water before compaction, and private rejected-tail
 evidence before truncation define the supported single-host local-filesystem
 protocol. Cooperative writers never replace the live arbitration inode.
+Directory initialization syncs writable ancestors even for concurrent creators,
+stopping before pre-existing ancestors this user cannot modify or needs only to traverse.
 Unsupported durability operations fail rather than claiming power-loss proof.
 
 Complete corrupt/schema-invalid records remain intact. Bounded read-only
@@ -1127,7 +1129,9 @@ finalization; future manifest discriminators are unsupported schemas, not corrup
 
 Metadata-only construction and export share a recursive finite-corpus scanner.
 Authorized runtime messages remain unrestricted strings; persistence omits raw
-started-message/text-delta content. Evidence paths are relative or opaque and
+started-message/text-delta content and projects terminal/tool bodies. Public tool
+bodies retain unknown-value compatibility through live/history transport mapping.
+Evidence paths are relative or opaque and
 CLI/UI/handoff export projects operational roots to opaque references. Release
 records retain lease identity/fencing and optional cause/actor/time provenance;
 old records remain unattributed. COORD owns release emission and fencing, WIRE

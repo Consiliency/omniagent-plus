@@ -59,7 +59,7 @@ export class AuditLedger {
       event = { ...parsed, redaction: "metadata_only", payload: { ...parsed.payload, message: "[runtime content omitted]" } };
     } else if (parsed.type === "runtime.text.delta") {
       event = { ...parsed, redaction: "metadata_only", payload: { delta: "[runtime content omitted]" } };
-    } else if (["runtime.turn.completed", "runtime.turn.cancelled", "runtime.turn.failed"].includes(parsed.type)) {
+    } else if (["runtime.turn.completed", "runtime.turn.cancelled", "runtime.turn.failed", "runtime.tool.call", "runtime.tool.result"].includes(parsed.type)) {
       event = runtimeEventSchema.parse({ ...parsed, redaction: "metadata_only", payload: projectMetadataExport(parsed.payload) }) as RuntimeEvent;
     } else {
       event = { ...parsed, redaction: "metadata_only" };

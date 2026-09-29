@@ -1,5 +1,5 @@
-import { mkdtemp, open, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
-import type { BigIntStats, PathLike, StatOptions } from "node:fs";
+import { access, chmod, mkdir, mkdtemp, open, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { constants, type BigIntStats, type PathLike, type StatOptions } from "node:fs";
 import type * as FsPromises from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -30,6 +30,7 @@ describe("validated visible ledger snapshots", () => {
     vi.mocked(open).mockResolvedValue({ sync, close } as unknown as Awaited<ReturnType<typeof open>>);
     const ancestors: string[] = [];
     for (let current = directory; ; current = dirname(current)) {
+      try { await access(current, constants.W_OK); } catch { break; }
       ancestors.push(current);
       if (dirname(current) === current) break;
     }
@@ -39,6 +40,23 @@ describe("validated visible ledger snapshots", () => {
       expect(sync).toHaveBeenCalledTimes(ancestors.length);
       expect(close).toHaveBeenCalledTimes(ancestors.length);
     } finally { vi.mocked(open).mockImplementation(actualOpen); }
+  });
+
+  it.skipIf(process.getuid?.() === 0)("writes and reopens beneath an execute-only non-writable ancestor", async () => {
+    const ancestor = await mkdtemp(join(tmpdir(), "data-restricted-ancestor-"));
+    const workspace = join(ancestor, "workspace");
+    await mkdir(workspace);
+    await chmod(ancestor, 0o111);
+    try {
+      await expect(access(ancestor, constants.W_OK)).rejects.toMatchObject({ code: "EACCES" });
+      const rootDir = join(workspace, ".omniagent-plus", "state");
+      const store = await AppendOnlyStore.open({ rootDir });
+      await store.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "safe" } });
+      const reopened = await AppendOnlyStore.open({ rootDir });
+      expect(await reopened.listRecords()).toHaveLength(1);
+      await reopened.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "second" } });
+      expect((await readLedgerSnapshot(rootDir)).lastSequence).toBe(2);
+    } finally { await chmod(ancestor, 0o700); }
   });
 
   it("inspects an absent root without creating it", async () => {

@@ -77,9 +77,9 @@ function buildIndexSnapshot(
   records: StateLedgerEntry[],
   updatedAt: string,
 ): StateLedgerIndexSnapshot {
-  const byKind: Record<string, number[]> = {};
-  const bySession: Record<string, number[]> = {};
-  const byTask: Record<string, number[]> = {};
+  const byKind: Record<string, number[]> = Object.create(null);
+  const bySession: Record<string, number[]> = Object.create(null);
+  const byTask: Record<string, number[]> = Object.create(null);
 
   for (const record of records) {
     const kindBucket = (byKind[record.kind] ??= []);

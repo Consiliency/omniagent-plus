@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 import { z } from "zod";
@@ -107,6 +108,11 @@ export async function ensureParentDirectory(path: string): Promise<void> {
   await mkdir(directory, { recursive: true });
   let current = directory;
   while (true) {
+    try { await access(current, constants.W_OK); }
+    catch (error) {
+      if (error instanceof Error && "code" in error && (error.code === "EACCES" || error.code === "EROFS")) break;
+      throw error;
+    }
     await syncDirectory(current);
     const parent = dirname(current);
     if (parent === current) break;

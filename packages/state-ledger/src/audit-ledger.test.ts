@@ -49,6 +49,27 @@ function readFixture(): AuditFixture {
 }
 
 describe("audit ledger", () => {
+  it("checkpoints normalized session and task IDs that match object prototype names", async () => {
+    const fixture = readFixture();
+    for (const id of ["constructor", "__proto__", "toString"]) {
+      const rootDir = await mkdtemp(join(tmpdir(), "data-index-identity-"));
+      const ledger = await AuditLedger.open({ rootDir });
+      await ledger.store.appendRecord({ kind: "session", payload: { ...fixture.session, id } });
+      await ledger.store.appendRecord({ kind: "route_decision", payload: { ...fixture.routeDecision, taskId: id } });
+      const reopened = await AuditLedger.open({ rootDir });
+      expect(await reopened.listSessionRecords(id)).toHaveLength(1);
+      expect(await reopened.listTaskRecords(id)).toHaveLength(1);
+      await reopened.store.compactRecords(() => true);
+      const checkpoint = await AuditLedger.open({ rootDir });
+      expect(await checkpoint.listRecords()).toHaveLength(2);
+      const sessions = JSON.parse(await readFile(checkpoint.store.paths.sessionIndexPath, "utf8")) as { bySession: Record<string, number[]> };
+      const tasks = JSON.parse(await readFile(checkpoint.store.paths.taskIndexPath, "utf8")) as { byTask: Record<string, number[]> };
+      expect(Object.hasOwn(sessions.bySession, id)).toBe(true);
+      expect(sessions.bySession[id]).toEqual([1]);
+      expect(tasks.byTask[id]).toEqual([2]);
+    }
+  });
+
   it("normalizes omitted generic record scope on append and historical readonly reads", async () => {
     const fixture = readFixture();
     const rootDir = await mkdtemp(join(tmpdir(), "data-generic-scope-"));
@@ -128,6 +149,31 @@ describe("audit ledger", () => {
     expect(persisted).not.toContain("/home/synthetic");
     expect(persisted).not.toContain("synthetic-private-value");
     expect(persisted).toContain("[redacted]");
+  });
+
+  it("projects runtime tool bodies only at persistence and rejects unsafe direct writes", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-tool-content-")) });
+    const argumentsRedacted = { cwd: "/home/synthetic/project", password: "synthetic-private-value" };
+    const outputRedacted = "const token = await getToken();\n/home/synthetic/project/file.ts";
+    const base = { ...fixture.runtimeEvent, redaction: "content_allowed" as const, terminal: false };
+    const call: RuntimeEvent = { ...base, eventId: "call", type: "runtime.tool.call", payload: { toolCall: {
+      toolCallId: "tool", sessionId: base.sessionId, turnId: base.turnId!, toolName: "read", argumentsRedacted, approvalRequired: false,
+    } } };
+    const result: RuntimeEvent = { ...base, eventId: "result", type: "runtime.tool.result", payload: { toolCallId: "tool", outputRedacted } };
+    for (const event of [call, result]) {
+      await expect(ledger.store.appendRecord({ kind: "runtime_event", payload: { ...event, redaction: "metadata_only" } })).rejects.toThrow();
+      await ledger.appendRuntimeEvent(event);
+    }
+    expect(call.payload.toolCall.argumentsRedacted).toEqual(argumentsRedacted);
+    expect(result.payload.outputRedacted).toBe(outputRedacted);
+    const records = await ledger.listRecords();
+    const persisted = JSON.stringify(records);
+    expect(records).toHaveLength(2);
+    expect(records.every((record) => record.kind === "runtime_event" && record.payload.redaction === "metadata_only")).toBe(true);
+    expect(persisted).not.toContain("/home/synthetic");
+    expect(persisted).not.toContain("synthetic-private-value");
+    expect(persisted).not.toContain("getToken");
   });
 
   it("projects authorized runtime content before metadata-only persistence", async () => {

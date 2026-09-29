@@ -5,7 +5,7 @@
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
   "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
   "source_binding": {
-    "packages/state-ledger/src/append-only-store.ts": "9a5ae47e42d7e71c1891c7e5d3cc5cb0d52d6ff4542ea88882d607b968ba7d70",
+    "packages/state-ledger/src/append-only-store.ts": "a55187a5794ac80599bd34cf37a89b32d65aea5292e8bb39d2f4472d8d3fe2c8",
     "packages/state-ledger/src/ledger-snapshot.ts": "a64e4c730df8088daf6a4d196bb45ac3b619f62d0ea3b70cdbd4230d4771aa11",
     "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
     "packages/state-ledger/src/migrations.ts": "9872be61b43e8865ba29a58bfdde641354196f41b973f0b5968b84d51c810354",
@@ -13,10 +13,11 @@
     "packages/state-ledger/src/retention.ts": "4c17780521c23815d64a5e64ab3029507bd8f9eff212b06b2f1ba5363dc75ebd",
     "packages/core-contracts/src/redaction.ts": "b8f9a2bb372cf6d492545e8576ce1d9dc713930bc0ab666fe287a8f9d28a1a64",
     "fixtures/content-policy/corpus.json": "01b57b105a1aff1b599db5cd6441edaf513ab833ebc8e1d79dd43cdbd79d2e57",
-    "plans/phase-plan-v2-DATA.md": "730ab7a74c4a896335d1a4c4d4e7b83bb16eeaca7450f347c69fe63978b54a6a",
+    "plans/phase-plan-v2-DATA.md": "5b11057808b572c67b7a85bf72c9b8fa1a6c631124380ccbdc92072d846cfcb4",
     "packages/core-contracts/src/state-ledger.ts": "39af7cd658b97c18679af4c7df0ed3b4056051e372b3e0175ca4792d7316a0c0",
-    "packages/state-ledger/src/audit-ledger.ts": "5b03de075fd6f9b5d8efa5cfc717eb85f8d01790a44d6fd05d1fbe9759ec48ed",
-    "packages/state-ledger/src/schema.ts": "18552b00158dbe82eca51843c4392b96a0069f4abdb9fe082cbaf07d3299143b"
+    "packages/state-ledger/src/audit-ledger.ts": "7673f22b68f97125aa31009dc5b0a8405cbfdc89117381f4d2ac4dba2df2b3d3",
+    "packages/state-ledger/src/schema.ts": "b118cec2849cdd48c47b5652da2983287ce84fa4fd602e8fc3e09932b22aec14",
+    "packages/core-contracts/src/events.ts": "05c610af0efd1173d701002a7f7f2b4d8f411fe28c7ed161fc77d6b7eec9fc99"
   },
   "local_verification": {
     "targeted": {
@@ -66,24 +67,30 @@
         "passed": 194,
         "failed": 0,
         "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src tests/guard/boundaries.test.ts"
+      },
+      "workspace_tool_and_index_reconciliation": {
+        "files": 49,
+        "passed": 229,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/omnigent-transport/src/event-mapper.test.ts packages/omnigent-transport/src/history-mapper.test.ts tests/guard/boundaries.test.ts"
       }
     },
     "typecheck": "passed on repaired working candidate",
     "lint": "passed on repaired working candidate",
-    "full_gate": "Latest local full command passed frozen install/build/lint/typecheck/boundaries, then failed during disposable SQL setup with GUARD status frame out of order. No local full-gate acceptance claimed; canonical hosted full command passed f86f5bf and is required on final repair head.",
+    "full_gate": "Local full command previously passed frozen install/build/lint/typecheck/boundaries then failed disposable SQL setup with GUARD status frame out of order. Canonical hosted full command passed 6693c9e; required on final repair head. No local full-gate acceptance claimed.",
     "deterministic_root": {
-      "source": "scope/scanner/retention/capacity repaired candidate before review commit",
+      "source": "writable-ancestor, runtime-tool and prototype-safe-index repaired candidate before review commit",
       "command": "pnpm test",
-      "passed": 572,
+      "passed": 577,
       "skipped": 1,
       "failed": 0,
       "skip": "only explicitly opt-in live Omnigent case",
-      "runner_report_path": ".phase-loop/guard/1790711626744-3772808-247681dd-583f-4a84-a749-237221b86eb6/tests.json",
-      "runner_report_sha256": "5193644cb0d97e075db4122e82f12b874c70304d1688899cc047511b9047f2b0"
+      "runner_report_path": ".phase-loop/guard/1790712570683-3865934-372c2e7a-ab8f-46e6-b382-0c37d392409f/tests.json",
+      "runner_report_sha256": "aeebec123b7dd3a3176bb862c0c6ffc0ea0dfc7ab26aa65fb134a3826f09ff0e"
     }
   },
   "measurement": {
-    "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; identical session workload; one candidate run after ancestor-sync repair",
+    "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; identical session workload; candidate run after writable-ancestor repair, without concurrent broad verification",
     "initial_records": [
       0,
       100,
@@ -96,9 +103,9 @@
       160.734173
     ],
     "candidate_ms": [
-      72.062479,
-      72.553496,
-      83.916098
+      112.99248,
+      101.60056399999996,
+      66.81699899999967
     ],
     "candidate_append_snapshot_reads": [
       0,
@@ -206,7 +213,12 @@
     {
       "source_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
       "record": "plans/evidence/v2/reviews/DATA-implementation-f86f5bf.json",
-      "resolution": "Candidate repairs all eight finding groups. Four usable harness seats and independent reviewer require re-review; manual Opus still running on immutable prior head."
+      "resolution": "6693c9e repaired the prior eight finding groups. Completed manual Opus review also requires writable-ancestor sync and public tool-body compatibility repairs; included in next candidate with renewed review required."
+    },
+    {
+      "source_sha": "6693c9e44f4dcf02fc76415eac362a3884a7d0ce",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-6693c9e.json",
+      "resolution": "Candidate uses prototype-free index dictionaries and proves normalized prototype-name IDs through append/reopen/compaction and persisted indexes. Also repairs completed Opus B1/B2 with real permissions and transport regressions."
     }
   ],
   "remaining": [
@@ -223,13 +235,12 @@
     "PREP owns distribution and public independent package acceptance."
   ],
   "hosted_verification": {
-    "source_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
-    "ci_run_id": 36620341374,
-    "publish_rehearsal_run_id": 36620341411,
+    "source_sha": "6693c9e44f4dcf02fc76415eac362a3884a7d0ce",
+    "ci_run_id": 36622850774,
+    "publish_rehearsal_run_id": 36622851131,
     "required_check": "guard-required",
     "conclusion": "success",
     "actual_publish": "skipped",
-    "final_head": "pending scope/scanner/retention/capacity repair",
-    "artifact_manifest_sha256": "0dd479de2b6aa010d975b4a005d1b6879e08ca757daa433e50ea6664a3be4e5f"
+    "final_head": "pending writable-ancestor/runtime-tool/index repair"
   }
 }

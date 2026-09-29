@@ -51,8 +51,8 @@ describe("schemas", () => {
     const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
     for (const value of corpus.allowed) expect(() => sendTurnRequestSchema.parse({ ...base, message: "safe", metadata: { nested: value } })).not.toThrow();
     for (const value of corpus.rejected) expect(() => sendTurnRequestSchema.parse({ ...base, message: "safe", metadata: { nested: value } })).toThrow();
-    for (const value of corpus.rejected) expect(() => runtimeToolCallSchema.parse({ toolCallId: "tool", sessionId: "session", turnId: "turn",
-      toolName: "read", argumentsRedacted: { nested: value }, approvalRequired: false })).toThrow();
+    for (const value of corpus.rejected) expect(runtimeToolCallSchema.parse({ toolCallId: "tool", sessionId: "session", turnId: "turn",
+      toolName: "read", argumentsRedacted: { nested: value }, approvalRequired: false }).argumentsRedacted).toEqual({ nested: value });
     expect(createSessionRequestSchema.parse({ runtime: "omnigent", targetHarness: "codex", idempotencyKey: "root", title: "safe", repoRoot: "/home/synthetic/project" }).repoRoot)
       .toBe("/home/synthetic/project");
   });
