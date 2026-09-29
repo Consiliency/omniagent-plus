@@ -1,0 +1,64 @@
+{
+  "schema": "data-review-reconciliation.v1",
+  "source_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "18adb29dd5dd19fc5843050ba53d017086e37d6f6b6e3cce3301cfffee96750b"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "5cdaff6aab0051a16fbd126ac689cf09190cb550a26176990e801cd27d6468f4"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "ba8f2e713099c8d234a96622db45c023e9d948883e6de311f70a8ebe53e330d8"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "4292b7f0bafc51e0a63a10c7565e22fb52e14fddb34122a765651c713a533924"
+      }
+    ]
+  },
+  "independent": {
+    "verdict": "PARTIALLY AGREE",
+    "findings": [
+      "Omitted optional envelope scope hides valid active turns and session replay"
+    ]
+  },
+  "manual_gemini": {
+    "model": "Gemini 3.1 Pro (High)",
+    "verdict": "AGREE",
+    "review_sha256": "d4c4ef908167460b2efd6ab4704339ff7e1b318dff6fc52b91794ed53aa59443"
+  },
+  "manual_opus": {
+    "model": "claude-opus-5-5",
+    "adapter": "subscription TUI, tools enabled",
+    "status": "running; no verdict claimed"
+  },
+  "findings": [
+    "Private recovery refs in keys and encoded JSON scalars",
+    "Padded evidence exceeds actual persisted byte bounds",
+    "Vendor camelCase and plural credential containers missed",
+    "Compaction recovery-counter manifest growth exceeds capacity",
+    "Valid unterminated-record newline exceeds capacity",
+    "Selective retention resurrects resolved approval as pending",
+    "Future manifest literal misclassified as corruption",
+    "Omitted generic-record scope loses replay and active retention"
+  ],
+  "resolution": "Candidate adds shared scanner/key/scalar and original-byte controls; private read/write scope normalization; closure preserves latest resolution; compaction validates checkpoints and normalized serialization; newline capacity preflight; raw future-version classification. Passing renewed reviews required.",
+  "decision": "not_accepted"
+}

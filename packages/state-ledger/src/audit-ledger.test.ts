@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -21,6 +21,8 @@ import type {
 } from "@consiliency/runtime-provider";
 
 import { AuditLedger } from "./audit-ledger.js";
+import { replaySession } from "./replay.js";
+import { readLedgerSnapshot } from "./ledger-snapshot.js";
 
 interface AuditFixture {
   readonly session: AgentSession;
@@ -47,6 +49,57 @@ function readFixture(): AuditFixture {
 }
 
 describe("audit ledger", () => {
+  it("normalizes omitted generic record scope on append and historical readonly reads", async () => {
+    const fixture = readFixture();
+    const rootDir = await mkdtemp(join(tmpdir(), "data-generic-scope-"));
+    const ledger = await AuditLedger.open({ rootDir });
+    const inputs = [
+      { kind: "session" as const, payload: fixture.session },
+      { kind: "turn" as const, payload: fixture.turn },
+      { kind: "runtime_event" as const, payload: fixture.runtimeEvent },
+      { kind: "approval_request" as const, payload: fixture.approvalRequest },
+      { kind: "worktree_lease" as const, payload: fixture.worktreeLease },
+      { kind: "limit_classification" as const, payload: fixture.limitClassification },
+      { kind: "route_decision" as const, payload: fixture.routeDecision },
+    ];
+    for (const input of inputs) await ledger.store.appendRecord(input);
+    const records = await ledger.listRecords();
+    expect(records.slice(0, 6).every((record) => record.sessionId === fixture.session.id)).toBe(true);
+    expect(records.filter((record) => ["turn", "runtime_event", "approval_request", "worktree_lease"].includes(record.kind))
+      .every((record) => record.turnId === fixture.turn.turnId)).toBe(true);
+    expect(records[6]?.taskId).toBe(fixture.routeDecision.taskId);
+    const raw = records.map(({ sessionId: _session, turnId: _turn, taskId: _task, ...record }) => `${JSON.stringify(record)}\n`).join("");
+    await writeFile(ledger.store.paths.ledgerPath, raw);
+    const readonly = await AuditLedger.open({ rootDir, readOnly: true });
+    expect(await readonly.listSessionRecords(fixture.session.id)).toHaveLength(6);
+    expect(await readonly.listTaskRecords(fixture.routeDecision.taskId)).toHaveLength(1);
+    const replay = await replaySession(readonly, fixture.session.id);
+    expect(replay.session?.id).toBe(fixture.session.id);
+    expect(replay.turns).toHaveLength(1);
+    expect(replay.history.events).toHaveLength(1);
+    expect((await readLedgerSnapshot(rootDir)).records).toEqual(records);
+    expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(raw);
+  });
+
+  it("rejects conflicting envelope scope before append and preserves historical conflicts", async () => {
+    const fixture = readFixture();
+    const rootDir = await mkdtemp(join(tmpdir(), "data-conflicting-scope-"));
+    const ledger = await AuditLedger.open({ rootDir });
+    const record = await ledger.store.appendRecord({ kind: "turn", payload: fixture.turn });
+    const before = await readFile(ledger.store.paths.ledgerPath, "utf8");
+    await expect(ledger.store.appendRecord({ kind: "turn", payload: fixture.turn, sessionId: "foreign" })).rejects.toThrow(/scope conflicts/);
+    await expect(ledger.store.appendRecord({ kind: "turn", payload: fixture.turn, turnId: "foreign" })).rejects.toThrow(/scope conflicts/);
+    await expect(ledger.store.appendRecord({ kind: "route_decision", payload: fixture.routeDecision, taskId: "foreign" })).rejects.toThrow(/scope conflicts/);
+    expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(before);
+    for (const newline of ["", "\n"]) {
+      const raw = `${JSON.stringify({ ...record, sessionId: "foreign" })}${newline}`;
+      await writeFile(ledger.store.paths.ledgerPath, raw);
+      await expect(readLedgerSnapshot(rootDir)).rejects.toMatchObject({ code: "ledger_corruption" });
+      await expect(AuditLedger.open({ rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
+      expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(raw);
+    }
+  });
+
   it("validates operational paths without disallowing ordinary home workspaces", async () => {
     const fixture = readFixture();
     const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-operational-path-")) });

@@ -18,6 +18,28 @@ async function createLedger() {
 }
 
 describe("retention", () => {
+  it("protects active generic turns whose outer scope was omitted", async () => {
+    const { ledger } = await createLedger();
+    const timestamp = "2026-06-30T00:00:00Z";
+    await ledger.store.appendRecord({ kind: "turn", recordedAt: timestamp,
+      payload: { sessionId: "active", turnId: "turn", idempotencyKey: "turn", state: "running", createdAt: timestamp, updatedAt: timestamp } });
+    const result = await applyRetentionPolicy(ledger, { maxAgeMs: 60_000 }, new Date("2026-06-30T01:00:00Z"));
+    expect(result.prunedRecords).toEqual([]);
+    expect(result.keptRecords[0]).toMatchObject({ sessionId: "active", turnId: "turn" });
+  });
+
+  it("retains the resolution of a retained request instead of resurrecting it as pending", async () => {
+    const { ledger } = await createLedger();
+    const timestamp = "2026-06-30T00:00:00Z";
+    await ledger.store.appendRecord({ kind: "approval_request", recordedAt: timestamp,
+      payload: { sessionId: "closed", turnId: "turn", approvalRequestId: "request", requestedAction: "safe", risk: "low", allowedApprovers: ["operator"] } });
+    await ledger.store.appendRecord({ kind: "approval_response", sessionId: "closed", turnId: "turn", recordedAt: timestamp,
+      payload: { approvalRequestId: "request", decision: "approved", decidedAt: timestamp } });
+    const result = await applyRetentionPolicy(ledger, { pruneKinds: ["approval_response"], maxAgeMs: 60_000 }, new Date("2026-06-30T01:00:00Z"));
+    expect(result.prunedRecords).toEqual([]);
+    expect((await replayUiControlSnapshot(ledger)).approvals[0]?.status).toBe("approved");
+  });
+
   it("prunes expired closed-session events while retaining session metadata", async () => {
     const { ledger } = await createLedger();
     const timestamp = "2026-06-30T00:00:00Z";

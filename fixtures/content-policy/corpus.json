@@ -161,7 +161,26 @@
       "headers": {
         "privateKey": "synthetic-private-value"
       }
-    }
+    },
+    {
+      "googleApiKey": "synthetic-private-value"
+    },
+    {
+      "awsSecretAccessKey": "synthetic-private-value"
+    },
+    {
+      "secretAccessKey": "synthetic-private-value"
+    },
+    {
+      "credentials": {
+        "value": "synthetic-private-value"
+      }
+    },
+    {
+      "state/.recovery/marker.tail": "saved"
+    },
+    "{\"\\u002erecovery/marker.tail\":\"artifact\"}",
+    "\"state/\\u002erecovery/marker.tail\""
   ],
   "rejectedExportPaths": [
     "/home/synthetic/.config/tool",

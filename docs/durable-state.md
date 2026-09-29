@@ -81,10 +81,11 @@ Array and replay APIs reject an incomplete snapshot rather than returning a
 misleading successful prefix.
 
 Store `maxSnapshotBytes` sets the same positive bounded capacity for writer
-recovery, compaction and default store reads. Initialization and append check
-serialized manifest and ledger capacity before publishing a checkpoint or
+recovery, compaction and default store snapshots. Initialization, append and
+compaction check serialized manifest and ledger capacity before publishing a checkpoint or
 acknowledging growth, so a warmed cache cannot create a ledger
-that its configured writer cannot reopen. Raise this option consistently for
+that its configured writer cannot reopen. Finalizing an unterminated valid record
+also checks capacity for the newline before writing it. Raise this option consistently for
 larger stores; standalone snapshot inspection retains the 64 MiB default.
 
 `readOnly: true` open, manifest/list/query reads and CLI session inspection do not
@@ -138,6 +139,10 @@ Unknown-field stripping/passthrough behavior remains boundary-specific. Authoriz
 runtime prompts, including empty, whitespace and long multibyte messages, remain
 usable. Durable started-message/text-delta records omit runtime content rather
 than trusting a `metadata_only` label.
+Evidence bounds include the original bytes, including whitespace padding.
+Private recovery references are forbidden in values, object keys and encoded
+JSON strings. Credential fields cover the corpus's container/header/vendor
+variants; fencing handles and boolean auto-refresh controls remain metadata.
 The audit helper performs omission; direct ledger schemas/store writes reject
 those known content fields unless already omitted. Existing complete records
 that violate this stricter rule are corruption and remain intact for diagnosis.
@@ -147,6 +152,13 @@ error; writers do not silently redact, migrate, truncate or discard such records
 Preserve the old root for private inspection and remediation before adopting a
 metadata-only root. Terminal runtime summaries/reasons are projected before
 audit persistence; their source runtime events remain unchanged.
+
+Private ledger reads and writes derive omitted envelope scope from session,
+turn, event, approval-request, lease-holder and classification payload IDs, and
+derive route task IDs from the route payload. Conflicting duplicate IDs fail
+with bounded diagnostics. Approval responses and evidence require explicit
+caller context; matching nearby IDs never supplies it. Retention keeps a
+retained request's latest response so a resolved approval cannot become pending.
 
 Operational roots remain absolute internally. CLI JSON/text, UI and handoff
 exports use repo-relative paths or opaque `path:sha256:<digest>` refs. Evidence

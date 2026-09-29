@@ -2,7 +2,7 @@ import { open, stat } from "node:fs/promises";
 import type { BigIntStats } from "node:fs";
 import { stateLedgerRecordSchema, type StateLedgerEntry } from "@consiliency/runtime-provider";
 import { readStoreManifest } from "./migrations.js";
-import { CURRENT_STATE_LEDGER_SCHEMA_VERSION, getStateLedgerPaths, isMissingFileError } from "./schema.js";
+import { CURRENT_STATE_LEDGER_SCHEMA_VERSION, getStateLedgerPaths, isMissingFileError, normalizeLedgerScope } from "./schema.js";
 
 export class LedgerReadError extends Error {
   constructor(
@@ -136,7 +136,7 @@ function parseBytes(raw: Buffer): Exclude<LedgerSnapshot, { status: "in_progress
       || !Number.isSafeInteger(result.data.sequence) || result.data.sequence <= lastSequence || ids.has(result.data.recordId)) {
       throw new LedgerReadError("ledger_corruption", start);
     }
-    const record = result.data as StateLedgerEntry;
+    const record = normalizeLedgerScope(result.data as StateLedgerEntry);
     lastSequence = record.sequence;
     ids.add(record.recordId);
     return record;

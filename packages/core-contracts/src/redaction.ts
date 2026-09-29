@@ -57,6 +57,7 @@ const secretPathPatterns = [
 ] as const;
 
 const envDumpPattern = /(^|\n)(?:HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|AZURE_OPENAI_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=/m;
+const privateRecoveryReferencePattern = /(?:^|[^a-z0-9_.-])\.recovery(?:[\\/]|$|[^a-z0-9_.-])/i;
 
 export interface MetadataLeak { readonly path: string; readonly reason: string }
 
@@ -72,10 +73,11 @@ function providerPayload(value: unknown): boolean {
     || (typeof value.anthropic_version === "string") || plainRecord(value.providerPayload);
 }
 
-function sensitiveField(key: string): boolean {
+function sensitiveField(key: string, value: unknown): boolean {
   const normalized = key.replaceAll(/[^a-z0-9]/gi, "").toLowerCase();
-  return /^(?:password|passwd|token|credential|authorization|proxyauthorization|authheader|authtoken|xauthtoken|privatetoken|accesstoken|refreshtoken|apikey|accesskey|clientsecret|secretkey|privatekey|servicerolekey|cookie|setcookie|xapikey|secret)$/.test(normalized)
-    || /[_-](?:token|password|passwd|credential|api[_-]key|access[_-]key|secret|secret[_-]key|service[_-]role[_-]key)$/.test(key.toLowerCase());
+  if (normalized === "fencingtoken" || (normalized === "autorefreshtoken" && typeof value === "boolean")) return false;
+  return /^(?:tokens|passwords|secrets|cookies|apikeys)$/.test(normalized)
+    || /(?:password|passwd|token|credentials?|authorization|authheader|apikey|accesskey|secret|secretkey|privatekey|servicerolekey|cookie)$/.test(normalized);
 }
 
 function redactedConfigPlaceholder(value: unknown): boolean {
@@ -88,12 +90,12 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
   const visit = (entry: unknown, path: string, depth: number) => {
     if (depth > 64) { leaks.push({ path, reason: "metadata_depth_limit" }); return; }
     if (typeof entry === "string") {
-      if (/(?:^|[^a-z0-9_.-])\.recovery(?:[\\/]|$|[^a-z0-9_.-])/i.test(entry)) leaks.push({ path, reason: "private_recovery_path" });
+      if (privateRecoveryReferencePattern.test(entry)) leaks.push({ path, reason: "private_recovery_path" });
       if (envDumpPattern.test(entry)) leaks.push({ path, reason: "environment_dump" });
       for (const rule of secretTextPatterns) if (!(options.allowHomePaths && rule.reason === "home_path") && rule.pattern.test(entry)) leaks.push({ path, reason: rule.reason });
       try {
         const parsed: unknown = JSON.parse(entry);
-        if (plainRecord(parsed) || Array.isArray(parsed)) visit(parsed, path, depth + 1);
+        if (typeof parsed === "string" || plainRecord(parsed) || Array.isArray(parsed)) visit(parsed, path, depth + 1);
       } catch { /* Ordinary text remains text. */ }
       return;
     }
@@ -103,10 +105,10 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
     Object.entries(entry).forEach(([key, item], index) => {
       const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(key) && !secretTextPatterns.some((rule) => rule.pattern.test(key)) ? key : `[field-${index}]`;
       const next = `${path}.${safeKey}`;
-      if (sensitiveField(key) && item !== undefined && !redactedConfigPlaceholder(item)) leaks.push({ path: next, reason: "sensitive_field" });
+      if (sensitiveField(key, item) && item !== undefined && !redactedConfigPlaceholder(item)) leaks.push({ path: next, reason: "sensitive_field" });
       if ((key === "env" || key === "environment") && plainRecord(item) && !redactedConfigPlaceholder(item) && Object.keys(item).length > 0
         && Object.values(item).every((field) => typeof field === "string" || field === undefined)) leaks.push({ path: next, reason: "environment_dump" });
-      if (secretTextPatterns.some((rule) => rule.pattern.test(key))) leaks.push({ path: `${path}.[field-${index}]`, reason: "sensitive_field_name" });
+      if (privateRecoveryReferencePattern.test(key) || secretTextPatterns.some((rule) => rule.pattern.test(key))) leaks.push({ path: `${path}.[field-${index}]`, reason: "sensitive_field_name" });
       visit(item, next, depth + 1);
     });
   };
@@ -143,8 +145,8 @@ export function projectMetadataExport(value: unknown): unknown {
   if (plainRecord(value)) {
     if (providerPayload(value)) return redactConfigValue("provider_payload_export");
     return Object.fromEntries(Object.entries(value).flatMap(([key, entry]) => {
-      if (secretTextPatterns.some((rule) => rule.pattern.test(key))) return [];
-      if (sensitiveField(key) && entry !== undefined && !redactedConfigPlaceholder(entry)) {
+      if (privateRecoveryReferencePattern.test(key) || secretTextPatterns.some((rule) => rule.pattern.test(key))) return [];
+      if (sensitiveField(key, entry) && entry !== undefined && !redactedConfigPlaceholder(entry)) {
         return [[key, redactConfigValue("metadata_export")]];
       }
       if ((key === "env" || key === "environment") && plainRecord(entry) && Object.keys(entry).length > 0
@@ -250,7 +252,7 @@ export function sanitizeMetadataText(
   maxBytes = DEFAULT_METADATA_TEXT_MAX_BYTES,
 ): string {
   const normalized = normalizeText(value, label);
-  assertMaxBytes(normalized, label, maxBytes);
+  assertMaxBytes(value, label, maxBytes);
 
   if (envDumpPattern.test(normalized)) {
     throw new Error(`${label} must not contain environment dump content.`);
@@ -284,7 +286,7 @@ export function sanitizeMetadataPath(pathValue: string): string {
 
 export function sanitizeWorkspacePath(pathValue: string, label: string): string {
   const normalized = normalizeText(pathValue, label);
-  assertMaxBytes(normalized, label, DEFAULT_UNTRUSTED_TEXT_MAX_BYTES);
+  assertMaxBytes(pathValue, label, DEFAULT_UNTRUSTED_TEXT_MAX_BYTES);
   const posixPath = normalized.replaceAll("\\", "/");
 
   if (isSecretLikePath(posixPath)) {
@@ -309,7 +311,7 @@ export function redactUntrustedText(
   const normalized = normalizeText(value, label);
   const maxBytes = options.maxBytes ?? DEFAULT_UNTRUSTED_TEXT_MAX_BYTES;
 
-  assertMaxBytes(normalized, label, maxBytes);
+  assertMaxBytes(value, label, maxBytes);
 
   if (envDumpPattern.test(normalized)) {
     throw new Error(`${label} must not include environment dump content.`);

@@ -128,6 +128,7 @@ function retentionClosure(
         if (record.payload.holder.turnId) reference("turn", record.payload.holder.sessionId, record.payload.holder.turnId);
       }
       if (record.kind === "approval_response") reference("request", record.sessionId, record.turnId, record.payload.approvalRequestId);
+      if (record.kind === "approval_request") reference("response", record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId);
     }
   }
   return keep;

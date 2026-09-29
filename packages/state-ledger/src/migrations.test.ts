@@ -125,9 +125,13 @@ describe("migrations", () => {
   it("fails on newer manifests without replacing them", async () => {
     const rootDir = await createTempRoot("state-ledger-future-");
     const store = await AppendOnlyStore.open({ rootDir });
-    const raw = JSON.stringify({ ...await store.getManifest(), schemaVersion: 2 });
-    await writeFile(store.paths.manifestPath, raw);
-    await expect(AppendOnlyStore.open({ rootDir })).rejects.toThrow(/unsupported/i);
-    expect(await readFile(store.paths.manifestPath, "utf8")).toBe(raw);
+    const manifest = await store.getManifest();
+    for (const schema of ["state_ledger_store_manifest.v0.1", "state_ledger_store_manifest.v0.2"]) {
+      const raw = JSON.stringify({ ...manifest, schema, schemaVersion: 2 });
+      await writeFile(store.paths.manifestPath, raw);
+      await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "unsupported_schema" });
+      await expect(migrateStoreManifest(rootDir)).rejects.toMatchObject({ code: "unsupported_schema" });
+      expect(await readFile(store.paths.manifestPath, "utf8")).toBe(raw);
+    }
   });
 });

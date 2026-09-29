@@ -1119,6 +1119,11 @@ snapshots distinguish complete, incomplete_tail and in_progress visibility and
 never acquire writer locks or repair/migrate state. Array/replay consumers require
 complete snapshots; replay selects latest states by ledger sequence with explicit
 session scope, and locked retention preserves active/dependent history.
+Private ledger normalization derives omitted scope from known payload identities
+and rejects conflicting envelope/payload IDs, while explicit route session scope
+stays authoritative. Retained requests keep their latest approval resolution.
+Snapshot capacity also bounds compaction checkpoints and pending-record newline
+finalization; future manifest discriminators are unsupported schemas, not corruption.
 
 Metadata-only construction and export share a recursive finite-corpus scanner.
 Authorized runtime messages remain unrestricted strings; persistence omits raw

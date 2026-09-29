@@ -23,6 +23,16 @@ function readFixture(): EvidenceFixture {
 }
 
 describe("evidence store", () => {
+  it("includes whitespace padding in default and custom evidence bounds", async () => {
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-evidence-padding-")) });
+    const input = { kind: "log" as const, label: "safe", sourceType: "redacted_excerpt" as const, sourceCategory: "other" as const, excerpt: "ok" };
+    await expect(new EvidenceStore(ledger).save({ ...input, excerpt: " ".repeat(3000) + "ok" })).rejects.toThrow(/exceeds/);
+    await expect(new EvidenceStore(ledger).save({ ...input, label: " ".repeat(280) + "ok" })).rejects.toThrow(/exceeds/);
+    await expect(new EvidenceStore(ledger, 4).save({ ...input, excerpt: "     ok" })).rejects.toThrow(/exceeds/);
+    await new EvidenceStore(ledger, 4).save(input);
+    expect(await ledger.listRecords()).toHaveLength(1);
+  });
+
   it("checks the shared corpus before durable evidence append", async () => {
     const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[]; rejectedExportPaths: string[] };
     const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-evidence-corpus-")) });

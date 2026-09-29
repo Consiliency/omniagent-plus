@@ -24,6 +24,7 @@ import {
   ensureStateLedgerDirectories,
   getStateLedgerPaths,
   nowIsoString,
+  normalizeLedgerScope,
   type StateLedgerIndexSnapshot,
   type StateLedgerPaths,
   type StoreManifest,
@@ -149,7 +150,7 @@ export class AppendOnlyStore {
         updatedAt: nowIsoString(),
         recoveredTailTruncations: previous.recoveredTailTruncations + repaired.truncations,
       };
-      if (Buffer.byteLength(`${JSON.stringify(manifest, null, 2)}\n`) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
+      this.assertManifestCapacity(manifest);
       await this.writeIndexes(repaired.records, manifest.updatedAt);
       await writeStoreManifest(this.paths.rootDir, manifest);
       await this.cacheRecords(repaired.records);
@@ -208,20 +209,20 @@ export class AppendOnlyStore {
       if (!Number.isSafeInteger(nextSequence)) throw new LedgerReadError("ledger_corruption");
       assertBoundedPayload(input.payload, this.maxPayloadBytes);
       if (input.schemaVersion !== undefined && input.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
-      const record = stateLedgerRecordSchema.parse({
+      const record = normalizeLedgerScope(stateLedgerRecordSchema.parse({
         schema: "state_ledger_record.v0.1",
         recordId: input.recordId ?? `${input.kind}-${nextSequence}-${randomUUID()}`,
         sequence: nextSequence, kind: input.kind, schemaVersion: CURRENT_STATE_LEDGER_SCHEMA_VERSION,
         recordedAt: nowIsoString(input.recordedAt), sessionId: input.sessionId,
         turnId: input.turnId, taskId: input.taskId, payload: input.payload,
-      }) as Extract<StateLedgerEntry, { kind: TKind }>;
+      }) as StateLedgerEntry) as Extract<StateLedgerEntry, { kind: TKind }>;
       if (cache.ids.has(record.recordId)) throw new LedgerReadError("ledger_corruption");
       const serialized = `${JSON.stringify(record)}\n`;
       const nextManifest = {
         ...manifest, recordCount: cache.count + 1, lastSequence: nextSequence, updatedAt: nowIsoString(),
         recoveredTailTruncations: manifest.recoveredTailTruncations + truncations,
       };
-      if (Buffer.byteLength(`${JSON.stringify(nextManifest, null, 2)}\n`) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
+      this.assertManifestCapacity(nextManifest);
       const existingBytes = await stat(this.paths.ledgerPath).then((value) => value.size, (error: unknown) => {
         if (isMissingFileError(error)) return 0;
         throw error;
@@ -259,10 +260,14 @@ export class AppendOnlyStore {
       for (const record of repaired.records) {
         (keepRecord(record, repaired.records) ? keptRecords : prunedRecords).push(record);
       }
+      const serialized = keptRecords.map((record) => `${JSON.stringify(record)}\n`).join("");
+      const nextManifest = { ...manifest, recordCount: keptRecords.length, updatedAt: nowIsoString() };
+      this.assertManifestCapacity(manifest);
+      this.assertManifestCapacity(nextManifest);
+      if (Buffer.byteLength(serialized) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
       await writeStoreManifest(this.paths.rootDir, manifest);
       this.cache = undefined;
-      await writeFileAtomic(this.paths.ledgerPath, keptRecords.map((record) => `${JSON.stringify(record)}\n`).join(""));
-      const nextManifest = { ...manifest, recordCount: keptRecords.length, updatedAt: nowIsoString() };
+      await writeFileAtomic(this.paths.ledgerPath, serialized);
       await this.writeIndexes(keptRecords, nextManifest.updatedAt);
       await writeStoreManifest(this.paths.rootDir, nextManifest);
       await this.cacheRecords(keptRecords);
@@ -286,6 +291,10 @@ export class AppendOnlyStore {
     if (this.readOnly) throw new Error("State ledger is read-only.");
   }
 
+  private assertManifestCapacity(manifest: StoreManifest): void {
+    if (Buffer.byteLength(`${JSON.stringify(manifest, null, 2)}\n`) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
+  }
+
   private async ledgerIdentity(): Promise<string> {
     try {
       const info = await stat(this.paths.ledgerPath, { bigint: true });
@@ -305,6 +314,7 @@ export class AppendOnlyStore {
     const ledger = await open(this.paths.ledgerPath, "r+");
     try {
       if (snapshot.pendingRecord) {
+        if (snapshot.byteLength + 1 > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
         await ledger.write(Buffer.from("\n"), 0, 1, snapshot.byteLength);
         await ledger.sync();
         return { records: [...snapshot.records, snapshot.pendingRecord], truncations: 0 };

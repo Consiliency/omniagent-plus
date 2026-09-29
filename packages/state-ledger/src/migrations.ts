@@ -72,6 +72,8 @@ export async function readStoreManifest(
   if (raw === undefined) {
     return undefined;
   }
+  if (raw !== null && typeof raw === "object" && "schemaVersion" in raw
+    && typeof raw.schemaVersion === "number" && raw.schemaVersion > CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
 
   const parsed = storeManifestSchema.safeParse(raw);
   if (parsed.success) {
@@ -116,6 +118,8 @@ export async function migrateStoreManifest(
   }
 
   const current = storeManifestSchema.safeParse(raw);
+  if (raw !== null && typeof raw === "object" && "schemaVersion" in raw
+    && typeof raw.schemaVersion === "number" && raw.schemaVersion > CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
   if (current.success) {
     if (current.data.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
     return {

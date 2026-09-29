@@ -3,6 +3,7 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
 import { z } from "zod";
+import type { StateLedgerEntry } from "@consiliency/runtime-provider";
 
 export const CURRENT_STATE_LEDGER_SCHEMA_VERSION = 1;
 export const DEFAULT_MAX_PAYLOAD_BYTES = 16 * 1024;
@@ -67,6 +68,25 @@ export function nowIsoString(value?: string): string {
 
 export function payloadByteLength(value: unknown): number {
   return Buffer.byteLength(JSON.stringify(value), "utf8");
+}
+
+export function normalizeLedgerScope(record: StateLedgerEntry): StateLedgerEntry {
+  let sessionId: string | undefined;
+  let turnId: string | undefined;
+  let taskId: string | undefined;
+  switch (record.kind) {
+    case "session": sessionId = record.payload.id; break;
+    case "turn":
+    case "approval_request":
+    case "runtime_event": sessionId = record.payload.sessionId; turnId = record.payload.turnId; break;
+    case "worktree_lease": sessionId = record.payload.holder.sessionId; turnId = record.payload.holder.turnId; break;
+    case "limit_classification": sessionId = record.payload.sessionId; break;
+    case "route_decision": taskId = record.payload.taskId; break;
+  }
+  for (const [envelope, payload] of [[record.sessionId, sessionId], [record.turnId, turnId], [record.taskId, taskId]]) {
+    if (envelope !== undefined && payload !== undefined && envelope !== payload) throw new Error("Ledger envelope scope conflicts with payload scope.");
+  }
+  return { ...record, sessionId: record.sessionId ?? sessionId, turnId: record.turnId ?? turnId, taskId: record.taskId ?? taskId };
 }
 
 export function assertBoundedPayload(

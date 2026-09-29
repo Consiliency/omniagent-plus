@@ -225,4 +225,50 @@ describe("validated visible ledger snapshots", () => {
     expect((await enlarged.appendRecord(input)).sequence).toBe(10);
     expect(await (await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: capacity + 1 })).listRecords()).toHaveLength(1);
   });
+
+  it("rejects compaction recovery-counter growth before publishing oversized checkpoints", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "data-compact-capacity-"));
+    const seed = await AppendOnlyStore.open({ rootDir });
+    await seed.appendRecord({ kind: "evidence_ref", recordId: "x", payload: { kind: "log", label: "x" } });
+    await writeFile(seed.paths.manifestPath, `${JSON.stringify({ ...await seed.getManifest(), recoveredTailTruncations: 9 }, null, 2)}\n`);
+    const capacity = (await readFile(seed.paths.manifestPath)).length;
+    const store = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: capacity });
+    const before = await readFile(store.paths.manifestPath);
+    await writeFile(store.paths.ledgerPath, "{", { flag: "a" });
+    await expect(store.compactRecords(() => false)).rejects.toMatchObject({ code: "snapshot_limit" });
+    expect(await readFile(store.paths.manifestPath)).toEqual(before);
+    expect((await readLedgerSnapshot(rootDir, { maxBytes: capacity })).records).toHaveLength(1);
+    const evidence = await readdir(join(rootDir, ".recovery"));
+    expect(await readFile(join(rootDir, ".recovery", evidence[0]!), "utf8")).toBe("{");
+  });
+
+  it("checks the newline byte before finalizing a valid record at capacity", async () => {
+    const { rootDir, store } = await seeded();
+    await store.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "a".repeat(120) } });
+    const raw = (await readFile(store.paths.ledgerPath)).subarray(0, -1);
+    await writeFile(store.paths.ledgerPath, raw);
+    await expect(AppendOnlyStore.open({ rootDir, maxSnapshotBytes: raw.length })).rejects.toMatchObject({ code: "snapshot_limit" });
+    expect(await readFile(store.paths.ledgerPath)).toEqual(raw);
+    expect(await readdir(rootDir)).not.toContain(".recovery");
+    const reopened = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: raw.length + 1 });
+    expect(await reopened.listRecords()).toHaveLength(2);
+  });
+
+  it("bounds compaction serialization after normalizing historical missing scope", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "data-normalized-capacity-"));
+    const seed = await AppendOnlyStore.open({ rootDir });
+    const timestamp = "2026-06-30T00:00:00Z";
+    const record = await seed.appendRecord({ kind: "turn", payload: { sessionId: "session", turnId: "turn", idempotencyKey: "turn",
+      state: "completed", createdAt: timestamp, updatedAt: timestamp } });
+    const raw = `${JSON.stringify({ ...record, sessionId: undefined, turnId: undefined, taskId: undefined })}\n`;
+    await writeFile(seed.paths.ledgerPath, raw);
+    const store = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: Buffer.byteLength(raw) });
+    const before = await readFile(store.paths.manifestPath);
+    await expect(store.compactRecords(() => true)).rejects.toMatchObject({ code: "snapshot_limit" });
+    expect(await readFile(store.paths.ledgerPath, "utf8")).toBe(raw);
+    expect(await readFile(store.paths.manifestPath)).toEqual(before);
+    expect(await store.listRecords()).toHaveLength(1);
+    await writeFile(store.paths.ledgerPath, raw.trimEnd());
+    expect(await readLedgerSnapshot(rootDir)).toMatchObject({ status: "incomplete_tail", pendingRecord: { sessionId: "session", turnId: "turn" } });
+  });
 });

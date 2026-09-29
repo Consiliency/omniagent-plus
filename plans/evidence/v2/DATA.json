@@ -5,18 +5,18 @@
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
   "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
   "source_binding": {
-    "packages/state-ledger/src/append-only-store.ts": "531fb27fbf8490dabaa82122bb36f23e05204783704ba05b08c958990da07291",
-    "packages/state-ledger/src/ledger-snapshot.ts": "78323a231f347368c5f476b8e421ed734f1baa9e081041b61e7ef3bbb6b50538",
+    "packages/state-ledger/src/append-only-store.ts": "9a5ae47e42d7e71c1891c7e5d3cc5cb0d52d6ff4542ea88882d607b968ba7d70",
+    "packages/state-ledger/src/ledger-snapshot.ts": "a64e4c730df8088daf6a4d196bb45ac3b619f62d0ea3b70cdbd4230d4771aa11",
     "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
-    "packages/state-ledger/src/migrations.ts": "e71ce548a506d58aaa55f48cc2204957066a5cdd3cf9b571c1d4ff2163a880c6",
+    "packages/state-ledger/src/migrations.ts": "9872be61b43e8865ba29a58bfdde641354196f41b973f0b5968b84d51c810354",
     "packages/state-ledger/src/replay.ts": "31e2c1ecda9ffb0f36deb7201c1d0b7ae13cdf646ed127dd58ad8248f92c0d62",
-    "packages/state-ledger/src/retention.ts": "fee46f4fcee5d2e70f83d2253fa8e8ace142c448429b920aa562f25586653b95",
-    "packages/core-contracts/src/redaction.ts": "2dd702ade20ff4e8b5feb0d2f3fe894e73685d2099c97585aac29f210a202bcb",
-    "fixtures/content-policy/corpus.json": "52a9663b4fadfc912c15c1c8af2ea54dae14e841a7071842db9ad96f2c1da28d",
-    "plans/phase-plan-v2-DATA.md": "88781928334953644ccf3b3d38dceeec5877c8bff39977a2e92c9bce6c18e423",
+    "packages/state-ledger/src/retention.ts": "4c17780521c23815d64a5e64ab3029507bd8f9eff212b06b2f1ba5363dc75ebd",
+    "packages/core-contracts/src/redaction.ts": "b8f9a2bb372cf6d492545e8576ce1d9dc713930bc0ab666fe287a8f9d28a1a64",
+    "fixtures/content-policy/corpus.json": "01b57b105a1aff1b599db5cd6441edaf513ab833ebc8e1d79dd43cdbd79d2e57",
+    "plans/phase-plan-v2-DATA.md": "730ab7a74c4a896335d1a4c4d4e7b83bb16eeaca7450f347c69fe63978b54a6a",
     "packages/core-contracts/src/state-ledger.ts": "39af7cd658b97c18679af4c7df0ed3b4056051e372b3e0175ca4792d7316a0c0",
     "packages/state-ledger/src/audit-ledger.ts": "5b03de075fd6f9b5d8efa5cfc717eb85f8d01790a44d6fd05d1fbe9759ec48ed",
-    "packages/state-ledger/src/schema.ts": "ddc7d2e2a51ce070db2cb4258ffb02244793f1f70d10b5beff3f31fee502a086"
+    "packages/state-ledger/src/schema.ts": "18552b00158dbe82eca51843c4392b96a0069f4abdb9fe082cbaf07d3299143b"
   },
   "local_verification": {
     "targeted": {
@@ -60,20 +60,26 @@
         "failed": 0,
         "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src tests/guard/boundaries.test.ts",
         "scope": "candidate before final header-family corpus delta; full candidate suite pending"
+      },
+      "scope_and_capacity_reconciliation": {
+        "files": 47,
+        "passed": 194,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src tests/guard/boundaries.test.ts"
       }
     },
     "typecheck": "passed on repaired working candidate",
     "lint": "passed on repaired working candidate",
-    "full_gate": "Build/lint/typecheck/boundaries passed; local disposable Docker loopback fixture readiness failed. Hosted full gate required; prior d234929 gate found now-repaired missing synthetic fixture dependency and legacy diagnostic mismatch.",
+    "full_gate": "Latest local full command passed frozen install/build/lint/typecheck/boundaries, then failed during disposable SQL setup with GUARD status frame out of order. No local full-gate acceptance claimed; canonical hosted full command passed f86f5bf and is required on final repair head.",
     "deterministic_root": {
-      "source": "repaired candidate tree before review commit",
+      "source": "scope/scanner/retention/capacity repaired candidate before review commit",
       "command": "pnpm test",
-      "passed": 563,
+      "passed": 572,
       "skipped": 1,
       "failed": 0,
       "skip": "only explicitly opt-in live Omnigent case",
-      "runner_report_path": ".phase-loop/guard/1790710433974-3660448-2909de7d-407e-448b-918a-3b0f2af29868/tests.json",
-      "runner_report_sha256": "3d8b8b41ab367fe22c4e14ae270d0e0ad27c797a2a838c703bda8323b663df12"
+      "runner_report_path": ".phase-loop/guard/1790711626744-3772808-247681dd-583f-4a84-a749-237221b86eb6/tests.json",
+      "runner_report_sha256": "5193644cb0d97e075db4122e82f12b874c70304d1688899cc047511b9047f2b0"
     }
   },
   "measurement": {
@@ -196,6 +202,11 @@
       "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
       "record": "plans/evidence/v2/reviews/DATA-implementation-3225162.json",
       "resolution": "Candidate repairs all blocking scanner/path/scope findings; retention and concurrent-directory publication controls added. Passing four-seat harness panel and separate review remain required."
+    },
+    {
+      "source_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-f86f5bf.json",
+      "resolution": "Candidate repairs all eight finding groups. Four usable harness seats and independent reviewer require re-review; manual Opus still running on immutable prior head."
     }
   ],
   "remaining": [
@@ -212,12 +223,13 @@
     "PREP owns distribution and public independent package acceptance."
   ],
   "hosted_verification": {
-    "source_sha": "33e54d1010ba1eb6b73419ab5fc1c38ebb5ce437",
-    "ci_run_id": 36618540370,
-    "publish_rehearsal_run_id": 36618540365,
+    "source_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+    "ci_run_id": 36620341374,
+    "publish_rehearsal_run_id": 36620341411,
     "required_check": "guard-required",
     "conclusion": "success",
     "actual_publish": "skipped",
-    "final_head": "pending scanner/scope/retention/durability repair"
+    "final_head": "pending scope/scanner/retention/capacity repair",
+    "artifact_manifest_sha256": "0dd479de2b6aa010d975b4a005d1b6879e08ca757daa433e50ea6664a3be4e5f"
   }
 }

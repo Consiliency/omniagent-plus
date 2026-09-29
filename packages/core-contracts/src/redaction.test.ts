@@ -20,6 +20,15 @@ function readFixture<T>(path: string): T {
 }
 
 describe("handoff redaction helpers", () => {
+  it("bounds original evidence strings including whitespace padding", () => {
+    for (const value of [" ".repeat(3000) + "ok", "ok" + " ".repeat(3000)]) {
+      expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: "safe", excerpt: value })).toThrow(/exceeds/);
+      expect(() => redactUntrustedText(value)).toThrow(/exceeds/);
+    }
+    expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: " ".repeat(280) + "ok" })).toThrow(/exceeds/);
+    expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: " safe ", excerpt: " safe " })).not.toThrow();
+  });
+
   it("uses one corpus for scanner, evidence schema and direct redacted text construction", () => {
     const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as {
       allowed: unknown[]; rejected: unknown[]; rejectedExportPaths: string[]; allowedEvidencePaths: string[];
