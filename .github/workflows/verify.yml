@@ -65,21 +65,11 @@ jobs:
           GUARD_FIXTURE_INSTALLER_USER: postgres
           GUARD_FIXTURE_INSTALLER_PASSWORD: guard-disposable-ci-only
       - name: Verify focused GUARD controls
-        run: pnpm test:guard --fixture-mode github-service
-        env:
-          GUARD_FIXTURE_CONTAINER_ID: ${{ job.services.postgres.id }}
-          GUARD_FIXTURE_PORT: ${{ job.services.postgres.ports['5432'] }}
-          GUARD_FIXTURE_DATABASE: omniagent_guard
-          GUARD_FIXTURE_INSTALLER_USER: postgres
-          GUARD_FIXTURE_INSTALLER_PASSWORD: guard-disposable-ci-only
+        run: pnpm test:guard
       - name: Verify focused integration controls
-        run: pnpm test:integration --fixture-mode github-service
-        env:
-          GUARD_FIXTURE_CONTAINER_ID: ${{ job.services.postgres.id }}
-          GUARD_FIXTURE_PORT: ${{ job.services.postgres.ports['5432'] }}
-          GUARD_FIXTURE_DATABASE: omniagent_guard
-          GUARD_FIXTURE_INSTALLER_USER: postgres
-          GUARD_FIXTURE_INSTALLER_PASSWORD: guard-disposable-ci-only
+        run: pnpm test:integration
+      - name: Verify real root-suite interruption
+        run: node scripts/verify-guard-suite-interrupt.mjs
       - name: Recheck retained artifacts
         run: node scripts/verify-publish-artifacts.mjs "${{ steps.gate.outputs.artifact_path }}/manifest.json" "${{ steps.gate.outputs.artifact_manifest_sha256 }}"
       - uses: actions/upload-artifact@v4

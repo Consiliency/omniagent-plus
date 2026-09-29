@@ -150,6 +150,7 @@ SL-2 — Integrated acceptance and docs sweep
   `eslint.config.mjs`, `tsconfig.json`, `tsconfig.guard.json`,
   `.github/workflows/ci.yml`, `.github/workflows/verify.yml`,
   `.github/workflows/publish.yml`, `scripts/verify.mjs`,
+  `scripts/verify-guard-suite-interrupt.mjs`,
   `scripts/prepare-test-postgres.mjs`, `scripts/check-dependency-boundaries.mjs`,
   `scripts/pack-verified-packages.mjs`, `scripts/verify-publish-artifacts.mjs`,
   `scripts/publish-package-if-needed.sh`, `scripts/smoke-packed-omnigent-transport.mjs`,
@@ -640,6 +641,15 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   launcher; its ProcessScope shuts down ordinary work using one forced epoch,
   then executes bounded resource callbacks. Explicit parent forced close/abort
   and controller EOF use forced drain, not renewed cooperative reservations.
+  The root-suite launcher is the exception to child-scope shutdown: Vitest's
+  CLI exits on an OS signal before its workers finish, so its guarded launcher
+  receives FORWARD, stops admitting a new run and waits for the active run to
+  complete inside the existing E ceiling. Vitest remains a descendant of that
+  custodian. Expiry forces the existing subtree drain and fails unproven; it
+  does not promise Docker resource cleanup for a killed test worker. Run the
+  real launcher interruption control outside the root suite because a second
+  E=167.5-second root owner cannot fit within that suite's 112.5-second child
+  reservation. The hosted verification job must execute and retain it.
   The caller declares maximum cleanup slots/child reservation in ADMIT before
   payload exec. ProcessScope registers callbacks locally within that ceiling,
   before resource effects, and rejects excess registration before the

@@ -59,11 +59,19 @@ export function suiteOperationTimeout(started = process.env.GUARD_JOB_STARTED_MS
 }
 export async function runSuite(command, fixture, runDir, run = runProcess) {
   const reportPath = resolve(runDir, "tests.json");
-  const args = ["exec", "vitest", "run", "--config", "vitest.config.ts", "--reporter=default", "--reporter=json", `--outputFile.json=${reportPath}`];
+  const args = ["run", "--config", "vitest.config.ts", "--reporter=default", "--reporter=json", `--outputFile.json=${reportPath}`];
   if (command === "test:guard") args.push("tests/guard");
   if (command === "test:integration") args.push("--project=guard-db", "tests/guard/fixture.integration.db.test.ts");
   const timeout = suiteOperationTimeout();
-  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout, launcherBudget: { cleanupSlots: 3, maxChildReservationMs: NESTED_FIXTURE_SHUTDOWN_MS } }); }
+  const vitest = fileURLToPath(new URL("../node_modules/vitest/vitest.mjs", import.meta.url));
+  const launcher = `import {spawn} from 'node:child_process';
+let interrupted=false;
+for(const name of ['SIGINT','SIGTERM'])process.on(name,()=>{interrupted=true});
+if(interrupted)process.exitCode=1;
+else{const child=spawn(process.execPath,[${JSON.stringify(vitest)},...process.argv.slice(1)],{env:process.env,stdio:'inherit'});
+const code=await new Promise(resolve=>{child.once('error',()=>resolve(1));child.once('close',(code)=>resolve(code??1))});
+process.exitCode=interrupted?1:code}`;
+  try { await run(process.execPath, ["--input-type=module", "-e", launcher, "--", ...args], { env: suiteEnvironment(fixture), timeout, launcherBudget: { cleanupSlots: 3, maxChildReservationMs: NESTED_FIXTURE_SHUTDOWN_MS } }); }
   catch (error) {
     try {
       const failures = summarizeTestFailures(JSON.parse(readFileSync(reportPath, "utf8")));

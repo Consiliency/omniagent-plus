@@ -74,16 +74,20 @@ it("preserves child failure when its test report is missing or malformed", async
     expect(JSON.stringify(log.mock.calls)).not.toContain("private");
   } finally { log.mockRestore(); rmSync(root, { recursive: true, force: true }); }
 });
-it("fails a successful root suite when its custody journal is unbalanced or rescues untagged work", async () => {
+it("fails the full gate for missing, duplicate, orphan or unexpected custody terminals", async () => {
   const root = mkdtempSync(join(tmpdir(), "guard-journal-gate-"));
   const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, supervisor_start_identity: "456", control_case_id: control });
   const terminal = (id: string, signaled: number, control: string | null = null) => ({ ...admission(id, control), event: "terminal", custody: "quiescent", adopted_count: signaled, adopted_natural_count: 0, adopted_signaled_count: signaled, adopted_unresolved_count: 0, force_killed_count: 0 });
   try {
     for (const rows of [
       [admission("missing")],
+      [admission("duplicate"), admission("duplicate"), terminal("duplicate", 0)],
+      [terminal("orphan", 0)],
+      [admission("duplicate-terminal"), terminal("duplicate-terminal", 0), terminal("duplicate-terminal", 0)],
       [admission("expected", "immediate-orphan"), terminal("expected", 1, "immediate-orphan"), admission("unexpected"), terminal("unexpected", 1)],
+      [admission("expected", "immediate-orphan"), terminal("expected", 2, "immediate-orphan")],
     ]) {
-      await expect(verify({ command: "test", root, suite: async (_command, _fixture, runDir) => { writeFileSync(join(runDir, "custody.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n"); return { passed: 1, skipped: 1 }; } })).rejects.toThrow(/GUARD (custody journal|unexpected signaled rescue)/);
+      await expect(verify({ command: "test", root, suite: async (_command, _fixture, runDir) => { writeFileSync(join(runDir, "custody.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n"); return { passed: 1, skipped: 1 }; } })).rejects.toThrow(/GUARD (custody journal|duplicate custody admission|unexpected signaled rescue)/);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

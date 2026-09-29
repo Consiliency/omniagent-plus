@@ -6,6 +6,28 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- Opus 5.5's manual subscription TUI review of `a5b8730` returned REQUEST
+  CHANGES. Its count and final-delivery findings were repaired by `316c6b3`;
+  its real-root-suite finding showed that `pnpm exec vitest` exits or strands
+  its child on INT/TERM, while the existing interruption test substituted a
+  synthetic worker. The next candidate admits a small root-suite launcher
+  under the existing custodian. It receives FORWARD and lets the active Vitest
+  run finish inside the already declared E ceiling; on expiry the custodian
+  forces the subtree and fails unproven. A standalone real-Vitest interruption
+  control, run outside the root suite to respect its child reservation, passed
+  with two balanced admissions and no signaled rescue. The plan records this
+  root-suite-specific behavior and owns the new control. Opus also identified
+  missing adversarial controls; some are now present, and the rest require
+  exact-head reconciliation rather than being treated as accepted.
+- The `e0db9f4` hosted CI and publish rehearsal both passed. Its CI artifact
+  has 464 balanced root admissions/terminals, 52 naturally reaped and 103
+  signaled adopted descendants, zero unresolved or unproven, two isolated
+  20-command quiescent journals, and 14 SQL setup receipts. The 493-case local
+  plain gate passed with one permitted live skip. A later `a5b1aef` workflow
+  trial failed at the new focused GUARD step because it tried to reuse the
+  already initialized one-shot hosted service. The next candidate gives each
+  focused command its own disposable local Docker fixture on the hosted runner;
+  a fresh hosted run must prove this correction.
 - Hosted CI and publish rehearsal both passed at `316c6b3`; its root custody
   artifact has 469 balanced admissions/terminals, 101 tagged immediate-orphan
   rescues (100 single-fork trials plus the double-fork control), and no
