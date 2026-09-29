@@ -16,6 +16,7 @@ import {
 import {
   runtimeEvidenceRefSchema,
   metadataSchemaCheck,
+  assertMetadataSafe,
   sanitizeWorkspacePath,
   type RuntimeEvidenceRef,
 } from "./redaction.js";
@@ -189,7 +190,38 @@ function withPayload<TKind extends StateLedgerRecordKind, TPayload extends z.Zod
   });
 }
 
-export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
+function inertLedgerSchema<T extends z.ZodTypeAny>(schema: T): z.ZodType<z.output<T>, z.ZodTypeDef, z.input<T>> {
+  return new class extends z.ZodType<z.output<T>, z.ZodTypeDef, z.input<T>> {
+    private inertError(value: unknown, path: (string | number)[] = []) {
+      try { assertMetadataSafe(value, { inertOnly: true }); }
+      catch { return new z.ZodError<z.input<T>>([{ code: z.ZodIssueCode.custom, message: "Metadata contains non json metadata.", fatal: true, path }]); }
+      return undefined;
+    }
+
+    _parse(input: z.ParseInput): z.ParseReturnType<z.output<T>> {
+      const error = this.inertError(input.data, input.path);
+      if (error) { input.parent.common.issues.push(...error.issues); return z.INVALID; }
+      return schema._parse(input);
+    }
+
+    override safeParse(data: unknown, params?: Partial<z.ParseParams>): z.SafeParseReturnType<z.input<T>, z.output<T>> {
+      const error = this.inertError(data, params?.path);
+      return error ? { success: false, error } : super.safeParse(data, params);
+    }
+
+    override async safeParseAsync(data: unknown, params?: Partial<z.ParseParams>): Promise<z.SafeParseReturnType<z.input<T>, z.output<T>>> {
+      const error = this.inertError(data, params?.path);
+      return error ? { success: false, error } : super.safeParseAsync(data, params);
+    }
+
+    override "~validate"(data: unknown) {
+      const error = this.inertError(data);
+      return error ? { issues: error.issues } : schema["~validate"](data);
+    }
+  }(schema._def);
+}
+
+export const stateLedgerRecordSchema = inertLedgerSchema(z.discriminatedUnion("kind", [
   withPayload("session", agentSessionSchema),
   withPayload("turn", turnHandleSchema),
   withPayload("runtime_event", runtimeEventSchema),
@@ -223,9 +255,9 @@ export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
     worktree: record.payload.worktree === undefined ? undefined : { ...record.payload.worktree, path: undefined } };
   if (record.kind === "worktree_lease") payload = { ...record.payload, path: undefined };
   metadataSchemaCheck({ ...record, payload }, context);
-});
+}));
 
-export const stateLedgerRecordArraySchema = z.array(stateLedgerRecordSchema);
+export const stateLedgerRecordArraySchema = inertLedgerSchema(z.array(stateLedgerRecordSchema));
 
 export type SessionLedgerRecord = StateLedgerRecord<"session", AgentSession>;
 export type TurnLedgerRecord = StateLedgerRecord<"turn", TurnHandle>;

@@ -1133,6 +1133,9 @@ started-message/text-delta content and projects terminal/tool bodies. Public too
 bodies retain unknown-value compatibility through live/history transport mapping.
 Durable metadata rejects executable object behavior; audit/export projection
 replaces non-JSON objects without invoking accessors or serialization hooks.
+Owned ledger schema entrypoints check descriptors before Zod type inspection;
+boxed primitives and symbol-keyed hooks reject. Projection copies arrays without
+species constructors, and compaction revalidates callback results before writing.
 Evidence paths are relative or opaque and
 CLI/UI/handoff export projects operational roots to opaque references. Release
 records retain lease identity/fencing and optional cause/actor/time provenance;

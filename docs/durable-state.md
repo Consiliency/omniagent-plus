@@ -141,10 +141,19 @@ The shared scanner checks retained metadata recursively, including encoded JSON,
 durable tool bodies and coordination messages. Public runtime tool bodies retain
 their unknown-value compatibility, including normal home paths and code. A finite corpus covers known secret and
 provider-payload shapes plus safe lookalikes; it is not universal secret detection.
-Retained metadata is inert JSON data: functions, accessors, proxies, custom
+Retained metadata is inert JSON data: boxed primitives, functions, accessors, proxies, custom
 prototypes and serialization hooks reject at direct durable boundaries and are
 replaced during export/audit projection without invocation. Payload byte sizing
 follows durable schema validation. Public tool-body compatibility is unchanged.
+Array projection copies own indexed entries into ordinary arrays and preserves
+sparse indices; extra array properties are discarded without invoking constructors
+or `Symbol.species` hooks.
+Descriptor checks include symbol keys and precede durable schema parsing, including
+hidden known fields and Zod's initial type inspection. Both exported ledger record
+and record-array schemas guard their own entrypoints; callers must guard arbitrary
+outer schemas that inspect inputs before delegating. Audit parsing first copies inert data without changing text;
+unsafe unknown tool values become placeholders. Compaction revalidates and bounds
+kept records after callbacks and before serialization or checkpoint publication.
 Unknown-field stripping/passthrough behavior remains boundary-specific. Authorized
 runtime prompts, including empty, whitespace and long multibyte messages, remain
 usable. Durable started-message/text-delta records omit runtime content rather

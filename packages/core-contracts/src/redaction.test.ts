@@ -31,7 +31,9 @@ describe("handoff redaction helpers", () => {
     const proxy = new Proxy({}, { get: hook, has: () => { invoked += 1; return false; } });
     const arrayMethods = Object.assign([], { map: hook, forEach: hook, some: hook });
     for (const value of [{ toJSON: hook }, hiddenHook, accessor, arrayAccessor, arrayHook, customPrototype, { nested: hook },
-      proxy, { choices: [proxy] }, { choices: arrayMethods }, { env: accessor }, { password: accessor }]) {
+      proxy, { choices: [proxy] }, { choices: arrayMethods }, { env: accessor }, { password: accessor },
+      { [Symbol("hidden")]: hook }, Object.defineProperty({}, Symbol("hidden"), { get: hook }),
+      Object.defineProperty([], Symbol("hidden"), { get: hook })]) {
       expect(() => assertMetadataSafe(value)).toThrow(/non json metadata|sensitive field/);
       expect(scanMetadataLeaks(value).some((leak) => leak.reason === "non_json_metadata")).toBe(true);
       const projected = projectMetadataExport(value);
@@ -50,6 +52,49 @@ describe("handoff redaction helpers", () => {
     }
     expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: " ".repeat(280) + "ok" })).toThrow(/exceeds/);
     expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: " safe ", excerpt: " safe " })).not.toThrow();
+  });
+
+  it("rejects boxed primitives despite ordinary prototypes and hidden coercion", () => {
+    let invoked = 0;
+    for (const primitive of ["safe", 1]) {
+      for (const prototype of [Object.prototype, null]) {
+        for (const coercion of [Symbol.toPrimitive, Symbol.toStringTag]) {
+          const value = Object(primitive) as object;
+          Object.setPrototypeOf(value, prototype);
+          Object.defineProperty(value, coercion, { value: coercion === Symbol.toPrimitive
+            ? () => { invoked += 1; return "synthetic-private-value"; } : "synthetic-private-value" });
+          expect(() => assertMetadataSafe(value)).toThrow(/non json metadata/);
+          expect(projectMetadataExport(value)).toBe("[redacted]");
+        }
+      }
+    }
+    expect(invoked).toBe(0);
+  });
+
+  it("copies array entries without invoking constructors or species hooks", () => {
+    let invoked = 0;
+    const value: unknown[] = new Array(3);
+    value[0] = "safe";
+    value[2] = "/tmp/project";
+    Object.defineProperty(value, "constructor", { value: {
+      get [Symbol.species]() {
+        invoked += 1;
+        return function () {
+          invoked += 1;
+          return Object.defineProperty([], "toJSON", { value: () => { invoked += 1; return { password: "synthetic-private-value" }; } });
+        };
+      },
+    } });
+    expect(() => assertMetadataSafe(value)).not.toThrow();
+    const projected = projectMetadataExport(value) as unknown[];
+    expect(Object.getPrototypeOf(projected)).toBe(Array.prototype);
+    expect(Object.hasOwn(projected, "constructor")).toBe(false);
+    expect(Object.hasOwn(projected, 1)).toBe(false);
+    expect(projected[0]).toBe("safe");
+    expect(projected[2]).toMatch(/^path:sha256:/);
+    expect(scanMetadataLeaks(projected)).toEqual([]);
+    expect(JSON.stringify(projected)).not.toContain("synthetic-private-value");
+    expect(invoked).toBe(0);
   });
 
   it("uses one corpus for scanner, evidence schema and direct redacted text construction", () => {

@@ -17,6 +17,44 @@ const scope = {
 };
 
 describe("coordination channel", () => {
+  it("rejects boxed body and sender values before local persistence or RPC export", async () => {
+    const local = new LocalCoordinationChannel({ rootDir: await mkdtemp(join(tmpdir(), "data-coordination-boxed-")) });
+    let calls = 0;
+    let invoked = 0;
+    const remote = new SupabaseCoordinationChannel({ async rpc() { calls += 1; return { data: {}, error: null }; } });
+    for (const primitive of ["safe", 1]) {
+      for (const prototype of [Object.prototype, null]) {
+        for (const coercion of [Symbol.toPrimitive, Symbol.toStringTag]) {
+          const value = Object(primitive) as object;
+          Object.setPrototypeOf(value, prototype);
+          Object.defineProperty(value, coercion, { value: coercion === Symbol.toPrimitive
+            ? () => { invoked += 1; return "synthetic-private-value"; } : "synthetic-private-value" });
+          for (const channel of [local, remote]) {
+            await expect(channel.send({ type: "done", sender: "operator", scope, body: { nested: value } })).rejects.toThrow(/non json metadata/);
+            await expect(channel.send({ type: "done", sender: value as unknown as string, scope })).rejects.toThrow(/non json metadata/);
+          }
+        }
+      }
+    }
+    expect(invoked).toBe(0);
+    expect(calls).toBe(0);
+    expect(await local.list()).toEqual([]);
+  });
+  it("checks coordination input before reading known getters or proxies", async () => {
+    const local = new LocalCoordinationChannel({ rootDir: await mkdtemp(join(tmpdir(), "data-coordination-getter-")) });
+    let invoked = 0;
+    let calls = 0;
+    const remote = new SupabaseCoordinationChannel({ async rpc() { calls += 1; return { data: {}, error: null }; } });
+    const getter = () => { invoked += 1; return "operator"; };
+    const input = { type: "done" as const, sender: "operator", scope };
+    for (const channel of [local, remote]) {
+      await expect(channel.send(Object.defineProperty({ ...input }, "sender", { get: getter }))).rejects.toThrow(/non json metadata/);
+      await expect(channel.send(new Proxy(input, { get: getter }))).rejects.toThrow(/non json metadata/);
+    }
+    expect(invoked).toBe(0);
+    expect(calls).toBe(0);
+    expect(await local.list()).toEqual([]);
+  });
   it("applies the shared corpus to local retained coordination bodies", async () => {
     const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
     const channel = new LocalCoordinationChannel({ rootDir: await mkdtemp(join(tmpdir(), "data-coordination-corpus-")) });

@@ -49,6 +49,48 @@ function readFixture(): AuditFixture {
 }
 
 describe("audit ledger", () => {
+  it("checks known fields and append envelopes before schema parsing or helper reads", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-known-field-hooks-")) });
+    let invoked = 0;
+    const getter = () => { invoked += 1; return "ordinary"; };
+    const event: RuntimeEvent = { ...fixture.runtimeEvent, type: "runtime.turn.completed", terminal: true,
+      payload: Object.defineProperty({ outcome: "completed" }, "outputSummary", { get: getter }) };
+    for (const value of [event, new Proxy(fixture.runtimeEvent, { get: getter }),
+      Object.defineProperty({ ...fixture.runtimeEvent }, "type", { get: getter })]) {
+      await expect(ledger.appendRuntimeEvent(value)).rejects.toThrow();
+      await expect(ledger.store.appendRecord({ kind: "runtime_event", payload: value })).rejects.toThrow(/non json metadata/);
+    }
+    await expect(ledger.store.appendRecord(Object.defineProperty({ kind: "runtime_event" as const, payload: fixture.runtimeEvent },
+      "kind", { get: getter }))).rejects.toThrow(/non json metadata/);
+    await expect(ledger.appendSession(Object.defineProperty({ ...fixture.session }, "id", { get: getter }))).rejects.toThrow(/non json metadata/);
+    expect(invoked).toBe(0);
+    expect(await ledger.listRecords()).toEqual([]);
+  });
+
+  it("revalidates compaction callback mutations before sizing or publication", async () => {
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-compaction-hooks-")), maxPayloadBytes: 256 });
+    await ledger.appendEvidenceRef({ kind: "log", label: "safe" });
+    const before = await readFile(ledger.store.paths.ledgerPath, "utf8");
+    const manifest = await readFile(ledger.store.paths.manifestPath, "utf8");
+    let invoked = 0;
+    const hook = () => { invoked += 1; return { password: "synthetic-private-value" }; };
+    for (const mutate of [
+      (record: object) => Object.defineProperty(record, "toJSON", { value: hook }),
+      (record: object) => Object.defineProperty(Object.getOwnPropertyDescriptor(record, "payload")!.value as object, "toJSON", { value: hook }),
+      (record: object) => Object.defineProperty(record, "payload", { get: hook }),
+      (record: object) => Object.assign(record, { payload: { kind: "log", label: "safe", excerpt: "x".repeat(300) } }),
+    ]) {
+      await expect(ledger.store.compactRecords((record) => { mutate(record); return true; })).rejects.toThrow();
+      expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(before);
+      expect(await readFile(ledger.store.paths.manifestPath, "utf8")).toBe(manifest);
+    }
+    expect(invoked).toBe(0);
+    const reopened = await AuditLedger.open({ rootDir: ledger.store.paths.rootDir });
+    expect(await reopened.listRecords()).toHaveLength(1);
+    expect((await reopened.appendEvidenceRef({ kind: "log", label: "after rejection" })).sequence).toBe(2);
+  });
+
   it("checkpoints normalized session and task IDs that match object prototype names", async () => {
     const fixture = readFixture();
     for (const id of ["constructor", "__proto__", "toString"]) {
@@ -219,6 +261,58 @@ describe("audit ledger", () => {
         .rejects.toThrow(/content must be omitted/);
     }
     expect(await ledger.listRecords()).toHaveLength(1);
+  });
+
+  it("rejects boxed tool values directly and projects them without coercion", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-tool-boxed-")) });
+    let invoked = 0;
+    for (const primitive of ["safe", 1]) {
+      for (const prototype of [Object.prototype, null]) {
+        for (const coercion of [Symbol.toPrimitive, Symbol.toStringTag]) {
+          const body = Object(primitive) as object;
+          Object.setPrototypeOf(body, prototype);
+          Object.defineProperty(body, coercion, { value: coercion === Symbol.toPrimitive
+            ? () => { invoked += 1; return "synthetic-private-value"; } : "synthetic-private-value" });
+          const event: RuntimeEvent = { ...fixture.runtimeEvent, redaction: "metadata_only", terminal: false,
+            type: "runtime.tool.result", payload: { toolCallId: "tool", outputRedacted: body } };
+          await expect(ledger.store.appendRecord({ kind: "runtime_event", payload: event })).rejects.toThrow(/non json metadata/);
+          await ledger.appendRuntimeEvent(event);
+        }
+      }
+    }
+    expect(invoked).toBe(0);
+    expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).not.toContain("synthetic-private-value");
+    expect(await (await AuditLedger.open({ rootDir: ledger.store.paths.rootDir })).listRecords()).toHaveLength(8);
+  });
+
+  it("persists tool arrays without invoking hidden species constructors", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-tool-species-")) });
+    let invoked = 0;
+    const body = ["safe"];
+    Object.defineProperty(body, "constructor", { value: {
+      get [Symbol.species]() {
+        invoked += 1;
+        return function () {
+          invoked += 1;
+          return Object.defineProperty([], "toJSON", { value: () => { invoked += 1; return { password: "synthetic-private-value" }; } });
+        };
+      },
+    } });
+    const event: RuntimeEvent = { ...fixture.runtimeEvent, eventId: "species", redaction: "metadata_only", terminal: false,
+      type: "runtime.tool.result", payload: { toolCallId: "tool", outputRedacted: body } };
+    await expect(ledger.store.appendRecord({ kind: "runtime_event", payload: event })).rejects.toThrow(/non json metadata/);
+    await ledger.appendRuntimeEvent(event);
+    const raw = await readFile(ledger.store.paths.ledgerPath, "utf8");
+    expect(raw).not.toContain("synthetic-private-value");
+    expect(raw).not.toContain("constructor");
+    expect(invoked).toBe(0);
+    expect(body).toEqual(["safe"]);
+    const records = await (await AuditLedger.open({ rootDir: ledger.store.paths.rootDir })).listRecords();
+    expect(records).toHaveLength(1);
+    expect(records.every((record) => record.kind === "runtime_event" && record.payload.type === "runtime.tool.result"
+      && JSON.stringify(record.payload.payload.outputRedacted) === '["safe"]')).toBe(true);
   });
   it("persists and queries the required durable record families", async () => {
     const fixture = readFixture();

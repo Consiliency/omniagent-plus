@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import {
   stateLedgerRecordSchema,
+  assertMetadataSafe,
   type StateLedgerEntry,
   type StateLedgerRecordKind,
 } from "@consiliency/runtime-provider";
@@ -195,6 +196,7 @@ export class AppendOnlyStore {
     input: AppendRecordInput<TKind>,
   ): Promise<Extract<StateLedgerEntry, { kind: TKind }>> {
     this.assertWritable();
+    assertMetadataSafe(input, { inertOnly: true });
     return this.withStoreLock(async () => {
       const manifest = await readStoreManifest(this.paths.rootDir);
       if (!manifest) throw new LedgerReadError("ledger_corruption");
@@ -259,6 +261,15 @@ export class AppendOnlyStore {
       const prunedRecords: StateLedgerEntry[] = [];
       for (const record of repaired.records) {
         (keepRecord(record, repaired.records) ? keptRecords : prunedRecords).push(record);
+      }
+      const keptIds = new Set<string>();
+      for (let index = 0; index < keptRecords.length; index += 1) {
+        const record = normalizeLedgerScope(stateLedgerRecordSchema.parse(keptRecords[index]) as StateLedgerEntry);
+        assertBoundedPayload(record.payload, this.maxPayloadBytes);
+        if (record.sequence > manifest.lastSequence || (index > 0 && record.sequence <= keptRecords[index - 1]!.sequence)
+          || keptIds.has(record.recordId)) throw new LedgerReadError("ledger_corruption");
+        keptIds.add(record.recordId);
+        keptRecords[index] = record;
       }
       const serialized = keptRecords.map((record) => `${JSON.stringify(record)}\n`).join("");
       const nextManifest = { ...manifest, recordCount: keptRecords.length, updatedAt: nowIsoString() };

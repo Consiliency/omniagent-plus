@@ -67,11 +67,14 @@ function plainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function inertMetadataObject(value: object): boolean {
-  if (types.isProxy(value)) return false;
+  if (types.isProxy(value) || types.isBoxedPrimitive(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   if (Array.isArray(value) ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) return false;
   const descriptors = Object.getOwnPropertyDescriptors(value);
-  if (Object.values(descriptors).some((descriptor) => !("value" in descriptor) || ["function", "symbol", "bigint"].includes(typeof descriptor.value))) return false;
+  if (Reflect.ownKeys(descriptors).some((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(descriptors, key)!.value as PropertyDescriptor;
+    return !("value" in descriptor) || ["function", "symbol", "bigint"].includes(typeof descriptor.value);
+  })) return false;
   const hook = descriptors.toJSON ?? (prototype === null ? undefined : Object.getOwnPropertyDescriptor(prototype, "toJSON"));
   return hook === undefined || ("value" in hook && typeof hook.value !== "function");
 }
@@ -96,7 +99,7 @@ function redactedConfigPlaceholder(value: unknown): boolean {
     && redactedConfigValueSchema.safeParse(value).success;
 }
 
-export function scanMetadataLeaks(value: unknown, options: { readonly allowHomePaths?: boolean } = {}): MetadataLeak[] {
+export function scanMetadataLeaks(value: unknown, options: { readonly allowHomePaths?: boolean; readonly inertOnly?: boolean } = {}): MetadataLeak[] {
   const leaks: MetadataLeak[] = [];
   const visit = (entry: unknown, path: string, depth: number) => {
     if (depth > 64) { leaks.push({ path, reason: "metadata_depth_limit" }); return; }
@@ -104,7 +107,16 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
       || (entry !== null && typeof entry === "object" && !inertMetadataObject(entry))) {
       leaks.push({ path, reason: "non_json_metadata" }); return;
     }
+    if (options.inertOnly && entry !== null && typeof entry === "object") {
+      const descriptors = Object.getOwnPropertyDescriptors(entry);
+      Reflect.ownKeys(descriptors).forEach((key, index) => {
+        const descriptor = Object.getOwnPropertyDescriptor(descriptors, key)!.value as PropertyDescriptor;
+        visit(descriptor.value, `${path}.[field-${index}]`, depth + 1);
+      });
+      return;
+    }
     if (typeof entry === "string") {
+      if (options.inertOnly) return;
       if (privateRecoveryReferencePattern.test(entry)) leaks.push({ path, reason: "private_recovery_path" });
       if (envDumpPattern.test(entry)) leaks.push({ path, reason: "environment_dump" });
       for (const rule of secretTextPatterns) if (!(options.allowHomePaths && rule.reason === "home_path") && rule.pattern.test(entry)) leaks.push({ path, reason: rule.reason });
@@ -116,7 +128,7 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
     }
     if (Array.isArray(entry)) { entry.forEach((item, index) => visit(item, `${path}[${index}]`, depth + 1)); return; }
     if (!plainRecord(entry)) return;
-    if (providerPayload(entry)) leaks.push({ path, reason: "provider_payload" });
+    if (!options.inertOnly && providerPayload(entry)) leaks.push({ path, reason: "provider_payload" });
     Object.entries(entry).forEach(([key, item], index) => {
       const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(key) && !secretTextPatterns.some((rule) => rule.pattern.test(key)) ? key : `[field-${index}]`;
       const next = `${path}.${safeKey}`;
@@ -131,8 +143,8 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
   return leaks;
 }
 
-export function assertMetadataSafe(value: unknown): void {
-  const first = scanMetadataLeaks(value)[0];
+export function assertMetadataSafe(value: unknown, options: { readonly inertOnly?: boolean } = {}): void {
+  const first = scanMetadataLeaks(value, options)[0];
   if (first) throw new Error(`Metadata contains ${first.reason === "provider_payload" ? "raw provider payload" : first.reason.replaceAll("_", " ")}.`);
 }
 
@@ -149,31 +161,43 @@ export function opaqueExportPath(path: string): string {
   return sanitizeMetadataPath(path);
 }
 
-export function projectMetadataExport(value: unknown): unknown {
-  if (["function", "symbol", "bigint"].includes(typeof value)
-    || (value !== null && typeof value === "object" && !inertMetadataObject(value))) return "[redacted]";
-  if (typeof value === "string") {
-    if (isSecretLikePath(value.replaceAll("\\", "/"))) return "[redacted]";
-    if (isAbsolute(value) || /^[A-Z]:[\\/]/i.test(value)) return opaqueExportPath(value);
-    if (scanMetadataLeaks(value).length > 0) return "[redacted]";
-    return value.replace(/(^|[\s'"])(\/[\w.~-][^\s'"]*)/g, (_match, before: string, path: string) => `${before}${opaqueExportPath(path)}`);
-  }
-  if (Array.isArray(value)) return value.map(projectMetadataExport);
-  if (plainRecord(value)) {
-    if (providerPayload(value)) return redactConfigValue("provider_payload_export");
-    return Object.fromEntries(Object.entries(value).flatMap(([key, entry]) => {
-      if (privateRecoveryReferencePattern.test(key) || secretTextPatterns.some((rule) => rule.pattern.test(key))) return [];
-      if (sensitiveField(key, entry) && entry !== undefined && !redactedConfigPlaceholder(entry)) {
-        return [[key, redactConfigValue("metadata_export")]];
+export function projectMetadataExport(value: unknown, options: { readonly inertOnly?: boolean } = {}): unknown {
+  const project = (value: unknown, depth: number): unknown => {
+    if (depth > 64) return "[redacted]";
+    if (["function", "symbol", "bigint"].includes(typeof value)
+      || (value !== null && typeof value === "object" && !inertMetadataObject(value))) return "[redacted]";
+    if (typeof value === "string") {
+      if (options.inertOnly) return value;
+      if (isSecretLikePath(value.replaceAll("\\", "/"))) return "[redacted]";
+      if (isAbsolute(value) || /^[A-Z]:[\\/]/i.test(value)) return opaqueExportPath(value);
+      if (scanMetadataLeaks(value).length > 0) return "[redacted]";
+      return value.replace(/(^|[\s'"])(\/[\w.~-][^\s'"]*)/g, (_match, before: string, path: string) => `${before}${opaqueExportPath(path)}`);
+    }
+    if (Array.isArray(value)) {
+      const projected: unknown[] = new Array(value.length);
+      for (let index = 0; index < value.length; index += 1) {
+        if (Object.hasOwn(value, index)) projected[index] = project(value[index], depth + 1);
       }
-      if ((key === "env" || key === "environment") && plainRecord(entry) && inertMetadataObject(entry) && Object.keys(entry).length > 0
-        && Object.values(entry).every((field) => typeof field === "string" || field === undefined)) {
-        return [[key, redactConfigValue("environment_export")]];
-      }
-      return [[key, projectMetadataExport(entry)]];
-    }));
-  }
-  return value;
+      return projected;
+    }
+    if (plainRecord(value)) {
+      if (!options.inertOnly && providerPayload(value)) return redactConfigValue("provider_payload_export");
+      return Object.fromEntries(Object.entries(value).flatMap(([key, entry]) => {
+        if (options.inertOnly) return [[key, project(entry, depth + 1)]];
+        if (privateRecoveryReferencePattern.test(key) || secretTextPatterns.some((rule) => rule.pattern.test(key))) return [];
+        if (sensitiveField(key, entry) && entry !== undefined && !redactedConfigPlaceholder(entry)) {
+          return [[key, redactConfigValue("metadata_export")]];
+        }
+        if ((key === "env" || key === "environment") && plainRecord(entry) && inertMetadataObject(entry) && Object.keys(entry).length > 0
+          && Object.values(entry).every((field) => typeof field === "string" || field === undefined)) {
+          return [[key, redactConfigValue("environment_export")]];
+        }
+        return [[key, project(entry, depth + 1)]];
+      }));
+    }
+    return value;
+  };
+  return project(value, 0);
 }
 
 export const redactionStatusSchema = z.enum(redactionStatuses);

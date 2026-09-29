@@ -20,6 +20,30 @@ function readFixture(name: string): StateLedgerEntry[] {
 }
 
 describe("state ledger contracts", () => {
+  it("rejects executable input before reading known schema fields", async () => {
+    const record = readFixture("ledger-records.json").find((item) => item.kind === "runtime_event")!;
+    let invoked = 0;
+    const getter = () => { invoked += 1; return "ordinary"; };
+    const values = [Object.defineProperty({ ...record }, "kind", { get: getter }),
+      { ...record, payload: Object.defineProperty({ ...record.payload }, "type", { get: getter }) },
+      new Proxy(record, { get: getter }), Object.defineProperty({ ...record }, "then", { get: getter }),
+      Object.defineProperty({ ...record }, "payload", { value: Object.defineProperty({ ...record.payload }, "type", { get: getter }) }),
+      { ...record, payload: { ...record.payload, payload: Object.defineProperty({}, "outputSummary", { get: getter }) } }];
+    for (const value of values) {
+      expect(() => stateLedgerRecordSchema.parse(value)).toThrow(/non json metadata/);
+      expect(stateLedgerRecordSchema.safeParse(value).success).toBe(false);
+      expect((await stateLedgerRecordSchema.safeParseAsync(value)).success).toBe(false);
+      await expect(stateLedgerRecordSchema.parseAsync(value)).rejects.toThrow(/non json metadata/);
+      expect((await stateLedgerRecordSchema.spa(value)).success).toBe(false);
+      expect(await stateLedgerRecordSchema["~standard"].validate(value)).toHaveProperty("issues");
+      expect(() => stateLedgerRecordArraySchema.parse([value])).toThrow(/non json metadata/);
+      expect(() => stateLedgerRecordSchema.array().parse([value])).toThrow(/non json metadata/);
+    }
+    const array = new Proxy([record], { get: getter });
+    expect(() => stateLedgerRecordArraySchema.parse(array)).toThrow(/non json metadata/);
+    expect((await stateLedgerRecordArraySchema.safeParseAsync(array)).success).toBe(false);
+    expect(invoked).toBe(0);
+  });
   it("checks retained nested session metadata while preserving operational roots and unknown-field stripping", () => {
     const record = readFixture("ledger-records.json").find((item) => item.kind === "session")!;
     const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };

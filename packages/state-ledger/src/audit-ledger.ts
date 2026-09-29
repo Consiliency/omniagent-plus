@@ -1,6 +1,7 @@
 import {
   runtimeEventSchema,
   projectMetadataExport,
+  assertMetadataSafe,
   type AgentSession,
   type IdentityProfileStatus,
   type LimitClassification,
@@ -35,6 +36,7 @@ export class AuditLedger {
   }
 
   async appendSession(session: AgentSession): Promise<Extract<StateLedgerEntry, { kind: "session" }>> {
+    assertMetadataSafe(session, { inertOnly: true });
     return this.store.appendRecord({
       kind: "session",
       payload: session,
@@ -43,6 +45,7 @@ export class AuditLedger {
   }
 
   async appendTurn(turn: TurnHandle): Promise<Extract<StateLedgerEntry, { kind: "turn" }>> {
+    assertMetadataSafe(turn, { inertOnly: true });
     return this.store.appendRecord({
       kind: "turn",
       payload: turn,
@@ -54,7 +57,7 @@ export class AuditLedger {
   async appendRuntimeEvent(
     event: RuntimeEvent,
   ): Promise<Extract<StateLedgerEntry, { kind: "runtime_event" }>> {
-    const parsed = runtimeEventSchema.parse(event) as RuntimeEvent;
+    const parsed = runtimeEventSchema.parse(projectMetadataExport(event, { inertOnly: true })) as RuntimeEvent;
     if (parsed.type === "runtime.turn.started") {
       event = { ...parsed, redaction: "metadata_only", payload: { ...parsed.payload, message: "[runtime content omitted]" } };
     } else if (parsed.type === "runtime.text.delta") {
@@ -75,6 +78,7 @@ export class AuditLedger {
   async appendRouteDecision(
     decision: RouteDecision,
   ): Promise<Extract<StateLedgerEntry, { kind: "route_decision" }>> {
+    assertMetadataSafe(decision, { inertOnly: true });
     return this.store.appendRecord({
       kind: "route_decision",
       payload: decision,
@@ -86,6 +90,8 @@ export class AuditLedger {
     classification: LimitClassification,
     context: { taskId?: string } = {},
   ): Promise<Extract<StateLedgerEntry, { kind: "limit_classification" }>> {
+    assertMetadataSafe(classification, { inertOnly: true });
+    assertMetadataSafe(context, { inertOnly: true });
     return this.store.appendRecord({
       kind: "limit_classification",
       payload: classification,
@@ -115,6 +121,7 @@ export class AuditLedger {
   async appendWorktreeLease(
     lease: WorktreeLease,
   ): Promise<Extract<StateLedgerEntry, { kind: "worktree_lease" }>> {
+    assertMetadataSafe(lease, { inertOnly: true });
     return this.store.appendRecord({
       kind: "worktree_lease",
       payload: lease,
@@ -126,6 +133,7 @@ export class AuditLedger {
   async appendApprovalRequest(
     request: RuntimeApprovalRequest,
   ): Promise<Extract<StateLedgerEntry, { kind: "approval_request" }>> {
+    assertMetadataSafe(request, { inertOnly: true });
     return this.store.appendRecord({
       kind: "approval_request",
       payload: request,
@@ -138,6 +146,7 @@ export class AuditLedger {
     response: RuntimeApprovalResponse,
     context: { sessionId: string; turnId: string },
   ): Promise<Extract<StateLedgerEntry, { kind: "approval_response" }>> {
+    assertMetadataSafe(context, { inertOnly: true });
     return this.store.appendRecord({
       kind: "approval_response",
       payload: response,
@@ -163,6 +172,7 @@ export class AuditLedger {
       taskId?: string;
     } = {},
   ): Promise<Extract<StateLedgerEntry, { kind: "evidence_ref" }>> {
+    assertMetadataSafe(context, { inertOnly: true });
     return this.store.appendRecord({
       kind: "evidence_ref",
       payload: ref,

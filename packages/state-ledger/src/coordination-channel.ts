@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import {
   coordinationMessageSchema,
+  assertMetadataSafe,
   toContractTimestamp,
   type CoordinationMessage,
   type CoordinationMessageType,
@@ -116,6 +117,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
   }
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
+    assertMetadataSafe(message, { inertOnly: true });
     return withFilesystemLock(this.lockPath, async () => {
       const built = buildMessage(message);
       const state = await this.readState(built.created_at);
