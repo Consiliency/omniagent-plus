@@ -17,8 +17,8 @@
   },
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
-    "packages/omnigent-transport/src/http-provider.ts": "a6b0084cbd8afe270b38781897ab52ea5af6198e4a0df4bdb246a72dce14c25d",
-    "packages/omnigent-transport/src/event-mapper.ts": "ccaf60278607a2c3994b4e661b70672b218ac18eef2f2eeef0fce0c924d97a71",
+    "packages/omnigent-transport/src/http-provider.ts": "be9ec4be365f578fccdc81141563db4e9411aaf08b6905728811d2f4e777b286",
+    "packages/omnigent-transport/src/event-mapper.ts": "43d2bea421c8028feac2f56a99dea26d44b5547afa339ace0207d63de12038ed",
     "packages/omnigent-transport/src/capability-probe.ts": "fb9bde13e1047b4850e90770c950a2f3871a8f22b120c2d912949814267f5a43",
     "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
     "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
@@ -122,7 +122,7 @@
   },
   "identity_safe_split_20260929": {
     "plan": "plans/detailed-omnigent-v015-identity-safe-replay-20260928.md",
-    "plan_sha256": "ad9cfc6850fcdad14cb36bb92a157b58dfb9be36b498e430452bb88ef366e713",
+    "plan_sha256": "25dca20f4bad85eacb59da2edbfc07a476000b3398a1d4bf25b926c80701e057",
     "contract_decision": "Text alone cannot establish one logical message when an alias-free historical durable ID and a preview's nonempty ID differ. Emit in order and allow a possible duplicate until identity is known. This replaces the prior ambiguous legacy fallback through an explicit B amendment.",
     "plan_review": {
       "astra": "AGREE after amendment; requested guarded provider alias fallback",
@@ -144,6 +144,18 @@
     "basis": "specs/agent-runtime-provider-omnigent-spec.md section 14.5 requires detected upstream version and SHA; health has neither",
     "change": "Health-only snapshots omit optional version and gitSha instead of copying the v0.15 research fixture; v0.12 published support claim and v0.15 comparison target remain distinct",
     "live_runtime_version_detection": "open"
+  },
+  "exact_head_reconciliation_20260929": {
+    "reviewed_head": "7ff62a2c7f1a56251d6b5f3bf79aba089e4a194c",
+    "opus_5_5_tui": "P2: invalid collision previews bypassed stable cursor mapping, legacy v0.12 replay duplicates, and provider done-first coverage was replaced",
+    "resolution": "Restored stable numbered-frame cursors; synchronized invalid collisions into already-open mappers; tested both event orders and two subscribers. Published 0.7.0 is unchanged; candidate v0.15 replay may duplicate alias-free v0.12 text and must not claim legacy dedup compatibility.",
+    "focused_mapper_provider_tests": { "passed": 120, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 378, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "dfe79a93fc2b4e9a277dc679c5a6a5e68ca77e1e4d04c2d9f0e088cd89e6e707" },
+    "exact_new_head_review": "pending"
   },
   "current_open_acceptance": ["accepted GUARD/DATA freezes", "full non-skipping gate", "candidate npm publish dry run", "remaining plan A-E cases", "live runtime version detection", "exact implementation-head panel approval"]
 }

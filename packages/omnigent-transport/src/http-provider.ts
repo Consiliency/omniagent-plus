@@ -807,6 +807,11 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         if (this.eventIsRejected(sessionId, rawEvent)) {
           continue;
         }
+        if (rawEvent.turnId && rawEvent.message_id &&
+          this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
+            ?.get(rawEvent.message_id)?.startsWith("\u0000invalid:")) {
+          mapper.invalidateStreamMessageId(rawEvent.turnId, rawEvent.message_id);
+        }
         const mappedEvents = mapper.map(rawEvent);
         if (rawEvent.type === "response.output_item.done" && rawEvent.turnId &&
           rawEvent.item?.type === "message" && typeof rawEvent.item.id === "string" &&
@@ -837,9 +842,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           sessionId,
           replayEvents,
           options?.afterSequence,
-          !!(rawEvent.turnId && rawEvent.message_id &&
-            this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
-              ?.get(rawEvent.message_id)?.startsWith("\u0000invalid:")),
         ).filter(
           (event) => event.sequence > (options?.afterSequence ?? 0),
         );
@@ -1547,7 +1549,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     events: readonly RuntimeEvent[],
     sequenceFloor = 0,
-    forceNewTextSequence = false,
   ): RuntimeEvent[] {
     const sequences = this.eventSequences.get(sessionId) ?? new Map();
     let nextSequence = Math.max(
@@ -1556,13 +1557,10 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     );
     const resequenced = events.map((event) => {
       const key = runtimeEventSequenceKey(event);
-      const existingSequence = forceNewTextSequence && event.type === "runtime.text.delta"
-        ? undefined : sequences.get(key);
+      const existingSequence = sequences.get(key);
       const sequence = existingSequence ?? nextSequence;
       if (existingSequence === undefined) {
-        if (!forceNewTextSequence || event.type !== "runtime.text.delta") {
-          sequences.set(key, sequence);
-        }
+        sequences.set(key, sequence);
         nextSequence += 1;
       }
       return event.sequence === sequence

@@ -103,7 +103,12 @@ ID is also emitted when an alias-free historical item has a different ID and
 only its text matches; this may repeat historical text, but avoids losing a
 distinct message before a later alias arrives. Exact IDs, confirmed aliases,
 and process-local cursor evidence still deduplicate replay. A stream ID
-invalidated by a collision receives no replay credit across reconnects.
+invalidated by a collision receives no text-based replay credit. A numbered
+upstream frame keeps its cursor across subscribers and reconnects; an unnumbered
+frame has only a connection-specific identity and may be delivered again after
+reconnect. This unpublished v0.15 candidate deliberately changes the v0.12
+cross-namespace text deduplication behavior in published 0.7.0. Qualification
+must not claim that the candidate preserves that legacy replay behavior.
 
 ## Boundary
 

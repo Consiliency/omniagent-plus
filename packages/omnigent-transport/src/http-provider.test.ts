@@ -154,7 +154,7 @@ describe("http provider", () => {
     expect(events.filter((event) => event.type === "runtime.text.delta")).toEqual([]);
   });
 
-  it("v0.15 B preserves a distinct preview after a late historical alias", async () => {
+  it.each(["preview-first", "done-first"] as const)("v0.15 B preserves a distinct preview after a late historical alias (%s)", async (order) => {
     const snapshot = {
       active_response_id: "response-late-alias", agent_id: "agent-late-alias",
       created_at: 1_780_272_000, id: "session-late-alias", items: [],
@@ -171,7 +171,15 @@ describe("http provider", () => {
         const url = String(input);
         if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
         if (url.endsWith("/stream")) return new Response(
-          `data: ${JSON.stringify({ type: "response.output_text.delta", response_id: "response-late-alias", message_id: "stream-b", delta: "same", index: 0 })}\n\ndata: ${JSON.stringify({ type: "response.output_item.done", response_id: "response-late-alias", item: { ...item, stream_message_id: "stream-a" } })}\n\n`,
+          (order === "preview-first"
+            ? [
+                { type: "response.output_text.delta", response_id: "response-late-alias", message_id: "stream-b", delta: "same", index: 0 },
+                { type: "response.output_item.done", response_id: "response-late-alias", item: { ...item, stream_message_id: "stream-a" } },
+              ]
+            : [
+                { type: "response.output_item.done", response_id: "response-late-alias", item: { ...item, stream_message_id: "stream-a" } },
+                { type: "response.output_text.delta", response_id: "response-late-alias", message_id: "stream-b", delta: "same", index: 0 },
+              ]).map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""),
           { headers: { "content-type": "text/event-stream" } },
         );
         if (url.includes("/items")) return new Response(JSON.stringify({
@@ -193,7 +201,7 @@ describe("http provider", () => {
     expect(replay.filter((event) => event.type === "runtime.text.delta")).toEqual([]);
   });
 
-  it("v0.15 B preserves previews after a stream ID collision and history reload", async () => {
+  it.each([false, true])("v0.15 B preserves previews after a stream ID collision and history reload (numbered: %s)", async (numbered) => {
     const snapshot = {
       active_response_id: "response-collision", agent_id: "agent-collision",
       created_at: 1_780_272_000, id: "session-collision", items: [],
@@ -217,7 +225,8 @@ describe("http provider", () => {
                 ...firstItem, id: "durable-b", content: [{ text: "different", type: "output_text" }],
               } }
             : { type: "response.output_text.delta", response_id: "response-collision",
-                message_id: "shared-stream", delta: "same", index: 0 };
+                message_id: "shared-stream", delta: "same", index: 0,
+                ...(numbered ? { sequence_number: 7 } : {}) };
           return new Response(`data: ${JSON.stringify(event)}\n\n`, {
             headers: { "content-type": "text/event-stream" },
           });
@@ -241,7 +250,62 @@ describe("http provider", () => {
     expect(secondStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
     const secondCursor = Math.max(cursor, ...secondStream.map((event) => event.sequence));
     const thirdStream = await collectAsync(provider.streamEvents(session.id, { afterSequence: secondCursor }));
-    expect(thirdStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+    expect(thirdStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(numbered ? [] : ["same"]);
+  });
+
+  it("v0.15 B shares collision state with an already-open subscriber", async () => {
+    const snapshot = {
+      active_response_id: "response-shared-collision", agent_id: "agent-shared-collision",
+      created_at: 1_780_272_000, id: "session-shared-collision", items: [],
+      status: "running", title: "Shared collision", updated_at: 1_780_272_001,
+    };
+    const item = {
+      content: [{ text: "same", type: "output_text" }],
+      created_at: 1_780_272_001, id: "durable-a", response_id: "response-shared-collision",
+      role: "assistant", status: "completed", stream_message_id: "shared", type: "message",
+    };
+    const controllers: ReadableStreamDefaultController<Uint8Array>[] = [];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.endsWith("/stream")) return new Response(new ReadableStream<Uint8Array>({
+          start: (controller) => { controllers.push(controller); },
+        }), { headers: { "content-type": "text/event-stream" } });
+        if (url.includes("/items")) return new Response(JSON.stringify({
+          data: [item], first_id: item.id, has_more: false, last_id: item.id,
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: "shared-collision-create", runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const history = await provider.readHistory(session.id);
+    const first = provider.streamEvents(session.id, { afterSequence: history.nextCursor })[Symbol.asyncIterator]();
+    const second = provider.streamEvents(session.id, { afterSequence: history.nextCursor })[Symbol.asyncIterator]();
+    const firstEvent = first.next();
+    const secondEvent = second.next();
+    for (let attempt = 0; attempt < 10 && controllers.length < 2; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    expect(controllers).toHaveLength(2);
+    const frame = (event: object) => new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`);
+    controllers[0]?.enqueue(frame({ type: "response.output_item.done", response_id: "response-shared-collision",
+      item: { ...item, id: "durable-b", content: [{ text: "different", type: "output_text" }] } }));
+    expect((await firstEvent).value).toEqual(expect.objectContaining({
+      type: "runtime.text.delta", payload: { delta: "different" },
+    }));
+    controllers[1]?.enqueue(frame({ type: "response.output_text.delta", response_id: "response-shared-collision",
+      message_id: "shared", delta: "same", index: 0 }));
+    expect((await secondEvent).value).toEqual(expect.objectContaining({
+      type: "runtime.text.delta", payload: { delta: "same" },
+    }));
+    await first.return?.();
+    await second.return?.();
   });
 
   it("v0.15 B retains a collision when reloaded history is empty", async () => {

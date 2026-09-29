@@ -92,6 +92,13 @@ export class OmnigentEventMapper {
   private readonly legacySessionCreatedEvents: boolean;
   private nextSequence: number;
 
+  invalidateStreamMessageId(turnId: string, streamMessageId: string): void {
+    const invalid = this.invalidStreamIdsByTurnId.get(turnId) ?? new Set<string>();
+    invalid.add(streamMessageId);
+    this.invalidStreamIdsByTurnId.set(turnId, invalid);
+    this.historicalStreamTextByTurnId.get(turnId)?.delete(streamMessageId);
+  }
+
   constructor(
     private readonly sessionId: string,
     options: OmnigentEventMapperOptions = {},
