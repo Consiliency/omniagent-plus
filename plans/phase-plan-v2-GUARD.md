@@ -558,12 +558,29 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   deadline; use monotonic clocks on both sides and reserve time for delivery.
   Adoption outside teardown starts bounded drain of the whole command subtree,
   including the payload. The Node helper retains validated RESULT in memory
-  and writes a metadata-only per-command custody result (stage, quiescent or
-  unproven, adopted_count, force_killed_count, supervisor identity) to the
-  owned .phase-loop/guard/<run-id>/custody.jsonl when verify.mjs supplies that
-  run directory to its child stages. No argv, env or output is retained. SL-2
-  reconciles every nonzero count with an intentional adversarial control or
-  treats unexpected rescue as blocking; rescue never silently implies approval.
+  and appends metadata-only admission and terminal records to the owned
+  .phase-loop/guard/<run-id>/custody.jsonl when verify.mjs supplies that run
+  directory to each child stage, including nested pnpm/Vitest workers.
+  verify.mjs sets a scoped stage label before each stage and explicitly passes
+  the run-directory and stage keys through child environments; both keys are
+  added to cleanEnvironment()'s allowlist only for that verified run. A
+  caller-supplied env keeps its existing semantics. Each admitted command has
+  one random command_id, stage, supervisor identity and optional static
+  control_case_id passed by its adversarial test call; terminal records repeat
+  those IDs and include quiescent/unproven, adopted_count and
+  force_killed_count. An admission is recorded before ADMIT is enqueued, and
+  every admission must have exactly one terminal record, including a typed
+  unproven terminal when RESULT is missing or malformed. A failed terminal
+  write fails the owning command; a missing terminal, duplicate ID, orphan
+  terminal or unbalanced journal fails the full gate. Use a single checked
+  O_APPEND write per JSON line for concurrent local workers. No argv, env or
+  output is retained. Only the exact, statically named adversarial cases may
+  set control_case_id; it never waives a failed command or missing proof.
+  SL-2 reconciles each nonzero count by command_id against that specific
+  case's expected behavior, and treats any untagged or mismatched rescue as
+  blocking; a stage-level aggregate alone is insufficient. Standalone callers
+  without a run directory expose the same validated terminal result in memory
+  for their direct assertions. Rescue never silently implies approval.
 - Cancellation: the custody supervisor, not the Node owner, is the sole
   escalation owner for its payload subtree. Parent-requested teardown sends
   TERM to owned payloads, escalates at one absolute 500 ms deadline, and must
@@ -659,7 +676,10 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   under the recorded Linux-only decision; replace them with no-launch refusals.
   Include foreground-group INT delivered once, direct-spawn signal-mask and
   signal-default parity, explicit process.env pass-through, and custody-count
-  retention/disposition. Include sibling/last-keeper loss and explicit unproven results, buffered
+  retention/disposition. Falsify admission with no terminal, duplicate or
+  orphan terminal, and an unexpected rescue beside an expected control in
+  the same stage; the full gate must reject each. Include sibling/last-keeper
+  loss and explicit unproven results, buffered
   ADMIT cancellation, OS-signal/protocol routing, declarative cleanup ceilings,
   SIGCHLD automatic-reaping refusal and delayed Docker creation. Fault-injection
   tests use a real outer custodian for their own cleanup; that rescue is never
