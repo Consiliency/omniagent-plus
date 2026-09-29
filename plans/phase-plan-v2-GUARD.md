@@ -556,8 +556,16 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   Supervisor diagnostics use a private channel, never payload stdout/stderr.
   The final RESULT is mandatory and delivered within the shared absolute
   deadline; use monotonic clocks on both sides and reserve time for delivery.
-  Adoption outside teardown starts bounded drain of the whole command subtree,
-  including the payload. The Node helper retains validated RESULT in memory
+  Adoption while the payload remains alive is retained under the same
+  operation deadline; it does not by itself interrupt the payload. A payload
+  exit or existing operation timeout starts the bounded drain of its whole
+  subtree. On normal payload exit only, observe natural child exits for at
+  most the first 250 ms of the existing T=2.5-second tail, then TERM survivors;
+  KILL remains fixed at 500 ms from that exit and final quiescence/RESULT at
+  2.5 seconds. Forced parent teardown sends TERM immediately and keeps the
+  same 500 ms/2.5-second boundaries. No child receives a fresh budget on
+  adoption, and no command returns before kernel-confirmed quiescence.
+  The Node helper retains validated RESULT in memory
   and appends metadata-only admission and terminal records to the owned
   .phase-loop/guard/<run-id>/custody.jsonl when verify.mjs supplies that run
   directory to each child stage, including nested pnpm/Vitest workers.
@@ -567,18 +575,30 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   caller-supplied env keeps its existing semantics. Each admitted command has
   one random command_id, stage, supervisor identity and optional static
   control_case_id passed by its adversarial test call; terminal records repeat
-  those IDs and include quiescent/unproven, adopted_count and
-  force_killed_count. An admission is recorded before ADMIT is enqueued, and
+  those IDs and include quiescent/unproven, adopted_count,
+  adopted_natural_count, adopted_signaled_count and force_killed_count.
+  Natural means an adopted child exited and was reaped before any supervisor
+  signal to that child; signaled includes TERM or KILL. Count by kernel child
+  identity/status, never command name, and make the categories sum to
+  adopted_count. An admission is recorded before ADMIT is enqueued, and
   every admission must have exactly one terminal record, including a typed
   unproven terminal when RESULT is missing or malformed. A failed terminal
   write fails the owning command; a missing terminal, duplicate ID, orphan
-  terminal or unbalanced journal fails the full gate. Use a single checked
+  terminal or unbalanced journal fails the full gate. Validate the journal
+  after ProcessScope close and fixture cleanup, so their commands are included.
+  Owner-death and last-keeper fault tests use isolated inner journals,
+  assert their missing-terminal failure there, and keep the outer gate journal
+  balanced; nested verify() tests validate their own isolated journals.
+  Use a single checked
   O_APPEND write per JSON line for concurrent local workers. No argv, env or
   output is retained. Only the exact, statically named adversarial cases may
   set control_case_id; it never waives a failed command or missing proof.
-  SL-2 reconciles each nonzero count by command_id against that specific
-  case's expected behavior, and treats any untagged or mismatched rescue as
-  blocking; a stage-level aggregate alone is insufficient. Standalone callers
+  SL-0 measures adopted-child counts in existing suites under the new helper;
+  SL-2 retains that survey before acceptance and inspects every
+  nonzero count by command_id. Naturally exiting adoptions are observational
+  and do not alone block the gate. Any untagged adopted child that needed TERM
+  or KILL, or any mismatched control, blocks acceptance; a stage-level
+  aggregate alone is insufficient. Standalone callers
   without a run directory expose the same validated terminal result in memory
   for their direct assertions. Rescue never silently implies approval.
 - Cancellation: the custody supervisor, not the Node owner, is the sole
@@ -677,8 +697,12 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   Include foreground-group INT delivered once, direct-spawn signal-mask and
   signal-default parity, explicit process.env pass-through, and custody-count
   retention/disposition. Falsify admission with no terminal, duplicate or
-  orphan terminal, and an unexpected rescue beside an expected control in
-  the same stage; the full gate must reject each. Include sibling/last-keeper
+  orphan terminal, and an unexpected signaled rescue beside an expected
+  control in
+  the same stage; the full gate must reject each. Add an esbuild-style normal
+  success control whose adopted service child exits on stdin EOF after its
+  parent; it must be reaped, recorded as natural and not kill the still-running
+  launcher. Include sibling/last-keeper
   loss and explicit unproven results, buffered
   ADMIT cancellation, OS-signal/protocol routing, declarative cleanup ceilings,
   SIGCHLD automatic-reaping refusal and delayed Docker creation. Fault-injection
