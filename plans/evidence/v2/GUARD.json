@@ -1,13 +1,13 @@
 {
   "schema": "guard-acceptance-candidate.v1",
   "phase": "GUARD",
-  "status": "verified_candidate_pending_protection_and_merge",
+  "status": "verified_candidate_pending_reviews_and_merge",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/29",
   "tested_source_sha": "863a5efc5cf57ff69afadcb79e7561de8aff19d7",
   "base_sha": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
   "plan": {
     "path": "plans/phase-plan-v2-GUARD.md",
-    "sha256": "96c6fac4bedffd2ea316c588c93ede0c977b249d760746ead65164e7bea7884e",
+    "sha256": "540fdf23755feb25290c0c820455e59f8194525cc820ab27caf53c73ef52c097",
     "prior_accepted_plan_sha256": "b84275af012ff0294fcd36a8ebdd9e3bc814ce442afc01d811ef32c879fe0b05"
   },
   "local_verification": {
@@ -45,5 +45,5 @@
     "EC-GUARD-2": "candidate passed focused GUARD and integration on independent admitted hosted fixtures with balanced custody and SQL receipts",
     "EC-GUARD-3": "readiness cases passed; source-grounded section-6 inventory distinguishes delivered local controls from deferred policy, measurement, source repair and license decisions"
   },
-  "limitations": ["Main branch protection is not configured yet.", "Post-merge main verification cannot be claimed from PR-head runs.", "No product release or hosted Supabase proof is claimed."]
+  "limitations": ["The owner made main branch protection optional for this solo-project merge; manual publish remains gated by github.ref_protected.", "Panel code review and separate independent review of the final PR head remain pending.", "Post-merge main verification cannot be claimed from PR-head runs.", "No product release or hosted Supabase proof is claimed."]
 }

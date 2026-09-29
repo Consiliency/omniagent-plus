@@ -4,6 +4,14 @@ Updated 2026-09-29. GUARD is not accepted and omniagent-plus#29 remains
 draft. No product release, version change or main merge is approved by these
 records. omniagent-plus#20 stays open.
 
+The owner subsequently made main branch protection optional for this solo
+project's GUARD merge. The current merge gates are passing agent-harness panel
+code review, a separate independent review of the final PR head, passing
+exact-head hosted checks, a clean GitHub PR merge, and verification of the
+actual merged main SHA. Manual publish remains gated by
+`github.ref_protected=true`. Historical protection findings below record the
+earlier policy and do not supersede this owner decision.
+
 ## 2026-09-29 Implementation Checkpoint
 
 - On repaired code head `863a5ef`, hosted CI run `36543602533`, its

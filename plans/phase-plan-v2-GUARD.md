@@ -418,15 +418,19 @@ SL-2 — Integrated acceptance and docs sweep
   - verify: Match reviewed content to PR head, passing shared CI, no unrelated
     runtime/migration/version changes, and explicit manual closeout if runner
     remains broken. Use GitHub PR merge on the exact accepted head after
-    required checks/protections pass, not direct main push or fabricated FABPUB
+    required checks and reviews pass, not direct main push or fabricated FABPUB
     success. Record PR URL, reviewed/merged SHA, checks and the explicit manual
     route. CI exposes the stable required check guard-required: it runs after
     shared verification and fails for skipped/cancelled/failed verification.
     SL-0 owns its workflow wiring and falsifiers; SL-2 records the observed
-    check context and verifies protection requires it. Protection changes stay
-    maintainer-owned, never silently waived. Reconcile ambiguous prior effects first. Then plan DATA
-    on main; GUARD dispatches no release.
-    Record whether branch protection requires up-to-date branches, and retain
+    check context. For this solo-project GUARD merge, the owner chose to leave
+    main protection optional. Merge requires passing agent-harness panel code
+    review and a separate independent review of the final PR head, plus its
+    exact-head hosted checks and a clean GitHub merge. Protection policy remains
+    an owner choice for later phases; this decision does not authorize a manual
+    publish while github.ref_protected is false. Reconcile ambiguous prior
+    effects first. Then plan DATA on main; GUARD dispatches no release.
+    Record the observed branch-protection state, and retain
     the post-merge main verification run for the actual merged SHA; PR-head
     verification is not automatically proof of the distinct merge commit.
 
@@ -752,8 +756,10 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   exact plan hash, prior accepted hash, scoped ownership, source/probe hashes,
   four usable reviewer results, reconciled dispositions and actual operator
   platform decision. No vote transfer; plan approval is not code acceptance.
-  Existing main-protection and post-merge proof gates remain, and GUARD does
-  not publish a product release.
+  The owner made main protection optional for this solo-project GUARD merge.
+  Passing agent-harness panel code review, separate independent review,
+  exact-head checks and post-merge proof remain gates. GUARD does not publish
+  a product release.
 
 ## Execution Notes
 
