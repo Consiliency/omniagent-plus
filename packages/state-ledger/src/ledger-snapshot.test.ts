@@ -171,4 +171,23 @@ describe("validated visible ledger snapshots", () => {
     expect((await enlarged.appendRecord(input)).sequence).toBe(3);
     await expect(AppendOnlyStore.open({ rootDir, maxSnapshotBytes: 0 })).rejects.toThrow(/positive safe integers/);
   });
+
+  it("checks manifest capacity before creation and numeric high-water growth", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "data-manifest-capacity-"));
+    await expect(AppendOnlyStore.open({ rootDir, maxSnapshotBytes: 200 })).rejects.toMatchObject({ code: "snapshot_limit" });
+    expect(await readdir(rootDir)).not.toContain("manifest.json");
+    expect(await readdir(rootDir)).not.toContain("ledger.jsonl");
+    const seed = await AppendOnlyStore.open({ rootDir });
+    await writeFile(seed.paths.manifestPath, `${JSON.stringify({ ...await seed.getManifest(), lastSequence: 9 }, null, 2)}\n`);
+    const capacity = (await readFile(seed.paths.manifestPath)).length;
+    const store = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: capacity });
+    const before = await readFile(store.paths.manifestPath);
+    const input = { kind: "evidence_ref" as const, recordId: "x", payload: { kind: "log" as const, label: "x" } };
+    await expect(store.appendRecord(input)).rejects.toMatchObject({ code: "snapshot_limit" });
+    expect(await readFile(store.paths.manifestPath)).toEqual(before);
+    expect(await readdir(rootDir)).not.toContain("ledger.jsonl");
+    const enlarged = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: capacity + 1 });
+    expect((await enlarged.appendRecord(input)).sequence).toBe(10);
+    expect(await (await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: capacity + 1 })).listRecords()).toHaveLength(1);
+  });
 });

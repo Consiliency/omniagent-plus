@@ -141,14 +141,15 @@ export class AppendOnlyStore {
       const existing = await readStoreManifest(this.paths.rootDir);
       if (!existing && await this.ledgerIdentity() !== "absent") throw new LedgerReadError("ledger_corruption");
       const repaired = await this.writableRecords();
-      const migration = await migrateStoreManifest(this.paths.rootDir);
+      const previous = existing ?? createEmptyManifest(nowIsoString());
       const manifest = {
-        ...migration.manifest,
+        ...previous,
         recordCount: repaired.records.length,
-        lastSequence: Math.max(migration.manifest.lastSequence, repaired.records.at(-1)?.sequence ?? 0),
+        lastSequence: Math.max(previous.lastSequence, repaired.records.at(-1)?.sequence ?? 0),
         updatedAt: nowIsoString(),
-        recoveredTailTruncations: migration.manifest.recoveredTailTruncations + repaired.truncations,
+        recoveredTailTruncations: previous.recoveredTailTruncations + repaired.truncations,
       };
+      if (Buffer.byteLength(`${JSON.stringify(manifest, null, 2)}\n`) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
       await this.writeIndexes(repaired.records, manifest.updatedAt);
       await writeStoreManifest(this.paths.rootDir, manifest);
       await this.cacheRecords(repaired.records);
@@ -216,6 +217,11 @@ export class AppendOnlyStore {
       }) as Extract<StateLedgerEntry, { kind: TKind }>;
       if (cache.ids.has(record.recordId)) throw new LedgerReadError("ledger_corruption");
       const serialized = `${JSON.stringify(record)}\n`;
+      const nextManifest = {
+        ...manifest, recordCount: cache.count + 1, lastSequence: nextSequence, updatedAt: nowIsoString(),
+        recoveredTailTruncations: manifest.recoveredTailTruncations + truncations,
+      };
+      if (Buffer.byteLength(`${JSON.stringify(nextManifest, null, 2)}\n`) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
       const existingBytes = await stat(this.paths.ledgerPath).then((value) => value.size, (error: unknown) => {
         if (isMissingFileError(error)) return 0;
         throw error;
@@ -226,10 +232,7 @@ export class AppendOnlyStore {
       try { await handle.writeFile(serialized, "utf8"); await handle.sync(); }
       finally { await handle.close(); }
       await syncDirectory(this.paths.rootDir);
-      await writeStoreManifest(this.paths.rootDir, {
-        ...manifest, recordCount: cache.count + 1, lastSequence: nextSequence, updatedAt: nowIsoString(),
-        recoveredTailTruncations: manifest.recoveredTailTruncations + truncations,
-      });
+      await writeStoreManifest(this.paths.rootDir, nextManifest);
       cache.count += 1;
       cache.lastSequence = nextSequence;
       cache.ids.add(record.recordId);

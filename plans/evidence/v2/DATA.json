@@ -5,7 +5,7 @@
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
   "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
   "source_binding": {
-    "packages/state-ledger/src/append-only-store.ts": "eb1594a205b57c4a826b2256e93a68a7d1acb7b5d46952f5ac77c1277e652e9e",
+    "packages/state-ledger/src/append-only-store.ts": "531fb27fbf8490dabaa82122bb36f23e05204783704ba05b08c958990da07291",
     "packages/state-ledger/src/ledger-snapshot.ts": "78323a231f347368c5f476b8e421ed734f1baa9e081041b61e7ef3bbb6b50538",
     "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
     "packages/state-ledger/src/migrations.ts": "e71ce548a506d58aaa55f48cc2204957066a5cdd3cf9b571c1d4ff2163a880c6",
@@ -45,6 +45,12 @@
         "passed": 8,
         "failed": 0,
         "command": "pnpm build; pnpm exec vitest run packages/core-contracts/src/redaction.test.ts packages/cli/src/output.test.ts packages/cli/src/health.test.ts; pnpm lint"
+      },
+      "manifest_capacity_crash_delta": {
+        "command": "pnpm exec vitest run packages/state-ledger/src/ledger-snapshot.test.ts packages/state-ledger/src/migrations.test.ts packages/state-ledger/src/data-fault.test.ts",
+        "files": 3,
+        "passed": 32,
+        "failed": 0
       }
     },
     "typecheck": "passed on repaired working candidate",
@@ -165,6 +171,15 @@
       "source_sha": "d234929308057d938555f09715919a2dc169a3f7",
       "record": "plans/evidence/v2/reviews/DATA-implementation-d234929.json",
       "resolution": "Candidate covers inherited JWT/Google/GitLab/npm token and colon/underscore assignment/header families, credential paths and nested .recovery refs with shared corpus. Both degraded seats must rerun through normal authorization on a fresh immutable review clone."
+    },
+    {
+      "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
+      "review": "separate independent full-phase audit",
+      "verdict": "PARTIALLY AGREE",
+      "findings": [
+        "small positive capacity can fit a short explicit-ID record but not its manifest"
+      ],
+      "resolution": "Candidate validates serialized manifests before initialization/checkpoint writes and before append writes, including historical high-water digit growth; adds initial200-byte and exact-manifest-capacity reopen regression. All earlier findings resolved; final re-review pending."
     }
   ],
   "remaining": [
@@ -181,12 +196,12 @@
     "PREP owns distribution and public independent package acceptance."
   ],
   "hosted_verification": {
-    "source_sha": "0ddcfacaac7f9c408aa23ea1b0b4679965fa6182",
-    "ci_run_id": 36616797620,
-    "publish_rehearsal_run_id": 36616797755,
+    "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
+    "ci_run_id": 36617639323,
+    "publish_rehearsal_run_id": 36617639295,
     "required_check": "guard-required",
     "conclusion": "success",
     "actual_publish": "skipped",
-    "final_head": "pending"
+    "final_head": "pending capacity repair"
   }
 }

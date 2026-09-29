@@ -79,8 +79,9 @@ Array and replay APIs reject an incomplete snapshot rather than returning a
 misleading successful prefix.
 
 Store `maxSnapshotBytes` sets the same positive bounded capacity for writer
-recovery, compaction and default store reads. Append rejects growth beyond that
-capacity before writing/acknowledging it, so a warmed cache cannot create a ledger
+recovery, compaction and default store reads. Initialization and append check
+serialized manifest and ledger capacity before publishing a checkpoint or
+acknowledging growth, so a warmed cache cannot create a ledger
 that its configured writer cannot reopen. Raise this option consistently for
 larger stores; standalone snapshot inspection retains the 64 MiB default.
 
