@@ -329,6 +329,8 @@ describe("replay", () => {
       selectedHarness: "codex" as const, fallbackUsed: false, capabilityFit: 1, providerHealth: 1,
       currentCapacity: 1, contextPortability: "high" as const, routeReason: "capability_fit" as const, silentDowngrade: false as const };
     await ledger.store.appendRecord({ kind: "route_decision", sessionId: session.id, taskId: decision.taskId, payload: decision });
+    await ledger.store.appendRecord({ kind: "route_decision", sessionId: "foreign-session", taskId: decision.taskId,
+      payload: { ...decision, selectedProvider: "anthropic", selectedHarness: "claude" } });
     await ledger.appendRouteDecision({ ...decision, taskId: "a-other" });
     let snapshots = 0;
     const list = ledger.listRecords.bind(ledger);
@@ -339,7 +341,8 @@ describe("replay", () => {
     expect(result.turns.map((item) => item.state)).toEqual(["completed"]);
     expect(result.history.events.map((event) => event.eventId)).toEqual(["event-0", "event-1"]);
     expect(result.routeDecisions.map((route) => route.taskId)).toEqual(["z-scoped"]);
-    expect((await replayRouteDecisions(ledger)).map((route) => route.taskId)).toEqual(["z-scoped", "a-other"]);
+    expect(result.routeDecisions[0]?.selectedProvider).toBe("openai");
+    expect((await replayRouteDecisions(ledger)).map((route) => route.taskId)).toEqual(["z-scoped", "z-scoped", "a-other"]);
     expect((await replayUiControlSnapshot(ledger)).sessions[0]?.lastEventType).toBe("runtime.turn.started");
     expect((await replayUiControlSnapshot(ledger)).sessions[0]?.lastEventAt).toBe("2026-06-30T00:00:01Z");
   });

@@ -65,7 +65,10 @@ export async function readStoreManifest(
   rootDir: string,
 ): Promise<StoreManifest | undefined> {
   const paths = getStateLedgerPaths(rootDir);
-  const raw = await readJsonFile<unknown>(paths.manifestPath);
+  const raw = await readJsonFile<unknown>(paths.manifestPath).catch((error: unknown) => {
+    if (error instanceof SyntaxError) throw new LedgerReadError("ledger_corruption");
+    throw error;
+  });
   if (raw === undefined) {
     return undefined;
   }
@@ -94,7 +97,10 @@ export async function migrateStoreManifest(
 ): Promise<MigrationResult> {
   const timestamp = nowIsoString();
   const paths = await ensureStateLedgerDirectories(rootDir);
-  const raw = await readJsonFile<unknown>(paths.manifestPath);
+  const raw = await readJsonFile<unknown>(paths.manifestPath).catch((error: unknown) => {
+    if (error instanceof SyntaxError) throw new LedgerReadError("ledger_corruption");
+    throw error;
+  });
 
   if (raw === undefined) {
     const manifest = createEmptyManifest(timestamp);

@@ -1,0 +1,123 @@
+{
+  "schema": "data-acceptance-candidate.v1",
+  "phase": "DATA",
+  "status": "candidate_pending_full_gate_and_final_reviews",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
+  "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
+  "source_binding": {
+    "packages/state-ledger/src/append-only-store.ts": "c47667a0f5e1d7d28cdcd58aa59e1de3c91644ee727c44214274083e98c195a2",
+    "packages/state-ledger/src/ledger-snapshot.ts": "3196da200e3fd7b03c6fb9ed452c96c93351d874d88f0677b96f31326866ba55",
+    "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
+    "packages/state-ledger/src/migrations.ts": "e71ce548a506d58aaa55f48cc2204957066a5cdd3cf9b571c1d4ff2163a880c6",
+    "packages/state-ledger/src/replay.ts": "bb2c4d6aebb98acc74e48278bb9027c5949320fcaab485779bbf76dd6614cabf",
+    "packages/state-ledger/src/retention.ts": "1534a35920d1f5f83259371873eea051b9a93562d6f3c035534a8ec219d3dfd5",
+    "packages/core-contracts/src/redaction.ts": "bbc3e13cd8c3ff095115126bcb9ad0959fd3465a2b657bedfc56ecf5d2632e39",
+    "fixtures/content-policy/corpus.json": "85f664fc693dcf26a2a5892332abef04b21b75b7daa2fdf96f1e228a2b31218a",
+    "plans/phase-plan-v2-DATA.md": "123d658b66cd4a5ca50f2a2097bd69a5ad23f05f2d375bf705ec1af39f8fcb2e"
+  },
+  "local_verification": {
+    "targeted": {
+      "content_cli_initial": {
+        "files": 38,
+        "passed": 95
+      },
+      "fault_performance_snapshot": {
+        "files": 3,
+        "passed": 25
+      },
+      "concurrency_replay_migration": {
+        "files": 3,
+        "passed": 13
+      },
+      "snapshot_hardening": {
+        "files": 2,
+        "passed": 10
+      }
+    },
+    "typecheck": "passed before final documentation and UTF-8 control changes; rerun pending",
+    "lint": "pending corrected type-import lint control",
+    "full_gate": "pending clean committed candidate; dirty tracked inputs correctly refused"
+  },
+  "measurement": {
+    "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; synthetic identical ledger fixtures; one observational run",
+    "initial_records": [
+      0,
+      100,
+      1000
+    ],
+    "appends": 30,
+    "baseline_ms": [
+      16.029224,
+      27.201366,
+      160.734173
+    ],
+    "candidate_ms": [
+      24.539964,
+      14.557157,
+      21.96903
+    ],
+    "candidate_append_snapshot_reads": [
+      0,
+      0,
+      0
+    ],
+    "candidate_append_index_rewrites": [
+      0,
+      0,
+      0
+    ],
+    "limit": "No speed threshold or universal durability claim; startup and compaction scan and checkpoint; fsync latency is filesystem dependent."
+  },
+  "fault_matrix": {
+    "passed": [
+      "append_write",
+      "append_sync",
+      "manifest_write",
+      "manifest_sync",
+      "manifest_rename",
+      "manifest_parent_sync",
+      "compact_rename",
+      "index_write",
+      "recovery_write",
+      "recovery_sync",
+      "recovery_dir_sync",
+      "recovery_truncate",
+      "lock_link",
+      "lock_parent_sync"
+    ],
+    "construction_site_proof": "Each child arms actual production filesystem hooks and records the exact reached point before SIGKILL. A removed operation cannot satisfy its fault marker.",
+    "custody": "Uses existing GUARD process supervisor; physical power-loss and arbitrary foreign lock-inode replacement are outside the supported topology."
+  },
+  "criteria": {
+    "EC-DATA-1": "candidate implemented: finite shared retained-metadata corpus, direct schemas/rendering, evidence and opaque path exports; final review pending",
+    "EC-DATA-2": "candidate implemented: initialized permanent SQLite ownership, historical sequence high-water, private recovery evidence, sync and atomic replacement; final review pending",
+    "EC-DATA-3": "candidate implemented: bounded stable read-only snapshots, complete corruption preservation, scoped latest replay, locked retention closure; final review pending",
+    "EC-DATA-4": "candidate implemented: zero rescan/index append controls, foreign cache invalidation, simultaneous process writers, compatible runtime request strings; final review pending"
+  },
+  "review_reconciliation": [
+    {
+      "source_sha": "faa6196bb749e2171b3419ea47897355de7efd8d",
+      "review": "separate independent SL0/SL1 audit",
+      "verdict": "PARTIALLY AGREE",
+      "findings": [
+        "interior malformed JSON accepted by partial-literal suffix heuristic",
+        "malformed manifest raw SyntaxError may expose input",
+        "explicit foreign session route incorrectly admitted by matching task"
+      ],
+      "resolution": "Candidate repairs all three; whole-prefix grammar and UTF-8 controls, bounded manifest decode errors, explicit-session precedence regression. Independent final re-review pending."
+    }
+  ],
+  "remaining": [
+    "Full clean-candidate local/hosted gate",
+    "Passing agent-harness implementation panel CR",
+    "Manual tool-enabled Opus 5.5 TUI adapter and Gemini reviews",
+    "Separate independent final review",
+    "Merge and post-merge verification"
+  ],
+  "downstream": [
+    "COORD owns actual lease-release emission, fencing authority, coordination policy/RPC concurrency and CLI effect semantics.",
+    "WIRE owns real public stream/history labels and transport lifecycle.",
+    "INTEG owns production provider-to-ledger lifecycle composition.",
+    "PREP owns distribution and public independent package acceptance."
+  ]
+}

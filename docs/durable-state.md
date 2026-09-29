@@ -25,10 +25,64 @@ state-root/
     store.lock
 ```
 
-`manifest.json` tracks the durable schema version, record count, sequence
-high-water mark, and crash-recovery truncation count. The sidecar indexes are a
-cache rebuilt from the ledger whenever startup detects drift or an interrupted
-tail write.
+`manifest.json` tracks the durable schema version, record count, historical
+sequence high-water mark, and recovery count. Indexes are rebuildable checkpoints:
+writable startup and compaction rebuild them; append deliberately leaves them
+stale. Reads validate the ledger rather than trusting an index.
+
+The private ledger package and root workspace require Node `^22.13.0 || >=24.0.0`.
+Public runtime-provider and transport platform requirements are unchanged.
+`locks/store.lock` is a permanent, versioned SQLite arbitration database, not an
+owner file to delete. SQLite owns the writer transaction and releases it on
+process death. Legacy, identity-less or invalid lock files block writers without
+modification; read-only inspection remains available. Supported writers must not
+remove or replace a live arbitration inode. Replacement checks leave a foreign
+pathname intact but do not fence arbitrary external tampering during a callback.
+
+## Write And Recovery Protocol
+
+Supported topology is one host/PID namespace on a local filesystem with SQLite
+locking, hard links, same-directory atomic rename, and file/directory fsync.
+Unsupported durability operations fail explicitly. Newly created directories
+are synced through every new ancestor and the first existing parent. A lock
+candidate is initialized, closed and synced before exclusive hard-link
+publication and parent sync. No owner unlinks the canonical database.
+
+Append holds the writer transaction, validates sequence allocation against both
+the ledger and historical manifest high-water, writes and syncs the ledger,
+syncs its parent, then replaces a synced manifest temporary and syncs its parent.
+Compaction first persists historical high-water, then replaces a synced ledger
+temporary, syncs the parent, rebuilds indexes with the same atomic protocol, and
+checkpoints the manifest. An interrupted operation may be visible without having
+been acknowledged; replay visibility is not a writer commit receipt.
+
+Complete malformed JSON, invalid schemas, duplicate identities, non-increasing
+sequences, unsafe integers and unsupported versions fail without deleting bytes.
+Only a syntactically valid but incomplete final JSON/UTF-8 prefix is repairable.
+Recovery writes exact rejected bytes to `.recovery/<random-id>.tail`, using a
+0700 directory and 0600 files, and syncs the file and directory before truncating
+and syncing the ledger. Recovery bytes and references are never exported.
+A valid record missing only its newline is finalized rather than dropped.
+Tests inject process death at write, sync, rename, publication and recovery
+boundaries. They do not simulate every filesystem or a physical power failure.
+
+## Read Contract
+
+`readLedgerSnapshot(rootDir, { maxBytes, maxAttempts })` defaults to 64 MiB and
+three attempts. Limits must be positive safe integers. It captures and checks
+file identity, size and change timestamps plus manifest metadata. `complete`
+and `incomplete_tail` contain only validated newline-terminated records;
+`pendingRecord` identifies a valid record without its final newline.
+Exhausted retries return `in_progress`, no records and null byte/sequence fields.
+Typed `LedgerReadError` diagnostics contain codes and offsets, never raw payload.
+Array and replay APIs reject an incomplete snapshot rather than returning a
+misleading successful prefix.
+
+`readOnly: true` open, manifest/list/query reads and CLI session inspection do not
+create directories, acquire writer locks, repair tails or migrate manifests.
+CLI route dry-run uses this ledger mode; coordination effects remain COORD-owned.
+Session replay selects the latest entity state in ledger sequence order from
+one snapshot. Explicit session scope wins over task fallback.
 
 ## Record Coverage
 
@@ -54,8 +108,10 @@ replayed directly from the ledger without a live Omnigent dependency.
 ## Retention And Redaction
 
 Retention is explicit. The package exposes policy-driven compaction that prunes
-aged record kinds while preserving the latest records needed for coordination
-and replay. Payload sizes are bounded before persistence.
+aged record kinds while preserving active sessions, pending approvals, live
+leases, ancestor sessions and cross-kind dependencies. Selection and dependency
+closure share one locked snapshot. Latest terminal/released states prevent
+resurrection of older active records. Payload sizes are bounded before persistence.
 
 Redaction is fail-closed:
 
@@ -65,6 +121,43 @@ Redaction is fail-closed:
 - full environment dumps are rejected
 - durable evidence stores only bounded redacted excerpts or metadata-only
   artifact refs
+
+The shared scanner checks retained metadata recursively, including encoded JSON,
+tool bodies and coordination messages. A finite corpus covers known secret and
+provider-payload shapes plus safe lookalikes; it is not universal secret detection.
+Unknown-field stripping/passthrough behavior remains boundary-specific. Authorized
+runtime prompts, including empty, whitespace and long multibyte messages, remain
+usable. Durable started-message/text-delta records omit runtime content rather
+than trusting a `metadata_only` label.
+
+Operational roots remain absolute internally. CLI JSON/text, UI and handoff
+exports use repo-relative paths or opaque `path:sha256:<digest>` refs. Evidence
+paths reject home paths, traversal and private recovery locations. Scanner and
+manifest diagnostics never include secret samples.
+
+## Lease And Fake-Provider Consumers
+
+A shared release constructor keeps the lease ID/fencing token, expires the lease
+at the release time and records bounded `cause`, `actor` and `releasedAt` fields.
+Causes distinguish holder release, reconciliation and recovery. Older records
+without attribution remain unknown. COORD owns actual emission and fencing authority.
+
+The fake provider tests observable session idle/turn_active/closed and turn
+running/completed/cancelled transitions, one active turn, interior event gaps
+before heartbeat filtering, and concurrent/repeated close. Created/starting,
+accepted/queued/blocked, timeout and failure scheduling are not modeled. This is
+fake-provider evidence, not real upstream lifecycle acceptance.
+
+## Measured Append Work
+
+Thirty appends to identical 0/100/1000-record fixtures took about 16/27/161 ms
+before DATA and 25/15/22 ms in the candidate run on this host. These are single
+run observations, not speed guarantees. Candidate controls record zero append
+snapshot rescans and zero index rewrites for unchanged ledgers. Foreign writes
+invalidate the cache under the writer transaction; competing-process tests check
+unique sequences and complete record preservation. Fsync adds filesystem-dependent
+latency, and writable startup/compaction still scan and rebuild checkpoints.
+Metadata evidence and test scope are recorded in `plans/evidence/v2/DATA.json`.
 
 ## Cross-Process Coordination
 

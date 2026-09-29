@@ -1,7 +1,14 @@
-import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import type { BigIntStats, PathLike, StatOptions } from "node:fs";
+import type * as FsPromises from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:fs/promises", async (original) => {
+  const actual = await original<typeof FsPromises>();
+  return { ...actual, stat: vi.fn(actual.stat) };
+});
 
 import { AppendOnlyStore } from "./append-only-store.js";
 import { readLedgerSnapshot } from "./ledger-snapshot.js";
@@ -78,5 +85,65 @@ describe("validated visible ledger snapshots", () => {
     await writeFile(store.paths.ledgerPath, '{"secret":"synthetic-private-value"}\n');
     try { await readLedgerSnapshot(rootDir); throw new Error("missing rejection"); }
     catch (error) { expect(String(error)).not.toContain("synthetic-private-value"); }
+  });
+
+  it("checks the whole JSON prefix before permitting tail repair", async () => {
+    const { rootDir, store } = await seeded();
+    for (const raw of ['{"malformed":@,"x":tru', '{"x":truex,"y":tr', '{"x":"\\uZZ', '{"x":1.e', '[1,]']) {
+      await writeFile(store.paths.ledgerPath, raw);
+      await expect(readLedgerSnapshot(rootDir)).rejects.toMatchObject({ code: "ledger_corruption" });
+      await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
+      expect(await readFile(store.paths.ledgerPath, "utf8")).toBe(raw);
+    }
+    for (const raw of ['{"x":tru', '{"x":nul', '{"x":1e+', '{"x":"\\u12', '{"x":[false,']) {
+      await writeFile(store.paths.ledgerPath, raw);
+      expect((await readLedgerSnapshot(rootDir)).status).toBe("incomplete_tail");
+    }
+  });
+
+  it("bounds malformed manifest diagnostics on read and write paths", async () => {
+    const { rootDir, store } = await seeded();
+    const raw = "Bearer synthetic-private-marker malformed JSON";
+    await writeFile(store.paths.manifestPath, raw);
+    for (const action of [() => readLedgerSnapshot(rootDir), () => AppendOnlyStore.open({ rootDir })]) {
+      await expect(action()).rejects.toMatchObject({ code: "ledger_corruption", message: "State ledger ledger corruption." });
+      expect(await readFile(store.paths.manifestPath, "utf8")).toBe(raw);
+    }
+  });
+
+  it("returns no records when every captured snapshot changes during validation", async () => {
+    const { rootDir, store } = await seeded();
+    const { stat: actualStat } = await vi.importActual<typeof FsPromises>("node:fs/promises");
+    let attempts = 0;
+    vi.mocked(stat).mockImplementation((async (path: PathLike, options: StatOptions & { bigint: true }) => {
+      const result = await actualStat(path, options);
+      if (String(path) !== store.paths.ledgerPath) return result;
+      attempts += 1;
+      return Object.assign(Object.create(Object.getPrototypeOf(result)), result, { mtimeNs: (result as BigIntStats).mtimeNs + 1n });
+    }) as typeof stat);
+    try {
+      expect(await readLedgerSnapshot(rootDir, { maxAttempts: 3 })).toEqual({
+        status: "in_progress", records: [], byteLength: null, completeBytes: null, lastSequence: null,
+      });
+      expect(attempts).toBe(3);
+    } finally { vi.mocked(stat).mockImplementation(actualStat); }
+    expect((await readLedgerSnapshot(rootDir)).status).toBe("complete");
+  });
+
+  it("repairs a split UTF-8 codepoint only inside a valid unfinished string", async () => {
+    const { rootDir, store } = await seeded();
+    const raw = Buffer.concat([Buffer.from('{"x":"'), Buffer.from([0xc3])]);
+    await writeFile(store.paths.ledgerPath, raw);
+    expect((await readLedgerSnapshot(rootDir)).status).toBe("incomplete_tail");
+    await AppendOnlyStore.open({ rootDir });
+    const evidence = await readdir(join(rootDir, ".recovery"));
+    expect(await readFile(join(rootDir, ".recovery", evidence[0]!))).toEqual(raw);
+    for (const corrupt of [Buffer.from([0xc3]), Buffer.concat([Buffer.from('{"x":'), Buffer.from([0xc3])]),
+      Buffer.concat([Buffer.from('{"x":"\\u'), Buffer.from([0xc3])]), Buffer.from([0xff])]) {
+      await writeFile(store.paths.ledgerPath, corrupt);
+      await expect(readLedgerSnapshot(rootDir)).rejects.toMatchObject({ code: "ledger_corruption" });
+      await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
+      expect(await readFile(store.paths.ledgerPath)).toEqual(corrupt);
+    }
   });
 });

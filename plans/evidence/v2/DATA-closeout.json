@@ -1,0 +1,33 @@
+{
+  "schema": "manual-phase-closeout.v1",
+  "phase": "DATA",
+  "status": "pending_verification_reviews_and_merge",
+  "acceptance_route": "manual_exact_head_pull_request",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
+  "candidate_evidence": "plans/evidence/v2/DATA.json",
+  "spec_delta": {
+    "schema": "spec_delta_closeout.v1",
+    "decision": "canonical_spec_update",
+    "target_surfaces": [
+      "specs/agent-runtime-provider-omnigent-spec.md",
+      "docs/durable-state.md"
+    ],
+    "redaction_posture": "metadata_only",
+    "downstream_handling": "COORD/WIRE consume IF-0-DATA-3 after acceptance"
+  },
+  "produced_if_gates": [],
+  "merge_gates": [
+    "passing agent-harness panel CR",
+    "passing separate independent review",
+    "passing hosted required checks"
+  ],
+  "branch_protection": "optional by owner decision for solo project",
+  "merged_sha": null,
+  "remaining": [
+    "Full clean-candidate local/hosted gate",
+    "Passing agent-harness implementation panel CR",
+    "Manual tool-enabled Opus 5.5 TUI adapter and Gemini reviews",
+    "Separate independent final review",
+    "Merge and post-merge verification"
+  ]
+}

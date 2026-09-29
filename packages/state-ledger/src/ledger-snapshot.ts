@@ -46,12 +46,76 @@ function same(left: BigIntStats | undefined, right: BigIntStats | undefined): bo
     && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
 }
 
-function truncatedJson(text: string, error: unknown): boolean {
+function truncatedJson(text: string, error: unknown, incompleteUtf8 = false): boolean {
   if (!(error instanceof SyntaxError)) return false;
-  // V8 reports EOF either directly or as an expected token at the end position.
-  return /Unexpected end|Unterminated string/.test(error.message)
-    || Number(error.message.match(/(?:at position|at line 1 column) (\d+)/)?.[1]) === text.length
-    || /[[:,]\s*(?:t|tr|tru|f|fa|fal|fals|n|nu|nul)$/.test(text);
+  // Validate the entire prefix: a plausible suffix cannot excuse earlier corruption.
+  type Frame = { kind: "root" | "array" | "object"; state: "value" | "valueOrEnd" | "key" | "keyOrEnd" | "colon" | "comma" | "end" };
+  const frames: Frame[] = [{ kind: "root", state: "value" }];
+  let index = 0;
+  const string = (): "complete" | "partial" | "ascii_partial" | "invalid" => {
+    index += 1;
+    while (index < text.length) {
+      const character = text[index++]!;
+      if (character === '"') return "complete";
+      if (character.charCodeAt(0) < 32) return "invalid";
+      if (character !== "\\") continue;
+      if (index === text.length) return "ascii_partial";
+      const escape = text[index++]!;
+      if ('"\\/bfnrt'.includes(escape)) continue;
+      if (escape !== "u") return "invalid";
+      for (let digit = 0; digit < 4; digit += 1) {
+        if (index === text.length) return "ascii_partial";
+        if (!/[0-9a-fA-F]/.test(text[index++]!)) return "invalid";
+      }
+    }
+    return "partial";
+  };
+  while (index < text.length) {
+    if (/[\t\n\r ]/.test(text[index]!)) { index += 1; continue; }
+    const frame = frames.at(-1)!;
+    const character = text[index]!;
+    if (frame.state === "end") return false;
+    if (frame.state === "colon") {
+      if (character !== ":") return false;
+      index += 1; frame.state = "value"; continue;
+    }
+    const closing = frame.kind === "array" ? "]" : "}";
+    if (frame.state === "comma") {
+      if (character === closing) { index += 1; frames.pop(); continue; }
+      if (character !== ",") return false;
+      index += 1; frame.state = frame.kind === "array" ? "value" : "key"; continue;
+    }
+    if ((frame.state === "keyOrEnd" || frame.state === "valueOrEnd") && character === closing) {
+      index += 1; frames.pop(); continue;
+    }
+    if (frame.state === "key" || frame.state === "keyOrEnd") {
+      if (character !== '"') return false;
+      const result = string();
+      if (result !== "complete") return result === "partial" || (result === "ascii_partial" && !incompleteUtf8);
+      frame.state = "colon"; continue;
+    }
+    frame.state = frame.kind === "root" ? "end" : "comma";
+    if (character === "{" || character === "[") {
+      index += 1;
+      frames.push({ kind: character === "{" ? "object" : "array", state: character === "{" ? "keyOrEnd" : "valueOrEnd" });
+    } else if (character === '"') {
+      const result = string();
+      if (result !== "complete") return result === "partial" || (result === "ascii_partial" && !incompleteUtf8);
+    } else if ("tfn".includes(character)) {
+      const literal = character === "t" ? "true" : character === "f" ? "false" : "null";
+      const remaining = text.slice(index, index + literal.length);
+      if (!literal.startsWith(remaining)) return false;
+      if (remaining.length < literal.length) return !incompleteUtf8;
+      index += literal.length;
+    } else if (character === "-" || /[0-9]/.test(character)) {
+      const start = index++;
+      while (index < text.length && /[0-9.eE+-]/.test(text[index]!)) index += 1;
+      const number = text.slice(start, index);
+      if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(number)) continue;
+      return !incompleteUtf8 && index === text.length && /^(?:-|-?(?:0|[1-9]\d*)\.|-?(?:0|[1-9]\d*)(?:\.\d+)?[eE][+-]?)$/.test(number);
+    } else return false;
+  }
+  return !incompleteUtf8 && (frames.length > 1 || frames[0]!.state !== "end");
 }
 
 function parseBytes(raw: Buffer): Exclude<LedgerSnapshot, { status: "in_progress" }> {
@@ -100,7 +164,7 @@ function parseBytes(raw: Buffer): Exclude<LedgerSnapshot, { status: "in_progress
     try {
       if (incompleteUtf8) {
         try { JSON.parse(text); } catch (error) {
-          if (truncatedJson(text, error)) return { status: "incomplete_tail", records, byteLength: raw.length, completeBytes: offset, lastSequence };
+          if (truncatedJson(text, error, true)) return { status: "incomplete_tail", records, byteLength: raw.length, completeBytes: offset, lastSequence };
         }
         throw new LedgerReadError("ledger_corruption", offset);
       }

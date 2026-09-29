@@ -1105,6 +1105,32 @@ An append-only JSONL ledger with indexed sidecars is acceptable for an early sli
 - Audit replay must not require live Omnigent.
 ```
 
+DATA's local JSONL implementation uses a permanent initialized SQLite database
+solely for writer arbitration. Node `^22.13.0 || >=24.0.0` is required by the
+private ledger/root workspace; public package requirements remain unchanged.
+File and parent-directory sync, same-directory atomic checkpoint replacement,
+historical sequence high-water before compaction, and private rejected-tail
+evidence before truncation define the supported single-host local-filesystem
+protocol. Cooperative writers never replace the live arbitration inode.
+Unsupported durability operations fail rather than claiming power-loss proof.
+
+Complete corrupt/schema-invalid records remain intact. Bounded read-only
+snapshots distinguish complete, incomplete_tail and in_progress visibility and
+never acquire writer locks or repair/migrate state. Array/replay consumers require
+complete snapshots; replay selects latest states by ledger sequence with explicit
+session scope, and locked retention preserves active/dependent history.
+
+Metadata-only construction and export share a recursive finite-corpus scanner.
+Authorized runtime messages remain unrestricted strings; persistence omits raw
+started-message/text-delta content. Evidence paths are relative or opaque and
+CLI/UI/handoff export projects operational roots to opaque references. Release
+records retain lease identity/fencing and optional cause/actor/time provenance;
+old records remain unattributed. COORD owns release emission and fencing, WIRE
+owns public stream/history truthfulness, and INTEG owns production lifecycle
+composition. Fake-provider proof covers idle/turn_active/closed and
+running/completed/cancelled, not queued/blocked/timeout/failure scheduling.
+See [durable state](../docs/durable-state.md) for protocol, limitations and measurements.
+
 ---
 
 ## 13. Error Taxonomy

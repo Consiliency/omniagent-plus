@@ -1,9 +1,10 @@
-import { runProcess } from "../../../tests/helpers/guard-process.js";
+import { cleanEnvironment, runProcess } from "../../../tests/helpers/guard-process.js";
 import { readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { access, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { AppendOnlyStore } from "./append-only-store.js";
 
 interface CrossProcessFixture {
   readonly cooldown: {
@@ -93,6 +94,48 @@ async function runChild(
 }
 
 describe("cross-process coordination", () => {
+  it("serializes simultaneous writers and invalidates their warmed caches", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "data-concurrent-append-"));
+    const script = join(rootDir, "writer.ts");
+    await writeFile(script, `
+      import { access, writeFile } from "node:fs/promises";
+      import { AppendOnlyStore } from ${JSON.stringify(new URL("./append-only-store.ts", import.meta.url).href)};
+      const rootDir = process.env.DATA_ROOT;
+      const worker = process.env.DATA_WORKER;
+      const store = await AppendOnlyStore.open({ rootDir });
+      await writeFile(rootDir + "/ready-" + worker, "ready");
+      const deadline = Date.now() + 5000;
+      while (true) {
+        try { await access(rootDir + "/go"); break; } catch {}
+        if (Date.now() > deadline) throw new Error("Concurrent start barrier expired");
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const sequences = [];
+      for (let index = 0; index < 12; index += 1) sequences.push((await store.appendRecord({
+        kind: "evidence_ref", payload: { kind: "log", label: "worker " + worker + " record " + index }
+      })).sequence);
+      console.log(JSON.stringify(sequences));
+    `);
+    const workers = [0, 1, 2].map((worker) => runProcess("pnpm", ["exec", "vite-node", "--script", script], {
+      cwd: process.cwd(), env: { ...cleanEnvironment(), DATA_ROOT: rootDir, DATA_WORKER: String(worker) },
+    }));
+    const results = Promise.allSettled(workers);
+    const deadline = Date.now() + 5000;
+    while (!(await Promise.all([0, 1, 2].map((worker) => access(join(rootDir, `ready-${worker}`)).then(() => true, () => false)))).every(Boolean)) {
+      if (Date.now() > deadline) throw new Error("Concurrent writer admission failed");
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await writeFile(join(rootDir, "go"), "go");
+    const settled = await results;
+    expect(settled.every((result) => result.status === "fulfilled")).toBe(true);
+    const allocated = settled.flatMap((result) => result.status === "fulfilled" ? JSON.parse(result.value.trim()) as number[] : []);
+    const store = await AppendOnlyStore.open({ rootDir });
+    const records = await store.listRecords();
+    expect(allocated.sort((left, right) => left - right)).toEqual(Array.from({ length: 36 }, (_, index) => index + 1));
+    expect(new Set(records.map((record) => record.recordId)).size).toBe(36);
+    expect(records.map((record) => record.sequence)).toEqual(allocated);
+    expect((await store.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "parent" } })).sequence).toBe(37);
+  }, 20_000);
   it("shares cooldowns and prevents duplicate exclusive leases across Node processes", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "state-ledger-xproc-"));
     const fixture = readFixture(rootDir);

@@ -522,7 +522,7 @@ export async function replaySession(ledger: AuditLedger, sessionId: string): Pro
       .map((record) => record.payload as TurnHandle),
     history: historyFromRecords(records, sessionId),
     routeDecisions: allRecords.filter((record) => record.kind === "route_decision"
-      && (record.sessionId === sessionId || (record.taskId !== undefined && taskIds.has(record.taskId))))
+      && (record.sessionId === sessionId || (record.sessionId === undefined && record.taskId !== undefined && taskIds.has(record.taskId))))
       .map((record) => record.payload as RouteDecision),
     approvalRequests: latestByKey(records.filter((record) => record.kind === "approval_request"),
       (record) => `${record.sessionId}:${record.turnId}:${(record.payload as RuntimeApprovalRequest).approvalRequestId}`)
