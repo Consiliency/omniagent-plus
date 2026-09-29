@@ -16,7 +16,7 @@ Complete v0.15 B replay handling for alias-free history followed by a preview un
 
 ### `packages/omnigent-transport/src/http-provider.ts` (modify)
 - `matchDeliveredTextGroups` — modify — disallow text-only cursor matching between two different nonempty message IDs without a validated alias. Preserve existing alias exclusions for identity-free fallback; an invalid collision marker grants no exact-ID or text credit.
-- `resequenceRuntimeEvents` and `recordDeliveredText` — modify — retain a stable cursor for a numbered upstream frame across subscribers and reconnects; a frame without an upstream sequence keeps its connection-specific synthetic ID. Key delivered text by sequence as well as event ID, and synchronize invalidated stream IDs into already-open mappers before they consume another preview.
+- `resequenceRuntimeEvents` and `recordDeliveredText` — modify — retain a stable cursor for a numbered upstream frame across subscribers and reconnects; a frame without an upstream sequence keeps its connection-specific synthetic ID. Key delivered text by sequence as well as event ID. Register durable aliases before mapping their items, and synchronize invalidated stream IDs into already-open mappers before they consume another preview or durable item.
 
 ### `packages/omnigent-transport/src/event-mapper.test.ts` (modify)
 - Identity replay tests — modify/add — assert immediate full preview for distinct ID against alias-free history, including full match, partial then continuation, one mixed delta, late confirming and differing aliases, durable B before/after A alias, and cross-response isolation. Preserve exact-ID and known-alias suppression tests.
@@ -25,7 +25,7 @@ Complete v0.15 B replay handling for alias-free history followed by a preview un
 - Response-local history replay expectation — modify — an alias-free durable ID cannot consume a different nonempty preview ID, even when text and response match.
 
 ### `packages/omnigent-transport/src/http-provider.test.ts` (modify)
-- Stream cursor tests — add — assert full preview delivery without a subsequent frame and once per cursor across a reconnect, with history lacking alias and a later alias correction. Assert reused invalid stream IDs remain lossless across reconnects, stable numbered frames keep one cursor, and already-open subscribers see invalidated aliases.
+- Stream cursor tests — add — assert full preview delivery without a subsequent frame and once per cursor across a reconnect, with history lacking alias and a later alias correction. Assert reused invalid stream IDs remain lossless across reconnects, stable numbered frames keep one cursor, and already-open subscribers see invalidated aliases on previews and durable items, including the item that first creates a conflict.
 
 ### `docs/omnigent-transport.md` and `plans/evidence/omnigent-v0-15-accommodation.json` (modify)
 - Replay contract — document the possible duplicate when association is only text, including the change from published v0.12 replay behavior in this unpublished v0.15 candidate, and record verification and exact-head review truthfully.

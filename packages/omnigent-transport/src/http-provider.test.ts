@@ -308,6 +308,72 @@ describe("http provider", () => {
     await second.return?.();
   });
 
+  it.each([false, true])("v0.15 B does not consume a distinct durable item across subscribers (prior collision: %s)", async (priorCollision) => {
+    const snapshot = {
+      active_response_id: "response-durable-collision", agent_id: "agent-durable-collision",
+      created_at: 1_780_272_000, id: "session-durable-collision", items: [],
+      status: "running", title: "Durable collision", updated_at: 1_780_272_001,
+    };
+    const controllers: ReadableStreamDefaultController<Uint8Array>[] = [];
+    const provider = createHttpProvider({
+      baseUrl: "http://127.0.0.1:4010",
+      fetch: async (input, init) => {
+        const url = String(input);
+        if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
+        if (url.endsWith("/stream")) return new Response(new ReadableStream<Uint8Array>({
+          start: (controller) => { controllers.push(controller); },
+        }), { headers: { "content-type": "text/event-stream" } });
+        if (url.includes("/items")) return new Response(JSON.stringify({
+          data: [], first_id: null, has_more: false, last_id: null,
+        }));
+        return new Response(JSON.stringify(snapshot));
+      },
+    });
+    const session = await provider.createSession({
+      agentSpec: { kind: "named_agent", value: snapshot.agent_id },
+      idempotencyKey: `durable-collision-${priorCollision}`, runtime: "omnigent",
+      targetHarness: "codex", title: snapshot.title,
+    });
+    const first = provider.streamEvents(session.id, { afterSequence: 0 })[Symbol.asyncIterator]();
+    const second = provider.streamEvents(session.id, { afterSequence: 0 })[Symbol.asyncIterator]();
+    const firstEvent = first.next();
+    const secondEvent = second.next();
+    for (let attempt = 0; attempt < 10 && controllers.length < 2; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    expect(controllers).toHaveLength(2);
+    const frame = (event: object) => new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`);
+    const done = (id: string, text: string) => ({ type: "response.output_item.done",
+      response_id: "response-durable-collision", item: {
+        content: [{ text, type: "output_text" }], created_at: 1_780_272_001,
+        id, response_id: "response-durable-collision", role: "assistant",
+        status: "completed", stream_message_id: "shared", type: "message",
+      } });
+    controllers[1]?.enqueue(frame({ type: "response.output_text.delta",
+      response_id: "response-durable-collision", message_id: "shared", delta: "alpha", index: 0 }));
+    expect((await secondEvent).value).toEqual(expect.objectContaining({
+      type: "runtime.text.delta", payload: { delta: "alpha" },
+    }));
+    controllers[0]?.enqueue(frame(done("durable-a", "alpha")));
+    expect((await firstEvent).value).toEqual(expect.objectContaining({
+      type: "runtime.text.delta", payload: { delta: "alpha" },
+    }));
+    if (priorCollision) {
+      const next = first.next();
+      controllers[0]?.enqueue(frame(done("durable-b", "beta")));
+      expect((await next).value).toEqual(expect.objectContaining({
+        type: "runtime.text.delta", payload: { delta: "beta" },
+      }));
+    }
+    const next = second.next();
+    controllers[1]?.enqueue(frame(done("durable-c", "alpha")));
+    expect((await next).value).toEqual(expect.objectContaining({
+      type: "runtime.text.delta", payload: { delta: "alpha" },
+    }));
+    await first.return?.();
+    await second.return?.();
+  });
+
   it("v0.15 B retains a collision when reloaded history is empty", async () => {
     const snapshot = {
       active_response_id: "response-empty-reload", agent_id: "agent-empty-reload",

@@ -807,12 +807,6 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
         if (this.eventIsRejected(sessionId, rawEvent)) {
           continue;
         }
-        if (rawEvent.turnId && rawEvent.message_id &&
-          this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
-            ?.get(rawEvent.message_id)?.startsWith("\u0000invalid:")) {
-          mapper.invalidateStreamMessageId(rawEvent.turnId, rawEvent.message_id);
-        }
-        const mappedEvents = mapper.map(rawEvent);
         if (rawEvent.type === "response.output_item.done" && rawEvent.turnId &&
           rawEvent.item?.type === "message" && typeof rawEvent.item.id === "string" &&
           typeof rawEvent.item.stream_message_id === "string" && rawEvent.item.stream_message_id.length > 0) {
@@ -829,6 +823,16 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           }
           this.explicitMessageAliasesByTurnKey.set(key, aliases);
         }
+        const streamMessageId = rawEvent.message_id ??
+          (rawEvent.item?.type === "message" &&
+          typeof rawEvent.item.stream_message_id === "string"
+            ? rawEvent.item.stream_message_id : undefined);
+        if (rawEvent.turnId && streamMessageId &&
+          this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
+            ?.get(streamMessageId)?.startsWith("\u0000invalid:")) {
+          mapper.invalidateStreamMessageId(rawEvent.turnId, streamMessageId);
+        }
+        const mappedEvents = mapper.map(rawEvent);
         const replayEvents =
           options?.afterSequence === undefined
             ? mappedEvents

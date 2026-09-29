@@ -17,7 +17,7 @@
   },
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
-    "packages/omnigent-transport/src/http-provider.ts": "be9ec4be365f578fccdc81141563db4e9411aaf08b6905728811d2f4e777b286",
+    "packages/omnigent-transport/src/http-provider.ts": "c65a50c7f76d45736d535b8e6d6cf0d50d8187976edcc4b5c9d828c7a1ce3d79",
     "packages/omnigent-transport/src/event-mapper.ts": "43d2bea421c8028feac2f56a99dea26d44b5547afa339ace0207d63de12038ed",
     "packages/omnigent-transport/src/capability-probe.ts": "fb9bde13e1047b4850e90770c950a2f3871a8f22b120c2d912949814267f5a43",
     "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
@@ -122,7 +122,7 @@
   },
   "identity_safe_split_20260929": {
     "plan": "plans/detailed-omnigent-v015-identity-safe-replay-20260928.md",
-    "plan_sha256": "25dca20f4bad85eacb59da2edbfc07a476000b3398a1d4bf25b926c80701e057",
+    "plan_sha256": "8465f7b3a03212280345b2520ac47174268a184d4a45c99211513e3e6ca7f4bc",
     "contract_decision": "Text alone cannot establish one logical message when an alias-free historical durable ID and a preview's nonempty ID differ. Emit in order and allow a possible duplicate until identity is known. This replaces the prior ambiguous legacy fallback through an explicit B amendment.",
     "plan_review": {
       "astra": "AGREE after amendment; requested guarded provider alias fallback",
@@ -155,6 +155,18 @@
     "workspace_typecheck_exit_code": 0,
     "lint_exit_code": 0,
     "packed_smoke": { "exit_code": 0, "tarball_sha256": "dfe79a93fc2b4e9a277dc679c5a6a5e68ca77e1e4d04c2d9f0e088cd89e6e707" },
+    "exact_new_head_review": "pending"
+  },
+  "durable_subscriber_reconciliation_20260929": {
+    "reviewed_head": "edf21766eeec6372e29855ac1cf6b8500601d41a",
+    "astra": "P2: a durable item can first create or follow a cross-subscriber stream-ID collision, while another mapper still holds preview credit",
+    "resolution": "Register durable aliases before mapping the item and propagate an invalid stream ID from preview message_id or durable stream_message_id into each mapper before it consumes the frame.",
+    "focused_mapper_provider_tests": { "passed": 122, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 380, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "25891dbfdce77e5ddd0e7f95cb8a60100b8c4ec942f0e64ed7bb1b43d93b2a96" },
     "exact_new_head_review": "pending"
   },
   "current_open_acceptance": ["accepted GUARD/DATA freezes", "full non-skipping gate", "candidate npm publish dry run", "remaining plan A-E cases", "live runtime version detection", "exact implementation-head panel approval"]
