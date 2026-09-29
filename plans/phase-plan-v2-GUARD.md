@@ -431,8 +431,8 @@ SL-2 — Integrated acceptance and docs sweep
 
 ## Process Custody Amendment
 
-Status: revised after custody rounds 1 and 2; pending a fresh complete
-four-seat review. Round 2 had three usable partial reviews and a Fable quota
+Status: revised after custody rounds 1 and 2 and the next plan-panel findings;
+pending a fresh complete four-seat review of these bytes. Round 2 had three usable partial reviews and a Fable quota
 failure with no recoverable final review. Maintainer Linux-only approval is
 recorded in Context. This is
 an SL-0 tooling repair, not an automatic product supervisor. No change to
@@ -496,11 +496,14 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   before payload admission. Each direction has its own strictly increasing
   sequence from zero, a fixed version and a per-launch nonce. Frame types are
   READY, ADMIT, FORWARD, SHUTDOWN, WORK_DRAINED and RESULT. ADMIT carries command,
-  argv, cwd, an explicit already-scrubbed environment map, inherited umask,
+  argv, cwd, an explicit caller-selected environment map, inherited umask,
   stdin/stdout/stderr descriptor mapping, operation deadline and pre-admitted
   cooperative cleanup ceiling (slots, child reservation and completion deadline).
-  The existing allowlist and fixture injection remain the only env sources;
-  neither endpoint inherits ambient env wholesale. ADMIT is private transport,
+  The default map remains cleanEnvironment() plus explicit fixture injection;
+  neither endpoint implicitly inherits ambient env. Existing owned test callers
+  that explicitly pass {...process.env, fixture overrides} retain those exact
+  semantics. The supervisor passes only the ADMIT map to exec and never merges
+  its own environment. ADMIT is private transport,
   not a log or evidence payload; never retain its argv/env values as metadata.
   READY carries actual capability results;
   FORWARD names the signal without escalating; SHUTDOWN carries an epoch,
@@ -532,14 +535,35 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   waitid(P_PIDFD)'s higher kernel floor. A wait result of zero is not exhaustion.
   Quiescence combines __WALL-inclusive ECHILD, empty per-thread children lists,
   and exit readiness of retained pidfds, re-evaluated after adoption/reaping.
+  ECHILD is the primary kernel exhaustion result; children-list checks are
+  additional identity/discovery evidence, never a substitute for ECHILD.
+  Supervisor-local child discovery may poll inside the deadline; its cadence
+  changes response latency, not custody correctness.
   An empty /proc snapshot or a guardian exit alone is not proof. Require an owned-pipe final quiescence
   record and successful control-protocol completion; malformed/missing final
   evidence fails closed. Do not expose credentials or payloads in diagnostics.
   A missing payload status is a protocol fault unless admission never occurred.
   Write the final record before mirroring the payload exit/re-raised signal;
-  successful payload plus failed custody is always failure. Adoption outside
-  teardown starts the same bounded drain; SL-2 explicitly reviews unexpected
-  adopted/forced counts instead of silently converting rescue into approval.
+  successful payload plus failed custody is always failure. Before exec the
+  forked payload restores all catchable signals to SIG_DFL, clears its blocked
+  signal mask, and starts a new session/process group; test its SigIgn/SigBlk
+  against a direct Node-spawn baseline. Python's ignored SIGPIPE/SIGXFSZ and
+  inherited masks may not alter payload semantics. The supervisor is detached
+  from the owner's foreground terminal group, so a foreground INT reaches the
+  Node owner once; the owner forwards it once through the protocol. A forced
+  SHUTDOWN epoch supersedes a concurrent/repeated FORWARD without resetting
+  its deadline. Only INT/TERM/HUP are allowed for cooperative FORWARD.
+  Supervisor diagnostics use a private channel, never payload stdout/stderr.
+  The final RESULT is mandatory and delivered within the shared absolute
+  deadline; use monotonic clocks on both sides and reserve time for delivery.
+  Adoption outside teardown starts bounded drain of the whole command subtree,
+  including the payload. The Node helper retains validated RESULT in memory
+  and writes a metadata-only per-command custody result (stage, quiescent or
+  unproven, adopted_count, force_killed_count, supervisor identity) to the
+  owned .phase-loop/guard/<run-id>/custody.jsonl when verify.mjs supplies that
+  run directory to its child stages. No argv, env or output is retained. SL-2
+  reconciles every nonzero count with an intentional adversarial control or
+  treats unexpected rescue as blocking; rescue never silently implies approval.
 - Cancellation: the custody supervisor, not the Node owner, is the sole
   escalation owner for its payload subtree. Parent-requested teardown sends
   TERM to owned payloads, escalates at one absolute 500 ms deadline, and must
@@ -576,7 +600,9 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   and controller EOF use forced drain, not renewed cooperative reservations.
   The caller declares maximum cleanup slots/child reservation in ADMIT before
   payload exec. ProcessScope registers callbacks locally within that ceiling,
-  before resource effects; it has no supervisor-control descriptor and cannot
+  before resource effects, and rejects excess registration before the
+  corresponding resource effect. Every known launcher declares its maximum
+  slots before ADMIT; it has no supervisor-control descriptor and cannot
   dynamically increase the parent's allowance. Propagate the admitted ceiling
   explicitly through known launcher calls, not ambient user configuration.
   No registered allowance means ordinary-work custody only. With T=2.5 seconds and
@@ -613,7 +639,9 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   parent delay and run at least 100 immediate-exit trials locally and hosted,
   requiring zero escapes/reap failures. Retain the old probe and its executable
   method as a failing positive control, with independent rescue excluded from
-  the pre-cleanup observation. Add immediate double-fork/new-session, normal-success-with-orphans,
+  the pre-cleanup observation. Pin the original helper Git blob at 160a770
+  and require at least one escaped child before independent rescue; remove
+  the old probe's hardcoded sibling-worktree path. Add immediate double-fork/new-session, normal-success-with-orphans,
   signal/nonzero/spawn failures, concurrent/reentrant cleanup, control EOF,
   denied/missing capability with no payload effect, and malformed/missing
   completion controls. Test pidfd identity rejection and clone-child exhaustion
@@ -629,7 +657,9 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   stdout/stderr and backpressure. Reaping assertions require process absence,
   not merely zombie tolerance. Remove obsolete Darwin/Windows fallback tests
   under the recorded Linux-only decision; replace them with no-launch refusals.
-  Include sibling/last-keeper loss and explicit unproven results, buffered
+  Include foreground-group INT delivered once, direct-spawn signal-mask and
+  signal-default parity, explicit process.env pass-through, and custody-count
+  retention/disposition. Include sibling/last-keeper loss and explicit unproven results, buffered
   ADMIT cancellation, OS-signal/protocol routing, declarative cleanup ceilings,
   SIGCHLD automatic-reaping refusal and delayed Docker creation. Fault-injection
   tests use a real outer custodian for their own cleanup; that rescue is never
