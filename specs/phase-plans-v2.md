@@ -120,11 +120,13 @@ and publication; correct current readiness claims.
 Decompose into 2 lanes: workflow/tooling; docs/test-boundary inventory. Reuse
 fleet offload conventions where available. Preserve meaningful conformance
 and ownership tests when replacing brittle prose assertions.
-Before enabling HY-6, GUARD records only the two exact existing type-import
+Before enabling HY-6, GUARD records only the three exact existing type-import
 edges named in CASE-HY-6 with positive/negative controls. PREP owns the ID-1
 source repair and baseline removal under omniagent-plus#27; moving that repair
 earlier requires a reviewed ownership amendment. New/altered escapes fail;
 no broad exemption or failing full gate waits for PREP.
+The 2026-09-12 inventory correction adds the pre-existing types.ts edge to
+CASE-HY-6; this amendment requires panel review and changes no runtime code.
 The hosted full gate provisions a version-pinned disposable PostgreSQL service
 for COORD's integration suite; missing service/setup fails instead of skipping.
 The docs lane assigns each section-6 audit claim to its finding/phase owner,
@@ -411,7 +413,8 @@ another phase's status.
 
 ## Execution Notes
 
-TRIAGE is the next phase to plan. Each later `codex-plan-phase` produces the
+TRIAGE documentation merged in omniagent-plus#28. Its acceptance is governed
+by the evidence requirements below, not by merge status alone. Each later `codex-plan-phase` produces the
 detailed lane plan and references stable EC IDs. Keep plans near execution
 so accepted interface decisions do not drift. COORD/WIRE may run in separate
 worktrees after DATA; shared manifests, docs, and exports merge serially.
@@ -422,7 +425,42 @@ Fable reviews use the canonical subscription TUI adapter when requested.
 Planning must not run builds, tests, migrations, or release dispatch. A
 missing or inaccessible live environment is evidence-pending, not a passing
 gate; inspect safe access metadata before escalating. Operational proxy
-evidence requires a runner-stamped roadmap amendment before acceptance.
+evidence requires a reviewed roadmap amendment before acceptance, recorded by
+the runner when available or through the manual procedure below when broken.
+
+### Manual Execution and Closeout Amendment (2026-09-12)
+
+The maintainer authorized continuing this roadmap with manual alternatives
+when Agent Harness automation fails. The harness is development tooling, not
+a product dependency or a prerequisite of this repository's npm workflow.
+Use working automation first; do not repair adjacent-repository tooling as a
+prerequisite when the same obligation can be met directly here.
+
+For a broken orchestration/closeout step, record the failed command or existing
+incident, the exact alternative commands, exit results, candidate content
+hashes, each EC/IF decision, independent review and feedback reconciliation in
+`plans/evidence/v2/<PHASE>-closeout.json`. Preserve historical runner events and
+snapshots; do not fabricate a runner verdict or mutate its state to passed.
+An accepted manual record is the downstream prerequisite under this amendment;
+it is explicitly not a successful run of the broken automation. Reconcile the
+runner later only through a supported operation. TRIAGE's historical plan and
+review hashes remain historical inputs, not current-plan freshness claims.
+
+Plans and production changes still require the named four-agent panel and
+reconciliation against the actual candidate. Fable uses the subscription TUI;
+unavailable/refusing seats are not approvals or permission to substitute.
+Working board invocations provide review evidence; the coordinator records
+acceptance explicitly without claiming an unavailable automated ratification.
+Material amendments require fresh review. Manual execution uses bounded,
+disjoint ownership and separate worktrees; reducer/integration writes are
+serial, with fresh combined verification before merge.
+
+This amendment does not waive product decisions, tests, conformance, credential
+requirements, branch protection, or registry integrity. It does not authorize
+replaying ambiguous publication effects, overriding FABPUB authority, or
+credentialed manual npm publication. Reconcile any existing external effect
+before attempting another; the existing GitHub Actions npm release remains
+the SHIP route. A failed behavioral check remains a real failed check.
 
 ## Verification
 

@@ -1,4 +1,383 @@
 {
+  "auditClaims": [
+    {
+      "id": "S6-01",
+      "claim": "Crash recovery cleans up owned Omnigent processes after heartbeat timeout and parent death",
+      "owners": [
+        "INTEG",
+        "WIRE"
+      ],
+      "references": [
+        "packages/omnigent-transport/src/process-manager.ts",
+        "packages/omnigent-transport/src/hardening-recovery.test.ts"
+      ],
+      "requiredScope": [
+        "caller-driven",
+        "injected",
+        "no automatic supervisor"
+      ]
+    },
+    {
+      "id": "S6-02",
+      "claim": "Retry storm guardrails stop repeated backend failures",
+      "owners": [
+        "COORD",
+        "INTEG"
+      ],
+      "references": [
+        "packages/coordinator/src/retry-guardrails.ts",
+        "packages/coordinator/src/hardening-recovery.test.ts"
+      ],
+      "requiredScope": [
+        "caller-supplied",
+        "no maintained counter",
+        "no backoff"
+      ]
+    },
+    {
+      "id": "S6-03",
+      "claim": "Sidecar indexes are a cache rebuilt when startup detects drift",
+      "owners": [
+        "DATA"
+      ],
+      "references": [
+        "packages/state-ledger/src/append-only-store.ts",
+        "packages/state-ledger/src/retention.test.ts"
+      ],
+      "requiredScope": [
+        "every open and append",
+        "full scans"
+      ]
+    },
+    {
+      "id": "S6-04",
+      "claim": "\"crash recovery ... proven\"",
+      "owners": [
+        "DATA"
+      ],
+      "references": [
+        "packages/state-ledger/src/append-only-store.ts",
+        "packages/state-ledger/src/hardening-replay.test.ts"
+      ],
+      "requiredScope": [
+        "no fsync",
+        "stale lock",
+        "duplicate sequences"
+      ]
+    },
+    {
+      "id": "S6-05",
+      "claim": "Evidence stores only bounded, redacted, metadata-only refs",
+      "owners": [
+        "DATA"
+      ],
+      "references": [
+        "packages/state-ledger/src/evidence-store.ts",
+        "packages/state-ledger/src/evidence-store.test.ts"
+      ],
+      "requiredScope": [
+        "path/label",
+        "not sanitized"
+      ]
+    },
+    {
+      "id": "S6-06",
+      "claim": "Rejects bearer tokens, API keys, auth headers, password/token/credential fields",
+      "owners": [
+        "DATA"
+      ],
+      "references": [
+        "packages/core-contracts/src/redaction.ts",
+        "packages/core-contracts/src/redaction.test.ts"
+      ],
+      "requiredScope": [
+        "historical",
+        "18/23",
+        "not universal"
+      ]
+    },
+    {
+      "id": "S6-07",
+      "claim": "The packet builder rejects secrets before packet construction",
+      "owners": [
+        "DATA"
+      ],
+      "references": [
+        "packages/core-contracts/src/handoff-packet.ts",
+        "packages/core-contracts/src/handoff-packet.test.ts"
+      ],
+      "requiredScope": [
+        "builder",
+        "shape-only",
+        "bypass"
+      ]
+    },
+    {
+      "id": "S6-08",
+      "claim": "Missing sequence numbers are protocol failures",
+      "owners": [
+        "DATA"
+      ],
+      "references": [
+        "packages/core-contracts/src/fake-event-stream.ts",
+        "packages/core-contracts/src/fake-event-stream.test.ts"
+      ],
+      "requiredScope": [
+        "first event",
+        "interior gap"
+      ]
+    },
+    {
+      "id": "S6-09",
+      "claim": "Silent downgrade is always blocked by the launch gate",
+      "owners": [
+        "COORD"
+      ],
+      "references": [
+        "packages/coordinator/src/launch-gate.ts",
+        "packages/coordinator/src/launch-gate.test.ts"
+      ],
+      "requiredScope": [
+        "create-session",
+        "send-turn",
+        "established session"
+      ]
+    },
+    {
+      "id": "S6-10",
+      "claim": "Replay stays metadata-only without raw provider payloads",
+      "owners": [
+        "COORD",
+        "DATA"
+      ],
+      "references": [
+        "packages/rate-limit-catalog/src/rules.ts",
+        "packages/rate-limit-catalog/src/classifier.test.ts"
+      ],
+      "requiredScope": [
+        "rawSignal",
+        "raw excerpts"
+      ]
+    },
+    {
+      "id": "S6-11",
+      "claim": "Exponential backoff for `overload_or_transient`",
+      "owners": [
+        "COORD",
+        "INTEG"
+      ],
+      "references": [
+        "packages/rate-limit-catalog/src/retry-guardrails.ts",
+        "packages/rate-limit-catalog/src/retry-guardrails.test.ts"
+      ],
+      "requiredScope": [
+        "no exponential backoff",
+        "Retry-After"
+      ]
+    },
+    {
+      "id": "S6-12",
+      "claim": "0.85-0.99 confidence requires status, regex, and reset evidence",
+      "owners": [
+        "COORD"
+      ],
+      "references": [
+        "packages/rate-limit-catalog/src/rules.ts",
+        "packages/rate-limit-catalog/src/classifier.test.ts"
+      ],
+      "requiredScope": [
+        "0.86",
+        "single keyword",
+        "not calibrated"
+      ]
+    },
+    {
+      "id": "S6-13",
+      "claim": "`redactionPosture: \"metadata_only\"` on the control snapshot",
+      "owners": [
+        "DATA",
+        "WIRE"
+      ],
+      "references": [
+        "packages/omnigent-transport/src/event-mapper.ts",
+        "packages/core-contracts/src/redaction.ts",
+        "packages/state-ledger/src/replay.test.ts"
+      ],
+      "requiredScope": [
+        "raw text",
+        "absolute",
+        "field allowlist"
+      ]
+    },
+    {
+      "id": "S6-14",
+      "claim": "The stream \"closes on every exit\"",
+      "owners": [
+        "WIRE"
+      ],
+      "references": [
+        "packages/omnigent-transport/src/http-client.ts",
+        "packages/omnigent-transport/src/http-client.test.ts"
+      ],
+      "requiredScope": [
+        "streamSession",
+        "finally",
+        "openSessionStream",
+        "close()"
+      ]
+    },
+    {
+      "id": "S6-15",
+      "claim": "`route-task` has no launch side effects; `--record` only persists records",
+      "owners": [
+        "COORD"
+      ],
+      "references": [
+        "packages/cli/src/commands/route-task.ts",
+        "packages/cli/src/coordination.test.ts"
+      ],
+      "requiredScope": [
+        "does not launch a provider",
+        "acquire a lease",
+        "inbox",
+        "dry-run"
+      ]
+    },
+    {
+      "id": "S6-16",
+      "claim": "`phase-loop validate-roadmap specs/phase-plans-v1.md`",
+      "owners": [
+        "GUARD"
+      ],
+      "references": [
+        "scripts/verify.mjs",
+        "tests/guard/orchestration.test.ts"
+      ],
+      "requiredScope": [
+        "external",
+        "pnpm verify",
+        "not current GUARD acceptance"
+      ]
+    }
+  ],
+  "hygieneSubclaims": [
+    {
+      "id": "HY-1/gate",
+      "status": "delivered locally",
+      "owner": "GUARD",
+      "references": [
+        "scripts/verify.mjs",
+        "tests/guard/orchestration.test.ts",
+        "tests/guard/workflows.test.ts"
+      ],
+      "requiredScope": [
+        "shared",
+        "PR/main",
+        "release",
+        "failure propagation"
+      ]
+    },
+    {
+      "id": "HY-1/hosted",
+      "status": "deferred",
+      "owner": "SL-2",
+      "references": [
+        ".github/workflows/verify.yml",
+        ".github/workflows/ci.yml"
+      ],
+      "requiredScope": [
+        "hosted",
+        "branch protection",
+        "not validated"
+      ]
+    },
+    {
+      "id": "HY-5/promises",
+      "status": "delivered locally",
+      "owner": "GUARD",
+      "references": [
+        "eslint.config.mjs",
+        "tests/guard/lint.test.ts"
+      ],
+      "requiredScope": [
+        "no-floating-promises",
+        "tooling/test scope"
+      ]
+    },
+    {
+      "id": "HY-5/process",
+      "status": "delivered locally",
+      "owner": "GUARD",
+      "references": [
+        "tests/helpers/guard-process.ts",
+        "tests/guard/process.test.ts"
+      ],
+      "requiredScope": [
+        "bounded",
+        "descendant",
+        "15 seconds"
+      ]
+    },
+    {
+      "id": "HY-5/measurement",
+      "status": "deferred",
+      "owner": "PREP",
+      "references": [
+        "vitest.config.ts",
+        "plans/phase-plan-v2-GUARD.md"
+      ],
+      "requiredScope": [
+        "coverage",
+        "pool",
+        "project-reference",
+        "production-wide"
+      ]
+    },
+    {
+      "id": "HY-6/boundaries",
+      "status": "delivered locally",
+      "owner": "GUARD",
+      "references": [
+        "scripts/check-dependency-boundaries.mjs",
+        "tests/guard/boundaries.test.ts"
+      ],
+      "requiredScope": [
+        "AST",
+        "computed",
+        "three exact"
+      ]
+    },
+    {
+      "id": "HY-6/docs",
+      "status": "delivered locally",
+      "owner": "GUARD",
+      "references": [
+        "packages/cli/src/hardening-readiness.test.ts",
+        "packages/omnigent-transport/src/live-omnigent-smoke.test.ts"
+      ],
+      "requiredScope": [
+        "conformance",
+        "opt-in",
+        "network monitoring"
+      ]
+    },
+    {
+      "id": "HY-6/ID-1",
+      "status": "deferred",
+      "owner": "PREP",
+      "references": [
+        "plans/audit-remediation-disposition-20260905.md"
+      ],
+      "requiredScope": [
+        "OmnigentProviderMode",
+        "process-profile.ts",
+        "omnigent-isolation-policy.ts",
+        "types.ts",
+        "baseline removal",
+        "omniagent-plus#27"
+      ]
+    }
+  ],
   "forbiddenPatterns": [
     "\\bproduction-ready\\b",
     "\\bready for production\\b",
@@ -50,6 +429,16 @@
       "account use"
     ],
     "docs/hardening-readiness.md": [
+      "alpha",
+      "not production",
+      "not public beta",
+      "not multi-user SaaS",
+      "historical, not current GUARD acceptance",
+      "no automatic supervisor",
+      "Do not delete stale locks or use manual break-lock",
+      "Authorized runtime prompts/content remain allowed",
+      "License choice remains pending PREP",
+      "phase acceptance remain pending SL-2",
       "IF-0-HARDEN-13",
       "metadata_only",
       "retry storm",
@@ -58,6 +447,11 @@
       "live Omnigent"
     ],
     "docs/omnigent-live-smoke.md": [
+      "alpha",
+      "not production",
+      "not public beta",
+      "not multi-user SaaS",
+      "pnpm test never enables live smoke",
       "skip by default",
       "metadata_only",
       "no credentials required"

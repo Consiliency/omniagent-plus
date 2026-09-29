@@ -1,5 +1,10 @@
 {
   "schema": "audit-triage-review.v1",
+  "manual_closeout_followup": {
+    "record": "plans/evidence/v2/TRIAGE-closeout.json",
+    "scope": "2026-09-12 authorized manual acceptance amendment; fields below retain historical runner and pre-publication observations",
+    "historical_record_preserved": true
+  },
   "phase": "TRIAGE",
   "status": "awaiting_phase_closeout",
   "scope": "local_triage_verification_only",

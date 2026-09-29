@@ -1,0 +1,208 @@
+{
+  "schema": "manual-phase-closeout.v1",
+  "phase": "TRIAGE",
+  "status": "accepted",
+  "acceptance_route": "explicit_manual_alternative",
+  "authority": "Maintainer instruction on 2026-09-12 to continue the roadmap with manual alternatives to broken Agent Harness automation",
+  "roadmap": "specs/phase-plans-v2.md",
+  "historical_record": "plans/evidence/v2/TRIAGE.json",
+  "candidate_base": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
+  "amended_candidate_sha256": {
+    "specs/phase-plans-v2.md": "ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c",
+    "plans/phase-plan-v2-GUARD.md": "b84275af012ff0294fcd36a8ebdd9e3bc814ce442afc01d811ef32c879fe0b05",
+    "plans/audit-remediation-disposition-20260905.md": "2ec237f5903c8ede6544feb35cb3948e5d762cef988acf05c4e8e1ff0bc4209d",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7",
+    "plans/evidence/v2/TRIAGE.json": "b667636e69f1530aca1dc58d990a617fcbf6f83ea9073761888fc0c42c4495c0"
+  },
+  "current_import_inventory": {
+    "scope": "Source inventory only; the TRIAGE checker verifies membership, not import syntax. GUARD adds AST enforcement. No source changes made.",
+    "imported_type": "OmnigentProviderMode",
+    "relative_target": "../../omnigent-transport/src/types.js",
+    "verbatim_import_at_each_path": "import type { OmnigentProviderMode } from \"../../omnigent-transport/src/types.js\";",
+    "source_lines": {
+      "packages/identity-isolation/src/process-profile.ts": 2,
+      "packages/identity-isolation/src/omnigent-isolation-policy.ts": 2,
+      "packages/identity-isolation/src/types.ts": 11
+    },
+    "source_sha256": {
+      "packages/identity-isolation/src/process-profile.ts": "0bd7cbeea1fff5c7c5554ccdc43a72032f068ba888379476fe2d423244f14ff8",
+      "packages/identity-isolation/src/omnigent-isolation-policy.ts": "1c92c58f09b3a2c914016d32d742ca87976812f71721a0813dd9f9527dfe776c",
+      "packages/identity-isolation/src/types.ts": "cda851d8201da68d54b9ad23ac98ebb54890aa8b2fd0ce7647f54fc909f3145b"
+    },
+    "exhaustive_literal_scan": {
+      "observed_at": "2026-09-14",
+      "command": "rg -n -F '../../omnigent-transport/src/types.js' packages --glob '*.ts' --glob '!**/dist/**' --glob '!**/node_modules/**'",
+      "exit_code": 0,
+      "output": [
+        "packages/identity-isolation/src/process-profile.ts:2:import type { OmnigentProviderMode } from \"../../omnigent-transport/src/types.js\";",
+        "packages/identity-isolation/src/omnigent-isolation-policy.ts:2:import type { OmnigentProviderMode } from \"../../omnigent-transport/src/types.js\";",
+        "packages/identity-isolation/src/types.ts:11:import type { OmnigentProviderMode } from \"../../omnigent-transport/src/types.js\";"
+      ],
+      "limit": "Complete literal-target scan, not proof against alias/computed-source evasion; GUARD owns recursive AST controls."
+    }
+  },
+  "tooling_incident": {
+    "issue": "https://github.com/Consiliency/agent-harness/issues/831",
+    "failure": "Clean awaiting_phase_closeout attempts an empty commit instead of verification",
+    "alternative": "Run original structural suite directly, independently review source-grounded EC decisions and content hashes, panel the amended closeout procedure, then record coordinator acceptance",
+    "runner_state_modified": false,
+    "runner_verification_claimed": false
+  },
+  "verification": [
+    {
+      "command": "node plans/evidence/v2/verify-triage.mjs",
+      "exit_code": 0,
+      "scope": "55 finding IDs, 28 N/Q cases, 4 cross-cutting cases, 6 negative controls, 8 valid roadmap phases, staged/unstaged whitespace",
+      "warning": "Installed roadmap validator reports agent-harness#819 closeout import warning; roadmap validation is not FAB closeout validation"
+    }
+  ],
+  "reviewed_merged_core_sha256": {
+    "plans/audit-remediation-disposition-20260905.md": "fc7142c943a1305989838d1106c7860fdddf94408e23118a3a4c8f5eb2bf0192",
+    "specs/phase-plans-v2.md": "b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93",
+    "plans/phase-plan-v2-TRIAGE.md": "69484fbac85b4d574463e7bf264fe942d44b8e4a225dd0dce92dc0c9e176cfee",
+    "plans/evidence/v2/verify-triage.mjs": "26dae6d62d852b36f651826da6d484982300b775db5bf8f97b20104c228b8cb7"
+  },
+  "review": {
+    "historical": "plans/evidence/v2/reviews/TRIAGE-round-9.json",
+    "reconciliation": "plans/evidence/v2/TRIAGE-reviews.md",
+    "independent_source_audit": "Read-only agent Faraday confirmed exact committed core hashes, finding ownership, source boundaries and no blocking TRIAGE content gap on 2026-09-12",
+    "amendment_panel": "Round 9: four usable native exact-input AGREE reviews; coordinator reconciled implementation notes with no material plan change. TRIAGE accepted through the reviewed manual recording contract; GUARD implementation and production CR remain pending.",
+    "current_reconciliation": "plans/evidence/v2/GUARD-plan-reviews.md",
+    "closeout_self_hash": "Each external panel record hashes the exact receipt supplied to it; no impossible self-referential digest is embedded in this file",
+    "material_amendment_is_not_covered_by_historical_review": true,
+    "prior_results": [
+      "plans/evidence/v2/reviews/GUARD-plan-round3.json",
+      "plans/evidence/v2/reviews/GUARD-grok-followup.json",
+      "plans/evidence/v2/reviews/GUARD-plan-round4.json",
+      "plans/evidence/v2/reviews/GUARD-plan-round5.json",
+      "plans/evidence/v2/reviews/GUARD-plan-round6.json",
+      "plans/evidence/v2/reviews/GUARD-fable-native-followup-20260915.json",
+      "plans/evidence/v2/reviews/GUARD-plan-round8.json"
+    ],
+    "current_panel": "plans/evidence/v2/reviews/GUARD-plan-round9.json"
+  },
+  "criteria": {
+    "EC-TRIAGE-1": "Substantive check passed: complete inventory, explicit cases and owners; not implementation acceptance",
+    "EC-TRIAGE-2": "Substantive check passed: content/path, nondestructive recovery, distinct lease APIs, established-session identity and supervisor boundaries recorded",
+    "EC-TRIAGE-3": "Substantive check passed: four usable historical reviews and reconciled feedback, license owner and hosted CI topology identified; current manual amendment reviewed and reconciled"
+  },
+  "produced_if_gates": [
+    "IF-0-TRIAGE-1"
+  ],
+  "product_baseline": {
+    "scope": "Recorded 2026-09-12 unchanged-product baseline, not a new 2026-09-14 run and not GUARD acceptance or SQL/RPC proof",
+    "cwd": "/mnt/workspace/worktrees/omniagent-plus-v2-guard-20260912",
+    "source_base": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
+    "ordered_commands": [
+      {
+        "command": "pnpm install --frozen-lockfile",
+        "exit_code": 0
+      },
+      {
+        "command": "pnpm build",
+        "exit_code": 0
+      },
+      {
+        "command": "pnpm lint",
+        "exit_code": 0
+      },
+      {
+        "command": "pnpm typecheck",
+        "exit_code": 0
+      },
+      {
+        "command": "pnpm test --reporter=json --outputFile=.phase-loop/baseline-tests.json",
+        "exit_code": 0,
+        "passed": 348,
+        "failed": 0,
+        "skipped": 1
+      },
+      {
+        "command": "pnpm --filter @consiliency/omnigent-transport test:pack",
+        "exit_code": 0
+      }
+    ],
+    "ordering_scope": "Dependency order for reproduction; lint was observed before build and typecheck alongside the post-build test run",
+    "skipped_case": "packages/omnigent-transport/src/live-omnigent-smoke.test.ts: live Omnigent smoke collects metadata_only live evidence only when explicitly enabled",
+    "json_report_sha256": "08a947e04844d4f096d64f1553522b93a70302ccfb9f02031196bfe6935660ff",
+    "initial_diagnostic": "A pre-build test attempt failed package export resolution; after the prerequisite build the full baseline passed. No product fix was inferred."
+  },
+  "remaining_work": [
+    "All runtime audit findings remain assigned to omniagent-plus#19 through omniagent-plus#27",
+    "License choice is required before PREP exit, not before GUARD",
+    "Historical phase-loop state remains pending until supported reconciliation"
+  ],
+  "publication": {
+    "documentation_pr": "https://github.com/Consiliency/omniagent-plus/pull/28",
+    "state": "MERGED",
+    "merge_commit": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
+    "npm_release_required_for_triage": false
+  },
+  "acceptance_recording_contract": {
+    "reviewed_input_digest": "Stored externally in each exact-input panel report; receipt contains no self digest",
+    "binding_path": "plans/evidence/v2/TRIAGE-acceptance-binding.json",
+    "owner": "parent coordinator; outside implementation lanes",
+    "allowed_recording_only_json_paths": [
+      "status",
+      "review.amendment_panel",
+      "review.current_panel",
+      "criteria.EC-TRIAGE-3",
+      "produced_if_gates",
+      "accepted_at"
+    ],
+    "required_checks": [
+      "Record pre-acceptance and post-acceptance SHA-256, changed JSON paths and reviewed artifact hashes in the external binding",
+      "Reject any changed JSON path outside the allowlist; required candidate inputs remain exactly reviewed",
+      "For criteria.EC-TRIAGE-3 allow only the exact recording_only_criterion_transition below; retain both strings in the binding",
+      "Include structural verification run date, command, exit and actual matrix/roadmap hashes plus the dated pre-SL-0 source/workflow inventory digest in the external binding",
+      "Include the inventory's source-base/HEAD package subtree comparison, working-byte verification and current publish-helper/transport-smoke hashes in the external binding",
+      "Record panel/reconciliation result and explicit EC-TRIAGE decisions before status=accepted or producing IF-0-TRIAGE-1",
+      "No GUARD implementation acceptance or IF-0-GUARD-2 is produced by accepting TRIAGE"
+    ],
+    "recording_only_criterion_transition": {
+      "path": "criteria.EC-TRIAGE-3",
+      "before": "Substantive check passed: four usable historical reviews and reconciled feedback, license owner and hosted CI topology identified; current manual amendment awaits review",
+      "after": "Substantive check passed: four usable historical reviews and reconciled feedback, license owner and hosted CI topology identified; current manual amendment reviewed and reconciled"
+    },
+    "material_change_rule": "Any other change to plan, source, ownership, criteria or acceptance procedure requires fresh review; the exact criterion status suffix transition above is the only criterion recording exception",
+    "historical_triage_plan_sha256": "69484fbac85b4d574463e7bf264fe942d44b8e4a225dd0dce92dc0c9e176cfee",
+    "historical_triage_plan_unchanged": true,
+    "precondition": "Acceptance requires a usable current-input four-seat panel and coordinator reconciliation; this immutable rule is not a current status. Only top-level status records the acceptance state."
+  },
+  "amendment_summary": {
+    "previous_receipt_sha256": "61c953c6ba35818c7e279dfb10afe4858a91586d15fd463b34726ee64d82bd0e",
+    "previous_guard_plan_sha256": "b7427d56be544b49c15e8a978c1d28c93357ee8e598429f0c57b48ec696e1e61",
+    "roadmap_and_matrix_unchanged_since_round3": true,
+    "guard_changes": [
+      "SL-0 explicitly owns existing transport smoke and binds it to retained tarballs",
+      "Digest-pinned SQL fixture; scrub libpq/Supabase environment; dedicated read-only probe connection",
+      "Standalone focused fixture ownership; pre-collection DB selector exclusion; gate-set required-integration mode",
+      "No-id-token hosted artifact-transfer dry run; compatible publish script modes; explicit public package identities",
+      "Signal/null-status, isolated process-group, AST type-query/reference and workflow-secret negative controls",
+      "Parent-owned metadata SQL receipt; exact-head GitHub PR merge route; planning CLI remains out of product gate",
+      "Event-derived tested_source_sha distinguishes PR head from synthetic merge; no caller-ref input; explicit guard-required check",
+      "Bound new lint overrides to owned files; clarify focused selectors; prove non-skip retained-artifact path and mutually exclusive CLI modes",
+      "Isolate DB/non-DB workers and destructive setup fixtures; require named setup/DB case IDs; exclude process suites from new promise lint; explicit main-push and id-token job routing",
+      "Post-round-6 amendment: plain pnpm test strips DB enablement/connection variables even when pre-set; only admitted fixture launchers may enable DB collection; new current-input review remains required",
+      "2026-09-15: explicit hosted shared-service tuple and separate destructive Docker instances; no ambient fixture credentials",
+      "2026-09-15: noncredentialed child allowlist, hostile live opt-in controls, exact documented live-case skip set",
+      "2026-09-15: artifact manifest digest comes from producing job output; replaced manifest-plus-tarball pair must fail",
+      "2026-09-15: separately bounded cold pull, explicit membership options, producer-owned ignored SQL receipt path, merged-SHA CI evidence",
+      "2026-09-15: pre-SL-0 AST inventory across 213 source files and all current workflows; no product source repair",
+      "Round 8 reconciliation: exact existing computed-loader exception, require/import-equals/map/symlink controls, helper-required external digest, protected default-branch dispatch and job-only OIDC",
+      "Round 8 reconciliation: setup/integration command mapping, explicit hosted loopback port binding, SL-1 live-smoke documentation ownership, dated inventory source comparison and helper/smoke hashes"
+    ],
+    "receipt_changes": [
+      "Current GUARD digest and actual prior review status",
+      "Complete literal-target scan",
+      "Recording-only field/digest contract",
+      "Immutable acceptance precondition is no longer phrased as pending state"
+    ],
+    "migration_inspection": {
+      "path": "supabase/migrations/20260708215513_coordination_leases.sql",
+      "sha256": "9457176ceb3c71220c13c22bd4ec222ed57ae3104c42c73c96d23f03b680d224",
+      "scope": "Read-only source inspection; no database/migration run. Query function is stable SELECT returning leases and accepts {}. Acquire is signature-only in GUARD. No auth schema/extension references; roles are explicit prerequisites."
+    }
+  },
+  "accepted_at": "2026-09-15T08:30:58.945582+00:00"
+}

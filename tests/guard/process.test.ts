@@ -1,0 +1,684 @@
+import { existsSync, readFileSync, readlinkSync, readdirSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import type { Readable, Writable } from "node:stream";
+import { expect, it } from "vitest";
+import { cleanupChild, ProcessScope, runProcess, signalOwned, spawnOwned, validateCustodyJournal, waitExit, waitReady, withCustodyContext } from "../helpers/guard-process.js";
+
+it("fails spawn errors, nonzero children and signal/null exits", async () => {
+  await expect(runProcess("guard-command-does-not-exist", [])).rejects.toThrow();
+  await expect(runProcess(process.execPath, ["-e", "process.exit(7)"])).rejects.toThrow("exit 7");
+  await expect(runProcess(process.execPath, ["-e", "process.kill(process.pid,'SIGTERM')"])).rejects.toThrow("signal");
+}, 10_000);
+it("records a failed payload exec distinctly from a normal exit 127", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-exec-failure-"));
+  try {
+    await expect(withCustodyContext(dir, "exec-failure", () => runProcess("guard-command-does-not-exist", []))).rejects.toThrow();
+    expect(validateCustodyJournal(dir).admitted).toBe(1);
+    const rows = readFileSync(join(dir, "custody.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line) as { event: string; proof_error?: string });
+    expect(rows.find((row) => row.event === "terminal")?.proof_error).toBe("payload_spawn_failed");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("terminates a hung child and descendant without signaling unowned processes", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-hung-"));
+  const pidFile = join(dir, "descendant");
+  const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
+  await waitReady(unrelated);
+  try {
+    const started = Date.now();
+    await expect(runProcess(process.execPath, ["-e", `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`], { timeout: 250, custodyControlId: "hung-child" })).rejects.toThrow("timed out");
+    const pid = Number(readFileSync(pidFile, "utf8"));
+    const deadline = Date.now() + 2_000;
+    const alive = () => existsSync(`/proc/${pid}/stat`) && !readFileSync(`/proc/${pid}/stat`, "utf8").split(") ")[1]?.startsWith("Z");
+    while (alive() && Date.now() < deadline) await new Promise((r) => setTimeout(r, 20));
+    expect(alive()).toBe(false);
+    expect(Date.now() - started).toBeLessThan(2_750);
+    expect(() => process.kill(unrelated.pid!, 0)).not.toThrow();
+    expect(() => signalOwned(process.pid, "SIGKILL")).toThrow("Unowned");
+  } finally { await cleanupChild(unrelated); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("bounds readiness failure and cleans its child", async () => {
+  const child = spawnOwned(process.execPath, ["-e", "setInterval(()=>{},1000)"]);
+  try { await expect(waitReady(child, 250)).rejects.toThrow("readiness"); }
+  finally { await cleanupChild(child); }
+});
+it("reaps normal exits and shares concurrent cleanup until descendants are quiescent", async () => {
+  const child = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
+  await waitReady(child);
+  const first = cleanupChild(child);
+  expect(cleanupChild(child)).toBe(first);
+  await first;
+  expect(child.signalCode).toBe("SIGTERM");
+  expect(() => process.kill(child.pid!, 0)).toThrow();
+  expect(() => signalOwned(child.pid!, "SIGKILL")).toThrow("Unowned");
+  await cleanupChild(child);
+  const normal = spawnOwned(process.execPath, ["-e", "process.exit(0)"]);
+  expect(await waitExit(normal)).toBe(0);
+  await cleanupChild(normal);
+  expect(() => process.kill(normal.pid!, 0)).toThrow();
+});
+it("cleans a detached descendant after its direct parent exits normally", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-normal-descendant-"));
+  const pidFile = join(dir, "pid");
+  try {
+    await runProcess(process.execPath, ["-e", `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));c.unref();setTimeout(()=>process.exit(0),100);`], { custodyControlId: "normal-orphan" });
+    const pid = Number(readFileSync(pidFile, "utf8"));
+    expect(existsSync('/proc/'+pid+'/stat') && !readFileSync('/proc/'+pid+'/stat', 'utf8').split(') ')[1]?.startsWith('Z')).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("lets an on-time payload finish its reserved descendant drain after the operation deadline", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-deadline-drain-"));
+  const leaf = `const end=BigInt(process.env.GUARD_ADMITTED_OPERATION_NS)+50000000n;setTimeout(()=>{},Math.max(0,Number((end-process.hrtime.bigint())/1000000n)))`;
+  const script = `const{spawn}=require('node:child_process');const end=BigInt(process.env.GUARD_ADMITTED_OPERATION_NS);const child=spawn(process.execPath,['-e',${JSON.stringify(leaf)}],{detached:true,stdio:'ignore'});child.unref();setTimeout(()=>process.exit(0),Math.max(0,Number((end-process.hrtime.bigint())/1000000n)-100));`;
+  try {
+    await expect(withCustodyContext(dir, "deadline-drain-control", () => runProcess(process.execPath, ["-e", script], { timeout: 3_000 }))).resolves.toBe("");
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 1, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 7_000);
+it.each([2_800, 10_000])("rejects a custody result after a suspended supervisor misses its tail (%i ms child)", async (duration) => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-paused-supervisor-"));
+  const pidFile = join(dir, "child-pid");
+  const script = `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const child=spawn(process.execPath,['-e',${JSON.stringify(`setTimeout(()=>{},${duration})`)}],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(child.pid));child.unref();console.log('ready');setTimeout(()=>process.exit(0),50);`;
+  const child = withCustodyContext(dir, "paused-supervisor-control", () => spawnOwned(process.execPath, ["-e", script]));
+  child.stderr.resume(); child.stdin.end();
+  let paused = false;
+  try {
+    await waitReady(child);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    process.kill(child.pid!, "SIGSTOP");
+    paused = true;
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    process.kill(child.pid!, "SIGCONT");
+    paused = false;
+    await expect(waitExit(child)).rejects.toThrow();
+    expect(existsSync(`/proc/${Number(readFileSync(pidFile, "utf8"))}`)).toBe(false);
+    expect(() => validateCustodyJournal(dir)).toThrow("unproven");
+  } finally {
+    if (paused) process.kill(child.pid!, "SIGCONT");
+    await cleanupChild(child).catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 10_000);
+it("cleans owned active work after an ordinary failure without closing another scope", async () => {
+  const scope = new ProcessScope(2);
+  const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
+  let pid = 0;
+  try {
+    await waitReady(unrelated);
+    await expect(scope.run(async () => {
+      try {
+        const child = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
+        pid = child.pid!;
+        await waitReady(child);
+        throw new Error("stage failed");
+      } finally { await scope.close(); }
+    })).rejects.toThrow("stage failed");
+    expect(() => process.kill(pid, 0)).toThrow();
+    expect(() => process.kill(unrelated.pid!, 0)).not.toThrow();
+    expect(() => scope.run(() => spawnOwned(process.execPath, []))).toThrow("closed");
+    await scope.close();
+  } finally { await scope.close(); await cleanupChild(unrelated); }
+});
+it("keeps shutdown idempotent through reentrant cancellation and cleanup failures", async () => {
+  const listeners = [process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")];
+  const scope = new ProcessScope(2);
+  let reentrant: Promise<void> | undefined;
+  let finished = false;
+  scope.controller.signal.addEventListener("abort", () => { reentrant = scope.close(); });
+  scope.addCleanup(() => { throw new Error("resource cleanup failed"); });
+  scope.addCleanup(async () => { finished = true; });
+  const closing = scope.close();
+  expect(scope.close()).toBe(closing);
+  await expect(closing).rejects.toThrow("resource cleanup failed");
+  expect(reentrant).toBe(closing);
+  expect(finished).toBe(true);
+  expect([process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")]).toEqual(listeners);
+});
+it("preserves the forced cleanup tail after a cooperative signal is ignored", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-cooperative-tail-"));
+  const child = withCustodyContext(dir, "cooperative-control", () => spawnOwned(process.execPath, ["-e", "process.on('SIGINT',()=>{});process.on('SIGTERM',()=>{});console.log(process.pid);setInterval(()=>{},1000)"], { shutdownReservationMs: 5_000 }));
+  child.stderr.resume();
+  child.stdin.end();
+  try {
+    const payload = Number((await waitReady(child)).toString());
+    const started = Date.now();
+    signalOwned(child.pid!, "SIGINT");
+    await expect(waitExit(child)).rejects.toThrow("signal");
+    await cleanupChild(child);
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(existsSync(`/proc/${payload}`)).toBe(false);
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 0, signaled: 0 });
+  } finally { await cleanupChild(child); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("forwards one foreground-group INT from the owner to its guarded child", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-foreground-int-"));
+  const ownerCount = join(dir, "owner-count");
+  const childCount = join(dir, "child-count");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const leaf = `const{writeFileSync}=require('node:fs');let n=0;process.on('SIGINT',()=>{writeFileSync(${JSON.stringify(childCount)},String(++n));process.exit(0)});console.log('ready');setInterval(()=>{},1000)`;
+  const script = `import {existsSync,writeFileSync} from 'node:fs';import {ProcessScope,spawnOwned,waitReady} from ${JSON.stringify(helper)};
+let n=0;process.on('SIGINT',()=>writeFileSync(${JSON.stringify(ownerCount)},String(++n)));
+const scope=new ProcessScope();await scope.run(async()=>{const child=spawnOwned(process.execPath,['-e',${JSON.stringify(leaf)}],{shutdownReservationMs:5000});child.stderr.resume();child.stdin.end();await waitReady(child);process.kill(-process.pid,'SIGINT');const end=Date.now()+1000;while(!existsSync(${JSON.stringify(childCount)})&&Date.now()<end)await new Promise(resolve=>setTimeout(resolve,10));await scope.close()});console.log('done')`;
+  try {
+    expect(await withCustodyContext(dir, "foreground-int-control", () => runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 5_000 } }))).toBe("done");
+    expect(readFileSync(ownerCount, "utf8")).toBe("1");
+    expect(readFileSync(childCount, "utf8")).toBe("1");
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 2, natural: 0, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("drains large payload output without blocking custody completion", async () => {
+  const output = await runProcess(process.execPath, ["-e", "process.stdout.write('x'.repeat(131072));process.stderr.write('y'.repeat(131072))"]);
+  expect(output).toHaveLength(131072);
+});
+it("delivers stdin EOF through the supervisor", async () => {
+  expect(await runProcess(process.execPath, ["-e", "process.stdin.resume();process.stdin.on('end',()=>console.log('eof'))"])).toBe("eof");
+});
+it("does not leak supervisor control or status pipes into the payload", async () => {
+  const script = `import os,sys
+expected=set(sys.stdin.read().splitlines())
+actual=set()
+for name in os.listdir('/proc/self/fd'):
+ try: actual.add(os.readlink('/proc/self/fd/'+name))
+ except FileNotFoundError: pass
+print('clean' if not expected.intersection(actual) else 'leaked')`;
+  const child = spawnOwned("python3", ["-I", "-S", "-B", "-c", script]);
+  child.stderr.resume();
+  try {
+    const pipes = [3, 4].map((index) => {
+      const descriptor = (child.stdio[index] as unknown as { _handle?: { fd?: number } })._handle?.fd;
+      if (descriptor === undefined) throw new Error("Missing supervisor pipe handle");
+      return readlinkSync(`/proc/self/fd/${descriptor}`);
+    });
+    child.stdin.end(pipes.join("\n"));
+    expect((await waitReady(child)).toString().trim()).toBe("clean");
+    expect(await waitExit(child)).toBe(0);
+  } finally { await cleanupChild(child); }
+});
+it("preserves direct-spawn signal defaults and mask in the payload", async () => {
+  const script = `const s=require('node:fs').readFileSync('/proc/self/status','utf8');console.log(['SigIgn','SigBlk'].map(k=>s.match(new RegExp('^'+k+':\\\\s*(\\\\S+)','m'))?.[1]).join(' '))`;
+  const direct = spawnSync(process.execPath, ["-e", script], { encoding: "utf8" });
+  expect(direct.status).toBe(0);
+  expect(await runProcess(process.execPath, ["-e", script])).toBe(direct.stdout.trim());
+});
+it("funds two nested three-slot scopes over ordinary work within 112.5 seconds", async () => {
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const inner = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);await scope.run(()=>runProcess(process.execPath,['-e','console.log(1)']));await scope.close();console.log('inner complete')`;
+  const outer = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);await scope.run(()=>runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(inner)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}}));await scope.close();console.log('funded')`;
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", outer], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 57_500 } })).toBe("funded");
+});
+it("drains custody when cancellation follows an already buffered ADMIT", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-buffered-admit-"));
+  const marker = join(dir, "payload-started");
+  const controller = new AbortController();
+  const child = withCustodyContext(dir, "buffered-admit-control", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`], { signal: controller.signal }));
+  child.stdout.resume(); child.stderr.resume(); child.stdin.end();
+  const control = child.stdio[3] as Writable;
+  control.cork();
+  try {
+    const deadline = Date.now() + 2_000;
+    while (control.writableLength === 0 && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(control.writableLength).toBeGreaterThan(0);
+    expect(existsSync(marker)).toBe(false);
+    controller.abort();
+    control.uncork();
+    await waitExit(child).catch(() => {});
+    await cleanupChild(child);
+    expect(validateCustodyJournal(dir).admitted).toBe(1);
+  } finally { control.uncork(); await cleanupChild(child); rmSync(dir, { recursive: true, force: true }); }
+});
+it("refuses payload effects when the controller closes before admission", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-control-eof-"));
+  const marker = join(dir, "payload-started");
+  const child = withCustodyContext(dir, "control-eof-fault", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`]));
+  child.stdout.resume(); child.stderr.resume(); child.stdin.end();
+  (child.stdio[3] as Writable).end();
+  try {
+    await expect(waitExit(child)).rejects.toThrow();
+    await expect(cleanupChild(child)).rejects.toThrow();
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it.each([
+  ["missing", { subreaper: true, pidfd: true, children: true }],
+  ["denied", { subreaper: false, pidfd: true, children: true, wall: true }],
+])("refuses a %s capability handshake before payload effects", async (_case, capabilities) => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-capability-fault-"));
+  const marker = join(dir, "payload-started");
+  const child = withCustodyContext(dir, "capability-fault", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`]));
+  child.stdout.resume(); child.stderr.resume(); child.stdin.end();
+  const nonce = child.spawnargs.at(-1);
+  (child.stdio[4] as Readable).emit("data", Buffer.from(`${JSON.stringify({ v: 1, nonce, seq: 0, type: "READY", capabilities })}\n`));
+  try {
+    expect((child.stdio[3] as Writable).writableEnded).toBe(true);
+    await expect(waitExit(child)).rejects.toThrow();
+    await expect(cleanupChild(child)).rejects.toThrow();
+    expect(existsSync(marker)).toBe(false);
+    expect(validateCustodyJournal(dir).admitted).toBe(0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("refuses a stalled READY handshake after the admitted operation deadline", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-stalled-ready-"));
+  const marker = join(dir, "payload-started");
+  const child = withCustodyContext(dir, "stalled-ready-control", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`], { timeout: 250 }));
+  child.stdout.resume(); child.stderr.resume(); child.stdin.end();
+  const status = child.stdio[4] as Readable;
+  status.pause();
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    status.resume();
+    await expect(waitExit(child)).rejects.toThrow();
+    expect(existsSync(marker)).toBe(false);
+    expect(validateCustodyJournal(dir).admitted).toBe(0);
+  } finally { status.resume(); await cleanupChild(child).catch(() => {}); rmSync(dir, { recursive: true, force: true }); }
+}, 5_000);
+it("records an unproven terminal when the final status is missing", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-missing-result-"));
+  const child = withCustodyContext(dir, "missing-result-control", () => spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]));
+  child.stderr.resume(); child.stdin.end();
+  try {
+    await waitReady(child);
+    const status = child.stdio[4] as Readable;
+    status.removeAllListeners("data");
+    status.emit("end");
+    await expect(cleanupChild(child)).rejects.toThrow("custody result missing");
+    const rows = readFileSync(join(dir, "custody.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line) as { event: string; custody?: string });
+    expect(rows.map((row) => row.event)).toEqual(["admission", "terminal"]);
+    expect(rows[1]?.custody).toBe("unproven");
+    expect(() => validateCustodyJournal(dir)).toThrow("unproven");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("rejects a malformed final status and retains its failed terminal", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-malformed-result-"));
+  const child = withCustodyContext(dir, "malformed-result-control", () => spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]));
+  child.stderr.resume(); child.stdin.end();
+  try {
+    await waitReady(child);
+    const nonce = child.spawnargs.at(-1);
+    const frames = [
+      { v: 1, nonce, seq: 1, type: "WORK_DRAINED", quiescent: true },
+      { v: 1, nonce, seq: 2, type: "RESULT", payload_pid: 1, outcome: { exit_code: 0 }, custody: "quiescent", error: null, adopted_count: 1, adopted_natural_count: 0, adopted_signaled_count: 0, adopted_unresolved_count: 0, force_killed_count: 0 },
+    ];
+    (child.stdio[4] as Readable).emit("data", Buffer.from(frames.map((frame) => JSON.stringify(frame)).join("\n") + "\n"));
+    await expect(waitExit(child)).rejects.toThrow();
+    await expect(cleanupChild(child)).rejects.toThrow();
+    const rows = readFileSync(join(dir, "custody.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line) as { event: string; custody?: string });
+    expect(rows.map((row) => row.event)).toEqual(["admission", "terminal"]);
+    expect(rows[1]?.custody).toBe("unproven");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("leaves Linux child discovery to the custody supervisor", async () => {
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import assert from 'node:assert/strict';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';import {runProcess} from ${JSON.stringify(helper)};
+const read=fs.readdirSync;fs.readdirSync=function(path,...args){assert(!String(path).startsWith('/proc'));return read.call(this,path,...args);};syncBuiltinESMExports();
+await runProcess(process.execPath,['-e','setTimeout(()=>{},150)']);console.log('Node did not scan proc');`;
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 2_500 } })).toBe("Node did not scan proc");
+});
+it("keeps an early cancellation ceiling when the launcher handles its signal late", async () => {
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {readFileSync} from 'node:fs';import {ProcessScope,runProcess} from ${JSON.stringify(helper)};
+process.on('SIGINT',()=>{Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,3000)});
+const scope=new ProcessScope(1);scope.addCleanup(async()=>{console.log('child '+await runProcess(process.execPath,['-e','console.log(process.env.GUARD_ADMITTED_COMPLETION_NS)']))});
+const timer=setInterval(()=>{},1000);process.on('SIGINT',()=>{scope.close().catch(error=>{console.log(error.message);process.exitCode=1}).finally(()=>clearInterval(timer))});
+console.log('initial '+readFileSync(process.env.GUARD_ADMITTED_EPOCH_FILE,'ascii'));console.log('ready');`;
+  const child = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 1, maxChildReservationMs: 0 } });
+  let output = "";
+  child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+  child.stderr.resume(); child.stdin.end();
+  try {
+    await waitReady(child);
+    const signalNs = process.hrtime.bigint();
+    process.kill(child.pid!, "SIGINT");
+    expect(await waitExit(child, 10_000)).toBe(0);
+    const initial = output.match(/initial (\d{20})/)?.[1];
+    const nested = output.match(/child (\d+)/)?.[1];
+    expect(initial).toBeDefined();
+    expect(nested).toBeDefined();
+    expect(BigInt(nested!)).toBeLessThan(BigInt(initial!));
+    expect(BigInt(nested!)).toBeLessThanOrEqual(signalNs + 20_200_000_000n);
+  } finally { await cleanupChild(child); }
+}, 30_000);
+it("rejects nested work after forced shutdown starts", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-forced-epoch-"));
+  const marker = join(dir, "nested-effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {runProcess} from ${JSON.stringify(helper)};
+process.on('SIGTERM',async()=>{await new Promise(r=>setTimeout(r,100));try{await runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}])}catch(error){console.log('rejected '+error.message)}});
+console.log('ready');setInterval(()=>{},1000);`;
+  const child = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 2_500 } });
+  let output = "";
+  child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+  child.stderr.resume(); child.stdin.end();
+  try {
+    await waitReady(child);
+    await cleanupChild(child);
+    expect(output).toContain("rejected GUARD inherited cleanup reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { await cleanupChild(child); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("rejects an oversized cleanup launcher before payload effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-cleanup-budget-"));
+  const marker = join(dir, "nested-effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {ProcessScope,runProcess} from ${JSON.stringify(helper)};
+const scope=new ProcessScope(1);scope.addCleanup(()=>runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}}));
+try{await scope.close()}catch(error){console.log(error.message)}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 1, maxChildReservationMs: 0 } });
+    expect(output).toContain("cleanup command reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("refuses unsupported platforms before launching a payload", () => {
+  const original = Object.getOwnPropertyDescriptor(process, "platform")!;
+  try {
+    for (const platform of ["darwin", "win32"]) {
+      Object.defineProperty(process, "platform", { ...original, value: platform });
+      expect(() => spawnOwned(process.execPath, ["-e", "process.exit(0)"])).toThrow("Linux custody backend required");
+    }
+  } finally { Object.defineProperty(process, "platform", original); }
+});
+it("reaps 100 immediate-exit detached descendants before each command returns", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-immediate-"));
+  const descriptors = readdirSync("/proc/self/fd").length;
+  try {
+    for (let index = 0; index < 100; index++) {
+      const pidFile = join(dir, String(index));
+      const script = `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const child=spawn(process.execPath,['-e','setTimeout(()=>{},5000)'],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(child.pid));child.unref();process.exit(0);`;
+      await runProcess(process.execPath, ["-e", script], { custodyControlId: "immediate-orphan" });
+      const pid = Number(readFileSync(pidFile, "utf8"));
+      expect(existsSync(`/proc/${pid}`), `trial ${index} escaped`).toBe(false);
+    }
+    expect(readdirSync("/proc/self/fd").length).toBeLessThanOrEqual(descriptors + 2);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 120_000);
+it("reaps a double-forked child in a new session before the launcher returns", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-double-fork-"));
+  const pidFile = join(dir, "leaf");
+  try {
+    const middle = `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const leaf=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(leaf.pid));leaf.unref();process.exit(0);`;
+    const launcher = `const{spawn}=require('node:child_process');const middle=spawn(process.execPath,['-e',${JSON.stringify(middle)}],{detached:true,stdio:'ignore'});middle.unref();process.exit(0);`;
+    await runProcess(process.execPath, ["-e", launcher], { custodyControlId: "immediate-orphan" });
+    expect(existsSync(`/proc/${Number(readFileSync(pidFile, "utf8"))}`)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("reaps clone children with zero and non-SIGCHLD exit signals", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-clone-exit-"));
+  const program = join(dir, "clone-exit");
+  const source = `#define _GNU_SOURCE
+#include <sched.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+static int leaf(void *arg) { (void)arg; usleep(100000); return 0; }
+int main(void) {
+  signal(SIGUSR1, SIG_IGN);
+  for (int i = 0; i < 2; i++) {
+    void *stack = malloc(65536);
+    if (!stack || clone(leaf, (char *)stack + 65536, i ? SIGUSR1 : 0, NULL) < 0) return 2;
+  }
+  return 0;
+}`;
+  try {
+    await runProcess("cc", ["-x", "c", "-", "-o", program], { input: source });
+    await withCustodyContext(dir, "clone-exit-control", () => runProcess(program, []));
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 2, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("tracks children forked after a thread leader exits", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-thread-leader-"));
+  const program = join(dir, "thread-leader");
+  const pidFile = join(dir, "leaf-pid");
+  const source = `#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+static void *worker(void *arg) {
+  usleep(50000);
+  pid_t child = fork();
+  if (child == 0) { usleep(100000); _exit(0); }
+  FILE *file = fopen((char *)arg, "w");
+  if (!file || child < 0) _exit(2);
+  fprintf(file, "%d", child); fclose(file);
+  return NULL;
+}
+int main(int argc, char **argv) {
+  if (argc != 2) return 2;
+  pthread_t thread;
+  if (pthread_create(&thread, NULL, worker, argv[1])) return 2;
+  pthread_exit(NULL);
+}`;
+  try {
+    await runProcess("cc", ["-x", "c", "-pthread", "-", "-o", program], { input: source });
+    await withCustodyContext(dir, "thread-leader-control", () => runProcess(program, [pidFile]));
+    expect(existsSync(pidFile)).toBe(true);
+    expect(existsSync(`/proc/${Number(readFileSync(pidFile, "utf8"))}`)).toBe(false);
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 1, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("keeps an inner keeper-loss failure while the outer owner rescues its child", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-keeper-loss-"));
+  const innerDir = join(dir, "inner");
+  const siblingDir = join(dir, "sibling");
+  mkdirSync(innerDir);
+  mkdirSync(siblingDir);
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {spawnOwned,waitReady,waitExit,cleanupChild,withCustodyContext} from ${JSON.stringify(helper)};
+const inner=withCustodyContext(${JSON.stringify(innerDir)},'inner-keeper-loss',()=>spawnOwned(process.execPath,['-e',"console.log(process.pid);setInterval(()=>{},1000)"]));
+inner.stderr.resume();inner.stdin.end();
+const sibling=withCustodyContext(${JSON.stringify(siblingDir)},'sibling-keeper',()=>spawnOwned(process.execPath,['-e',"console.log('ready');setInterval(()=>{},1000)"]));
+sibling.stderr.resume();sibling.stdin.end();await waitReady(sibling);
+const pid=Number((await waitReady(inner)).toString().trim());console.log('payload '+pid);
+process.kill(inner.pid,'SIGKILL');
+try{await waitExit(inner)}catch(error){console.log('inner '+error.message)}
+try{await cleanupChild(inner)}catch(error){console.log('cleanup '+error.message)}
+await cleanupChild(sibling);console.log('sibling-clean')`;
+  let outer: ReturnType<typeof spawnOwned> | undefined;
+  try {
+    outer = withCustodyContext(dir, "keeper-loss-control", () => spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 2_500 }, custodyControlId: "keeper-loss" }));
+    let output = "";
+    outer.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+    outer.stderr.resume(); outer.stdin.end();
+    expect(await waitExit(outer, 5_000)).toBe(0);
+    await cleanupChild(outer);
+    const pid = Number(output.match(/payload (\d+)/)?.[1]);
+    expect(pid).toBeGreaterThan(0);
+    expect(existsSync(`/proc/${pid}`)).toBe(false);
+    expect(output).toContain("inner GUARD custody result missing");
+    expect(output).toContain("sibling-clean");
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 0, signaled: 1 });
+    expect(() => validateCustodyJournal(innerDir)).toThrow("unproven");
+    expect(validateCustodyJournal(siblingDir)).toEqual({ admitted: 1, natural: 0, signaled: 0 });
+  } finally { if (outer) await cleanupChild(outer).catch(() => {}); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("retains an inner admission when its controller dies after ADMIT", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-owner-death-"));
+  const innerDir = join(dir, "inner");
+  mkdirSync(innerDir);
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {spawnOwned,waitReady,withCustodyContext} from ${JSON.stringify(helper)};
+const inner=withCustodyContext(${JSON.stringify(innerDir)},'owner-death-inner',()=>spawnOwned(process.execPath,['-e',"console.log(process.pid);process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"]));
+inner.stderr.resume();inner.stdin.end();
+console.log(Number((await waitReady(inner)).toString().trim()));
+process.exit(0);`;
+  const outer = withCustodyContext(dir, "owner-death-outer", () => spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 2_500 }, custodyControlId: "owner-death" }));
+  outer.stderr.resume(); outer.stdin.end();
+  try {
+    const pid = Number((await waitReady(outer)).toString().trim());
+    expect(pid).toBeGreaterThan(0);
+    expect(await waitExit(outer)).toBe(0);
+    expect(existsSync(`/proc/${pid}`)).toBe(false);
+    expect(validateCustodyJournal(dir).admitted).toBe(1);
+    expect(() => validateCustodyJournal(innerDir)).toThrow("admission missing terminal");
+  } finally { await cleanupChild(outer).catch(() => {}); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("retains the original polling helper as a failing positive control", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-old-probe-"));
+  try {
+    expect(await runProcess("git", ["rev-parse", "160a770:tests/helpers/guard-process.ts"])).toBe("bc95c97854ae52f8ad83e28bbf0dd204bec4f630");
+    const source = `${await runProcess("git", ["show", "160a770:tests/helpers/guard-process.ts"])}\n`;
+    expect(createHash("sha256").update(source).digest("hex")).toBe("d7f67d4d1b27c05ca8095094d71b01c5184df69e915fb00852e991a6fe9e79a4");
+    const helper = join(dir, "guard-process.ts");
+    writeFileSync(helper, source);
+    const script = `import fs from 'node:fs';import {runProcess} from ${JSON.stringify(pathToFileURL(helper).href)};
+const marker='guard-old-positive-control';const leaf='setInterval(()=>{},1000)';
+const identity=pid=>{try{const f=fs.readFileSync('/proc/'+pid+'/stat','utf8').split(') ')[1].split(' ');return{start:f[19],state:f[0]};}catch(e){if(e.code==='ENOENT')return null;throw e;}};
+const alive=(pid,start)=>{const now=identity(pid);return now&&now.start===start&&!['Z','X'].includes(now.state);};
+let escapes=0;
+for(let i=0;i<20;i++){
+ const code="const{spawn}=require('node:child_process');const c=spawn(process.execPath,['-e',"+JSON.stringify(leaf)+","+JSON.stringify(marker)+"],{detached:true,stdio:'ignore'});console.log(c.pid);c.unref();";
+ const pid=Number(await runProcess(process.execPath,['-e',code]));const first=identity(pid);
+ if(first&&alive(pid,first.start)){
+  const args=fs.readFileSync('/proc/'+pid+'/cmdline','utf8').split('\\0');
+  if(!args.includes(marker)||!args.includes(leaf)||!alive(pid,first.start))throw Error('positive-control ownership mismatch');
+  escapes++;process.kill(pid,'SIGTERM');
+  const deadline=Date.now()+2000;while(alive(pid,first.start)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,20));
+  if(alive(pid,first.start))throw Error('positive-control rescue failed');
+ }
+}
+console.log(escapes);`;
+    expect(Number(await runProcess(process.execPath, ["--input-type=module", "-e", script], { timeout: 15_000 }))).toBeGreaterThan(0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 30_000);
+it("records a service child that exits naturally after its launcher", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-natural-adoption-"));
+  const script = `const{spawn}=require('node:child_process');const child=spawn(process.execPath,['-e',"const parent=process.ppid;const timer=setInterval(()=>{if(process.ppid!==parent){clearInterval(timer);process.stdin.resume();process.stdin.on('end',()=>process.exit(0));}},10)"],{detached:true,stdio:['inherit','ignore','ignore']});child.unref();setTimeout(()=>process.exit(0),50);`;
+  try {
+    await withCustodyContext(dir, "natural-adoption-control", () => runProcess(process.execPath, ["-e", script]));
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 1, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("isolates the Python supervisor from a shadow standard-library module", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-shadow-"));
+  try {
+    writeFileSync(join(dir, "json.py"), "raise RuntimeError('shadow module loaded')\n");
+    expect(await runProcess(process.execPath, ["-e", "console.log('admitted')"], { cwd: dir })).toBe("admitted");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("restores waitable SIGCHLD semantics before capability admission", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy,signal
+m=runpy.run_path(${JSON.stringify(helper)})
+signal.signal(signal.SIGCHLD,signal.SIG_IGN)
+assert m['capability_probe']()['wall'] is True
+assert signal.getsignal(signal.SIGCHLD)==signal.SIG_DFL
+pid=os.fork()
+if pid==0: os._exit(0)
+assert os.waitpid(pid,m['WALL'])[0]==pid
+print('waitable')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("waitable");
+});
+it("counts a reaped adopted child with failed pidfd acquisition as unresolved", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy,time
+m=runpy.run_path(${JSON.stringify(helper)})
+s=m['Supervisor']('fault-control')
+read,write=os.pipe()
+pid=os.fork()
+if pid==0:
+ os.close(write);os.read(read,1);os._exit(0)
+os.close(read)
+s.payload=999999
+m['Supervisor'].register.__globals__['verified_pidfd']=lambda p: (_ for _ in ()).throw(OSError('injected pidfd refusal'))
+s.register(pid)
+s.payload_status=0
+frames=[]
+s.send=lambda kind,**fields: frames.append((kind,fields))
+s.result(True)
+assert frames[-1][1]['custody']=='unproven' and frames[-1][1]['adopted_unresolved_count']==1
+os.write(write,b'x');os.close(write)
+deadline=time.monotonic()+2
+while pid in s.active and time.monotonic()<deadline:
+ s.reap();time.sleep(.005)
+assert pid not in s.active and s.adopted_unresolved==1 and s.adopted_natural==0 and s.adopted_signaled==0
+print('pidfd refusal retained')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("pidfd refusal retained");
+});
+it("rejects a discovery-to-pidfd identity change without leaking the descriptor", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy
+m=runpy.run_path(${JSON.stringify(helper)})
+read,write=os.pipe()
+pid=os.fork()
+if pid==0:
+ os.close(write);os.read(read,1);os._exit(0)
+os.close(read)
+identity=m['verified_pidfd'].__globals__['proc_identity']
+calls=[0]
+def changed(target):
+ value=identity(target)
+ if value is None: return None
+ calls[0]+=1
+ return (value[0],value[1] if calls[0]==1 else value[1]+'changed',value[2])
+m['verified_pidfd'].__globals__['proc_identity']=changed
+before=set(os.listdir('/proc/self/fd'))
+try:
+ m['verified_pidfd'](pid)
+ raise AssertionError('identity change accepted')
+except m['CustodyError'] as error:
+ assert 'identity mismatch' in str(error)
+assert set(os.listdir('/proc/self/fd'))==before
+os.write(write,b'x');os.close(write);os.waitpid(pid,0)
+print('identity rejected')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("identity rejected");
+});
+it("retains an active child after a transient supervisor discovery error", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy,time
+m=runpy.run_path(${JSON.stringify(helper)})
+s=m['Supervisor']('fault-control')
+pid=os.fork()
+if pid==0:
+ while True: time.sleep(1)
+s.payload=pid
+s.register(pid)
+discover=s.discover
+attempts=[0]
+def flaky():
+ attempts[0]+=1
+ if attempts[0]==1: raise OSError('transient discovery failure')
+ return discover()
+s.discover=flaky
+s.retain_after_failure()
+assert attempts[0]>1 and pid not in s.active
+try: os.waitpid(pid,os.WNOHANG); raise AssertionError('child not reaped')
+except ChildProcessError: pass
+print('retained and reaped')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("retained and reaped");
+});
+it("retains custody when cooperative pidfd signaling fails", async () => {
+  const helper = new URL("../helpers/guard-supervisor.py", import.meta.url).pathname;
+  const script = `import os,runpy,signal,time
+m=runpy.run_path(${JSON.stringify(helper)})
+s=m['Supervisor']('fault-control')
+pid=os.fork()
+if pid==0:
+ while True: time.sleep(1)
+s.payload=pid
+s.register(pid)
+original=signal.pidfd_send_signal
+signal.pidfd_send_signal=lambda *_: (_ for _ in ()).throw(OSError('injected failure'))
+try: s.start_cooperative(signal.SIGINT)
+finally: signal.pidfd_send_signal=original
+assert s.error=='cooperative_signal_unproven' and s.forced
+s.retain_after_failure()
+assert pid not in s.active
+print('signal failure retained')`;
+  expect(await runProcess("python3", ["-I", "-S", "-B", "-c", script])).toBe("signal failure retained");
+});
+it("rejects unbalanced custody receipts and an unexpected rescue beside an expected control", () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-journal-"));
+  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, supervisor_start_identity: "456", control_case_id: control });
+  const terminal = (id: string, signaled = 0, control: string | null = null) => ({ ...admission(id, control), event: "terminal", custody: "quiescent", adopted_count: signaled, adopted_natural_count: 0, adopted_signaled_count: signaled, adopted_unresolved_count: 0, force_killed_count: 0 });
+  const check = (rows: object[]) => { writeFileSync(join(dir, "custody.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n"); return () => validateCustodyJournal(dir); };
+  try {
+    expect(check([admission("expected", "normal-orphan"), terminal("expected", 1, "normal-orphan")])()).toEqual({ admitted: 1, natural: 0, signaled: 1 });
+    expect(check([admission("expected", "hung-child"), terminal("expected", 0, "hung-child")])).toThrow("unexpected signaled rescue");
+    expect(check([admission("missing")])).toThrow("missing terminal");
+    expect(check([terminal("orphan")])).toThrow("terminal mismatch");
+    expect(check([admission("duplicate"), admission("duplicate")])).toThrow("duplicate");
+    expect(check([admission("expected", "normal-orphan"), terminal("expected", 1, "normal-orphan"), admission("unexpected"), terminal("unexpected", 1)])).toThrow("unexpected signaled rescue");
+    expect(check([admission("expected", "immediate-orphan"), terminal("expected", 2, "immediate-orphan")])).toThrow("unexpected signaled rescue");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

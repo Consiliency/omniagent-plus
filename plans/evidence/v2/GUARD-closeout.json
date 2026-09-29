@@ -1,0 +1,18 @@
+{
+  "schema": "manual-phase-closeout.v1",
+  "phase": "GUARD",
+  "status": "pending_final_reviews_and_merge",
+  "acceptance_route": "manual_exact_head_pull_request",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/29",
+  "tested_source_sha": "13217de793bfd2146f7af5da7fd6e4fe85090eb4",
+  "candidate_evidence": "plans/evidence/v2/GUARD.json",
+  "sql_setup_evidence": "plans/evidence/v2/GUARD-sql-setup.json",
+  "review_reconciliation": "plans/evidence/v2/GUARD-reviews.md",
+  "four_seat_production_review": "plans/evidence/v2/reviews/GUARD-production-863a5ef.json",
+  "spec_delta": { "schema": "spec_delta_closeout.v1", "decision": "no_spec_delta", "target_surfaces": [".github/workflows/", "docs/hardening-readiness.md"], "redaction_posture": "metadata_only", "downstream_handling": "none" },
+  "branch_protection": { "required_check": "guard-required", "strict_up_to_date": null, "observed_state": "main unprotected", "owner_decision": "optional_for_solo_GUARD_merge", "manual_publish": "blocked_while_github.ref_protected_is_false" },
+  "merged_sha": null,
+  "post_merge_main_ci_run": null,
+  "produced_if_gates": [],
+  "remaining": ["Pass agent-harness panel code review and separate independent review on the final PR head.", "Pass exact-head hosted checks, merge through the GitHub PR, verify actual main SHA, and record post-merge result."]
+}

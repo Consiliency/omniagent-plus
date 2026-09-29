@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { runProcess } from "../../../tests/helpers/guard-process.js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -49,11 +49,11 @@ function readFixture(rootDir: string): CrossProcessFixture {
   };
 }
 
-function runChild(
+async function runChild(
   rootDir: string,
   action: string,
   payload: unknown,
-): Record<string, unknown> {
+): Promise<Record<string, unknown>> {
   const scriptPath = join(rootDir, "coordination-child.ts");
   writeFileSync(
     scriptPath,
@@ -75,7 +75,7 @@ function runChild(
   `,
     "utf8",
   );
-  const child = spawnSync(
+  const stdout = await runProcess(
     "pnpm",
     ["exec", "vite-node", "--script", scriptPath],
     {
@@ -86,15 +86,10 @@ function runChild(
         STATE_LEDGER_ACTION: action,
         STATE_LEDGER_PAYLOAD: JSON.stringify(payload),
       },
-      encoding: "utf8",
     },
   );
 
-  if (child.status !== 0) {
-    throw new Error(child.stderr || child.stdout || `child exited ${child.status}`);
-  }
-
-  return JSON.parse(child.stdout.trim()) as Record<string, unknown>;
+  return JSON.parse(stdout.trim()) as Record<string, unknown>;
 }
 
 describe("cross-process coordination", () => {
@@ -102,18 +97,18 @@ describe("cross-process coordination", () => {
     const rootDir = await mkdtemp(join(tmpdir(), "state-ledger-xproc-"));
     const fixture = readFixture(rootDir);
 
-    runChild(rootDir, "setCooldown", fixture.cooldown);
-    const cooldown = runChild(rootDir, "getCooldown", {
+    await runChild(rootDir, "setCooldown", fixture.cooldown);
+    const cooldown = await runChild(rootDir, "getCooldown", {
       provider: fixture.cooldown.provider,
     });
-    const firstLease = runChild(rootDir, "acquireLease", {
+    const firstLease = await runChild(rootDir, "acquireLease", {
       request: fixture.leaseRequest,
       holder: fixture.holder,
       options: {
         leasePath: join(rootDir, "worktree-a"),
       },
     });
-    const secondLease = runChild(rootDir, "acquireLease", {
+    const secondLease = await runChild(rootDir, "acquireLease", {
       request: fixture.leaseRequest,
       holder: {
         ...fixture.holder,
@@ -131,5 +126,5 @@ describe("cross-process coordination", () => {
     expect(firstLease.acquired).toBe(true);
     expect(secondLease.acquired).toBe(false);
     expect(secondLease.existingLease).toBeTruthy();
-  }, 15_000);
+  }, 65_000);
 });

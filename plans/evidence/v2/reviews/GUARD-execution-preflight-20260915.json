@@ -1,0 +1,46 @@
+{
+  "schema": "guard-execution-preflight.v1",
+  "observed_at": "2026-09-15T08:20:00Z",
+  "scope": "Read-only readiness probes while plan review is pending; no GUARD implementation acceptance",
+  "tools": {
+    "node": "24.13.0",
+    "pnpm": "11.1.1",
+    "docker_client": "29.7.2",
+    "docker_server": "29.7.2",
+    "psql_client": "14.24",
+    "pinned_postgres_image_cached": false
+  },
+  "pull_request": {
+    "url": "https://github.com/Consiliency/omniagent-plus/pull/29",
+    "state": "OPEN",
+    "draft": true,
+    "head": "21d5708ca7cd186edce83432de9fa49cce65ae54"
+  },
+  "access_attempts": [
+    {
+      "source": "GitHub REST via authenticated gh",
+      "probe": "repos/Consiliency/omniagent-plus/branches/main/protection",
+      "result": "404 Branch not protected",
+      "details": "No classic protection observed; not an authentication failure",
+      "timestamp": "2026-09-15T08:20:00Z"
+    },
+    {
+      "source": "GitHub REST via authenticated gh",
+      "probe": "repos/Consiliency/omniagent-plus/rules/branches/main",
+      "result": "200 empty array",
+      "details": "No applicable main-branch rules returned",
+      "timestamp": "2026-09-15T08:20:00Z"
+    },
+    {
+      "source": "GitHub REST via authenticated gh",
+      "probe": "Repository metadata permissions and default_branch",
+      "result": "admin=true; default_branch=main; visibility=public",
+      "details": "Capability only; does not authorize a protection-setting mutation",
+      "timestamp": "2026-09-15T08:20:00Z"
+    }
+  ],
+  "landing_gate": "Before SL-2 merge, guard-required must be an enforced check. Operator asked whether to require it with up-to-date PRs after CI passes; no setting changed by these probes.",
+  "database_launched": false,
+  "npm_effects": false,
+  "protection_settings_changed": false
+}

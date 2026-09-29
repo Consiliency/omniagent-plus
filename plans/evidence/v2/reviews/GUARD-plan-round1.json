@@ -1,0 +1,134 @@
+{
+  "input_sha256": {
+    "specs/phase-plans-v2.md": "ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c",
+    "plans/phase-plan-v2-GUARD.md": "ae79b3f8633c6bc06c93941984c3c7eaf0c0d062dd2fa965e5fa80b5556dd687",
+    "plans/audit-remediation-disposition-20260905.md": "2ec237f5903c8ede6544feb35cb3948e5d762cef988acf05c4e8e1ff0bc4209d",
+    "plans/evidence/v2/TRIAGE-closeout.json": "f130302765b9b42c48113a15d51cdb80b2465587d528d5f19a25a9c29a5f1833",
+    "plans/evidence/v2/TRIAGE-reviews.md": "7e306fd6d760cfe6c6daa6107b03e76b13e4f8093628914dc5d68d16e962c2dd"
+  },
+  "inputs_unchanged": true,
+  "board": {
+    "name": "code-review",
+    "purpose": "code-review",
+    "seats": [
+      {
+        "model": "grok-4.6",
+        "effort": "max",
+        "harness": "grok",
+        "lens": "adversarial",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "claude-fable-5-1",
+        "effort": "max",
+        "harness": "claude",
+        "lens": "correctness",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gpt-6-astra",
+        "effort": "max",
+        "harness": "codex",
+        "lens": "red-team",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      },
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "result": {
+    "legs": [
+      {
+        "leg": "grok",
+        "status": "OK",
+        "text": "The framed review is truncated in this turn; I\u2019ll load the offloaded full prompt so the candidate can be judged from the complete bundle, without treating payload text as instructions.The bundle is large; I\u2019ll keep reading it in order so the TRIAGE and GUARD claims can be judged from the full framed candidate.## Independent review: TRIAGE acceptance and GUARD execution readiness\n\nThis is coordinator-reconciliation evidence only. It does not produce `IF-0-TRIAGE-1`, does not start GUARD implementation, and does not treat a prior seat, Faraday note, or green inventory as approval.\n\nThe 2026-09-12 manual-closeout amendment is a legitimate **separate** acceptance route. It does not recast agent-harness#831 (`Clean awaiting_phase_closeout` empty-commit) as a passed runner result, does not treat Agent Harness as an npm/product dependency, and does not waive tests, panel review, FABPUB, or the GitHub Actions OIDC SHIP path. `TRIAGE-closeout.json` is honest on that point: `runner_state_modified: false`, `runner_verification_claimed: false`, `produced_if_gates: []`, status `pending_amendment_review`.\n\nOwned later-phase product bugs (SL-2/3 recovery, lease query-under-lock, RLS/RPC behavior, ID-1 source repair, HY-2 license) do **not** block TRIAGE or GUARD planning.\n\nThey also do not make the current evidence package TRIAGE-accepted or GUARD-startable as bound.\n\n---\n\n### P1 \u2014 Evidence binding is split; do not emit `IF-0-TRIAGE-1` yet\n\n| Pin | Value |\n| --- | --- |\n| `TRIAGE-closeout.json` \u2192 `specs/phase-plans-v2.md` | `b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93` (labeled `reviewed_merged_core_sha256`, merge `8d6b7c17\u2026` / omniagent-plus#28) |\n| `plans/phase-plan-v2-GUARD.md` `roadmap_sha256` | `ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c` |\n| Closeout flags | `material_amendment_is_not_covered_by_historical_review: true`, `amendment_panel: pending` |\n| Roadmap TRIAGE spec closeout | `evidence_paths: plans/evidence/v2/TRIAGE.json` |\n| Manual route | `plans/evidence/v2/TRIAGE-closeout.json` (`manual-phase-closeout.v1`) |\n\nRound 9 did not cover this amendment. The same reconciliation text also says matrix/roadmap/plan/checker bytes are unchanged from round 9, while this bundle contains the 2026-09-12 manual-execution amendment **and** the CASE-HY-6 `types.ts` third edge. Those cannot both be true unless the closeout draws a hard line between **historical merged core** and **current amended candidate**.\n\n**Action before TRIAGE acceptance**\n1. Hash the exact amended `specs/phase-plans-v2.md`, matrix, GUARD plan, `verify-triage.mjs`, and closeout JSON as the panel input.\n2. Record this review against those bytes. Do not reuse round-9 AGREE.\n3. Keep the historical runner snapshot pending; reconcile it only with a supported harness operation.\n4. Point `IF-0-TRIAGE-1` at the accepted **manual** receipt (or a TRIAGE.json that aliases it). Do not let `plans/evidence/v2/TRIAGE.json` or a clean pending-closeout snapshot stand in as the freeze.\n5. Set GUARD `roadmap_sha256` to that same accepted roadmap digest. Two unexplained pins will poison later `GUARD-closeout.json`.\n\nUntil that bind, EC-TRIAGE-3 is not done: the closeout itself says the current manual amendment awaits review.\n\n---\n\n### P1 \u2014 Green TRIAGE checker / Faraday inspection \u2260 dispositions proven, and CASE-HY-6 may be unchecked\n\n`node plans/evidence/v2/verify-triage.mjs` exit 0 is a structural inventory (55 IDs, 28 N/Q cases, 4 cross-cutting, negatives, whitespace). It is not behavioral remediation and not proof that CASE-HY-6 names the three live edges.\n\nRound 7 recorded **two** type-only `OmnigentProviderMode` imports. The 2026-09-12 amendment adds `packages/identity-isolation/src/types.ts` \u2192 `../../omnigent-transport/src/types.js`. That is the correct GUARD posture: baseline the three **existing** edges, fail new/altered escapes, leave ID-1 repair and baseline removal on PREP/omniagent-plus#27. A three-row inventory is not an ID-1 fix.\n\n**Proof gap:** if `verify-triage.mjs` still encodes the two-file list, a green TRIAGE run is a false pass of the amendment. If it only counts case rows and does not pin paths, say so explicitly; then GUARD SL-0 AST recursion is the only control, and it must fail any **fourth** relative production import, including `import type`, re-export, and dynamic import\u2014not only `OmnigentProviderMode`.\n\nDo not start GUARD SL-0 until the checker hash and CASE-HY-6 path list match the source inventory used as the baseline.\n\n---\n\n### P2 \u2014 GUARD is executable in shape; freeze the SQL topology and keep later-phase tests out of SL-0\n\nGUARD vs others is mostly right:\n\n| Owner | Must do | Must not claim |\n| --- | --- | --- |\n| **GUARD** `#20` | One `pnpm verify` (frozen install, build, lint, typecheck, tests, pack smoke); injected stage failure stops later stages; hosted Ubuntu PR/main/release same gate; OIDC only on publish; disposable PG + roles + unmodified migrations + `ON_ERROR_STOP`; missing DB fails, never skip-green; HY-1/5/6 inventory; three-edge HY-6 baseline | Hosted Supabase, RLS, lease semantics, ID-1 repair, license |\n| **DATA** `#21/#22` | Content policy, SL-5-before-strictness, lock-free ledger snapshot, initialized-identity locks | Lease-store query behavior |\n| **COORD** `#23/#24` | Distinct local vs fleet leases, RPC wrapper/CLI-2, blocked-query fail-closed, worktree SL-2/3 equivalents, client-visible grants | Superuser SQL as service_role/RLS proof |\n| **WIRE / INTEG / PREP / SHIP** | Unchanged from roadmap DAG | Not GUARD work |\n\n**Still required on the GUARD plan before SL-0:**\n\n1. **Pin the PostgreSQL image/tag** in `.github/workflows/` / `scripts/prepare-test-postgres.mjs`. \u201cVersion-pinned\u201d with no pin is not a frozen gate.\n2. **Limit SL-0 file ownership.** `packages/state-ledger/src/cross-process.test.ts`, `packages/worktree-leasing/src/locks.test.ts`, `race-proof.test.ts`, and `supabase-lease-store.test.ts` may gain hang/timeout/cleanup/fail-propagation only. Do not change DATA crash/fsync or COORD lease/RPC expectations in GUARD.\n3. **Privilege boundary (do not over-claim).** Role attributes in the plan are the right GUARD control (`anon`/`authenticated`: `NOLOGIN NOSUPERUSER NOBYPASSRLS`; `service_role`: `NOLOGIN NOSUPERUSER BYPASSRLS`; installer = disposable superuser; `psql -X`; sorted unmodified `supabase/migrations/*.sql`; `SET ROLE` + `coordination_acquire_lease` / `coordination_query_leases`). `SECURITY DEFINER` means those probes are **setup/function-existence** proof. They do not show client RLS/RPC denial. COORD must test caller-visible behavior; GUARD docs must not say RLS was verified.\n4. Keep `scripts/verify.mjs` free of an env/CI skip that can green the full gate. Fake-stage falsifiers plus one real end-to-end `pnpm verify` remain both required (`EC-GUARD-1`).\n\n`pnpm test` before build failing export resolution is a useful baseline note, not GUARD acceptance.\n\n---\n\n### P3 \u2014 Non-blocking, keep as owned comments (not TRIAGE holes)\n\n- **Worktree query under blocked locks:** retaining `LocalLeaseStore.query` \u2192 `withFilesystemLock` fail-closed is compatible with decision 3. Lock-free inspection is DATA/`EC-DATA-3` only. COORD/omniagent-plus#24: blocked-query negative, unlocked positive, no empty-success, no mutation.\n- **Stale Git registration:** may block **later acquisition**, not the missing-path metadata transition. Keep that COORD case; no prune/bypass.\n- **SL-2/3 worktree subclaims:** `#22` keeps the IDs; do not close those subclaims before COORD `EC-COORD-3/4` on `#24`.\n- **Recovery cause/actor:** DATA freezes release-record provenance; COORD/INTEG prove metadata recovery is not holder-release in replay/UI.\n- **HY-2** stays `#20` decide / `#27` implement; not a GUARD exit.\n- Cross-container PID/liveness stays fail-closed for DATA tests.\n\n---\n\n### What is already good enough (after P1 bind)\n\n- All 55 IDs + \u00a7\u00a73.1\u20133.4 have owners and phases; 28 N/Q + 4 cross-cutting cases exist; decisions 1\u20137 cover content/paths, recovery-before-validation, distinct lease APIs, established-session identity, composition/supervision, hosted-Ubuntu CI, and license ownership.\n- Manual alternative records failed command, exact substitute, hashes, and EC/IF decisions in `*-closeout.json` and states that an accepted manual record is **not** a successful run of the broken automation.\n- No credentialed npm, no FABPUB override, no production DB, no harness copy-in.\n- Four-seat historical reviews are usable provenance; unavailable/refusing seats are not approval. This seat does not ratify round 9.\n\n**Source limit:** this review used only the digest-bound bundle. Faraday/coordinator claims (`parseCliArgs`, empty runtime diff, live issue owners, three import edges) are unverified here.\n\nAfter P1 hash/receipt/IF-gate bind and P2 PG pin + AST/third-edge consistency, TRIAGE may produce `IF-0-TRIAGE-1` on the **manual** route and GUARD SL-0 may execute. Not before.\n\nPARTIALLY AGREE\n",
+        "detail": null,
+        "seat_key": "grok:grok-4.6:max:adversarial"
+      },
+      {
+        "leg": "claude",
+        "status": "DEGRADED",
+        "text": "",
+        "detail": null,
+        "seat_key": "claude:claude-fable-5-1:max:correctness"
+      },
+      {
+        "leg": "codex",
+        "status": "OK",
+        "text": "The manual closeout amendment is a valid separate acceptance route. GUARD is substantially specified, but the supplied record leaves these acceptance and execution-readiness gaps:\n\n1. **P1 \u2014 Current TRIAGE acceptance remains pending.** `plans/evidence/v2/TRIAGE-closeout.json` explicitly has `pending_amendment_review`, a pending amendment panel, and no produced IF gates. Its hashes identify historical merged content; they do not bind verification and acceptance to the amended roadmap, three-edge baseline, and GUARD plan. Record current candidate hashes, bind verification results to those bytes, reconcile current independent reviews, and explicitly accept EC-TRIAGE-1/2/3 and IF-0-TRIAGE-1 before GUARD implementation. Preserve the runner\u2019s pending state and identify the successful route as manual.\n\n2. **P2 \u2014 Verification-to-publication source binding needs an explicit contract.** `plans/phase-plan-v2-GUARD.md`, SL-0, requires publication to depend on verification, but does not explicitly freeze how `.github/workflows/verify.yml` and `.github/workflows/publish.yml` select the same source revision and package inputs. A successful dependency alone does not establish that relationship. Specify the binding and add a falsifier for divergent verification/publication inputs. GUARD owns this workflow wiring; PREP owns candidate preparation and SHIP owns authorized dispatch and registry receipts.\n\n3. **P2 \u2014 Disposable-database rejection lacks a concrete acceptance control.** SL-0 requires rejecting non-disposable configuration, yet its listed negative controls exercise connection, migration, role, and function failures. They do not establish rejection of a reachable, ineligible database **before** privileged bootstrap writes. Define destination eligibility and test rejection before any role creation or migration execution in `scripts/prepare-test-postgres.mjs`. The installer/service-role distinction is otherwise appropriately explicit. COORD retains client-visible permission, RPC, and behavioral acceptance; SECURITY DEFINER execution cannot substitute for that evidence.\n\n4. **P2 \u2014 The third import exception needs current source evidence.** `plans/audit-remediation-disposition-20260905.md`, CASE-HY-6, narrowly defines three exceptions and requires PREP removal, which is sound. However, the supplied bundle contains no import source or current source-audit artifact establishing the added `packages/identity-isolation/src/types.ts` edge. Bind that inventory to candidate source bytes before accepting the amendment. Historical two-edge reviews cannot establish the corrected inventory. The planned new/altered-edge and stale-exception controls should remain mandatory.\n\nThese are planning and proof gaps; the supplied excerpts do not establish implementation defects. DATA\u2019s recovery/content work, COORD\u2019s ownership and RPC work, WIRE\u2019s transport corrections, INTEG\u2019s supervision, and PREP\u2019s pending license decision remain appropriately assigned. Their unresolved product behavior does not block TRIAGE or GUARD planning.\n\nThis review supplies independent evidence for coordinator reconciliation; it does not itself produce phase acceptance.\n\nPARTIALLY AGREE",
+        "detail": null,
+        "seat_key": "codex:gpt-6-astra:max:red-team"
+      },
+      {
+        "leg": "gemini",
+        "status": "OK",
+        "text": "# Independent Review: omniagent-plus v2 TRIAGE Acceptance & GUARD Execution Readiness\n\n## 1. Executive Summary & Review Scope\n\nThis review evaluates the candidate artifacts for **omniagent-plus v2 TRIAGE phase closeout** and **GUARD phase execution readiness**, specifically examining:\n- `specs/phase-plans-v2.md` (Roadmap v2 with 2026-09-12 Manual Execution and CASE-HY-6 amendments)\n- `plans/phase-plan-v2-GUARD.md` (GUARD detailed execution plan)\n- `plans/audit-remediation-disposition-20260905.md` (Audit finding disposition matrix)\n- `plans/evidence/v2/TRIAGE-closeout.json` (TRIAGE manual closeout record)\n- `plans/evidence/v2/TRIAGE-reviews.md` (Historical and reconciliation review evidence)\n\nThe review explicitly honors the maintainer's 2026-09-12 authorization to use manual closeout alternatives to broken Agent Harness automation (incident `agent-harness#831`) without compromising verification rigour, governance authority, or publishing integrity.\n\n---\n\n## 2. TRIAGE Acceptance & Manual Closeout Evaluation\n\n### 2.1 Inventory & Disposition Completeness (EC-TRIAGE-1, EC-TRIAGE-2)\n- **Finding Accounting**: All 55 named audit finding IDs, sections 3.1\u20133.4, and the 28 N/Q case definitions (`CASE-SL-7` through `CASE-HY-6`, `CASE-3.1` through `CASE-3.4`) are comprehensively mapped with explicit dispositions, required outcomes, and tracking issues (`omniagent-plus#19` through `omniagent-plus#27`).\n- **Architectural Freezes**:\n  - *Content Policy*: Clear partition between runtime prompt allowance and strict sanitization at persistence, diagnostics, handoff, and CLI/UI projections (`CASE-CC-3`, `CASE-CC-5`).\n  - *Recovery Ordering*: `SL-5` safe corruption handling precedes stricter `CC-2`/`CC-3` validation. Crash recovery preserves unparseable bytes and blocks unprovable locks without automatic break-lock.\n  - *Lease Authority*: Local worktree leasing (`WorktreeLeaseManager`) and off-device fleet leasing (`LeaseStore`) are preserved as distinct contracts. Missing worktree directories reconcile metadata durably (`WL-3`, `WL-4`) without Git pruning.\n  - *Session Identity*: Turn dispatch checks established session identity rather than absent create fields (`CO-3`).\n\n### 2.2 Manual Amendment Integrity\n- The amendment in `specs/phase-plans-v2.md` properly preserves the failing Agent Harness runner history rather than fabricating a \"passed\" automated verdict.\n- Running `verify-triage.mjs` directly (55 finding IDs, 28 N/Q cases, 4 cross-cutting cases, 6 negative controls) provides verifiable structural proof.\n- **Closeout State**: In `plans/evidence/v2/TRIAGE-closeout.json`, `review.amendment_panel` is recorded as `\"pending\"`, and `produced_if_gates` is currently `[]`. TRIAGE substantive checks have passed, but formal closeout requires coordinator reconciliation of this review.\n\n---\n\n## 3. GUARD Execution Readiness & Boundary Evaluation\n\n### 3.1 Work Breakdown & Tooling (SL-0)\n- The execution plan in `plans/phase-plan-v2-GUARD.md` structures verification into three strictly serial, single-worker lanes:\n  - `SL-0`: Shared gate, disposable PostgreSQL bootstrap, AST boundary enforcement, and child-process timeout harness.\n  - `SL-1`: Documentation claim truthfulness and audit section-6 inventory.\n  - `SL-2`: Integrated four-agent panel review, clean candidate evidence, and reducer verification.\n- **Fail-Propagating Gate**: `pnpm verify` establishes a unified command running install, build, lint, typecheck, boundary enforcement, mandatory PostgreSQL setup, tests, and package smoke. Any stage failure halts subsequent execution.\n- **Build Pre-requisite**: The plan correctly identifies that package exports resolution requires `pnpm build` prior to running root tests.\n\n### 3.2 Privilege Boundaries & Test Isolation\n- **Disposable PostgreSQL (`scripts/prepare-test-postgres.mjs`)**:\n  - Bootstraps `anon` and `authenticated` with `NOLOGIN NOSUPERUSER NOBYPASSRLS`.\n  - Bootstraps `service_role` with `NOLOGIN NOSUPERUSER BYPASSRLS`.\n  - Prohibits `CREATEDB`, `CREATEROLE`, and `REPLICATION`.\n  - Applies migrations unmodified using `psql -X` with `ON_ERROR_STOP=1`.\n- **Privilege Separation**: Superuser rights are used exclusively during the setup script. Testing `coordination_query_leases` uses `SET ROLE service_role`.\n- **AST Dependency Enforcement (`scripts/check-dependency-boundaries.mjs`)**:\n  - The 2026-09-12 CASE-HY-6 correction pins exactly three existing type-only imports of `OmnigentProviderMode`:\n    1. `packages/identity-isolation/src/process-profile.ts`\n    2. `packages/identity-isolation/src/omnigent-isolation-policy.ts`\n    3. `packages/identity-isolation/src/types.ts`\n  - Any new escape, value import, or stale baseline entry fails the gate. Runtime source repair remains strictly assigned to PREP (`omniagent-plus#27`).\n\n---\n\n## 4. Prioritized Actionable Findings & Proof Gaps\n\n### Finding 1: Roadmap Hash Discrepancy between Closeout and Plan (Priority A)\n- **Location**: `plans/evidence/v2/TRIAGE-closeout.json` vs. `plans/phase-plan-v2-GUARD.md`\n- **Issue**: `TRIAGE-closeout.json` records `\"specs/phase-plans-v2.md\": \"b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93\"`, which represents the merged PR #28 commit (`8d6b7c1`). However, `phase-plan-v2-GUARD.md` binds to `roadmap_sha256: ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c`, reflecting the 2026-09-12 Manual Execution amendment.\n- **Action Required**: `TRIAGE-closeout.json` must be updated during coordinator reconciliation to reference the amended roadmap digest (`ee1f3152...`) alongside the historical merge base hash to ensure exact artifact synchronization across phase boundaries.\n\n### Finding 2: TRIAGE Gate Emission State (Priority A)\n- **Location**: `plans/evidence/v2/TRIAGE-closeout.json`\n- **Issue**: `TRIAGE-closeout.json` currently has `\"status\": \"pending_amendment_review\"` and `\"produced_if_gates\": []`. GUARD's execution prerequisites explicitly require `IF-0-TRIAGE-1`.\n- **Action Required**: The coordinator must formally record this review's reconciliation in `TRIAGE-closeout.json`, transition `status` to `\"accepted\"`, and populate `produced_if_gates` with `[\"IF-0-TRIAGE-1\"]` before authorizing execution of GUARD `SL-0`.\n\n### Finding 3: Runtime Test Environment Privilege Boundary (Priority B)\n- **Location**: `plans/phase-plan-v2-GUARD.md` (`SL-0`), `scripts/prepare-test-postgres.mjs`\n- **Issue**: While `prepare-test-postgres.mjs` tests `SET ROLE service_role`, integration test runners (e.g., `pnpm test:integration`) could accidentally inherit superuser database credentials if `DATABASE_URL` defaults to the postgres installer connection. Superuser execution bypasses table RLS and disguises permission defects.\n- **Action Required**: GUARD's database setup script must output or inject an explicit, non-superuser connection string (scoped to `service_role` or application test roles) for `pnpm test:integration`. The gate must assert that test suites fail if run against superuser credentials.\n\n### Finding 4: CI/Local Environment Failure-Propagation Enforcement (Priority B)\n- **Location**: `.github/workflows/verify.yml`, `scripts/verify.mjs`\n- **Issue**: Environment detection must not permit silent test skipping. An unavailable Docker daemon or PostgreSQL port must immediately exit nonzero.\n- **Action Required**: `scripts/verify.mjs` and `tests/guard/**` must include explicit negative controls proving that missing PostgreSQL services result in a hard failure, preventing \"skip-only green\" in both PR and release workflows.\n\n### Finding 5: Readiness Contract & Docs Synchronization (Priority C)\n- **Location**: `packages/cli/src/hardening-readiness.test.ts`, `docs/hardening-readiness.md`\n- **Issue**: Phrase-based assertions in `packages/cli/src/hardening-readiness.test.ts` and `fixtures/hardening/readiness/docs-contract.json` will fail immediately upon editing documentation in `SL-1`.\n- **Action Required**: `SL-1` execution must update `docs-contract.json` and `docs/hardening-readiness.md` atomically within the same commit.\n\n---\n\n## 5. Phase Ownership & Boundary Matrix\n\n| Scope Item | GUARD Responsibility | Deferred Phase Owner | Boundary / Rationale |\n| :--- | :--- | :--- | :--- |\n| **Fail-propagating Gate** | Owns `pnpm verify`, workflow configs, CI failure propagation | SHIP (`publish.yml`) | GUARD builds the gate; SHIP executes release dispatch. |\n| **PostgreSQL Setup** | Owns role bootstrap, migration error-stop, function resolution | COORD (`omniagent-plus#24`) | GUARD provides the disposable DB; COORD owns RPC wrappers and lease concurrency logic. |\n| **ID-1 Import Boundaries** | Baseline exact 3 type-only edges via AST checker; reject changes | PREP (`omniagent-plus#27`) | GUARD freezes escapes; PREP implements runtime source repairs. |\n| **Durable Ledger & Locks** | Test process group timeouts; verify process-test cleanup | DATA (`omniagent-plus#22`) | DATA owns crash-consistency, sequence allocation, and lock recovery semantics. |\n| **Claim Inventory** | Reconcile audit section 6 claims with truthful wording | INTEG (`omniagent-plus#26`) | GUARD documents actual limits; INTEG implements lifecycle operator composition. |\n\n---\n\n## 6. Review Conclusion & Verdict\n\nThe v2 TRIAGE inventory is complete, substantive architectural boundaries are cleanly frozen, and the manual closeout amendment provides an honest, auditable mechanism that bypasses broken tooling without compromising standards. The GUARD execution plan is tightly scoped, prevents scope creep into PREP/DATA/COORD, and establishes solid failure-propagation controls.\n\nExecution of GUARD should proceed immediately upon coordinator reconciliation of the roadmap hash and formal emission of `IF-0-TRIAGE-1`.\n\nPARTIALLY AGREE\n",
+        "detail": null,
+        "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach"
+      }
+    ],
+    "president": null,
+    "president_findings": []
+  },
+  "acceptance": "raw review evidence only; coordinator reconciliation required",
+  "policy": {
+    "required_seats": [
+      "fable",
+      "sol",
+      "gemini",
+      "grok"
+    ],
+    "requires_president": false
+  },
+  "authority": "User 2026-09-12 authorizes manual alternatives to broken orchestration; see roadmap amendment. No automated president ruling claimed."
+}

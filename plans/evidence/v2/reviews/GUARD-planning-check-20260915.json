@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-15T07:53:35.931470+00:00",
+  "command": "node plans/evidence/v2/verify-triage.mjs",
+  "exit": 0,
+  "scope": "structural only; no IF/phase acceptance",
+  "matrix_sha256": "2ec237f5903c8ede6544feb35cb3948e5d762cef988acf05c4e8e1ff0bc4209d",
+  "roadmap_sha256": "ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c",
+  "stdout": "{\"findings\":55,\"nqCases\":28,\"crossCutting\":4,\"negativeControls\":6}\nvalidate_roadmap: OK \u2014 8 phase(s) in specs/phase-plans-v2.md\nTRIAGE structural verification passed; content review and phase acceptance remain separate.\n",
+  "stderr": ""
+}

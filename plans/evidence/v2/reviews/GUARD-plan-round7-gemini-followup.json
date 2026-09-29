@@ -1,0 +1,216 @@
+{
+  "schema": "guard-review-followup.v1",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537",
+    "plans/evidence/v2/TRIAGE-closeout.json": "dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a",
+    ".phase-loop/guard-source-evidence.md": "4985ddd7c1ffc4f5dbf48c3b24589862a25b72a477024d705c9a064dcebdd36f",
+    ".phase-loop/guard-plan-round7/review-bundle.md": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b",
+    ".phase-loop/guard-plan-round7/review-instructions.md": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287"
+  },
+  "inputs_unchanged": true,
+  "elapsed_s": 106.84334170998773,
+  "board": {
+    "name": "guard-gemini-followup",
+    "purpose": "review-followup",
+    "seats": [
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "reason": "One focused retry after native round-7 stream parse_error; same exact review material; no other seat restarted",
+  "acceptance": "One seat only; not a completed panel, phase acceptance or IF gate",
+  "result": {
+    "legs": [
+      {
+        "leg": "gemini",
+        "status": "ERROR",
+        "text": "",
+        "detail": null,
+        "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach",
+        "harden_isolation_evidence": {
+          "schema": "parent_unix_broker_v1",
+          "stage_bundle_sha256": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b",
+          "stage_instructions_sha256": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+          "leg_authorization_instructions_sha256": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+          "leg_authorization_issued_monotonic_ns": 368085681642278,
+          "leg_authorization_expires_monotonic_ns": 369887681642278,
+          "canonical_repo_sha256": "73e81678a2f417270825cad57774a9bd9d98f21550e53312b04dae9f2c42f193",
+          "canonical_repo_probe_file_sha256": "9111f1349d13426ed948b49a65c669d7871bbbaaee06382073978cfa30464b79",
+          "cleanup_root_removed": true,
+          "child_quiescent": true,
+          "provider_input_sha256": "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516",
+          "provider_input_bytes": 54686,
+          "provider_input_inline": true,
+          "provider_live_tree_cwd": false,
+          "peer_pid": 2523664,
+          "peer_uid": 1000,
+          "peer_gid": 1000,
+          "peer_ancestry_verified": true,
+          "provider_isolation_profile": "agy_temp_home_deny_all_v1",
+          "provider_agy_deny_actions": [
+            "read_file(*)",
+            "write_file(*)",
+            "read_url(*)",
+            "execute_url(*)",
+            "command(*)",
+            "unsandboxed(*)",
+            "mcp(*)"
+          ],
+          "provider_agy_settings_sha256": "5cb57385b5d96a89f2ca6c050b4178985c1566ca7643605b903d3ccfedf2ac76",
+          "provider_agy_subscription_reference": "private_symlink",
+          "provider_agy_home_cleanup_verified": true,
+          "provider_harness": "gemini",
+          "provider_model": "gemini-3.8-flash-high",
+          "provider_argv_shape": [
+            "agy",
+            "--model",
+            "gemini-3.8-flash-high",
+            "--sandbox",
+            "--mode",
+            "plan",
+            "--disable-slash-commands",
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--print=",
+            "--print-timeout",
+            "1800s",
+            "<STDIN_SEALED_INLINE_PROMPT>"
+          ],
+          "provider_argv_sha256": "ca702c89b3e74eaa7f6601d494130d7bbd1e74697700ee472eda0ce4242fe669",
+          "provider_prompt_sha256": "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516",
+          "provider_prompt_bytes": 54686,
+          "provider_transport_sha256": "fef9a2cf2036093ca2c04f1d5ec6e3893d07418060be317734ce93cb2c8eacb5",
+          "provider_transport_bytes": 57707,
+          "provider_prompt_transport": "stream_json_same_session_ingestion",
+          "provider_cwd_class": "owned_empty_scratch",
+          "provider_cwd_sha256": "2762f26f155222949c7d86b773c7e010e518c747d854782420a5ebbb10e33b9b",
+          "provider_env_keys": [
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "NO_COLOR",
+            "PATH",
+            "TERM",
+            "XDG_CONFIG_HOME"
+          ],
+          "provider_env_api_keys_scrubbed": true,
+          "provider_env_direct_routes_scrubbed": true,
+          "provider_no_tool_controls": [
+            "sandbox",
+            "mode-plan",
+            "disable-slash-commands",
+            "deny-all-actions",
+            "stream-json-same-session-ingestion",
+            "no-add-dir",
+            "no-dangerous-permissions"
+          ],
+          "provider_stream_protocol": "agy_ndjson_same_session_ingestion_v1",
+          "provider_stream_chunk_count": 1,
+          "provider_stream_chunk_sha256": [
+            "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516"
+          ],
+          "provider_stream_chunk_bytes": [
+            54686
+          ],
+          "provider_stream_final_event_sha256": "0333c866196b271deb0e6ffa26a37742fa1bd068c097acbf9d4410d8d9bc2baa",
+          "provider_stream_acknowledgements": [
+            "HARDEN-AGY-CHUNK-ACK 8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516 1/1 8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516"
+          ],
+          "provider_stream_result_count": 0,
+          "provider_stream_output_sha256": "fdfd4a59dd5cffe4184302e6c9fe56225b6e4c91914e1a3ac0a953a2c58183c3",
+          "provider_stream_output_bytes": 63554,
+          "provider_stream_outcome": "parse_error",
+          "provider_stream_acknowledgements_verified": false,
+          "provider_stream_final_no_truncation": false,
+          "bwrap": "/usr/bin/bwrap",
+          "outer_bwrap_pid": 2523662,
+          "outer_bwrap_start": 36808571,
+          "network_unshared": true,
+          "close_fds_requested": true,
+          "socket": "/run/phase-loop-broker/intended-inference.sock",
+          "stage": "/run/phase-loop-review",
+          "argv_sha256": "0d5632797a4ca7bcc4b17f27ea730800d2a65f6ee14e60fd1c8c20cb3798ec04",
+          "socket_present_before_launch": true,
+          "stage_bundle_mode": 256,
+          "stage_instructions_mode": 256,
+          "client_probe_program_sha256": "6ca9f9df09f1976519967d8633ce02833a3ea5909557f5968af40233dd5f1dd3",
+          "client_probe_assertions": [
+            "credentialless_env",
+            "readonly_stage",
+            "no_live_bundle",
+            "no_live_instructions",
+            "no_host_secret",
+            "no_live_tree",
+            "no_inherited_fd",
+            "fixed_socket_only",
+            "no_af_inet"
+          ],
+          "canonical_repo_file_denied": true,
+          "canonical_repo_directory_denied": true,
+          "host_stage_path_denied": true,
+          "child_returncode": 0,
+          "no_inherited_fd_observed": true,
+          "child_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "operation_deadline_s": 1800.0,
+          "child_timeout": false,
+          "broker_thread_quiescent": true,
+          "provider_adapter_quiescent": true,
+          "provider_cancel_requested": false,
+          "host_secret_probe_removed": true,
+          "provider_response_status": "ERROR",
+          "provider_response_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "provider_response_bytes": 0
+        }
+      }
+    ],
+    "president": null,
+    "president_findings": []
+  }
+}

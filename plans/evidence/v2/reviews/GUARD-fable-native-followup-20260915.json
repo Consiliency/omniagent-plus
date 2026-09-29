@@ -1,0 +1,42 @@
+{
+  "schema": "guard-review-followup.v1",
+  "candidate_head": "332c9accf121d828b6817eabd79f63eb37be9641",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537",
+    "plans/evidence/v2/TRIAGE-closeout.json": "dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a",
+    ".phase-loop/guard-source-evidence.md": "4985ddd7c1ffc4f5dbf48c3b24589862a25b72a477024d705c9a064dcebdd36f",
+    ".phase-loop/guard-plan-round7/review-instructions.md": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+    ".phase-loop/guard-plan-round7/review-bundle.md": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b"
+  },
+  "native_record_sha256": "d2207be0e42185330c13f1db28aced7d81168dbee52f7f47cb2ec1b32255ee23",
+  "runtime_sha256": "e322bfb4ca2b823ad85baf02741d26fef0d8f5c870340eb5d36fcb51331a1f53",
+  "started_at": "2026-09-15T07:36:48.035464+00:00",
+  "finished_at": "2026-09-15T07:45:21.781095+00:00",
+  "profile": "diagnostic_extended_quiet_v1",
+  "maximum_seconds": 1200,
+  "other_seats_restarted": false,
+  "status": "OK",
+  "usable": true,
+  "verdict": "PARTIALLY AGREE",
+  "text": "| Input | END marker (quoted) | Fact near the end |\n|---|---|---|\n| INPUT-1 `plans/phase-plan-v2-GUARD.md`, sha256 80aa9de4\u2026 | `END-INPUT-1-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` | Spec Closeout Plan records decision `no_spec_delta`, redaction posture `metadata_only`, downstream handling `none`. |\n| INPUT-2 `plans/evidence/v2/TRIAGE-closeout.json`, sha256 dcff1bee\u2026 | `END-INPUT-2-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` | `migration_inspection` names `supabase/migrations/20260708215513_coordination_leases.sql`, sha256 9457176c\u2026, and states \"Acquire is signature-only in GUARD.\" |\n| INPUT-3 `.phase-loop/guard-source-evidence.md`, sha256 4985ddd7\u2026 | `END-INPUT-3-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` | Final observation reads \"Existing file ownership still requires amendment before any unowned fix.\", preceded by `END-SOURCE-EVIDENCE`. |\n\nSections S1 through S9 are all present, each closed by its own `END-S1` \u2026 `END-S9` marker. The final marker `END-BUNDLE-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` is present. Nothing is MISSING. Frame digests cannot be recomputed here and are not claimed verified. Correlation marker: GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d.\n\nChecks that pass on the supplied content. The roadmap hash in the plan front matter equals the receipt's amended roadmap hash. The three verbatim imports and line numbers in the receipt match S3 to S5 exactly. The S9 checker matches the receipt's structural scope, and a missing roadmap validator throws instead of skipping. The PostgreSQL 17 role design is correct as written, since a NOINHERIT grantee yields a non-inheriting membership, and the SECURITY DEFINER limitation is acknowledged. The tested_source_sha derivation is right for all four event types. A guard-required job that fails on skipped or cancelled verification is the correct answer to GitHub's neutral-skip behavior.\n\nFindings, highest priority first.\n\n1. **Hosted destructive fixtures contradict the hosted topology as written.** Destructive setup controls must run in separate owned disposable instances and their case IDs must execute in every verify run, yet hosted configuration \"uses the workflow-owned service.\" Both hold only if the Docker launcher path also runs on the hosted runner for those instances while the service remains the admitted shared fixture. State that in one sentence. Also name the explicit hosted mode selector and the fixture parameter names the workflow passes, so a differently named ambient URL cannot slip past the no-ambient-DATABASE_URL rule.\n\n2. **CASE-HY-6 baseline completeness needs a pre-SL-0 inventory.** The literal scan covers only the `types.js` target in `*.ts` files. The AST control fails on any additional pre-existing edge, so a fourth cross-package relative import discovered during SL-0 forces a mid-lane ownership amendment. Run a broader inventory now across all source extensions for any relative import into another package's src directory and record it in the external binding. This is inventory, not proof.\n\n3. **The full gate is not yet noncredentialed against the live opt-in.** verify clears DB enablement, but nothing clears `OMNIAGENT_PLUS_LIVE_OMNIGENT` or provider credentials before the single root invocation. Require the gate to strip them and to assert the skip set equals exactly the documented live case. Otherwise a local closeout run can include a live call, and an unexpected skip can hide behind the expected one.\n\n4. **Bind the artifact manifest's own digest out of band.** Emitted outputs cover source SHA, lockfile and package manifest digests, not the artifact manifest's SHA-256. A replaced manifest-plus-tarball pair inside the artifact would satisfy internal checks. Emit the manifest digest as a producer job output and require rehearsal and publication to match the downloaded manifest against it before any tarball check.\n\n5. **Readiness bound versus cold image pull.** Readiness is frozen at 30 seconds and the image must not be assumed cached. Specify that the launcher pulls the pinned digest as a separately bounded step before the readiness clock starts, or cold local runs fail spuriously.\n\n6. **Recording-only contract has one tension.** `criteria.EC-TRIAGE-3` is allowlisted while the material-change rule names criteria. Constrain that edit to replacing the trailing \"awaits review\" clause with the recorded panel outcome, preserving the substantive-check text, and store exact before and after strings in the binding. The verify-triage entry also lacks a run date and the matrix hash it ran against. Record both in the external binding, since the `verification` array is not allowlisted.\n\n7. **Owned-file completeness is unverifiable from the bundle.** Only ci.yml, verify.yml and publish.yml are owned. Confirm before SL-0 starts that the existing npm release workflow is exactly publish.yml and that no other workflow invokes the publish helper. If not, amend ownership first. Also name the runtime output path of the SL-0 SQL receipt so the producer never writes the SL-2-owned evidence file.\n\n8. **Low priority.** Grant service_role membership with explicit INHERIT FALSE and SET TRUE rather than relying on version defaults. For SL-2, record whether protection requires up-to-date branches, or cite the post-merge main verification run for the merged SHA, because a merge commit differs from the tested PR head.\n\nNot gaps. Worker environment isolation, null-exit propagation, tampered-tarball rejection, hostile ambient settings and the AST negative controls are tests due in SL-0. COORD owns RPC and RLS behavior, PREP owns the ID-1 source repair and packaging proof, and SHIP owns OIDC exchange and registry acceptance. No literal scan, SQL setup or dry run in this bundle is treated as behavioral or hosted proof.\n\nThe plan's substance is sound and needs no redesign. Items 1 and 3 are contradictory or missing test requirements in the plan text, and item 2 should land before SL-0 to avoid a forced mid-lane amendment. A small scoped amendment plus a fresh exact-candidate four-seat review resolves them. No IF gate is produced by this review.\n\nPARTIALLY AGREE",
+  "binding": {
+    "stage_bundle_sha256": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b",
+    "stage_instructions_sha256": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+    "provider_input_sha256": "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516",
+    "provider_input_bytes": 54686,
+    "provider_model": "claude-fable-5-1",
+    "provider_env_api_keys_scrubbed": true,
+    "provider_env_direct_routes_scrubbed": true,
+    "provider_liveness_stall_threshold_s": 900.0,
+    "claude_transcript_sha256": "232e9cadf202ca2112eaffda3c3c741c8938620fd7b682823eba24b446d81762",
+    "claude_transcript_bytes": 237165,
+    "claude_transcript_cleanup_verified": true,
+    "child_quiescent": true,
+    "provider_adapter_quiescent": true,
+    "broker_thread_quiescent": true,
+    "provider_cancel_requested": false
+  },
+  "retained_transcript_bytes_verified": true,
+  "phase_accepted": false,
+  "production_liveness_claim": false
+}

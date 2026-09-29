@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false,
+    "allowJs": true,
+    "checkJs": true,
+    "allowImportingTsExtensions": true,
+    "noImplicitAny": false,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "scripts/verify.mjs", "scripts/prepare-test-postgres.mjs",
+    "scripts/check-dependency-boundaries.mjs", "scripts/pack-verified-packages.mjs",
+    "scripts/verify-publish-artifacts.mjs", "scripts/smoke-packed-omnigent-transport.mjs",
+    "tests/guard/**/*.ts", "tests/helpers/guard-process.ts",
+    "tests/helpers/guard-postgres.ts", "tests/helpers/guard-stages.ts"
+  ]
+}

@@ -1,0 +1,142 @@
+import { expect, it } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { configDefaults } from "vitest/config";
+import { cleanEnvironment, ProcessScope, runProcess } from "../helpers/guard-process.js";
+import { suiteEnvironment } from "../../scripts/verify.mjs";
+import { awaitReadiness, connectionEnvironment, createFixture, pullImage, validateMetadata, IMAGE, PLATFORM } from "../../scripts/prepare-test-postgres.mjs";
+
+it("scrubs hostile SQL, live opt-in, provider keys and routes before test launches", () => {
+  const hostile = { PATH: process.env.PATH, HOME: process.env.HOME, GUARD_INTEGRATION_REQUIRED: "1", GUARD_TEST_DATABASE_URL: "hostile", DATABASE_URL: "hostile", PGHOSTADDR: "hostile", PGOPTIONS: "hostile", PGSERVICEFILE: "hostile", PGPASSFILE: "hostile", PGSSLMODE: "hostile", SUPABASE_URL: "hostile", OMNIAGENT_PLUS_LIVE_OMNIGENT: "1", OMNIAGENT_PLUS_LIVE_OMNIGENT_BASE_URL: "http://127.0.0.1:1", OMNIAGENT_PLUS_LIVE_OMNIGENT_BEARER_TOKEN: "hostile", OMNIGENT_AGENT_ID: "hostile", OPENAI_API_KEY: "hostile", ANTHROPIC_BASE_URL: "hostile" };
+  expect(suiteEnvironment(undefined, hostile)).toEqual({ PATH: process.env.PATH, HOME: process.env.HOME });
+  expect(cleanEnvironment(hostile)).toEqual(suiteEnvironment(undefined, hostile));
+  const env = connectionEnvironment({ port: 1234, password: "synthetic", runDir: "/nonexistent/fixture" });
+  expect(env.PGHOSTADDR).toBe("127.0.0.1");
+  expect(env.PGOPTIONS).toBe("-c statement_timeout=10000");
+  expect(env.PGSSLMODE).toBe("disable");
+  expect(env.PGSERVICEFILE).toBe("/nonexistent/fixture/absent-service");
+  expect(env).not.toHaveProperty("DATABASE_URL");
+});
+it("retains Vitest dependency exclusions without clearing the assertion worker's custody", async () => {
+  const before = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith("GUARD_CUSTODY_") || key.startsWith("GUARD_ADMITTED_") || key === "GUARD_JOB_STARTED_MS"));
+  const configPath = new URL("../../vitest.config.ts", import.meta.url).href;
+  const output = await runProcess(process.execPath, ["--input-type=module", "-e", `import config from ${JSON.stringify(configPath)}; console.log(JSON.stringify(config.test?.projects?.[0]?.test?.exclude))`]);
+  expect(JSON.parse(output)).toEqual([...configDefaults.exclude, "tests/guard/**/*.db.test.ts"]);
+  if (process.env.OMNIAGENT_GUARD_CUSTODY_EXPECTED === "1") {
+    expect(before).toHaveProperty("GUARD_CUSTODY_RUN_DIR");
+    expect(before).toHaveProperty("GUARD_CUSTODY_STAGE");
+    expect(before).toHaveProperty("GUARD_ADMITTED_OPERATION_NS");
+  }
+  expect(Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith("GUARD_CUSTODY_") || key.startsWith("GUARD_ADMITTED_") || key === "GUARD_JOB_STARTED_MS"))).toEqual(before);
+});
+it("leaks no fixture parameters to non-DB workers or their descendants", async () => {
+  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") && !key.startsWith("GUARD_ADMITTED_") && key !== "GUARD_JOB_STARTED_MS" || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
+  expect(keys).toEqual([]);
+  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k)&&!k.startsWith('GUARD_CUSTODY_')&&!k.startsWith('GUARD_ADMITTED_')&&k!=='GUARD_JOB_STARTED_MS')))"], { env: process.env });
+  expect(JSON.parse(output)).toEqual([]);
+});
+it("rejects absent and forged hosted fixture tuples without docker writes", async () => {
+  const calls: string[][] = [];
+  const run = async (_cmd: string, args: string[]) => { calls.push(args); return ""; };
+  await expect(createFixture({ mode: "github-service", source: {}, run })).rejects.toThrow("hosted fixture");
+  expect(calls).toEqual([]);
+  await expect(createFixture({ mode: "remote", run })).rejects.toThrow("mode");
+});
+it("refuses fixture work before effects when cleanup admission is exhausted", async () => {
+  const calls: string[][] = [];
+  const scope = new ProcessScope(0);
+  try {
+    await expect(scope.run(() => createFixture({ run: async (_command, args) => { calls.push(args); return ""; } }))).rejects.toThrow("cleanup reservation exhausted");
+    await Promise.resolve();
+    expect(calls).toEqual([]);
+  } finally { await scope.close(); }
+});
+it("marks a lost Docker creation acknowledgment unproven when lookup is empty", async () => {
+  const root = mkdtempSync(join(tmpdir(), "guard-delayed-create-"));
+  const calls: string[] = [];
+  let createdAfterLookup = false;
+  try {
+    await expect(createFixture({ root, run: async (_command, args) => {
+      calls.push(args[0]!);
+      if (args[0] === "run") {
+        setTimeout(() => { createdAfterLookup = true; }, 10);
+        throw new Error("Docker acknowledgment lost");
+      }
+      return "";
+    } })).rejects.toThrow("Container creation outcome unproven");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(createdAfterLookup).toBe(true);
+    expect(calls).toEqual(["pull", "run", "ps"]);
+    const runDir = join(root, ".phase-loop/guard", readdirSync(join(root, ".phase-loop/guard"))[0]!);
+    expect(JSON.parse(readFileSync(join(runDir, "sql-setup.json"), "utf8")).cleanup).toBe("unproven");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+it("rejects an underfunded fixture and ignores forged inherited slots before effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-unfunded-fixture-"));
+  const marker = join(dir, "effect");
+  const fixture = new URL("../../scripts/prepare-test-postgres.mjs", import.meta.url).href;
+  const script = `import{writeFileSync}from'node:fs';import{createFixture}from${JSON.stringify(fixture)};try{await createFixture({run:async()=>{writeFileSync(${JSON.stringify(marker)},'effect');return'';}})}catch(error){console.log(error.message)}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 0 }, env: { ...cleanEnvironment(), GUARD_ADMITTED_CLEANUP_SLOTS: "99", GUARD_ADMITTED_OPERATION_NS: "999999999999999999", GUARD_ADMITTED_COMPLETION_NS: "999999999999999999", GUARD_ADMITTED_CHILD_RESERVATION_MS: "999999" } });
+    expect(output).toContain("inherited cleanup reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("rejects a nested reservation larger than the parent grant before effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-unfunded-child-"));
+  const marker = join(dir, "effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);try{await scope.run(()=>runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}],{shutdownReservationMs:5000}))}catch(error){console.log(error.message)}finally{await scope.close()}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 2_500 } });
+    expect(output).toContain("inherited child reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("rejects an underfunded nested launcher without a ProcessScope before effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-unscoped-child-"));
+  const marker = join(dir, "effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import{runProcess}from${JSON.stringify(helper)};try{await runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}})}catch(error){console.log(error.message)}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script]);
+    expect(output).toContain("inherited child reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("separates cold pull budget from readiness and propagates failed pulls", async () => {
+  const calls: unknown[] = [];
+  await pullImage(async (_cmd: string, args: string[], options: unknown) => { calls.push({ args, options }); return ""; });
+  expect(calls).toEqual([{ args: ["pull", "--platform", PLATFORM, IMAGE], options: { timeout: 300_000 } }]);
+  await expect(pullImage(async () => { throw new Error("cold pull failed"); })).rejects.toThrow("cold pull failed");
+});
+it("rejects image, platform, host binding and service identity substitution", () => {
+  const fixture = { id: "owned", port: 15432 };
+  const image = { Id: "image", Os: "linux", Architecture: "amd64", RepoDigests: [IMAGE] };
+  const container = { Id: "owned", Config: { Image: IMAGE }, Image: "image", State: { Running: true }, NetworkSettings: { Ports: { "5432/tcp": [{ HostIp: "127.0.0.1", HostPort: "15432" }] } } };
+  expect(() => validateMetadata(container, image, fixture)).not.toThrow();
+  for (const changed of [{ ...container, Id: "forged" }, { ...container, Image: "forged" }, { ...container, NetworkSettings: { Ports: { "5432/tcp": [{ HostIp: "0.0.0.0", HostPort: "15432" }] } } }]) expect(() => validateMetadata(changed, image, fixture)).toThrow("identity");
+  expect(() => validateMetadata(container, { ...image, Architecture: "arm64" }, fixture)).toThrow("identity");
+});
+it("caps readiness attempts and sleeps by the remaining 30-second budget", async () => {
+  let time = 0;
+  const budgets: number[] = [];
+  await expect(awaitReadiness({ password: "synthetic" }, {
+    now: () => time,
+    sleep: async (ms: number) => { time += ms; },
+    probe: async (_fixture: unknown, _sql: string, _user = "postgres", _password?: string, timeout = 15_000) => {
+      budgets.push(timeout);
+      time += timeout + 500;
+      throw new Error("not ready");
+    },
+  })).rejects.toThrow("readiness");
+  expect(budgets).toEqual([15_000, 13_700]);
+  expect(time).toBeLessThanOrEqual(30_000);
+});
+it.each(["SIGINT", "SIGTERM"])("registers %s cleanup before the cold pull starts", async (signal) => {
+  const script = `import {createFixture} from './scripts/prepare-test-postgres.mjs';
+try {await createFixture({run:async (_command,args,options)=>{if(args[0]!=='pull')throw Error('unexpected operation');process.kill(process.pid,${JSON.stringify(signal)});await new Promise(r=>setTimeout(r,25));if(options.signal.aborted)throw Error('aborted owned pull');return '';}});process.exitCode=3;}
+catch(error){if(error.message!=='aborted owned pull')throw error;console.log('signal safely rejected');}`;
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 0 } })).toBe("signal safely rejected");
+});

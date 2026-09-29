@@ -1,0 +1,332 @@
+# GUARD Review Reconciliation
+
+Updated 2026-09-29. GUARD is not accepted and omniagent-plus#29 remains
+draft. No product release, version change or main merge is approved by these
+records. omniagent-plus#20 stays open.
+
+The owner subsequently made main branch protection optional for this solo
+project's GUARD merge. The current merge gates are passing agent-harness panel
+code review, a separate independent review of the final PR head, passing
+exact-head hosted checks, a clean GitHub PR merge, and verification of the
+actual merged main SHA. Manual publish remains gated by
+`github.ref_protected=true`. Historical protection findings below record the
+earlier policy and do not supersede this owner decision.
+
+## 2026-09-29 Final Repair Checkpoint
+
+- The first agent-harness panel on `a6ea475` did not pass. Its Astra seat found
+  that the environment test imported `vitest.config.ts` in the assertion
+  worker, clearing admitted custody and the hosted job clock. Sol requested
+  final-head check evidence; the brokered Opus and Gemini seats returned no
+  usable verdict. None was counted as approval.
+- The repair at source head `13217de` moves config inspection into a guarded
+  child, preserves the assertion worker's custody state, allows the legitimate
+  hosted job clock in fixture-leak assertions, and independently marks guarded
+  workers so missing custody fails. An independent reviewer accepted the final
+  repair delta after catching the job-clock follow-up. Local tests passed
+  500/1 skip with a synthetic hosted job clock; typecheck and lint passed.
+  Hosted CI `36584478979`, `guard-required`, and publish rehearsal
+  `36584478982` passed. The retained CI artifact has 473 balanced root
+  admissions/terminals, 52 natural and 103 named-control signaled adoptions,
+  and zero unresolved/unproven terminals. Focused GUARD has 403 balanced
+  admissions/terminals; focused integration has 24. Publication was skipped.
+- A fresh agent-harness panel and independent final evidence-head review are
+  still required before merge. The separate manual Opus and Gemini tool-enabled
+  reviews of the repair are in progress.
+
+## 2026-09-29 Implementation Checkpoint
+
+- On repaired code head `863a5ef`, hosted CI run `36543602533`, its
+  `guard-required` check, and publish rehearsal run `36543602483` all passed.
+  The CI custody artifact records 466 balanced root admissions/terminals,
+  52 natural and 103 named-control signaled adoptions, and zero unresolved or
+  unproven terminals. Focused GUARD and integration, isolated fixture checks,
+  the real-suite interruption control, producer binding and retained-package
+  rehearsal all passed. The retained workflow-owned SQL receipt is
+  `GUARD-sql-setup.json`. Astra, Sol, manual tool-enabled Opus 5.5 and manual
+  tool-enabled Gemini each accepted the 0f6de84..863a5ef repair after their
+  full earlier-head reviews; the exact source, route and finding dispositions
+  are in `reviews/GUARD-production-863a5ef.json`. This accepts candidate code,
+  not the unprotected main branch or a post-merge main run.
+- At `0f6de84`, hosted CI passed but the parallel publish rehearsal failed
+  process case 35. Astra and Sol independently reproduced the owner-death
+  control's false rejection: the outer keeper can legitimately signal the
+  adopted inner keeper and then its leaf, yielding two quiescent signaled
+  adoptions instead of one. Their exact-head verdicts were NOT ACCEPT. The
+  next candidate bounds only this two-descendant control to one or two
+  signaled adoptions; every other tagged rescue still requires exactly one.
+  Three isolated repetitions and the 500-case local plain gate pass after the
+  repair. Fresh hosted CI/rehearsal and final exact-head review remain required.
+- Opus 5.5's manual tool-enabled TUI review of `0f6de84` also returned NOT
+  ACCEPT. It independently mapped the failed hosted case to the owner-death
+  count above and found that the standalone real-suite interruption control
+  used `waitExit`'s 15-second default despite admitting a 40-second launcher.
+  The candidate now waits through that launcher's declared operation and
+  custody reservation; the standalone control passes locally. Hosted proof of
+  this repair and final exact-head review are pending.
+- The `5d615cf` hosted CI and publish rehearsal passed, including independent
+  focused GUARD and integration fixtures and the standalone real-suite interrupt
+  control. Its CI artifact has 464 balanced root admissions/terminals, 52
+  natural and 103 explicitly tagged signaled rescues, with zero unresolved or
+  unproven terminals. Gemini's manual tool-enabled TUI review of `e0db9f4`
+  returned NOT ACCEPT. The reported orphan escape after a late status write
+  does not reproduce: the supervisor catches the deadline error and drains
+  adopted children. Gemini correctly observed that the prior suspended-keeper
+  test used a child that could exit naturally before the keeper resumed. The
+  candidate now repeats the case with a live 10-second child, records its PID,
+  and proves the child is absent after the failed result. It also adds explicit
+  foreground INT, signal-mask/default, SIGCHLD, missing/denied/stalled READY,
+  descriptor-churn, controller-death, sibling-keeper and journal-fault controls
+  in response to the Opus review. Local plain CI-mode tests pass 500 cases with
+  one documented live skip; typecheck and lint pass. A hosted run and exact-head
+  four-seat review of these additional tests are still required.
+- Opus 5.5's manual subscription TUI review of `a5b8730` returned REQUEST
+  CHANGES. Its count and final-delivery findings were repaired by `316c6b3`;
+  its real-root-suite finding showed that `pnpm exec vitest` exits or strands
+  its child on INT/TERM, while the existing interruption test substituted a
+  synthetic worker. The next candidate admits a small root-suite launcher
+  under the existing custodian. It receives FORWARD and lets the active Vitest
+  run finish inside the already declared E ceiling; on expiry the custodian
+  forces the subtree and fails unproven. A standalone real-Vitest interruption
+  control, run outside the root suite to respect its child reservation, passed
+  with two balanced admissions and no signaled rescue. The plan records this
+  root-suite-specific behavior and owns the new control. Opus also identified
+  missing adversarial controls; some are now present, and the rest require
+  exact-head reconciliation rather than being treated as accepted.
+- The `e0db9f4` hosted CI and publish rehearsal both passed. Its CI artifact
+  has 464 balanced root admissions/terminals, 52 naturally reaped and 103
+  signaled adopted descendants, zero unresolved or unproven, two isolated
+  20-command quiescent journals, and 14 SQL setup receipts. The 493-case local
+  plain gate passed with one permitted live skip. A later `a5b1aef` workflow
+  trial failed at the new focused GUARD step because it tried to reuse the
+  already initialized one-shot hosted service. The next candidate gives each
+  focused command its own disposable local Docker fixture on the hosted runner;
+  a fresh hosted run must prove this correction.
+- Hosted CI and publish rehearsal both passed at `316c6b3`; its root custody
+  artifact has 469 balanced admissions/terminals, 101 tagged immediate-orphan
+  rescues (100 single-fork trials plus the double-fork control), and no
+  unresolved or unproven terminal. Astra and Sol independently rejected that
+  exact head after Astra reproduced a suspended supervisor reporting success
+  after the 2.5-second custody tail. The next candidate checks the deadline
+  before quiescence and before each status write; a paused-supervisor falsifier
+  and the 493-case local plain gate pass. A new exact-head hosted run and
+  four-seat review are still required.
+- Hosted CI and publish rehearsal both passed at `a5b8730`. Its CI custody
+  artifact has 465 balanced root admissions/terminals, zero unresolved or
+  unproven terminals, and two isolated 20-command quiescent journals. Sol's
+  exact-head review found that a tagged rescue control could conceal a second
+  signaled descendant; the candidate now requires exactly one for each tagged
+  rescue. The shutdown-budget control was untagged because it has no adopted
+  child, while the outer keeper-loss rescue has its own explicit tag. Gemini's
+  manual tool-enabled TUI review found that final status could be sent only
+  after the absolute deadline; the candidate reserves 200 ms for its final
+  protocol frames. Its zombie-leader, cooperative-deadline and blocking-writer
+  claims do not establish a success escape: live descendants keep the child
+  list nonempty, relative cooperative limits only shorten the admitted cap,
+  and READY precedes admission while final frames follow completed draining.
+  These dispositions require fresh exact-head review and hosted evidence.
+- The next candidate enforces inherited reservations even without a
+  ProcessScope, carries the supervisor's first cancellation ceiling through
+  nested cleanup, and binds hosted admissions to the 20-minute job's actual
+  start. The suite reserves 167.5 seconds for its own shutdown, 55 seconds
+  for root cleanup, 180 seconds for post-suite stages, and 30 seconds for
+  workflow finalization before choosing its operation timeout. The job clock
+  comes from the current GitHub Actions job record with read-only `actions`
+  permission. These are implementation controls, not acceptance receipts.
+- The `2ec71ad` hosted CI and publish rehearsal both passed. Fresh Astra
+  review of that head identified a scope-free inherited-budget bypass, an
+  unpropagated early cancellation ceiling, and absent job-time funding;
+  Sol identified a deadline-edge false timeout and a buffered-ADMIT control
+  that does not actually buffer ADMIT. The first three Astra findings have
+  code and regression repairs in the next candidate. A further candidate
+  waits through the separately reserved custody drain for an on-time payload
+  and uses actual stream corking to test ADMIT already buffered at cancellation.
+  The remaining specified fault controls still require reconciliation.
+- The next candidate's local plain `CI=true pnpm test` passed 483 cases with
+  the one permitted live-smoke skip; build, lint, typecheck, and workflow YAML
+  parsing passed. Hosted validation and exact-head review remain required.
+- The deadline-edge and buffered-ADMIT follow-up passed the local plain gate
+  with 484 cases and the one permitted live-smoke skip. Exact-head hosted and
+  reviewer evidence is still pending.
+- Hosted CI passed at `df5a274`; the publish rehearsal reached its artifact
+  verifier but failed because the new job-clock requirement also reached that
+  separate consumer job. The follow-up scopes clock admission to the hosted
+  GUARD gate. Its consumer verifier passed under a simulated GitHub Actions
+  environment; a fresh hosted rehearsal is required.
+- Hosted CI and publish rehearsal both passed at `27b6ac0`. Fresh Astra
+  exact-head review then reproduced two P1 gaps: forced teardown did not
+  publish its earlier cancellation ceiling, and a cleanup callback could
+  admit an oversized nested launcher. The next candidate publishes a
+  monotone forced ceiling and charges each cleanup command's entire declared
+  shutdown reservation before admission. Focused falsifiers passed.
+- Further controls exercise zero/non-SIGCHLD clone children, a child forked
+  after its thread leader exits, and inner supervisor death under an outer
+  owner. The keeper-loss control exposed a status/stdio wait cycle: an orphan
+  held stdout open after its keeper died. The next candidate settles on the
+  separate status channel and drops orphan-held streams on failed custody.
+  Its plain local gate passed 489 cases with the one permitted live skip;
+  GUARD typecheck and lint passed. Hosted and exact-head review are pending.
+
+- Linux subreaper/pidfd custody, scope cleanup, SQL fixture admission and
+  custody journaling are implemented through `3254f0a`. This is an implementation
+  checkpoint, not EC-GUARD-2 acceptance.
+- Hosted CI and publish rehearsal passed at `6103ff1`, `f5233e2` and
+  `3254f0a`. The `3254f0a` CI custody artifact contains a root gate journal
+  with 457 admissions and 457 terminals: 52 naturally reaped and 103 signaled
+  adopted descendants, zero unresolved and zero unproven. The signaled counts
+  occur in the explicit orphan controls; two additional retained test journals
+  each have 20 balanced, quiescent commands. The artifact is attached to CI run
+  `36530973291`. This survey does not prove the omitted fault scenarios.
+- Local `CI=true pnpm test` at `3254f0a` passed 469 cases with the one permitted
+  live-smoke skip; build, lint and focused GUARD typecheck passed. Post-head
+  fault-control additions are being verified separately.
+- Fresh production review of `6103ff1` did not accept the implementation:
+  Astra found fixture work before cleanup admission, unfunded inherited
+  reservations and missing adversarial controls; Sol found lost scope tracking
+  after cleanup timeout and missing evidence; Opus found incorrect interrupt
+  routing/forced-tail handling plus missing controls and acceptance receipts.
+  Gemini's manual tool-enabled TUI review found missing ADMIT cleanup slots,
+  buffered-ADMIT and descriptor-leak controls, and unhandled cooperative
+  pidfd signal errors. Its completed review text was recovered from the local
+  TUI transcript after the session stalled; the TUI was closed afterward.
+  Fixture admission, scope retention and interrupt routing were repaired by
+  `f5233e2`/`3254f0a`; later working-tree controls address several more
+  findings. The reservation and coverage findings remain. None of these
+  old-head reviews can accept a later head without reconciliation.
+- Remaining acceptance work includes immutable inherited cleanup budgets and
+  cancellation epochs, the specified clone/thread/keeper/protocol fault
+  controls, exact-head four-seat production review, SQL/custody acceptance
+  receipts and protection/merge checks. Historical evidence below records
+  earlier decisions and is not a current approval.
+
+## Evidence
+
+- Production round 1 reviewed da48523176c629ec3cc7b6d4d18cb333800e7d90:
+  `reviews/GUARD-production-round1.json`. Three usable seats; Fable reached
+  its output limit with no final text. Native forensic bytes were verified;
+  there was no recoverable verdict, refusal, manual cancellation or vote transfer.
+- Repair checkpoint b526db89483c2706fc647b88cf180380349452f1:
+  `reviews/GUARD-repair-checkpoint.json`. Clean CI=true full gate passed 470/1
+  permitted live skip, including SQL, retained packing/smoke and artifact checks.
+  Build/lint/typecheck, 76 focused repairs, 35 independent cancellation controls and
+  457 plain CI=true tests/1 skip passed. These do not supersede the next counterexample.
+- `reviews/GUARD-immediate-orphan-probe.json` retains the executed method,
+  helper hash and 10-trial result: 8 escaped immediate orphans after runProcess
+  returned; all marked probe children subsequently quiesced under independent
+  PID/start-fenced cleanup. Rescue is not evidence of correct helper cleanup.
+  An earlier probe had a null-state diagnostic error and remains retained in
+  operator evidence; it is not counted as a complete trial set.
+- Custody plan round 1 reviewed plan 19751b969d9c210eab7efbfd212029e68d6182608a81019cef9e8874b8bafc46:
+  `reviews/GUARD-custody-plan-round1.json`. Fable, Grok, Codex and Gemini all
+  returned usable PARTIALLY AGREE. All exact input, provider and cleanup
+  bindings were independently checked; Fable used the native subscription TUI.
+  No manual cancellation or fallback occurred.
+- The pre-decision revision was b4a4e01ed1332eb66ce64dcd02a185f2e5683ff6307f8b61786ad8673c59f628.
+  The maintainer then approved Linux-only GUARD verification on 2026-09-15 by
+  responding "Continue as recommended" to that explicit question. Published
+  runtime portability remains unchanged; main protection was not approved.
+- Custody round 2 reviewed plan 6816b39ed0371d7ab70303984b71873d2a1002abea0e40cdfb5c09404e039a0e:
+  `reviews/GUARD-custody-plan-round2.json`. Three usable PARTIALLY AGREE results;
+  Fable ended with claude_provider_quota_exhausted (HTTP 429, usage_credits).
+  Direct hash-verified session inspection found an output-limit event without
+  final text, followed only by the quota message. No final review is recoverable.
+  No manual cancellation, API fallback, model substitution or approval occurred.
+- Current revision: 212bf7734a096741e95d06a633b95be0586d28f69683178a19fae82686e0d84c.
+  It incorporates the round-2 dispositions below but is not reviewed/accepted.
+  Historical TRIAGE and round-9 bindings remain unchanged and do not authorize it.
+- On draft head fc88e7d, CI run 34962852535 passed. Publish run 34962852700
+  failed its prerequisite root-suite at boundaries.test.ts:63 (case 29);
+  rehearsal and npm publication never ran. The retained category-only diagnostic
+  does not establish the underlying exception or a custody/artifact cause.
+- Boundary repair e35f07e (integrated as d242495): synthetic fixture types: []
+  avoids 108 ambient dependency files. A one-CPU cold case reproduced a 5000ms
+  timeout at 6072ms before repair and passed at 285ms after. This is a reproduced
+  plausible cause, not recovered provenance of the original hosted exception.
+  Checker/assertions/budgets are unchanged. Independent boundary file: 35 passed;
+  clean full CI-mode gate: 470 passed/one permitted skip. Exact report/manifest
+  hashes: `reviews/GUARD-boundary-repair-checkpoint.json`.
+
+## Production Findings
+
+| Finding | Disposition |
+| --- | --- |
+| Codex: interrupted detached children | Partially repaired in b526db8, but the immediate-orphan counterexample remains blocking. Polling is not accepted as custody. |
+| Codex: dirty source can be packed under unchanged HEAD | Fixed with clean tracked/untracked input checks, including ignored source, before stages and through packing/consumption; actual prepack mutation and pre-npm negative controls pass. |
+| Codex: production relay through skipped test files | Fixed with production-to-test-source rejection and static/dynamic/require relay controls. |
+| Hosted root-suite failure | Reproduced with CI=true. Test-only lintText parser configuration fixes immutable-Program inference; actual production lint remains unchanged. New diagnostics expose only constrained file/index/category metadata. |
+| Gemini: download-artifact@v4 lacks artifact-ids | Rejected: the official action declares artifact-ids and disallows combining it with name. Preserve producer-ID binding. |
+| Gemini: cold npm install15s | Nonblocking measurement concern; current clean smoke passed. Do not make independent installation optional or increase frozen budgets speculatively. |
+| Gemini: automatic age-based pruning | Rejected as a default: evidence custody requires lifecycle-based disposition, not age-only deletion. |
+| Grok: plain tests pull Docker | Rejected: the cited environment control injects a fake run callback. Plain suite remains non-DB. |
+| Grok: hosted fixture tuple may differ | Both prior hosted runs reached SQL admission successfully. No identity/image relaxation is justified. |
+| Grok: ownership dropped before reaping | Valid; stronger kernel-backed custody and reaping remain the pending amendment. |
+
+The action input verification used the official
+[download-artifact v4 definition](https://github.com/actions/download-artifact/blob/v4/action.yml).
+The lint test adjustment follows the supported
+[parser single-run setting](https://typescript-eslint.io/packages/parser/#disallowautomaticsingleruninference).
+
+## Custody Plan Dispositions
+
+Disposition here means feedback classified and incorporated or rejected with
+reason. It does not mean the new implementation exists or the revision passed review.
+
+| Seats/findings | Disposition in revised proposal |
+| --- | --- |
+| Grok1: sibling payload loophole | Explicitly make the supervisor the sole payload fork/exec parent; Node never spawns a sibling. |
+| Gemini1, Grok3, Codex3, Fable5: clone-aware exhaustion | Freeze one serialized __WALL-inclusive waitpid reaper; zero is not ECHILD, no automatic reaping, and retained pidfds/children lists corroborate exhaustion. Avoid waitid(P_PIDFD), retaining the5.3 kernel floor. |
+| Gemini2, Grok4, Codex3, Fable6: pidfd acquisition race/churn | Bind parent/start identity before and after pidfd acquisition, verify live owned ancestry/fdinfo, serialize reaping, close descriptors, and test reuse/disappearance and churn. A pidfd alone does not prove ancestry. |
+| Gemini3, Grok6, Codex4, Fable3: status fidelity | Freeze typed protocol outcomes and supervisor-versus-payload identities. Preserve raw payload wait status; no competing Popen reaper or ECHILD-to-zero conversion. Require agreement between final record and terminal state. |
+| Codex2, Fable1/2: stalled admission/status and descriptor ownership | Put admission/protocol inside existing deadlines; define the ADMIT commit point, exclusive close-on-exec endpoints, per-launch nonce/sequence and bounded nonblocking status writes. Missing/duplicate/truncated frames fail. |
+| Grok2/7, Gemini5, Codex1: competing escalation owners | Node uses protocol teardown, never kills the last keeper at500ms. Forced subtree drain has one absolute500ms+2s envelope; takeover cannot reset it. |
+| Grok8, Codex1, Fable4: cooperative fixture cleanup | Separate FORWARD from forced SHUTDOWN; repeats cannot extend deadlines. Reserve finite cleanup command slots, clamp inherited deadlines, and require WORK_DRAINED before callbacks rather than circular whole-launcher exhaustion. The proposal derives reservations from existing bounds and needs fresh review. |
+| Fable7, Codex4: rescue masks failure | Trigger drain on exit/adoption, preserve inner failure after outer rescue, record adopted/forced counts, and assert before test teardown. |
+| Grok5: mandatory scope-wide/global keeper | Not adopted as mandatory. A further keeper moves rather than eliminates final-custodian loss; the bounded per-command design explicitly fails unproven on last-keeper loss. No infrastructure/global process authority is introduced. |
+| Fable1: always emit a record despite keeper failure | Narrowed: a surviving observer must record failure; loss of all observers cannot promise a persisted record. Never release live custody merely to meet a timeout or fabricate success. |
+| Fable8: Python3.10 -I includes the script directory | Rejected after checking official Python3.10 documentation: -I excludes it. Keep3.10 and add a shadow-module isolation control rather than impose an unnecessary3.11 floor. |
+| Grok9, Gemini6, Fable8/10: platform/workflow/docs | Linux-only operator approval was pending at round 1 and is now recorded. Admission covers artifact consumers' guarded git/tar too. Existing owned workflows/tests/docs must add prerequisites before the combined candidate lands. |
+| Fable9, Codex3/4: weak falsifiers/coverage | Assign at least100 immediate-exit trials on local/hosted Linux, actual reap assertions, clone/thread/status/stream/EOF/inner-loss controls and retained executable positive-control evidence. EC-GUARD-2's plan falsifier names immediate orphans; no separate roadmap criterion is invented. |
+| All seats: absent future helper/test bodies | Expected at plan stage, not implementation approval. Fresh production review must include all changed code, the four existing process suites and artifact-consumer callers. |
+
+Python isolation disposition is supported by the official
+[Python3.10 command-line contract](https://docs.python.org/3.10/using/cmdline.html#cmdoption-I).
+Subreaper and wait requirements follow the
+[Linux subreaper contract](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html)
+and [Linux wait semantics](https://man7.org/linux/man-pages/man2/wait.2.html).
+
+## Custody Round 2 Dispositions
+
+| Seats/findings | Disposition in current unaccepted revision |
+| --- | --- |
+| Codex1: buffered ADMIT/cancellation ordering | Owner-side synchronous cancellation check and admission authorization define the ordering. After authorization the payload may start and must drain; buffered-write/EOF controls forbid a stronger promise. |
+| Codex2: empty Docker lookup after lost creation acknowledgment | Explicit unproven cleanup unless a terminal daemon outcome is known; add delayed creation crossing the empty lookup. Process quiescence is not daemon completion. |
+| Gemini1: cleanup registration has no descriptor | Parent declares the maximum reservation in ADMIT; local ProcessScope callback registration cannot increase it and never writes to keeper control/status descriptors. |
+| Grok1/2: sibling/last keeper loss and detach | Limit adoption to proven ancestor subreapers. No sibling rescue claim; last-keeper loss/hang can be unreclaimable/unproven. Changing detached alone or adding a global keeper cannot eliminate final-custodian failure. |
+| Grok3/4, Gemini3: protocol/interrupt mapping | Freeze bounded JSON lines, direction-specific sequences, ADMIT contents, private argv/env transport, payload result mapping, OS INT/TERM forwarding, and cooperative-launcher versus forced-work routing. |
+| Grok5/6, Gemini2: reaper/identity semantics | No Popen object/destructor or Node poller; only direct/adopted-child pidfd signaling, with acquisition before reap. Zombies can be reaped without pidfd acquisition; child adoption precedes parent reaping. |
+| Gemini2: waitid requires newer kernel | Rejected as stated: only P_PIDFD has the newer floor. Current selected waitpid/__WALL contract remains; no unnecessary kernel/version increase. |
+| Grok7, Gemini5: clone/thread exhaustion | Preserve __WALL, no automatic reaping or raw-PID fallback; add leader-exit/nonleader-fork and explicit foreign-namespace unproven boundaries. |
+| Grok8, Gemini4: deadline math/test waits | Clarify ordinary child E=T versus no-child cases. 22.5/57.5 and nested 112.5 already include tails; do not double-add T. Use pre-admitted completion ceilings rather than guessed timeout increases, preserving operation/forced-drain bounds. |
+| Grok8: callback after unproven work drain | Any bounded best-effort resource cleanup preserves unproven ordering/receipt and failure; cannot manufacture successful WORK_DRAINED. |
+| Grok9/10/11, Gemini coverage: tests/workflows/docs | Existing owned changes remain mandatory before integrated merge. Add explicit OS-signal, admission, ceiling, sibling-loss and daemon-race controls. Lifecycle identity assertions adapt; lock/race outcomes cannot weaken. |
+| Codex coverage, Grok12: missing caller bodies/old receipt | Include all four package process suites, CI and integration caller context in fresh review. Historical records stay historical; current amendment gets a distinct exact-hash binding. |
+
+Fable's quota result is unavailable review evidence, not a fourth vote. Restore
+that subscription's availability or obtain an explicit alternate-seat decision
+before the next complete plan panel. Do not automatically spend usage credits,
+switch subscription identity, retry the completed run, or use an API fallback.
+
+## Remaining Gates
+
+1. Resolve the unavailable Fable seat; Linux-only approval is already recorded.
+2. Fresh complete four-seat review of the revised amendment, with the executable probe
+   method and missing caller/test context; reconcile before new ownership runs.
+3. Implement and independently verify kernel custody, then fresh full production
+   panel, hosted CI/rehearsal and exact-head acceptance. Current polling code
+   is not mergeable regardless of mechanical CI status.
+4. Maintainer authorizes main to require guard-required and up-to-date PRs.
+   No protection settings have been changed. Then exact-head merge, actual
+   post-merge verification and custody-aware pruning can occur.
+
+No audit issue is closed by this checkpoint. DATA/COORD/WIRE/INTEG/PREP/SHIP
+remain downstream; GUARD emits no IF gate and no product release.

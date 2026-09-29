@@ -1,0 +1,106 @@
+{
+  "schema": "triage-acceptance-binding.v1",
+  "accepted_at": "2026-09-15T08:30:58.945582+00:00",
+  "receipt_path": "plans/evidence/v2/TRIAGE-closeout.json",
+  "before_sha256": "4ab4d0eae981ec5eaff5b63c1d79e79191a89193d2f58498d778262e4dfa1b39",
+  "after_sha256": "b4c60a516bf526ffb1a3049b51b7861e66357f8d76d4cbdb715a76a04737e3cd",
+  "changed_json_paths": [
+    "accepted_at",
+    "criteria.EC-TRIAGE-3",
+    "produced_if_gates",
+    "review.amendment_panel",
+    "review.current_panel",
+    "status"
+  ],
+  "allowed_json_paths": [
+    "status",
+    "review.amendment_panel",
+    "review.current_panel",
+    "criteria.EC-TRIAGE-3",
+    "produced_if_gates",
+    "accepted_at"
+  ],
+  "criterion_transition": {
+    "path": "criteria.EC-TRIAGE-3",
+    "before": "Substantive check passed: four usable historical reviews and reconciled feedback, license owner and hosted CI topology identified; current manual amendment awaits review",
+    "after": "Substantive check passed: four usable historical reviews and reconciled feedback, license owner and hosted CI topology identified; current manual amendment reviewed and reconciled"
+  },
+  "reviewed_input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "b84275af012ff0294fcd36a8ebdd9e3bc814ce442afc01d811ef32c879fe0b05",
+    "plans/evidence/v2/TRIAGE-closeout.json": "4ab4d0eae981ec5eaff5b63c1d79e79191a89193d2f58498d778262e4dfa1b39",
+    ".phase-loop/guard-plan-round9/source-evidence.md": "3a480162fa5e359367c5872bf94640672a34d6316e85843717e4b7c8a0db9e5c",
+    "plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915.json": "0881aef37c15555923d2bf32e23d006058679ddded8a7b71c594be2e80473c19",
+    "plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915-r2.json": "8ec3c757a4a27add6da29e6b9306aa9da5781373d77c7f2b28260734c2ae870c",
+    "plans/evidence/v2/reviews/GUARD-planning-check-20260915-r2.json": "1730cedc0dfe22a78bc83723a8a625e8e840935087b44933652db963345bdf9e"
+  },
+  "reviewed_source_sha256": {
+    "packages/core-contracts/src/coordination-contract.ts": "a70112c7cba4dc965a38719b2000922b655541857a722a0eee2d325f50d2173d",
+    ".github/workflows/publish.yml": "d206cbc26d5d225c3173fd7f755317e7ab42e3b69b056611552786258dffb97f",
+    "scripts/publish-package-if-needed.sh": "65741c00ba9860bc45e5f9058482390a075a90b4ec570513d880614494fe189c",
+    "scripts/smoke-packed-omnigent-transport.mjs": "0fa4b5b5fe5d00645347ab34e559d95491a77c90419db3288eb7f162dbe4cb52",
+    "docs/omnigent-live-smoke.md": "ac379bf26a50fde75b84278b1c1a0ac67b2c5872dbda4e3871c3ebec78ada5b5",
+    "packages/omnigent-transport/src/live-omnigent-smoke.test.ts": "21d051492a927a3b5f6c83cb9727e657c52fb62d8b45f31b2d6adaed1315da48",
+    "package.json": "6d5562f5fbc57425fb2b36fc94b743ea5d943e0722f6aedbad040feee07d6344",
+    "vitest.config.ts": "3e3f74e5886cdbdc3b6a0b279c85aef3489519858b3766807c0fbc639fc3c90d",
+    "eslint.config.mjs": "7399dab160b92515dcfb9b84299a0eff13d379e001317f76919cb343d457fb5c",
+    "supabase/migrations/20260708215513_coordination_leases.sql": "9457176ceb3c71220c13c22bd4ec222ed57ae3104c42c73c96d23f03b680d224"
+  },
+  "panel_path": "plans/evidence/v2/reviews/GUARD-plan-round9.json",
+  "panel_sha256": "15910ce6280b5e1d6583db69dbb6f93971ea78a3f064952f7ba58f6d0538bdf1",
+  "coordinator_reconciliation": {
+    "result": "No blocking or material unaddressed finding; no plan change required",
+    "fable_1": "SL-0 names the required pack-and-manifest stage; its existing run-once and sequencing falsifiers cover it.",
+    "fable_2": "SL-0 keeps environment filtering in launchers, preserves direct opt-in Vitest usage and adds the closed-loopback positive/negative control within owned GUARD tests.",
+    "fable_3": "SL-0 proves fresh owned fixture admission by rejecting existing coordination relations or guard_client before bootstrap; no migration/product rewrite.",
+    "fable_4": "The location/AST exception means package path, enclosing function and current binding/shape, not an unstable line-number check.",
+    "fable_5": "git check-ignore confirms the planned output path; dated acceptance verification supersedes historical warning evidence. SL-1 adds the direct invocation without rewriting existing live-smoke phrase contracts.",
+    "gemini_wording": "Closed labels in its plan review mean clarified requirements only. No audit issue or implemented behavior is marked complete."
+  },
+  "verification": {
+    "at": "2026-09-15T08:30:58.945582+00:00",
+    "command": "node plans/evidence/v2/verify-triage.mjs",
+    "exit": 0,
+    "stdout": "{\"findings\":55,\"nqCases\":28,\"crossCutting\":4,\"negativeControls\":6}\nvalidate_roadmap: OK \u2014 8 phase(s) in specs/phase-plans-v2.md\nTRIAGE structural verification passed; content review and phase acceptance remain separate.\n",
+    "stderr": "",
+    "matrix_sha256": "2ec237f5903c8ede6544feb35cb3948e5d762cef988acf05c4e8e1ff0bc4209d",
+    "roadmap_sha256": "ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c"
+  },
+  "inventory_path": "plans/evidence/v2/reviews/GUARD-pre-SL0-inventory-20260915-r2.json",
+  "inventory_sha256": "8ec3c757a4a27add6da29e6b9306aa9da5781373d77c7f2b28260734c2ae870c",
+  "source_comparison": {
+    "observedAt": "2026-09-15T08:17:08.901773+00:00",
+    "prior_inventory_sha256": "0881aef37c15555923d2bf32e23d006058679ddded8a7b71c594be2e80473c19",
+    "comparisonBase": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
+    "sourceHead": "332c9accf121d828b6817eabd79f63eb37be9641",
+    "basePackagesTree": "ba300e481e74180ed581ab8c7b0ebebab1644eb1",
+    "headPackagesTree": "ba300e481e74180ed581ab8c7b0ebebab1644eb1",
+    "workingRegularPackageFilesEqualHead": 237,
+    "untrackedPackageFiles": [],
+    "trackedSymlinks": [],
+    "packageImportMaps": [],
+    "source_sha256": {
+      "packages/core-contracts/src/coordination-contract.ts": "a70112c7cba4dc965a38719b2000922b655541857a722a0eee2d325f50d2173d",
+      ".github/workflows/publish.yml": "d206cbc26d5d225c3173fd7f755317e7ab42e3b69b056611552786258dffb97f",
+      "scripts/publish-package-if-needed.sh": "65741c00ba9860bc45e5f9058482390a075a90b4ec570513d880614494fe189c",
+      "scripts/smoke-packed-omnigent-transport.mjs": "0fa4b5b5fe5d00645347ab34e559d95491a77c90419db3288eb7f162dbe4cb52",
+      "docs/omnigent-live-smoke.md": "ac379bf26a50fde75b84278b1c1a0ac67b2c5872dbda4e3871c3ebec78ada5b5",
+      "packages/omnigent-transport/src/live-omnigent-smoke.test.ts": "21d051492a927a3b5f6c83cb9727e657c52fb62d8b45f31b2d6adaed1315da48",
+      "package.json": "6d5562f5fbc57425fb2b36fc94b743ea5d943e0722f6aedbad040feee07d6344",
+      "vitest.config.ts": "3e3f74e5886cdbdc3b6a0b279c85aef3489519858b3766807c0fbc639fc3c90d",
+      "eslint.config.mjs": "7399dab160b92515dcfb9b84299a0eff13d379e001317f76919cb343d457fb5c",
+      "supabase/migrations/20260708215513_coordination_leases.sql": "9457176ceb3c71220c13c22bd4ec222ed57ae3104c42c73c96d23f03b680d224"
+    },
+    "scope": "Read-only source comparison; no enforcement, database or provider proof."
+  },
+  "ec_decisions": {
+    "EC-TRIAGE-1": "Accepted: complete recorded 55-finding inventory with cases and owners; current structural suite and unchanged reviewed matrix bind this decision.",
+    "EC-TRIAGE-2": "Accepted: reviewed boundary decisions retained without runtime edits; exact three CASE-HY-6 imports and published-contract loader inventoried.",
+    "EC-TRIAGE-3": "Accepted: four current usable reviews reconciled; CI topology and license owner remain explicit. Branch protection is a later maintainer-owned GUARD landing gate."
+  },
+  "produced_if_gates": [
+    "IF-0-TRIAGE-1"
+  ],
+  "guard_implementation_accepted": false,
+  "historical_runner_state_modified": false,
+  "published": false
+}

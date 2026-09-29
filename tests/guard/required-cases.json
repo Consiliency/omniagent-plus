@@ -1,0 +1,5 @@
+{
+  "setup": ["GUARD-SQL-positive", "GUARD-SQL-creation-cleanup", "GUARD-SQL-unreachable", "GUARD-SQL-invalid-migration", "GUARD-SQL-missing-role", "GUARD-SQL-privilege", "GUARD-SQL-missing-function", "GUARD-SQL-stale", "GUARD-SQL-superuser"],
+  "integration": ["GUARD-DB-probe", "GUARD-DB-default-identity"],
+  "commands": { "verify": ["setup", "integration"], "test:guard": ["setup", "integration"], "test:integration": ["integration"], "test": [] }
+}

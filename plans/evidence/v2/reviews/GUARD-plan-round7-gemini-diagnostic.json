@@ -1,0 +1,231 @@
+{
+  "schema": "guard-review-followup.v1",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537",
+    "plans/evidence/v2/TRIAGE-closeout.json": "dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a",
+    ".phase-loop/guard-source-evidence.md": "4985ddd7c1ffc4f5dbf48c3b24589862a25b72a477024d705c9a064dcebdd36f",
+    ".phase-loop/guard-plan-round7/review-bundle.md": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b",
+    ".phase-loop/guard-plan-round7/review-instructions.md": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287"
+  },
+  "inputs_unchanged": true,
+  "elapsed_s": 178.6249387069838,
+  "board": {
+    "name": "guard-gemini-followup",
+    "purpose": "review-followup",
+    "seats": [
+      {
+        "model": "gemini-3.8-flash",
+        "effort": "high",
+        "harness": "gemini",
+        "lens": "alternative-approach",
+        "auth": "subscription",
+        "backing": "homebrew",
+        "host_leg": false
+      }
+    ],
+    "allow_api_key_fallback": false,
+    "research_policy": {
+      "enabled": false,
+      "pmcp_command": [
+        "uvx",
+        "--from",
+        "pmcp==1.20.0",
+        "pmcp"
+      ],
+      "required_version": "1.20.0",
+      "required_capability": "scoped_advisor_audit.v1",
+      "servers": [
+        "firecrawl",
+        "brightdata"
+      ],
+      "gateway_tools": [
+        "gateway.health",
+        "gateway.catalog_search",
+        "gateway.describe",
+        "gateway.invoke"
+      ],
+      "tool_patterns": [
+        "firecrawl::*search*",
+        "firecrawl::*scrape*",
+        "firecrawl::*crawl*",
+        "firecrawl::*map*",
+        "firecrawl::*extract*",
+        "brightdata::*search*",
+        "brightdata::*scrape*",
+        "brightdata::*crawl*",
+        "brightdata::*query*",
+        "brightdata::*fetch*",
+        "brightdata::*unlocker*"
+      ],
+      "audit_required": true,
+      "all_seats_capable": true
+    }
+  },
+  "reason": "Read-only observation of the unchanged native parser return; same exact material; no result mutation, rule waiver or other seat restart",
+  "parser_observations": [
+    {
+      "native_returncode": 0,
+      "native_reason_category": null,
+      "native_metadata": {
+        "provider_stream_outcome": "accepted",
+        "provider_stream_result_count": 2,
+        "provider_stream_output_sha256": "59cf4d81d085f0b12a84eea1145797ff7632701eb8e66d56a87e87b22a2f12b4",
+        "provider_stream_output_bytes": 57117
+      },
+      "result_returned_unchanged": true
+    }
+  ],
+  "installed_runtime_files_changed": false,
+  "instrumentation": "read_only_native_parser_result_observer_v1",
+  "acceptance": "One seat only; not a completed panel, phase acceptance or IF gate",
+  "result": {
+    "legs": [
+      {
+        "leg": "gemini",
+        "status": "OK",
+        "text": "Review correlation marker: GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d\n\n### Input Coverage Table\n\n| Input | Status | SHA-256 | Quoted END Marker | End-Content Fact |\n| :--- | :--- | :--- | :--- | :--- |\n| **INPUT-1** (`phase-plan-v2-GUARD.md`) | Present | `80aa9de48cde9764dd7dad66db1ce31e471fa61b2c2d5f1e55ab0e62e49bd537` | `END-INPUT-1-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` | Spec closeout defines schema `spec_delta_closeout.v1`, decision `no_spec_delta`, targets `.github/workflows/` and `docs/hardening-readiness.md`, evidence `plans/evidence/v2/GUARD.json`, redaction `metadata_only`, downstream `none`. |\n| **INPUT-2** (`TRIAGE-closeout.json`) | Present | `dcff1bee72c01b82613d9c0dc53752233175b135bc5cb60de9125faf7ecad35a` | `END-INPUT-2-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` | Under `migration_inspection`, coordination leases migration `20260708215513_coordination_leases.sql` (digest `9457176...`) defines query function taking `request jsonb default '{}'::jsonb`; acquire is signature-only in GUARD. |\n| **INPUT-3** (`guard-source-evidence.md`) | Present | `4985ddd7c1ffc4f5dbf48c3b24589862a25b72a477024d705c9a064dcebdd36f` | `END-INPUT-3-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` | Coordinator validation observations record that package `*test.ts` files contain no `GUARD_TEST_DATABASE_URL` or `PG*` variable reads, process suites isolate child envs, and Round-5 Grok setup fixture separation/case IDs are accepted. |\n\n**Source Sections S1\u2013S9 Confirmation**:\n- **S1** (`specs/phase-plans-v2.md` manual amendment excerpt): Present, ends with `END-S1`.\n- **S2** (`plans/audit-remediation-disposition-20260905.md` CASE-HY-6 excerpt): Present, ends with `END-S2`.\n- **S3** (`process-profile.ts` imports lines 1\u201312): Present, ends with `END-S3`.\n- **S4** (`omnigent-isolation-policy.ts` imports lines 1\u201312): Present, ends with `END-S4`.\n- **S5** (`types.ts` imports lines 1\u201312): Present, ends with `END-S5`.\n- **S6** (`scripts/publish-package-if-needed.sh` full content): Present, ends with `END-S6`.\n- **S7** (`scripts/smoke-packed-omnigent-transport.mjs` lines 1\u201350): Present, ends with `END-S7`.\n- **S8** (`20260708215513_coordination_leases.sql` lines 364\u2013393): Present, ends with `END-S8`.\n- **S9** (`plans/evidence/v2/verify-triage.mjs` full content): Present, ends with `END-S9`.\n- **Final Bundle Marker**: `END-BUNDLE-GUARD-REVIEW-c858e97ceaf64896adca16158b714f7d` is confirmed present.\n\n---\n\n### Analysis and Findings\n\n#### 1. Concrete Correctness and Owned-File Completeness\n- **Lane Scoping**: Lane boundaries remain strictly partitioned. SL-0 owns gate scripts, workflow files, root test/lint/typecheck configs, guard helpers, and the four bounded process test suites (`cross-process.test.ts`, `locks.test.ts`, `race-proof.test.ts`, `supabase-lease-store.test.ts`). SL-1 owns readiness documentation, the readiness test, and docs fixture contracts. SL-2 owns evidence records, review digests, and closeout synthesis.\n- **Import Boundaries (CASE-HY-6)**: The AST-based import check in SL-0 precisely bounds the 3 known legacy relative type imports of `OmnigentProviderMode` from `packages/identity-isolation` to `../../omnigent-transport/src/types.js` (verified in S3, S4, S5). Disallowing expansion while deferring source remediation to PREP (omniagent-plus#27) is structurally sound and preserves package integrity without premature production refactoring.\n\n#### 2. SQL Privilege, Isolation, and Environment Admission\n- **Host & Environment Cleansing**: SL-0 rigorously strips ambient credentials (`PG*`, `SUPABASE_*`, `DATABASE_URL`, `GUARD_TEST_DATABASE_URL`) and overrides `PGSERVICEFILE`, `PGPASSFILE`, `PGOPTIONS`, and `PGSSLMODE` to prevent host leaks.\n- **Role Separation**: Superuser installer access is isolated strictly to container bootstrap. The test runner connects as `guard_client` (LOGIN, NOSUPERUSER, NOBYPASSRLS, NOINHERIT) with membership in `service_role`. `SET ROLE service_role` is scoped strictly to a ephemeral single-shot probe connection closed in a `finally` block.\n- **Hostile Ambient Environment Falsification**: The post-round-6 amendment explicitly requires `pnpm test` to clear DB enablement and connection variables unconditionally and exclude the DB selector prior to test collection even when variables are pre-set. Database cases (`*.db.test.ts`) are collected only under verified, admitted fixture execution (`verify`, `test:guard`, `test:integration`). Destructive setup controls run serially in isolated disposable fixtures rather than polluting the integration fixture.\n\n#### 3. Artifact Identity and Tested-Versus-Published Parity\n- **Provenance Binding**: `tested_source_sha` is immutably frozen from event context (`pull_request.head.sha` for PRs; `github.sha` for push/release/dispatch), rejecting arbitrary ref injection.\n- **Tarball Rehearsal**: Verification packs the three public packages once in deterministic order (`runtime-provider`, `governed-pipeline-adapter`, `omnigent-transport`), manifests their digests, and verifies them via `--tarball` smoke. The no-id-token rehearsal job tests `--verified-artifact` mode with `NPM_PUBLISH_DRY_RUN=1` and an `NPM_CLI` stub returning E404 to ensure the non-skip path passes the exact verified tarball to npm without invoking `pnpm pack` or rebuilding.\n\n#### 4. CI Failure Propagation and Branch Protection\n- **Fail-Safe Gate**: `pnpm verify` sequences typechecks, boundary validations, database fixture bootstrap, root tests, and tarball smoke with explicit zero-exit validation; null or signal child terminations fail immediately.\n- **Status Check**: The GitHub workflow defines `guard-required`, which executes post-verification and fails if verification is skipped, cancelled, or failed. Merging requires `guard-required` without bypassing branch protections.\n\n#### 5. Explicit Recording-Only Acceptance Procedure\n- **Allowlisted Fields**: `TRIAGE-closeout.json` defines a strict `acceptance_recording_contract` limited to `status`, `review.amendment_panel`, `review.current_panel`, `criteria.EC-TRIAGE-3`, `produced_if_gates`, and `accepted_at`.\n- **Hash Binding**: Any change outside allowlisted paths requires fresh review. Historical runner state remains unmodified.\n\n---\n\n### Conclusion\n\nThe amended GUARD plan, pending TRIAGE receipt, and source evidence provide a completely specified, leak-proof verification gate. All feedback from Round 6 and preceding panels has been integrated with explicit controls.\n\nAGREE\n",
+        "detail": null,
+        "seat_key": "gemini:gemini-3.8-flash:high:alternative-approach",
+        "harden_isolation_evidence": {
+          "schema": "parent_unix_broker_v1",
+          "stage_bundle_sha256": "39a59d329e899585cd025e0fd0b99043a536c49bc94f87de01f05e39dda7800b",
+          "stage_instructions_sha256": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+          "leg_authorization_instructions_sha256": "e5e073fc47fff4f7999eb323cf7cca94fab08b25fe9941dda392c62bd4129287",
+          "leg_authorization_issued_monotonic_ns": 368370859337391,
+          "leg_authorization_expires_monotonic_ns": 370172859337391,
+          "canonical_repo_sha256": "73e81678a2f417270825cad57774a9bd9d98f21550e53312b04dae9f2c42f193",
+          "canonical_repo_probe_file_sha256": "9111f1349d13426ed948b49a65c669d7871bbbaaee06382073978cfa30464b79",
+          "cleanup_root_removed": true,
+          "child_quiescent": true,
+          "provider_input_sha256": "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516",
+          "provider_input_bytes": 54686,
+          "provider_input_inline": true,
+          "provider_live_tree_cwd": false,
+          "peer_pid": 2556619,
+          "peer_uid": 1000,
+          "peer_gid": 1000,
+          "peer_ancestry_verified": true,
+          "provider_isolation_profile": "agy_temp_home_deny_all_v1",
+          "provider_agy_deny_actions": [
+            "read_file(*)",
+            "write_file(*)",
+            "read_url(*)",
+            "execute_url(*)",
+            "command(*)",
+            "unsandboxed(*)",
+            "mcp(*)"
+          ],
+          "provider_agy_settings_sha256": "5cb57385b5d96a89f2ca6c050b4178985c1566ca7643605b903d3ccfedf2ac76",
+          "provider_agy_subscription_reference": "private_symlink",
+          "provider_agy_home_cleanup_verified": true,
+          "provider_harness": "gemini",
+          "provider_model": "gemini-3.8-flash-high",
+          "provider_argv_shape": [
+            "agy",
+            "--model",
+            "gemini-3.8-flash-high",
+            "--sandbox",
+            "--mode",
+            "plan",
+            "--disable-slash-commands",
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--print=",
+            "--print-timeout",
+            "1800s",
+            "<STDIN_SEALED_INLINE_PROMPT>"
+          ],
+          "provider_argv_sha256": "ca702c89b3e74eaa7f6601d494130d7bbd1e74697700ee472eda0ce4242fe669",
+          "provider_prompt_sha256": "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516",
+          "provider_prompt_bytes": 54686,
+          "provider_transport_sha256": "fef9a2cf2036093ca2c04f1d5ec6e3893d07418060be317734ce93cb2c8eacb5",
+          "provider_transport_bytes": 57707,
+          "provider_prompt_transport": "stream_json_same_session_ingestion",
+          "provider_cwd_class": "owned_empty_scratch",
+          "provider_cwd_sha256": "d3016547fbd28b8b1d54dabeb2797e45389da857ac582ff022ae9f608109d1fc",
+          "provider_env_keys": [
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "NO_COLOR",
+            "PATH",
+            "TERM",
+            "XDG_CONFIG_HOME"
+          ],
+          "provider_env_api_keys_scrubbed": true,
+          "provider_env_direct_routes_scrubbed": true,
+          "provider_no_tool_controls": [
+            "sandbox",
+            "mode-plan",
+            "disable-slash-commands",
+            "deny-all-actions",
+            "stream-json-same-session-ingestion",
+            "no-add-dir",
+            "no-dangerous-permissions"
+          ],
+          "provider_stream_protocol": "agy_ndjson_same_session_ingestion_v1",
+          "provider_stream_chunk_count": 1,
+          "provider_stream_chunk_sha256": [
+            "8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516"
+          ],
+          "provider_stream_chunk_bytes": [
+            54686
+          ],
+          "provider_stream_final_event_sha256": "0333c866196b271deb0e6ffa26a37742fa1bd068c097acbf9d4410d8d9bc2baa",
+          "provider_stream_acknowledgements": [
+            "HARDEN-AGY-CHUNK-ACK 8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516 1/1 8968d8b1b582d16415476909603a7eab2bad050205823bcdbe7b43c1b0c76516"
+          ],
+          "provider_stream_result_count": 2,
+          "provider_stream_output_sha256": "59cf4d81d085f0b12a84eea1145797ff7632701eb8e66d56a87e87b22a2f12b4",
+          "provider_stream_output_bytes": 57117,
+          "provider_stream_outcome": "accepted",
+          "provider_stream_acknowledgements_verified": true,
+          "provider_stream_final_no_truncation": true,
+          "bwrap": "/usr/bin/bwrap",
+          "outer_bwrap_pid": 2556617,
+          "outer_bwrap_start": 36837090,
+          "network_unshared": true,
+          "close_fds_requested": true,
+          "socket": "/run/phase-loop-broker/intended-inference.sock",
+          "stage": "/run/phase-loop-review",
+          "argv_sha256": "c2281a114bbd8bbc38acfba968d53c8fa61a8f555a38f00d0beb1efb36ec8214",
+          "socket_present_before_launch": true,
+          "stage_bundle_mode": 256,
+          "stage_instructions_mode": 256,
+          "client_probe_program_sha256": "d12dfd6d8138ab6cf18180961e776796b6cbd11d500ce48835b6d529275bd1a9",
+          "client_probe_assertions": [
+            "credentialless_env",
+            "readonly_stage",
+            "no_live_bundle",
+            "no_live_instructions",
+            "no_host_secret",
+            "no_live_tree",
+            "no_inherited_fd",
+            "fixed_socket_only",
+            "no_af_inet"
+          ],
+          "canonical_repo_file_denied": true,
+          "canonical_repo_directory_denied": true,
+          "host_stage_path_denied": true,
+          "child_returncode": 0,
+          "no_inherited_fd_observed": true,
+          "child_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "operation_deadline_s": 1800.0,
+          "child_timeout": false,
+          "broker_thread_quiescent": true,
+          "provider_adapter_quiescent": true,
+          "provider_cancel_requested": false,
+          "host_secret_probe_removed": true,
+          "provider_response_status": "OK",
+          "provider_response_sha256": "778aecd938260e0e780e95cb79ed8a98093197cb203d8e7c15553a1a149d81fe",
+          "provider_response_bytes": 6476
+        }
+      }
+    ],
+    "president": null,
+    "president_findings": []
+  }
+}

@@ -1,9 +1,8 @@
-import { once } from "node:events";
 import { readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnOwned as spawn, runProcess, waitReady, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -83,10 +82,10 @@ describe("locks", () => {
           LOCK_HOLD_OPEN: "1",
           LOCK_TIMEOUT_MS: "1000",
         },
-        stdio: ["pipe", "pipe", "pipe"],
       },
     );
-    const [readyBuffer] = (await once(holdingChild.stdout, "data")) as [Buffer];
+    try {
+    const readyBuffer = await waitReady(holdingChild);
     const ready = JSON.parse(readyBuffer.toString("utf8").trim()) as {
       readonly acquired: boolean;
       readonly metadata: {
@@ -101,7 +100,7 @@ describe("locks", () => {
     expect(metadata?.holder).toEqual(fixture.exclusiveWrite.holder);
     expect(metadata?.fencingToken).toBe(ready.metadata.fencingToken);
 
-    const second = spawnSync(
+    const second = await runProcess(
       "pnpm",
       ["exec", "vite-node", "--script", scriptPath],
       {
@@ -117,17 +116,16 @@ describe("locks", () => {
           LOCK_HOLD_OPEN: "0",
           LOCK_TIMEOUT_MS: "25",
         },
-        encoding: "utf8",
       },
     );
 
-    expect(second.status).toBe(0);
-    const secondAttempt = JSON.parse(second.stdout.trim()) as {
+    const secondAttempt = JSON.parse(second.trim()) as {
       readonly acquired: boolean;
     };
     expect(secondAttempt.acquired).toBe(false);
 
     holdingChild.stdin.end("\n");
-    await once(holdingChild, "exit");
-  });
+    expect(await waitExit(holdingChild)).toBe(0);
+    } finally { await cleanupChild(holdingChild); }
+  }, 50_000);
 });
