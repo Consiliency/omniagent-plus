@@ -9,6 +9,7 @@ import {
   assertMetadataSafe,
   runtimeEvidenceRefSchema,
   redactedTextSchema,
+  projectMetadataExport,
 } from "./redaction.js";
 
 function readFixture<T>(path: string): T {
@@ -38,6 +39,8 @@ describe("handoff redaction helpers", () => {
     }
     for (const path of corpus.rejectedExportPaths) expect(() => runtimeEvidenceRefSchema.parse({ kind: "file", label: "safe", path })).toThrow();
     for (const path of corpus.allowedEvidencePaths) expect(() => runtimeEvidenceRefSchema.parse({ kind: "file", label: "safe", path })).not.toThrow();
+    expect(projectMetadataExport({ path: "state/.recovery/marker.tail" })).toEqual({ path: "[redacted]" });
+    expect(projectMetadataExport({ path: "/tmp/state/.recovery/marker.tail" })).toEqual({ path: "[redacted]" });
     const redacted = redactUntrustedText("multibyte é");
     expect(() => redactedTextSchema.parse({ ...redacted, byteLength: redacted.byteLength + 1 })).toThrow(/byte length/);
     expect(() => redactedTextSchema.parse({ ...redacted, truncated: true })).toThrow();

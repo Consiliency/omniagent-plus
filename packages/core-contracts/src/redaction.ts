@@ -23,11 +23,11 @@ const secretTextPatterns: Array<{
   },
   {
     reason: "api_key_token",
-    pattern: /\b(?:sk-|gh[pousr]_|xox[baprs]?-)[a-z0-9._-]{8,}\b/i,
+    pattern: /\b(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|npm_|AIza)[a-z0-9._-]{8,}\b/i,
   },
   {
     reason: "auth_assignment",
-    pattern: /\b(?:password|token|credential|authorization|api_key)\s*(?:=|:)\s*\S+/i,
+    pattern: /(?<![a-z0-9_])(?:[a-z][a-z0-9_]*_)?(?:password|passwd|token|credential|authorization|api_key|access_key|client_secret|secret_key|service_role_key|secret)\s*(?:=|:)\s*\S+/i,
   },
   {
     reason: "secret_env_assignment",
@@ -39,7 +39,8 @@ const secretTextPatterns: Array<{
     pattern: /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/,
   },
   { reason: "aws_access_key", pattern: /\bAKIA[0-9A-Z]{16}\b/ },
-  { reason: "auth_header", pattern: /\bauthorization:\s*\S+/i },
+  { reason: "jwt_token", pattern: /\beyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\b/i },
+  { reason: "auth_header", pattern: /\b(?:authorization|x-api-key|cookie)\s*:\s*\S+/i },
   { reason: "url_userinfo", pattern: /\b[a-z][a-z0-9+.-]*:\/\/[^/\s@]+:[^/\s@]+@/i },
   { reason: "home_path", pattern: /(?:\/(?:home|Users)\/[^/\s]+|[A-Z]:[\\/]Users[\\/][^\\/\s]+)/i },
 ];
@@ -48,8 +49,11 @@ const secretPathPatterns = [
   /(^|\/)\.env(?:\.|$)/i,
   /(^|\/)\.ssh(\/|$)/,
   /(^|\/)(?:secrets?|credentials?|private)(\/|$)/i,
-  /(^|\/)id_(?:rsa|ed25519)(?:\.pub)?$/i,
-  /\.(?:pem|p12|key)$/i,
+  /(^|\/)(?:\.npmrc|\.netrc|\.git-credentials)$/i,
+  /(^|\/)(?:\.kube\/config|\.docker\/config\.json)$/i,
+  /(^|\/)id_(?:rsa|ed25519|ecdsa)(?:\.pub)?$/i,
+  /\.(?:pem|p12|key|jks|pfx)$/i,
+  /(^|\/)\.recovery(?:\/|$)/,
 ] as const;
 
 const envDumpPattern = /(^|\n)(?:HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|AZURE_OPENAI_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=/m;
@@ -88,8 +92,8 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
       const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(key) && !secretTextPatterns.some((rule) => rule.pattern.test(key)) ? key : `[field-${index}]`;
       const next = `${path}.${safeKey}`;
       const normalized = key.replaceAll("_", "").toLowerCase();
-      if (/^(?:password|token|credential|authorization|authheader|apikey)$/.test(normalized)
-        || /_(?:token|password|credential|api_key)$/.test(key.toLowerCase())) {
+      if (/^(?:password|passwd|token|credential|authorization|authheader|apikey|accesskey|clientsecret|secretkey|servicerolekey|cookie|xapikey|secret)$/.test(normalized)
+        || /_(?:token|password|passwd|credential|api_key|access_key|secret|secret_key|service_role_key)$/.test(key.toLowerCase())) {
         if (typeof item === "string") leaks.push({ path: next, reason: "sensitive_field" });
       }
       if ((key === "env" || key === "environment") && plainRecord(item) && Object.keys(item).length > 0
@@ -122,6 +126,7 @@ export function opaqueExportPath(path: string): string {
 
 export function projectMetadataExport(value: unknown): unknown {
   if (typeof value === "string") {
+    if (isSecretLikePath(value.replaceAll("\\", "/"))) return "[redacted]";
     if (isAbsolute(value) || /^[A-Z]:[\\/]/i.test(value)) return opaqueExportPath(value);
     if (scanMetadataLeaks(value).length > 0) return "[redacted]";
     return value.replace(/(^|[\s'"])(\/[\w.~-][^\s'"]*)/g, (_match, before: string, path: string) => `${before}${opaqueExportPath(path)}`);
@@ -260,7 +265,7 @@ export function sanitizeMetadataPath(pathValue: string): string {
     throw new Error("Evidence paths must not traverse outside the repository.");
   }
 
-  if (isSecretLikePath(collapsed) || collapsed === ".recovery" || collapsed.startsWith(".recovery/")) {
+  if (isSecretLikePath(collapsed)) {
     throw new Error("Evidence paths must not reference secret-bearing locations.");
   }
 

@@ -11,8 +11,8 @@
     "packages/state-ledger/src/migrations.ts": "e71ce548a506d58aaa55f48cc2204957066a5cdd3cf9b571c1d4ff2163a880c6",
     "packages/state-ledger/src/replay.ts": "bb2c4d6aebb98acc74e48278bb9027c5949320fcaab485779bbf76dd6614cabf",
     "packages/state-ledger/src/retention.ts": "1534a35920d1f5f83259371873eea051b9a93562d6f3c035534a8ec219d3dfd5",
-    "packages/core-contracts/src/redaction.ts": "1e5eaaefb744a4b3163c45540c16aff91b9fbfc7b751ec1f5d3aadcc1918e119",
-    "fixtures/content-policy/corpus.json": "462ee36083cf30f0c0a6c86569748ab21a8a83109694a17dffc28183fedb84ce",
+    "packages/core-contracts/src/redaction.ts": "fac192882c166be35f3b537e6de197d5cac900635d263228218dfebe389fae55",
+    "fixtures/content-policy/corpus.json": "af0d1c70e1dd20d4a53979852c9719029c91b67b24fd7484cafa923f01166c7a",
     "plans/phase-plan-v2-DATA.md": "abef0e02a2151f5cba7010ca5db37ab80234313d20d8de3f496139bd326cc34a",
     "packages/core-contracts/src/state-ledger.ts": "005fd911af1638b45652c823172060002bcd381a6a7c98bae14469abd685cc3c"
   },
@@ -39,11 +39,25 @@
         "files": 52,
         "passed": 190,
         "failed": 0
+      },
+      "scanner_export_delta": {
+        "files": 3,
+        "passed": 8,
+        "failed": 0,
+        "command": "pnpm build; pnpm exec vitest run packages/core-contracts/src/redaction.test.ts packages/cli/src/output.test.ts packages/cli/src/health.test.ts; pnpm lint"
       }
     },
     "typecheck": "passed on repaired working candidate",
     "lint": "passed on repaired working candidate",
-    "full_gate": "Build/lint/typecheck/boundaries passed; local disposable Docker loopback fixture readiness failed. Hosted full gate required; prior d234929 gate found now-repaired missing synthetic fixture dependency and legacy diagnostic mismatch."
+    "full_gate": "Build/lint/typecheck/boundaries passed; local disposable Docker loopback fixture readiness failed. Hosted full gate required; prior d234929 gate found now-repaired missing synthetic fixture dependency and legacy diagnostic mismatch.",
+    "deterministic_root": {
+      "source_sha": "0ddcfacaac7f9c408aa23ea1b0b4679965fa6182",
+      "command": "pnpm test",
+      "passed": 556,
+      "skipped": 1,
+      "failed": 0,
+      "skip": "only explicitly opt-in live Omnigent case"
+    }
   },
   "measurement": {
     "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; synthetic identical ledger fixtures; one observational run",
@@ -146,6 +160,11 @@
         "stale route dry-run mutation statement"
       ],
       "resolution": "Candidate requires known runtime fields already omitted at direct ledger boundary; validates missing-ledger/nonempty-manifest contradiction; enforces configurable maxSnapshotBytes before append; adds colon assignments to shared corpus and corrects docs. Final re-review pending."
+    },
+    {
+      "source_sha": "d234929308057d938555f09715919a2dc169a3f7",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-d234929.json",
+      "resolution": "Candidate covers inherited JWT/Google/GitLab/npm token and colon/underscore assignment/header families, credential paths and nested .recovery refs with shared corpus. Both degraded seats must rerun through normal authorization on a fresh immutable review clone."
     }
   ],
   "remaining": [
@@ -160,5 +179,14 @@
     "WIRE owns real public stream/history labels and transport lifecycle.",
     "INTEG owns production provider-to-ledger lifecycle composition.",
     "PREP owns distribution and public independent package acceptance."
-  ]
+  ],
+  "hosted_verification": {
+    "source_sha": "0ddcfacaac7f9c408aa23ea1b0b4679965fa6182",
+    "ci_run_id": 36616797620,
+    "publish_rehearsal_run_id": 36616797755,
+    "required_check": "guard-required",
+    "conclusion": "success",
+    "actual_publish": "skipped",
+    "final_head": "pending"
+  }
 }
