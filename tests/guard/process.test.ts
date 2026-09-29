@@ -68,6 +68,10 @@ it("cleans a detached descendant after its direct parent exits normally", async 
     expect(existsSync('/proc/'+pid+'/stat') && !readFileSync('/proc/'+pid+'/stat', 'utf8').split(') ')[1]?.startsWith('Z')).toBe(false);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+it("lets an on-time payload finish its reserved descendant drain after the operation deadline", async () => {
+  const script = `const{spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setTimeout(()=>{},500)'],{detached:true,stdio:'ignore'});child.unref();setTimeout(()=>process.exit(0),350);`;
+  await expect(runProcess(process.execPath, ["-e", script], { timeout: 500 })).resolves.toBe("");
+}, 5_000);
 it("cleans owned active work after an ordinary failure without closing another scope", async () => {
   const scope = new ProcessScope(2);
   const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
@@ -153,24 +157,25 @@ it("funds two nested three-slot scopes over ordinary work within 112.5 seconds",
   const outer = `import{ProcessScope,runProcess}from${JSON.stringify(helper)};const scope=new ProcessScope(3);await scope.run(()=>runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(inner)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}}));await scope.close();console.log('funded')`;
   expect(await runProcess(process.execPath, ["--input-type=module", "-e", outer], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 57_500 } })).toBe("funded");
 });
-it("cancels a buffered ADMIT before it can start payload effects", async () => {
+it("drains custody when cancellation follows an already buffered ADMIT", async () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-buffered-admit-"));
   const marker = join(dir, "payload-started");
   const controller = new AbortController();
   const child = withCustodyContext(dir, "buffered-admit-control", () => spawnOwned(process.execPath, ["-e", `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`], { signal: controller.signal }));
   child.stdout.resume(); child.stderr.resume(); child.stdin.end();
   const control = child.stdio[3] as Writable;
-  const originalWrite = control.write.bind(control);
-  Object.defineProperty(control, "write", { configurable: true, writable: true, value: (chunk: string | Uint8Array) => {
-    if (String(chunk).includes('"type":"ADMIT"')) { queueMicrotask(() => controller.abort()); return true; }
-    return originalWrite(chunk);
-  } });
+  control.cork();
   try {
-    await expect(waitExit(child)).rejects.toThrow();
-    await expect(cleanupChild(child)).rejects.toThrow();
+    const deadline = Date.now() + 2_000;
+    while (control.writableLength === 0 && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(control.writableLength).toBeGreaterThan(0);
     expect(existsSync(marker)).toBe(false);
-    expect(() => validateCustodyJournal(dir)).toThrow("unproven");
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+    controller.abort();
+    control.uncork();
+    await waitExit(child).catch(() => {});
+    await cleanupChild(child);
+    expect(validateCustodyJournal(dir).admitted).toBe(1);
+  } finally { control.uncork(); await cleanupChild(child); rmSync(dir, { recursive: true, force: true }); }
 });
 it("refuses payload effects when the controller closes before admission", async () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-control-eof-"));

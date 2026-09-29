@@ -19,11 +19,16 @@ records. omniagent-plus#20 stays open.
   unpropagated early cancellation ceiling, and absent job-time funding;
   Sol identified a deadline-edge false timeout and a buffered-ADMIT control
   that does not actually buffer ADMIT. The first three Astra findings have
-  code and regression repairs in the next candidate. Sol's findings and the
-  remaining specified fault controls still require reconciliation.
+  code and regression repairs in the next candidate. A further candidate
+  waits through the separately reserved custody drain for an on-time payload
+  and uses actual stream corking to test ADMIT already buffered at cancellation.
+  The remaining specified fault controls still require reconciliation.
 - The next candidate's local plain `CI=true pnpm test` passed 483 cases with
   the one permitted live-smoke skip; build, lint, typecheck, and workflow YAML
   parsing passed. Hosted validation and exact-head review remain required.
+- The deadline-edge and buffered-ADMIT follow-up passed the local plain gate
+  with 484 cases and the one permitted live-smoke skip. Exact-head hosted and
+  reviewer evidence is still pending.
 
 - Linux subreaper/pidfd custody, scope cleanup, SQL fixture admission and
   custody journaling are implemented through `3254f0a`. This is an implementation

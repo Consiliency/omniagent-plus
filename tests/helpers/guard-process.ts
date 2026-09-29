@@ -401,7 +401,7 @@ export async function waitExit(child: ChildProcessWithoutNullStreams, timeout = 
   if (signal?.aborted) throw new Error("Child operation interrupted");
   const record = child.pid === undefined ? undefined : owned.get(child.pid);
   if (!record) throw new Error("Child spawn failed");
-  const remaining = Math.max(0, timeout - elapsedMs(record.started));
+  const remaining = Math.max(0, Math.min(timeout, record.timeout) + (timeout >= record.timeout ? record.shutdownReservationMs : 0) - elapsedMs(record.started));
   const result = await new Promise<CustodyResult>((resolve, reject) => {
     const timer = setTimeout(() => { requestShutdown(record); reject(new Error("Child operation timed out")); }, remaining);
     const onAbort = () => { if (!record.scope?.cooperativeClosing) requestShutdown(record); reject(new Error("Child operation interrupted")); };
