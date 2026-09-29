@@ -18,7 +18,7 @@ beforeAll(async () => {
   base = mkdtempSync(join(tmpdir(), "guard-artifact-base-"));
   sourceRoot = join(base, "source");
   mkdirSync(sourceRoot);
-  for (const file of ["scripts/publish-package-if-needed.sh", "scripts/verify-publish-artifacts.mjs", "tests/helpers/guard-process.ts", "pnpm-lock.yaml"]) {
+  for (const file of ["scripts/publish-package-if-needed.sh", "scripts/verify-publish-artifacts.mjs", "tests/helpers/guard-process.ts", "tests/helpers/guard-supervisor.py", "pnpm-lock.yaml"]) {
     mkdirSync(dirname(join(sourceRoot, file)), { recursive: true });
     cpSync(file, join(sourceRoot, file));
   }

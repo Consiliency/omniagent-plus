@@ -406,8 +406,21 @@ class Supervisor:
                     self.error = self.error or "custody_deadline"
                     break
             time.sleep(0.005)
-        outcome, quiescent = self.result(exhausted and not self.active and not direct_children())
+        try:
+            outcome, quiescent = self.result(exhausted and not self.active and not direct_children())
+        except CustodyError:
+            outcome, quiescent = {}, False
         if not quiescent:
+            while True:
+                self.discover()
+                exhausted = self.reap()
+                self.signal_children(signal.SIGKILL)
+                try:
+                    if exhausted and not self.active and not direct_children():
+                        break
+                except (OSError, ValueError):
+                    pass
+                time.sleep(0.05)
             return 125
         if "exit_code" in outcome:
             return outcome["exit_code"]

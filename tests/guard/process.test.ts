@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { cleanupChild, ProcessScope, runProcess, signalOwned, spawnOwned, waitExit, waitReady } from "../helpers/guard-process.js";
+import { cleanupChild, ProcessScope, runProcess, signalOwned, spawnOwned, validateCustodyJournal, waitExit, waitReady } from "../helpers/guard-process.js";
 
 it("fails spawn errors, nonzero children and signal/null exits", async () => {
   await expect(runProcess("guard-command-does-not-exist", [])).rejects.toThrow();
@@ -16,7 +16,7 @@ it("terminates a hung child and descendant without signaling unowned processes",
   await waitReady(unrelated);
   try {
     const started = Date.now();
-    await expect(runProcess(process.execPath, ["-e", `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`], { timeout: 250 })).rejects.toThrow("timed out");
+    await expect(runProcess(process.execPath, ["-e", `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000);`], { timeout: 250, custodyControlId: "hung-child" })).rejects.toThrow("timed out");
     const pid = Number(readFileSync(pidFile, "utf8"));
     const deadline = Date.now() + 2_000;
     const alive = () => existsSync(`/proc/${pid}/stat`) && !readFileSync(`/proc/${pid}/stat`, "utf8").split(") ")[1]?.startsWith("Z");
@@ -51,7 +51,7 @@ it("cleans a detached descendant after its direct parent exits normally", async 
   const dir = mkdtempSync(join(tmpdir(), "guard-normal-descendant-"));
   const pidFile = join(dir, "pid");
   try {
-    await runProcess(process.execPath, ["-e", `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));c.unref();setTimeout(()=>process.exit(0),100);`]);
+    await runProcess(process.execPath, ["-e", `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));c.unref();setTimeout(()=>process.exit(0),100);`], { custodyControlId: "normal-orphan" });
     const pid = Number(readFileSync(pidFile, "utf8"));
     expect(existsSync('/proc/'+pid+'/stat') && !readFileSync('/proc/'+pid+'/stat', 'utf8').split(') ')[1]?.startsWith('Z')).toBe(false);
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -113,9 +113,22 @@ it("reaps 100 immediate-exit detached descendants before each command returns", 
     for (let index = 0; index < 100; index++) {
       const pidFile = join(dir, String(index));
       const script = `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const child=spawn(process.execPath,['-e','setTimeout(()=>{},5000)'],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(child.pid));child.unref();process.exit(0);`;
-      await runProcess(process.execPath, ["-e", script]);
+      await runProcess(process.execPath, ["-e", script], { custodyControlId: "immediate-orphan" });
       const pid = Number(readFileSync(pidFile, "utf8"));
       expect(existsSync(`/proc/${pid}`), `trial ${index} escaped`).toBe(false);
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }, 120_000);
+it("rejects unbalanced custody receipts and an unexpected rescue beside an expected control", () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-journal-"));
+  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, control_case_id: control });
+  const terminal = (id: string, signaled = 0, control: string | null = null) => ({ ...admission(id, control), event: "terminal", custody: "quiescent", adopted_count: signaled, adopted_natural_count: 0, adopted_signaled_count: signaled, adopted_unresolved_count: 0, force_killed_count: 0 });
+  const check = (rows: object[]) => { writeFileSync(join(dir, "custody.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n"); return () => validateCustodyJournal(dir); };
+  try {
+    expect(check([admission("expected", "normal-orphan"), terminal("expected", 1, "normal-orphan")])()).toEqual({ admitted: 1, natural: 0, signaled: 1 });
+    expect(check([admission("missing")])).toThrow("missing terminal");
+    expect(check([terminal("orphan")])).toThrow("terminal mismatch");
+    expect(check([admission("duplicate"), admission("duplicate")])).toThrow("duplicate");
+    expect(check([admission("expected", "normal-orphan"), terminal("expected", 1, "normal-orphan"), admission("unexpected"), terminal("unexpected", 1)])).toThrow("unexpected signaled rescue");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

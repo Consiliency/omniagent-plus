@@ -61,17 +61,22 @@ async function createInScope({ mode, source, root, run }, scope, registerCleanup
   /** @type {Promise<void> | undefined} */
   let cleaning;
   const cleanup = () => cleaning ??= outsideProcessScope(async () => {
-    if (mode === "local" && creationStarted && !fixture.id) {
-      const ids = await run("docker", ["ps", "--all", "--quiet", "--no-trunc", "--filter", `label=${ownerLabel}`]);
-      for (const id of ids.split("\n").filter(Boolean)) {
-        const [container] = JSON.parse(await run("docker", ["inspect", id]));
+    try {
+      if (mode === "local" && creationStarted && !fixture.id) {
+        const ids = (await run("docker", ["ps", "--all", "--quiet", "--no-trunc", "--filter", `label=${ownerLabel}`])).split("\n").filter(Boolean);
+        if (ids.length !== 1) throw new Error("Container creation outcome unproven");
+        const [container] = JSON.parse(await run("docker", ["inspect", ids[0]]));
         if (container.Config.Labels["omniagent.guard.run"] !== ownerLabel.split("=")[1] || container.Config.Image !== IMAGE) throw new Error("Cleanup ownership mismatch");
-        await run("docker", ["rm", "--force", id]);
+        await run("docker", ["rm", "--force", ids[0]]);
       }
+      if (mode === "local" && fixture.id) await run("docker", ["rm", "--force", fixture.id]);
+      fixture.receipt.cleanup = mode === "local" ? "removed-owned-container" : "workflow-owned-service";
+    } catch (error) {
+      fixture.receipt.cleanup = "unproven";
+      throw error;
+    } finally {
+      writeFileSync(join(runDir, "sql-setup.json"), JSON.stringify(fixture.receipt, null, 2) + "\n");
     }
-    if (mode === "local" && fixture.id) await run("docker", ["rm", "--force", fixture.id]);
-    fixture.receipt.cleanup = mode === "local" ? "removed-owned-container" : "workflow-owned-service";
-    writeFileSync(join(runDir, "sql-setup.json"), JSON.stringify(fixture.receipt, null, 2) + "\n");
   });
   registerCleanup(cleanup);
   try {

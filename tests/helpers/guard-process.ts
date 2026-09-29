@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import type { ChildProcessWithoutNullStreams, SpawnOptionsWithoutStdio } from "node:child_process";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Readable, Writable } from "node:stream";
 
@@ -39,6 +39,8 @@ type OwnedChild = {
   inputSeq: number;
   outputSeq: number;
   admitted: boolean;
+  admissionJournaled: boolean;
+  terminalWritten: boolean;
   workDrained: boolean;
   result?: CustodyResult;
   fault?: Error;
@@ -51,17 +53,65 @@ type OwnedChild = {
   started: bigint;
   options: OwnedOptions;
   scope?: ProcessScope;
+  runDir?: string;
+  stage: string;
+  supervisorStart: string | null;
 };
 const owned = new Map<number, OwnedChild>();
 const context = new AsyncLocalStorage<ProcessScope | undefined>();
+const custodyContext = new AsyncLocalStorage<{ runDir: string; stage: string }>();
+const controlCases = new Set(["hung-child", "normal-orphan", "immediate-orphan"]);
 const supervisorPath = fileURLToPath(new URL("./guard-supervisor.py", import.meta.url));
 const elapsedMs = (started: bigint) => Number((process.hrtime.bigint() - started) / 1_000_000n);
 
+export function withCustodyContext<T>(runDir: string, stage: string, operation: () => T): T {
+  return custodyContext.run({ runDir, stage }, operation);
+}
+
+export function validateCustodyJournal(runDir: string): { admitted: number; natural: number; signaled: number } {
+  const path = `${runDir}/custody.jsonl`;
+  if (!existsSync(path)) return { admitted: 0, natural: 0, signaled: 0 };
+  const admissions = new Map<string, Record<string, unknown>>();
+  let natural = 0;
+  let signaled = 0;
+  for (const line of readFileSync(path, "utf8").trim().split("\n")) {
+    const row = JSON.parse(line) as Record<string, unknown>;
+    const id = row.command_id;
+    if (typeof id !== "string") throw new Error("GUARD custody journal ID invalid");
+    if (row.event === "admission") {
+      if (admissions.has(id)) throw new Error("GUARD duplicate custody admission");
+      admissions.set(id, { ...row, terminal: false });
+    } else if (row.event === "terminal") {
+      const first = admissions.get(id);
+      if (!first || first.terminal || first.stage !== row.stage || first.supervisor_pid !== row.supervisor_pid || first.supervisor_start_identity !== row.supervisor_start_identity || first.control_case_id !== row.control_case_id) throw new Error("GUARD custody journal terminal mismatch");
+      first.terminal = true;
+      const counts = [row.adopted_count, row.adopted_natural_count, row.adopted_signaled_count, row.adopted_unresolved_count, row.force_killed_count];
+      if (counts.some((count) => !Number.isSafeInteger(count) || Number(count) < 0) || row.adopted_count !== Number(row.adopted_natural_count) + Number(row.adopted_signaled_count) + Number(row.adopted_unresolved_count)) throw new Error("GUARD custody journal counts invalid");
+      if (row.custody !== "quiescent" || Number(row.adopted_unresolved_count) !== 0) throw new Error("GUARD custody journal unproven");
+      if ((Number(row.adopted_signaled_count) > 0 || Number(row.force_killed_count) > 0) && !controlCases.has(String(row.control_case_id))) throw new Error("GUARD unexpected signaled rescue");
+      natural += Number(row.adopted_natural_count);
+      signaled += Number(row.adopted_signaled_count);
+    } else throw new Error("GUARD custody journal event invalid");
+  }
+  if ([...admissions.values()].some((row) => row.terminal !== true)) throw new Error("GUARD custody journal admission missing terminal");
+  return { admitted: admissions.size, natural, signaled };
+}
+
 function journal(record: OwnedChild, event: "admission" | "terminal", result?: CustodyResult): void {
-  const dir = process.env.GUARD_CUSTODY_RUN_DIR;
+  const dir = record.runDir;
   if (!dir) return;
-  const row = { event, command_id: record.id, stage: process.env.GUARD_CUSTODY_STAGE ?? "standalone", supervisor_pid: record.child.pid, control_case_id: record.options.custodyControlId ?? null, ...(result ? { custody: result.custody, adopted_count: result.adopted_count, adopted_natural_count: result.adopted_natural_count, adopted_signaled_count: result.adopted_signaled_count, adopted_unresolved_count: result.adopted_unresolved_count, force_killed_count: result.force_killed_count } : {}) };
+  const row = { event, command_id: record.id, stage: record.stage, supervisor_pid: record.child.pid, supervisor_start_identity: record.supervisorStart, control_case_id: record.options.custodyControlId ?? null, ...(result ? { custody: result.custody, adopted_count: result.adopted_count, adopted_natural_count: result.adopted_natural_count, adopted_signaled_count: result.adopted_signaled_count, adopted_unresolved_count: result.adopted_unresolved_count, force_killed_count: result.force_killed_count } : {}) };
   appendFileSync(`${dir}/custody.jsonl`, `${JSON.stringify(row)}\n`);
+}
+
+function unprovenResult(result?: CustodyResult): CustodyResult {
+  return { payload_pid: result?.payload_pid ?? null, outcome: result?.outcome ?? {}, custody: "unproven", error: result?.error ?? "proof_failed", adopted_count: result?.adopted_count ?? 0, adopted_natural_count: result?.adopted_natural_count ?? 0, adopted_signaled_count: result?.adopted_signaled_count ?? 0, adopted_unresolved_count: result?.adopted_unresolved_count ?? 0, force_killed_count: result?.force_killed_count ?? 0 };
+}
+
+function terminal(record: OwnedChild, result?: CustodyResult): void {
+  if (!record.admissionJournaled || record.terminalWritten) return;
+  journal(record, "terminal", result);
+  record.terminalWritten = true;
 }
 
 function send(record: OwnedChild, kind: string, fields: Record<string, unknown> = {}): void {
@@ -75,14 +125,15 @@ function finish(record: OwnedChild): void {
   record.closed = true;
   let error = record.fault;
   const result = record.result;
+  if (record.buffer.length) error = new Error("GUARD status frame truncated");
   if (!error && (!record.admitted || !record.workDrained || !result)) error = new Error("GUARD custody result missing");
   if (!error && result) {
     if (result.custody !== "quiescent" || result.error || result.adopted_unresolved_count !== 0) error = new Error("GUARD custody unproven");
     else if (result.adopted_count !== result.adopted_natural_count + result.adopted_signaled_count) error = new Error("GUARD custody counts invalid");
     else if (result.outcome.signal ? record.child.signalCode !== result.outcome.signal : record.child.exitCode !== result.outcome.exit_code) error = new Error("GUARD supervisor/payload exit mismatch");
   }
-  if (record.admitted) {
-    try { journal(record, "terminal", result ?? { payload_pid: null, outcome: {}, custody: "unproven", error: "result_missing", adopted_count: 0, adopted_natural_count: 0, adopted_signaled_count: 0, adopted_unresolved_count: 0, force_killed_count: 0 }); }
+  if (record.admissionJournaled) {
+    try { terminal(record, error ? unprovenResult(result) : result); }
     catch { error = new Error("GUARD custody receipt write failed"); }
   }
   if (error || !result) record.reject(error ?? new Error("GUARD custody result missing"));
@@ -100,21 +151,27 @@ function handleStatus(record: OwnedChild, chunk: Buffer): void {
     try { frame = JSON.parse(line) as Record<string, unknown>; }
     catch { record.fault = new Error("GUARD status frame malformed"); record.control.end(); return; }
     if (frame.v !== 1 || frame.nonce !== record.nonce || frame.seq !== record.inputSeq++) { record.fault = new Error("GUARD status sequence mismatch"); record.control.end(); return; }
-    if (frame.type === "READY" && record.inputSeq === 1) {
+    if (frame.type === "READY" && record.inputSeq === 1 && !record.admitted) {
       const capabilities = frame.capabilities as Record<string, unknown> | undefined;
       if (!capabilities || Object.values(capabilities).length !== 4 || Object.values(capabilities).some((value) => value !== true)) { record.fault = new Error("GUARD custody capability refused"); record.control.end(); return; }
       if (record.options.signal?.aborted || record.scope?.controller.signal.aborted || elapsedMs(record.started) >= record.timeout) { record.fault = new Error("GUARD admission cancelled"); record.control.end(); return; }
       const env = Object.fromEntries(Object.entries(record.options.env ?? cleanEnvironment()).filter((entry): entry is [string, string] => entry[1] !== undefined));
+      if (record.runDir) { env.GUARD_CUSTODY_RUN_DIR = record.runDir; env.GUARD_CUSTODY_STAGE = record.stage; }
       const cwd = record.options.cwd instanceof URL ? fileURLToPath(record.options.cwd) : record.options.cwd ?? process.cwd();
       try {
         journal(record, "admission");
+        record.admissionJournaled = true;
         send(record, "ADMIT", { command: record.command, argv: record.args, cwd, env, umask: process.umask(), stdio: { stdin: 0, stdout: 1, stderr: 2 }, deadline_ns: String(record.started + BigInt(record.timeout) * 1_000_000n) });
         record.admitted = true;
       } catch { record.fault = new Error("GUARD admission failed"); record.control.end(); }
-    } else if (frame.type === "WORK_DRAINED") {
-      record.workDrained = frame.quiescent === true;
-    } else if (frame.type === "RESULT") {
-      record.result = frame as unknown as CustodyResult;
+    } else if (frame.type === "WORK_DRAINED" && record.admitted && !record.workDrained && !record.result && typeof frame.quiescent === "boolean") {
+      record.workDrained = frame.quiescent;
+      if (!frame.quiescent) record.fault = new Error("GUARD work drain unproven");
+    } else if (frame.type === "RESULT" && record.admitted && !record.result && (record.workDrained || record.fault?.message === "GUARD work drain unproven")) {
+      const result = frame as unknown as CustodyResult;
+      const counts = [result.adopted_count, result.adopted_natural_count, result.adopted_signaled_count, result.adopted_unresolved_count, result.force_killed_count];
+      if ((result.custody !== "quiescent" && result.custody !== "unproven") || counts.some((count) => !Number.isSafeInteger(count) || count < 0) || result.adopted_count !== result.adopted_natural_count + result.adopted_signaled_count + result.adopted_unresolved_count || typeof result.outcome !== "object" || result.outcome === null) { record.fault = new Error("GUARD custody result invalid"); record.control.end(); return; }
+      record.result = result;
     } else { record.fault = new Error("GUARD status frame out of order"); record.control.end(); return; }
   }
 }
@@ -170,6 +227,10 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
   const scope = currentProcessScope();
   scope?.check();
   if (process.platform !== "linux") throw new Error("GUARD Linux custody backend required");
+  if (options.custodyControlId && !controlCases.has(options.custodyControlId)) throw new Error("Unknown GUARD custody control");
+  const custody = custodyContext.getStore();
+  const runDir = custody?.runDir ?? process.env.GUARD_CUSTODY_RUN_DIR;
+  const stage = custody?.stage ?? process.env.GUARD_CUSTODY_STAGE ?? "standalone";
   const started = process.hrtime.bigint();
   const nonce = randomUUID();
   const child = spawn("python3", ["-I", "-S", "-B", supervisorPath, nonce], { env: cleanEnvironment(), detached: true, stdio: ["pipe", "pipe", "pipe", "pipe", "pipe"] }) as ChildProcessWithoutNullStreams;
@@ -177,7 +238,9 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     let resolve!: (result: CustodyResult) => void;
     let reject!: (error: Error) => void;
     const finished = new Promise<CustodyResult>((yes, no) => { resolve = yes; reject = no; });
-    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, workDrained: false, closed: false, finished, resolve, reject, timeout: options.timeout ?? PROCESS_MS, started, options, scope };
+    let supervisorStart: string | null = null;
+    try { supervisorStart = readFileSync(`/proc/${child.pid}/stat`, "utf8").split(") ").at(-1)?.split(" ")[19] ?? null; } catch { /* Spawn errors are handled by the status channel. */ }
+    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, finished, resolve, reject, timeout: options.timeout ?? PROCESS_MS, started, options, scope, runDir, stage, supervisorStart };
     owned.set(child.pid, record);
     scope?.children.add(child);
     record.status.on("data", (chunk: Buffer) => handleStatus(record, chunk));
@@ -203,8 +266,14 @@ export function cleanupChild(child: ChildProcessWithoutNullStreams): Promise<voi
       if (record.admitted) send(record, "SHUTDOWN", { epoch: 1, mode: "forced" });
       else record.control.end();
     }
-    await Promise.race([record.finished, new Promise<never>((_, reject) => setTimeout(() => reject(new Error("GUARD custody deadline: supervisor retained")), 2_500))]);
-    owned.delete(child.pid!);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([record.finished, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD custody deadline: supervisor retained")), 2_500); })]);
+      owned.delete(child.pid!);
+    } catch (error) {
+      terminal(record, unprovenResult(record.result));
+      throw error;
+    } finally { clearTimeout(timer); }
   })();
 }
 
@@ -256,9 +325,18 @@ export async function runProcess(command: string, args: string[], options: Owned
   child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
   child.stderr.resume();
   child.stdin.end(options.input);
+  let operationError: unknown;
+  let cleanupError: unknown;
   try {
     const code = await waitExit(child, options.timeout ?? PROCESS_MS, signal);
     if (code !== 0) throw new Error(`${command} failed (exit ${code})`);
-    return stdout.trim();
-  } finally { await cleanupChild(child); scope?.children.delete(child); }
+  } catch (error) {
+    operationError = error;
+  }
+  try { await cleanupChild(child); } catch (error) { cleanupError = error; }
+  const record = child.pid === undefined ? undefined : owned.get(child.pid);
+  scope?.children.delete(child);
+  if (cleanupError && (!operationError || record?.admitted || !(operationError instanceof Error && /timed out|interrupted/.test(operationError.message)))) throw cleanupError;
+  if (operationError) throw operationError;
+  return stdout.trim();
 }

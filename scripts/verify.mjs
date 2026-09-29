@@ -1,13 +1,16 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cleanEnvironment, runProcess, ProcessScope } from "../tests/helpers/guard-process.ts";
+import { cleanEnvironment, runProcess, ProcessScope, validateCustodyJournal, withCustodyContext } from "../tests/helpers/guard-process.ts";
 import { STAGES, runStages } from "../tests/helpers/guard-stages.ts";
 import { createFixture, setupFixture, clientUrl } from "./prepare-test-postgres.mjs";
 import { packVerified } from "./pack-verified-packages.mjs";
 import { assertUnchangedInputs, checkoutInputs, sourceIdentity, verifyArtifacts } from "./verify-publish-artifacts.mjs";
 
 export const LIVE_CASE = "live Omnigent smoke collects metadata_only live evidence only when explicitly enabled";
+function requireCustodyAdmissions(admitted) {
+  if (admitted === 0) throw new Error("GUARD custody journal has no admissions");
+}
 export function checkResults(report, command, root = process.cwd()) {
   const manifest = JSON.parse(readFileSync(resolve(root, "tests/guard/required-cases.json"), "utf8"));
   const cases = report.testResults.flatMap((suite) => suite.assertionResults.map((test) => ({ ...test, file: suite.name })));
@@ -59,9 +62,10 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
 export async function verify({ command = "verify", mode = "local", root = process.cwd(), run = runProcess, create = createFixture, setup = setupFixture, suite = runSuite, pack = packVerified, artifacts = verifyArtifacts, inputs = checkoutInputs, stageList = STAGES } = {}) {
   if (!["verify", "test", "test:guard", "test:integration"].includes(command)) throw new Error("Invalid GUARD command");
   const scope = new ProcessScope();
-  return await scope.run(async () => {
   const runDir = resolve(root, ".phase-loop/guard", `${Date.now()}-${process.pid}`);
+  return await scope.run(() => withCustodyContext(runDir, "preflight", async () => {
   let fixture;
+  let succeeded = false;
   /** @type {Awaited<ReturnType<typeof packVerified>> | undefined} */
   let packed;
   try {
@@ -70,13 +74,14 @@ export async function verify({ command = "verify", mode = "local", root = proces
       if (command !== "test") { fixture = await create({ mode, root }); scope.addCleanup(fixture.cleanup); await setup(fixture); }
       const result = await suite(command, fixture, runDir, run);
       scope.check();
+      succeeded = true;
       return result;
     }
     if (process.env.GITHUB_ACTIONS === "true" && (!process.env.GITHUB_EVENT_PATH || !process.env.GITHUB_OUTPUT)) throw new Error("Missing workflow event/output binding");
     const verifiedInputs = await inputs(root);
     const source = process.env.GITHUB_ACTIONS === "true" ? sourceIdentity(process.env.GITHUB_EVENT_NAME, JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH ?? "", "utf8")), process.env.GITHUB_SHA) : { tested_source_sha: verifiedInputs.source_sha, github_sha: null, pr_head_sha: null, pr_base_sha: null };
     if (source.tested_source_sha !== verifiedInputs.source_sha) throw new Error("Tested source mismatch");
-    await runStages(stageList, async (stage) => {
+    await runStages(stageList, (stage) => withCustodyContext(runDir, stage, async () => {
       scope.check();
       console.log(`GUARD stage: ${stage}`);
       if (stage === "install") await run("pnpm", ["install", "--frozen-lockfile"], { timeout: 300_000 });
@@ -95,16 +100,19 @@ export async function verify({ command = "verify", mode = "local", root = proces
       }
       else throw new Error("Unknown gate stage");
       await assertUnchangedInputs(root, verifiedInputs, inputs);
-    });
+    }));
     scope.check();
     if (!packed) throw new Error("Required pack-and-manifest stage missing");
     if (process.env.GITHUB_ACTIONS === "true") writeFileSync(process.env.GITHUB_OUTPUT ?? "", `artifact_manifest_sha256=${packed.digest}\nartifact_path=${dirname(packed.manifestPath)}\ntested_source_sha=${source.tested_source_sha}\n`, { flag: "a" });
+    succeeded = true;
     return packed;
   } finally {
-    await scope.close();
+    await withCustodyContext(runDir, "cleanup", () => scope.close());
+    const custody = validateCustodyJournal(runDir);
+    if (succeeded && run === runProcess && stageList === STAGES) requireCustodyAdmissions(custody.admitted);
     if (fixture) console.log(`SQL metadata: ${resolve(fixture.runDir, "sql-setup.json")}`);
   }
-  });
+  }));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
