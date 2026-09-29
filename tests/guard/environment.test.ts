@@ -3,7 +3,6 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { configDefaults } from "vitest/config";
-import config from "../../vitest.config.js";
 import { cleanEnvironment, ProcessScope, runProcess } from "../helpers/guard-process.js";
 import { suiteEnvironment } from "../../scripts/verify.mjs";
 import { awaitReadiness, connectionEnvironment, createFixture, pullImage, validateMetadata, IMAGE, PLATFORM } from "../../scripts/prepare-test-postgres.mjs";
@@ -19,11 +18,12 @@ it("scrubs hostile SQL, live opt-in, provider keys and routes before test launch
   expect(env.PGSERVICEFILE).toBe("/nonexistent/fixture/absent-service");
   expect(env).not.toHaveProperty("DATABASE_URL");
 });
-it("retains Vitest dependency exclusions when partitioning DB collection", () => {
-  const project = config.test?.projects?.[0];
-  expect(typeof project).toBe("object");
-  if (typeof project !== "object" || !("test" in project)) throw new Error("Missing deterministic project");
-  expect(project.test?.exclude).toEqual([...configDefaults.exclude, "tests/guard/**/*.db.test.ts"]);
+it("retains Vitest dependency exclusions without clearing the assertion worker's custody", async () => {
+  const before = Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith("GUARD_CUSTODY_") || key.startsWith("GUARD_ADMITTED_") || key === "GUARD_JOB_STARTED_MS"));
+  const configPath = new URL("../../vitest.config.ts", import.meta.url).href;
+  const output = await runProcess(process.execPath, ["--input-type=module", "-e", `import config from ${JSON.stringify(configPath)}; console.log(JSON.stringify(config.test?.projects?.[0]?.test?.exclude))`]);
+  expect(JSON.parse(output)).toEqual([...configDefaults.exclude, "tests/guard/**/*.db.test.ts"]);
+  expect(Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith("GUARD_CUSTODY_") || key.startsWith("GUARD_ADMITTED_") || key === "GUARD_JOB_STARTED_MS"))).toEqual(before);
 });
 it("leaks no fixture parameters to non-DB workers or their descendants", async () => {
   const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") && !key.startsWith("GUARD_ADMITTED_") || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
