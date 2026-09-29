@@ -86,7 +86,7 @@ if(process.argv[2]!=='publish')process.exit(9);
   const args = legacy ? ["scripts/publish-package-if-needed.sh", legacyDir] : ["scripts/publish-package-if-needed.sh", "--verified-artifact", manifestPath, PUBLIC_PACKAGES[0]![0]];
   if (!legacy && mode !== "missing") args.push("--expected-manifest-sha256", expected);
   try {
-    const operation = runProcess("bash", args, { cwd: root, env: { ...cleanEnvironment(), NPM_CLI: stub, NPM_LOG: log, NPM_RESULT: mode.endsWith("exists") ? "exists" : mode.endsWith("conflict") ? "conflict" : mode.endsWith("registry") ? "error" : "missing", NPM_PUBLISH_DRY_RUN: "1" }, timeout: 15_000 });
+    const operation = runProcess("bash", args, { cwd: root, env: { ...cleanEnvironment(), NPM_CLI: stub, NPM_LOG: log, NPM_RESULT: mode.endsWith("exists") ? "exists" : mode.endsWith("conflict") ? "conflict" : mode.endsWith("registry") ? "error" : "missing", NPM_PUBLISH_DRY_RUN: "1" }, timeout: 15_000, launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 2_500 } });
     if (["valid", "exists", "legacy-exists"].includes(mode)) await operation; else await expect(operation).rejects.toThrow();
     let calls: string[][] = [];
     try { calls = readFileSync(log, "utf8").trim().split("\n").map((line) => JSON.parse(line) as string[]); } catch { /* no registry call is the required rejection result */ }

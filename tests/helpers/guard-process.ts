@@ -10,17 +10,43 @@ export const PROCESS_MS = 15_000;
 export const NESTED_FIXTURE_SHUTDOWN_MS = 112_500;
 const TAIL_MS = 2_500;
 const CLEANUP_SLOT_MS = 17_500;
+const JOB_MS = 20 * 60_000;
+const JOB_FINAL_MS = 30_000;
+const ROOT_CLEANUP_MS = 55_000;
+export function jobBudgetMs(started = process.env.GUARD_JOB_STARTED_MS, now = Date.now(), cleanup = false): number | undefined {
+  if (started === undefined) {
+    if (process.env.GITHUB_ACTIONS === "true") throw new Error("GUARD hosted job clock missing");
+    return undefined;
+  }
+  if (!/^\d{13}$/.test(started) || Number(started) > now || now - Number(started) >= JOB_MS) throw new Error("GUARD hosted job clock invalid or expired");
+  return Number(started) + JOB_MS - now - JOB_FINAL_MS - (cleanup ? 0 : ROOT_CLEANUP_MS);
+}
 export function cleanEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {};
-  for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SystemRoot", "LANG", "LC_ALL", "CI", "PNPM_HOME", "XDG_CACHE_HOME", "GUARD_CUSTODY_RUN_DIR", "GUARD_CUSTODY_STAGE"]) {
+  for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SystemRoot", "LANG", "LC_ALL", "CI", "PNPM_HOME", "XDG_CACHE_HOME", "GUARD_CUSTODY_RUN_DIR", "GUARD_CUSTODY_STAGE", "GUARD_JOB_STARTED_MS"]) {
     if (source[key] !== undefined) result[key] = source[key];
   }
   return result;
 }
 
 type LauncherBudget = { cleanupSlots: number; maxChildReservationMs: number };
-type AdmittedBudget = LauncherBudget & { operationNs: bigint; completionNs: bigint };
+type AdmittedBudget = LauncherBudget & { operationNs: bigint; completionNs: bigint; ceilingNs: bigint };
 type OwnedOptions = SpawnOptionsWithoutStdio & { timeout?: number; input?: string; custodyControlId?: string; shutdownReservationMs?: number; launcherBudget?: LauncherBudget };
+function inheritedBudget(requestedSlots = 0, allowPastOperation = false, allowExhausted = false): AdmittedBudget | undefined {
+  const keys = ["GUARD_ADMITTED_OPERATION_NS", "GUARD_ADMITTED_COMPLETION_NS", "GUARD_ADMITTED_CLEANUP_SLOTS", "GUARD_ADMITTED_CHILD_RESERVATION_MS"] as const;
+  const values = keys.map((key) => process.env[key]);
+  if (values.every((value) => value === undefined)) return undefined;
+  if (values.some((value) => value === undefined || !/^\d+$/.test(value))) throw new Error("Invalid GUARD inherited reservation");
+  const [operationNs, completionNs, slots, childMs] = values as [string, string, string, string];
+  const epochPath = process.env.GUARD_ADMITTED_EPOCH_FILE;
+  if (!epochPath) throw new Error("GUARD inherited cancellation epoch missing");
+  const epoch = readFileSync(epochPath, "ascii");
+  if (!/^\d{20}$/.test(epoch)) throw new Error("GUARD inherited cancellation epoch invalid");
+  const admitted = { operationNs: BigInt(operationNs), completionNs: BigInt(completionNs), ceilingNs: BigInt(epoch), cleanupSlots: Number(slots), maxChildReservationMs: Number(childMs) };
+  const now = process.hrtime.bigint();
+  if (!Number.isSafeInteger(admitted.cleanupSlots) || !Number.isSafeInteger(admitted.maxChildReservationMs) || admitted.cleanupSlots < 0 || admitted.maxChildReservationMs < 0 || requestedSlots > admitted.cleanupSlots || !allowPastOperation && admitted.operationNs <= now || admitted.completionNs !== admitted.operationNs + BigInt(TAIL_MS + admitted.cleanupSlots * CLEANUP_SLOT_MS + admitted.maxChildReservationMs) * 1_000_000n || admitted.ceilingNs > admitted.completionNs || !allowExhausted && admitted.ceilingNs < now + BigInt(TAIL_MS + requestedSlots * CLEANUP_SLOT_MS) * 1_000_000n) throw new Error("GUARD inherited cleanup reservation exhausted");
+  return admitted;
+}
 type CustodyResult = {
   payload_pid: number | null;
   outcome: { exit_code?: number; signal?: NodeJS.Signals; not_started?: boolean };
@@ -208,7 +234,6 @@ export class ProcessScope {
   readonly controller = new AbortController();
   readonly children = new Set<ChildProcessWithoutNullStreams>();
   private readonly cleanupSlots: number;
-  readonly admitted?: AdmittedBudget;
   private readonly cleanups = new Set<() => Promise<void>>();
   private closing?: Promise<void>;
   private cooperativeSignal?: NodeJS.Signals;
@@ -220,16 +245,7 @@ export class ProcessScope {
   constructor(cleanupSlots = 0) {
     if (!Number.isSafeInteger(cleanupSlots) || cleanupSlots < 0) throw new Error("Invalid GUARD cleanup reservation");
     this.cleanupSlots = cleanupSlots;
-    const keys = ["GUARD_ADMITTED_OPERATION_NS", "GUARD_ADMITTED_COMPLETION_NS", "GUARD_ADMITTED_CLEANUP_SLOTS", "GUARD_ADMITTED_CHILD_RESERVATION_MS"] as const;
-    const values = keys.map((key) => process.env[key]);
-    if (values.some((value) => value !== undefined)) {
-      if (values.some((value) => value === undefined || !/^\d+$/.test(value))) throw new Error("Invalid GUARD inherited reservation");
-      const [operationNs, completionNs, slots, childMs] = values as [string, string, string, string];
-      const admitted = { operationNs: BigInt(operationNs), completionNs: BigInt(completionNs), cleanupSlots: Number(slots), maxChildReservationMs: Number(childMs) };
-      const now = process.hrtime.bigint();
-      if (!Number.isSafeInteger(admitted.cleanupSlots) || !Number.isSafeInteger(admitted.maxChildReservationMs) || admitted.cleanupSlots < 0 || admitted.maxChildReservationMs < 0 || cleanupSlots > admitted.cleanupSlots || admitted.operationNs <= now || admitted.completionNs !== admitted.operationNs + BigInt(TAIL_MS + admitted.cleanupSlots * CLEANUP_SLOT_MS + admitted.maxChildReservationMs) * 1_000_000n || admitted.completionNs < now + BigInt(TAIL_MS + cleanupSlots * CLEANUP_SLOT_MS) * 1_000_000n) throw new Error("GUARD inherited cleanup reservation exhausted");
-      this.admitted = admitted;
-    }
+    inheritedBudget(cleanupSlots);
     process.on("SIGINT", this.onInterrupt);
     process.on("SIGTERM", this.onTerminate);
   }
@@ -251,7 +267,8 @@ export class ProcessScope {
     const children = [...this.children];
     const childReservation = Math.max(0, ...children.map((child) => child.pid === undefined ? 2_500 : owned.get(child.pid)?.shutdownReservationMs ?? 2_500));
     const requested = process.hrtime.bigint() + BigInt(TAIL_MS + childReservation + this.cleanupSlots * CLEANUP_SLOT_MS) * 1_000_000n;
-    const cleanup = { deadline: this.admitted && this.admitted.completionNs < requested ? this.admitted.completionNs : requested, remainingSlots: this.cleanupSlots };
+    const ceiling = inheritedBudget(this.cleanupSlots, true, true)?.ceilingNs;
+    const cleanup = { deadline: ceiling && ceiling < requested ? ceiling : requested, remainingSlots: this.cleanupSlots };
     try {
       if (this.cooperativeSignal) for (const child of children) if (child.pid !== undefined && (owned.get(child.pid)?.shutdownReservationMs ?? 2_500) > 2_500) signalOwned(child.pid, this.cooperativeSignal);
       const results = await Promise.allSettled(children.map((child) => this.cooperativeSignal && child.pid !== undefined && (owned.get(child.pid)?.shutdownReservationMs ?? 2_500) > 2_500 ? waitForCooperativeChild(child) : cleanupChild(child)));
@@ -313,7 +330,9 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
   if (options.custodyControlId && !controlCases.has(options.custodyControlId)) throw new Error("Unknown GUARD custody control");
   const cleanup = cleanupContext.getStore();
   if (cleanup) {
-    const remaining = Number((cleanup.deadline - process.hrtime.bigint()) / 1_000_000n) - 2_500;
+    const inheritedCeiling = inheritedBudget(0, true, true)?.ceilingNs;
+    const deadline = inheritedCeiling && inheritedCeiling < cleanup.deadline ? inheritedCeiling : cleanup.deadline;
+    const remaining = Number((deadline - process.hrtime.bigint()) / 1_000_000n) - 2_500;
     if (cleanup.remainingSlots <= 0 || remaining <= 0) throw new Error("GUARD cleanup command reservation exhausted");
     cleanup.remainingSlots--;
     options = { ...options, timeout: Math.min(options.timeout ?? PROCESS_MS, remaining) };
@@ -329,9 +348,11 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
   const started = process.hrtime.bigint();
   const requestedTimeout = options.timeout ?? PROCESS_MS;
   if (!Number.isSafeInteger(requestedTimeout) || requestedTimeout <= 0) throw new Error("Invalid GUARD operation timeout");
-  const operationEnd = scope?.admitted?.operationNs;
-  const timeout = operationEnd === undefined ? requestedTimeout : Math.min(requestedTimeout, Number((operationEnd - started) / 1_000_000n));
-  if (timeout <= 0 || scope?.admitted && (shutdownReservationMs > scope.admitted.maxChildReservationMs || started + BigInt(timeout + shutdownReservationMs) * 1_000_000n > scope.admitted.completionNs - BigInt(TAIL_MS + scope.cleanupReservationSlots * CLEANUP_SLOT_MS) * 1_000_000n)) throw new Error("GUARD inherited child reservation exhausted");
+  const inherited = cleanup ? undefined : inheritedBudget(scope?.cleanupReservationSlots ?? 0);
+  const operationEnd = inherited?.operationNs;
+  const jobRemaining = jobBudgetMs(undefined, Date.now(), Boolean(cleanup));
+  const timeout = Math.min(requestedTimeout, operationEnd === undefined ? requestedTimeout : Number((operationEnd - started) / 1_000_000n), jobRemaining === undefined ? requestedTimeout : jobRemaining - shutdownReservationMs);
+  if (timeout <= 0 || inherited && (shutdownReservationMs > inherited.maxChildReservationMs || started + BigInt(timeout + shutdownReservationMs) * 1_000_000n > inherited.ceilingNs - BigInt(TAIL_MS + (scope?.cleanupReservationSlots ?? inherited.cleanupSlots) * CLEANUP_SLOT_MS) * 1_000_000n)) throw new Error("GUARD inherited child reservation exhausted");
   const nonce = randomUUID();
   const child = spawn("python3", ["-I", "-S", "-B", supervisorPath, nonce], { env: cleanEnvironment(), detached: true, stdio: ["pipe", "pipe", "pipe", "pipe", "pipe"] }) as ChildProcessWithoutNullStreams;
   if (child.pid !== undefined) {

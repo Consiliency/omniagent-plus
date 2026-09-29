@@ -9,19 +9,22 @@ function workflows() {
 function policy(w: ReturnType<typeof workflows>) {
   const sha = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}";
   for (const name of ["ci", "verify", "publish"]) {
-    expect(w[name].permissions).toEqual({ contents: "read" });
+    expect(w[name].permissions).toEqual(name === "verify" ? { actions: "read", contents: "read" } : { contents: "read" });
     expect(w[name].on).not.toHaveProperty("pull_request_target");
-    expect(JSON.stringify(w[name])).not.toContain("secrets");
+    expect(JSON.stringify(w[name]).replaceAll("${{ secrets.GITHUB_TOKEN }}", "")).not.toContain("secrets");
   }
   expect(w.ci.on.push.branches).toEqual(["main"]);
   expect(w.ci.on).toHaveProperty("pull_request");
   for (const caller of [w.ci, w.publish]) {
     expect(caller.jobs.verify.uses).toBe("./.github/workflows/verify.yml");
     expect(caller.jobs.verify.with).toBeUndefined();
-    expect(caller.jobs.verify.permissions).toEqual({ contents: "read" });
+    expect(caller.jobs.verify.permissions).toEqual({ actions: "read", contents: "read" });
   }
   expect(w.verify.on.workflow_call.inputs).toBeUndefined();
   const job = w.verify.jobs.verify;
+  expect(job.permissions).toEqual({ actions: "read", contents: "read" });
+  expect(job.steps[0].env.GH_TOKEN).toBe("${{ secrets.GITHUB_TOKEN }}");
+  expect(job.steps[0].run).toContain("GUARD_JOB_STARTED_MS");
   expect(job.timeoutMinutes ?? job["timeout-minutes"]).toBe(20);
   expect(job.env.TESTED_SOURCE_SHA).toBe(sha);
   expect(job.services.postgres.image).toBe(IMAGE);

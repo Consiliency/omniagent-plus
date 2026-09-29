@@ -9,6 +9,7 @@ jobs:
   verify:
     uses: ./.github/workflows/verify.yml
     permissions:
+      actions: read
       contents: read
   guard-required:
     needs: verify

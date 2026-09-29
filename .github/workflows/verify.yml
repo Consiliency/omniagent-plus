@@ -9,12 +9,14 @@ on:
       artifact_id:
         value: ${{ jobs.verify.outputs.artifact_id }}
 permissions:
+  actions: read
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: read
       contents: read
     env:
       TESTED_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
@@ -33,6 +35,12 @@ jobs:
         ports:
           - 127.0.0.1::5432
     steps:
+      - name: Bind GUARD to the hosted job clock
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          started=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}/jobs" --jq '.jobs | map(select(.name == "verify / verify" and .status == "in_progress")) | if length == 1 then .[0].started_at else error("verify job identity unavailable") end')
+          echo "GUARD_JOB_STARTED_MS=$(date -u -d "$started" +%s%3N)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TESTED_SOURCE_SHA }}

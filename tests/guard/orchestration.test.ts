@@ -3,12 +3,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
 import { STAGES } from "../helpers/guard-stages.js";
-import { verify, checkResults, runSuite, summarizeTestFailures, LIVE_CASE } from "../../scripts/verify.mjs";
+import { verify, checkResults, runSuite, suiteOperationTimeout, summarizeTestFailures, LIVE_CASE } from "../../scripts/verify.mjs";
 import type { createFixture, setupFixture } from "../../scripts/prepare-test-postgres.mjs";
 import type { packVerified } from "../../scripts/pack-verified-packages.mjs";
 import { cleanupChild, spawnOwned, validateCustodyJournal, waitExit, waitReady } from "../helpers/guard-process.js";
 
 const inputs = async () => ({ source_sha: "a".repeat(40), lockfile_sha256: "b".repeat(64), package_manifest_sha256: {} });
+
+it("funds the hosted suite inside the remaining job clock before admission", () => {
+  const now = Date.now();
+  expect(suiteOperationTimeout(String(now - 30_000), now)).toBe(737_500);
+  const nearlySpent = 1_200_000 - (30_000 + 55_000 + 167_500 + 180_000 + 14_000);
+  expect(() => suiteOperationTimeout(String(now - nearlySpent), now)).toThrow("cannot fund root suite");
+});
 
 it.each(["SIGINT", "SIGTERM"] as const)("quiesces nested build ownership on %s before launcher exit", async (signal) => {
   const root = mkdtempSync(join(tmpdir(), "guard-build-interrupt-"));

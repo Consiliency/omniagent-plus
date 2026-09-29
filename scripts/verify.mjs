@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { resolve, dirname, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cleanEnvironment, runProcess, ProcessScope, NESTED_FIXTURE_SHUTDOWN_MS, validateCustodyJournal, withCustodyContext } from "../tests/helpers/guard-process.ts";
+import { cleanEnvironment, jobBudgetMs, runProcess, ProcessScope, NESTED_FIXTURE_SHUTDOWN_MS, validateCustodyJournal, withCustodyContext } from "../tests/helpers/guard-process.ts";
 import { STAGES, runStages } from "../tests/helpers/guard-stages.ts";
 import { createFixture, setupFixture, clientUrl } from "./prepare-test-postgres.mjs";
 import { packVerified } from "./pack-verified-packages.mjs";
@@ -51,12 +51,19 @@ export function summarizeTestFailures(report, root = process.cwd()) {
     return failures.map(({ index, messages }) => ({ file, case_index: index, kind: /timed out|timeout/i.test(messages.join("\n")) ? "timeout" : /Cannot find module|Failed to (load|resolve)/i.test(messages.join("\n")) ? "module-resolution" : /AssertionError/.test(messages.join("\n")) ? "assertion" : "test-failure" }));
   });
 }
+export function suiteOperationTimeout(started = process.env.GUARD_JOB_STARTED_MS, now = Date.now()) {
+  const remaining = jobBudgetMs(started, now);
+  const timeout = Math.min(900_000, remaining === undefined ? 900_000 : remaining - (2_500 + 3 * 17_500 + NESTED_FIXTURE_SHUTDOWN_MS) - 180_000);
+  if (timeout < 15_000) throw new Error("GUARD hosted job cannot fund root suite and cleanup");
+  return timeout;
+}
 export async function runSuite(command, fixture, runDir, run = runProcess) {
   const reportPath = resolve(runDir, "tests.json");
   const args = ["exec", "vitest", "run", "--config", "vitest.config.ts", "--reporter=default", "--reporter=json", `--outputFile.json=${reportPath}`];
   if (command === "test:guard") args.push("tests/guard");
   if (command === "test:integration") args.push("--project=guard-db", "tests/guard/fixture.integration.db.test.ts");
-  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout: 900_000, launcherBudget: { cleanupSlots: 3, maxChildReservationMs: NESTED_FIXTURE_SHUTDOWN_MS } }); }
+  const timeout = suiteOperationTimeout();
+  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout, launcherBudget: { cleanupSlots: 3, maxChildReservationMs: NESTED_FIXTURE_SHUTDOWN_MS } }); }
   catch (error) {
     try {
       const failures = summarizeTestFailures(JSON.parse(readFileSync(reportPath, "utf8")));
@@ -70,6 +77,7 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
 }
 export async function verify({ command = "verify", mode = "local", root = process.cwd(), run = runProcess, create = createFixture, setup = setupFixture, suite = runSuite, pack = packVerified, artifacts = verifyArtifacts, inputs = checkoutInputs, stageList = STAGES } = {}) {
   if (!["verify", "test", "test:guard", "test:integration"].includes(command)) throw new Error("Invalid GUARD command");
+  jobBudgetMs();
   const scope = new ProcessScope(3);
   const runDir = resolve(root, ".phase-loop/guard", `${Date.now()}-${process.pid}-${randomUUID()}`);
   return await scope.run(() => withCustodyContext(runDir, "preflight", async () => {

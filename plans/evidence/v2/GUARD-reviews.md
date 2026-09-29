@@ -6,6 +6,25 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- The next candidate enforces inherited reservations even without a
+  ProcessScope, carries the supervisor's first cancellation ceiling through
+  nested cleanup, and binds hosted admissions to the 20-minute job's actual
+  start. The suite reserves 167.5 seconds for its own shutdown, 55 seconds
+  for root cleanup, 180 seconds for post-suite stages, and 30 seconds for
+  workflow finalization before choosing its operation timeout. The job clock
+  comes from the current GitHub Actions job record with read-only `actions`
+  permission. These are implementation controls, not acceptance receipts.
+- The `2ec71ad` hosted CI and publish rehearsal both passed. Fresh Astra
+  review of that head identified a scope-free inherited-budget bypass, an
+  unpropagated early cancellation ceiling, and absent job-time funding;
+  Sol identified a deadline-edge false timeout and a buffered-ADMIT control
+  that does not actually buffer ADMIT. The first three Astra findings have
+  code and regression repairs in the next candidate. Sol's findings and the
+  remaining specified fault controls still require reconciliation.
+- The next candidate's local plain `CI=true pnpm test` passed 483 cases with
+  the one permitted live-smoke skip; build, lint, typecheck, and workflow YAML
+  parsing passed. Hosted validation and exact-head review remain required.
+
 - Linux subreaper/pidfd custody, scope cleanup, SQL fixture admission and
   custody journaling are implemented through `3254f0a`. This is an implementation
   checkpoint, not EC-GUARD-2 acceptance.

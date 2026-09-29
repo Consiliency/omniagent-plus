@@ -9,6 +9,7 @@ import resource
 import select
 import signal
 import sys
+import tempfile
 import time
 
 
@@ -209,6 +210,13 @@ class Supervisor:
         self.operation_timed_out = False
         self.signal_pending = []
         self.error_read = None
+        self.epoch_fd = None
+        self.epoch_path = None
+
+    def publish_epoch(self, ceiling_ns):
+        if self.epoch_fd is None:
+            return
+        os.pwrite(self.epoch_fd, f"{ceiling_ns:020d}".encode("ascii"), 0)
 
     def send(self, kind, **fields):
         write_frame(self.nonce, self.out_seq, kind, self.end_ns or self.cooperative_deadline_ns or self.deadline_ns, **fields)
@@ -309,6 +317,7 @@ class Supervisor:
             return
         if self.cooperative_deadline_ns is None:
             self.cooperative_deadline_ns = min(self.shutdown_completion_ns - TAIL_NS, time.monotonic_ns() + self.shutdown_reservation_ns - TAIL_NS, requested_end if requested_end is not None else self.shutdown_completion_ns)
+            self.publish_epoch(self.cooperative_deadline_ns + TAIL_NS)
             entry = self.active.get(self.payload)
             if entry is not None and entry["fd"] is not None:
                 try:
@@ -323,6 +332,7 @@ class Supervisor:
                 self.start_drain(True)
         elif requested_end is not None:
             self.cooperative_deadline_ns = min(self.cooperative_deadline_ns, requested_end)
+            self.publish_epoch(self.cooperative_deadline_ns + TAIL_NS)
 
     def read_control(self):
         if b"\n" not in self.input:
@@ -355,11 +365,14 @@ class Supervisor:
         kind = frame.get("type")
         if kind == "ADMIT" and self.payload is None and self.in_seq == 1:
             self.deadline_ns, self.shutdown_reservation_ns, self.shutdown_completion_ns = validate_admit(frame)
+            self.epoch_fd, self.epoch_path = tempfile.mkstemp(prefix="guard-epoch-")
+            self.publish_epoch(self.shutdown_completion_ns)
             frame["env"].update({
                 "GUARD_ADMITTED_OPERATION_NS": str(self.deadline_ns),
                 "GUARD_ADMITTED_COMPLETION_NS": str(self.shutdown_completion_ns),
                 "GUARD_ADMITTED_CLEANUP_SLOTS": str(frame["cleanup_slots"]),
                 "GUARD_ADMITTED_CHILD_RESERVATION_MS": str(int(frame["child_reservation_ns"]) // 1_000_000),
+                "GUARD_ADMITTED_EPOCH_FILE": self.epoch_path,
             })
             self.payload, self.error_read = launch(frame, self.payload_out, self.payload_err)
             self.register(self.payload)
@@ -506,6 +519,10 @@ def main():
         if supervisor.payload is not None or supervisor.active:
             supervisor.retain_after_failure()
         return 125
+    finally:
+        if supervisor.epoch_fd is not None:
+            os.close(supervisor.epoch_fd)
+            os.unlink(supervisor.epoch_path)
 
 
 if __name__ == "__main__":

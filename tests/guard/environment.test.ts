@@ -89,6 +89,17 @@ it("rejects a nested reservation larger than the parent grant before effects", a
     expect(existsSync(marker)).toBe(false);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+it("rejects an underfunded nested launcher without a ProcessScope before effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-unscoped-child-"));
+  const marker = join(dir, "effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import{runProcess}from${JSON.stringify(helper)};try{await runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}})}catch(error){console.log(error.message)}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script]);
+    expect(output).toContain("inherited child reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 it("separates cold pull budget from readiness and propagates failed pulls", async () => {
   const calls: unknown[] = [];
   await pullImage(async (_cmd: string, args: string[], options: unknown) => { calls.push({ args, options }); return ""; });

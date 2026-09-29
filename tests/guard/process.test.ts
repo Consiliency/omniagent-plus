@@ -189,8 +189,32 @@ it("leaves Linux child discovery to the custody supervisor", async () => {
   const script = `import assert from 'node:assert/strict';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';import {runProcess} from ${JSON.stringify(helper)};
 const read=fs.readdirSync;fs.readdirSync=function(path,...args){assert(!String(path).startsWith('/proc'));return read.call(this,path,...args);};syncBuiltinESMExports();
 await runProcess(process.execPath,['-e','setTimeout(()=>{},150)']);console.log('Node did not scan proc');`;
-  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script])).toBe("Node did not scan proc");
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 2_500 } })).toBe("Node did not scan proc");
 });
+it("keeps an early cancellation ceiling when the launcher handles its signal late", async () => {
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {readFileSync} from 'node:fs';import {ProcessScope,runProcess} from ${JSON.stringify(helper)};
+process.on('SIGINT',()=>{Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,3000)});
+const scope=new ProcessScope(1);scope.addCleanup(async()=>{console.log('child '+await runProcess(process.execPath,['-e','console.log(process.env.GUARD_ADMITTED_COMPLETION_NS)']))});
+const timer=setInterval(()=>{},1000);process.on('SIGINT',()=>{scope.close().catch(error=>{console.log(error.message);process.exitCode=1}).finally(()=>clearInterval(timer))});
+console.log('initial '+readFileSync(process.env.GUARD_ADMITTED_EPOCH_FILE,'ascii'));console.log('ready');`;
+  const child = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 1, maxChildReservationMs: 0 } });
+  let output = "";
+  child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+  child.stderr.resume(); child.stdin.end();
+  try {
+    await waitReady(child);
+    const signalNs = process.hrtime.bigint();
+    process.kill(child.pid!, "SIGINT");
+    expect(await waitExit(child, 10_000)).toBe(0);
+    const initial = output.match(/initial (\d{20})/)?.[1];
+    const nested = output.match(/child (\d+)/)?.[1];
+    expect(initial).toBeDefined();
+    expect(nested).toBeDefined();
+    expect(BigInt(nested!)).toBeLessThan(BigInt(initial!));
+    expect(BigInt(nested!)).toBeLessThanOrEqual(signalNs + 20_200_000_000n);
+  } finally { await cleanupChild(child); }
+}, 30_000);
 it("refuses unsupported platforms before launching a payload", () => {
   const original = Object.getOwnPropertyDescriptor(process, "platform")!;
   try {

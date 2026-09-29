@@ -8,10 +8,12 @@ const fixture = process.env.GUARD_INTEGRATION_REQUIRED === "1" ? {
 const custody = process.env.GUARD_CUSTODY_RUN_DIR && process.env.GUARD_CUSTODY_STAGE ? {
   GUARD_CUSTODY_RUN_DIR: process.env.GUARD_CUSTODY_RUN_DIR,
   GUARD_CUSTODY_STAGE: process.env.GUARD_CUSTODY_STAGE,
+  GUARD_JOB_STARTED_MS: process.env.GUARD_JOB_STARTED_MS,
   GUARD_ADMITTED_OPERATION_NS: process.env.GUARD_ADMITTED_OPERATION_NS,
   GUARD_ADMITTED_COMPLETION_NS: process.env.GUARD_ADMITTED_COMPLETION_NS,
   GUARD_ADMITTED_CLEANUP_SLOTS: process.env.GUARD_ADMITTED_CLEANUP_SLOTS,
   GUARD_ADMITTED_CHILD_RESERVATION_MS: process.env.GUARD_ADMITTED_CHILD_RESERVATION_MS,
+  GUARD_ADMITTED_EPOCH_FILE: process.env.GUARD_ADMITTED_EPOCH_FILE,
 } : {};
 // Capture admitted parameters for the DB project, then remove them before forks.
 for (const key of Object.keys(process.env)) {
