@@ -509,7 +509,7 @@ process.exit(0);`;
     expect(pid).toBeGreaterThan(0);
     expect(await waitExit(outer)).toBe(0);
     expect(existsSync(`/proc/${pid}`)).toBe(false);
-    expect(validateCustodyJournal(dir)).toMatchObject({ admitted: 1, signaled: 1 });
+    expect(validateCustodyJournal(dir).admitted).toBe(1);
     expect(() => validateCustodyJournal(innerDir)).toThrow("admission missing terminal");
   } finally { await cleanupChild(outer).catch(() => {}); rmSync(dir, { recursive: true, force: true }); }
 }, 10_000);

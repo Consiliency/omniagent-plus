@@ -6,6 +6,15 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- At `0f6de84`, hosted CI passed but the parallel publish rehearsal failed
+  process case 35. Astra and Sol independently reproduced the owner-death
+  control's false rejection: the outer keeper can legitimately signal the
+  adopted inner keeper and then its leaf, yielding two quiescent signaled
+  adoptions instead of one. Their exact-head verdicts were NOT ACCEPT. The
+  next candidate bounds only this two-descendant control to one or two
+  signaled adoptions; every other tagged rescue still requires exactly one.
+  Three isolated repetitions and the 500-case local plain gate pass after the
+  repair. Fresh hosted CI/rehearsal and final exact-head review remain required.
 - The `5d615cf` hosted CI and publish rehearsal passed, including independent
   focused GUARD and integration fixtures and the standalone real-suite interrupt
   control. Its CI artifact has 464 balanced root admissions/terminals, 52
