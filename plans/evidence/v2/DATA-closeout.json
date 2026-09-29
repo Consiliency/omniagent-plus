@@ -1,7 +1,7 @@
 {
   "schema": "manual-phase-closeout.v1",
   "phase": "DATA",
-  "status": "pending_verification_reviews_and_merge",
+  "status": "accepted_implementation_pending_authorized_merge",
   "acceptance_route": "manual_exact_head_pull_request",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
   "candidate_evidence": "plans/evidence/v2/DATA.json",
@@ -15,7 +15,12 @@
     "redaction_posture": "metadata_only",
     "downstream_handling": "COORD/WIRE consume IF-0-DATA-3 after acceptance"
   },
-  "produced_if_gates": [],
+  "produced_if_gates": [
+    "IF-0-DATA-3a",
+    "IF-0-DATA-3b",
+    "IF-0-DATA-3c",
+    "IF-0-DATA-3d"
+  ],
   "merge_gates": [
     "passing agent-harness panel CR",
     "passing separate independent review",
@@ -24,10 +29,31 @@
   "branch_protection": "optional by owner decision for solo project",
   "merged_sha": null,
   "remaining": [
-    "Full clean-candidate local/hosted gate",
-    "Passing agent-harness implementation panel CR",
-    "Manual tool-enabled Opus 5.5 TUI adapter and Gemini reviews",
-    "Separate independent final review",
-    "Merge and post-merge verification"
-  ]
+    "Acceptance-only final-head review/checks",
+    "Authorized merge and post-merge verification"
+  ],
+  "recorded_at": "2026-09-29T22:24:24.830166+00:00",
+  "implementation_source_sha": "70d5be0ab60278ab463e254a2bd79421d2efb61b",
+  "implementation_review": "plans/evidence/v2/reviews/DATA-implementation-70d5be0.json",
+  "verification_status": "passed_at_implementation_head",
+  "issue_inventory": [
+    "Consiliency/omniagent-plus#21",
+    "Consiliency/omniagent-plus#22"
+  ],
+  "issue_dispositions": [
+    {
+      "issue_id": "Consiliency/omniagent-plus#21",
+      "phase": "DATA",
+      "disposition": "closed",
+      "owner": "codex-execute-phase"
+    },
+    {
+      "issue_id": "Consiliency/omniagent-plus#22",
+      "phase": "DATA",
+      "disposition": "closed",
+      "owner": "codex-execute-phase"
+    }
+  ],
+  "issue_application": "On authorized PR merge via verified automatic closing references; not a claim that open issues are already closed.",
+  "merge_provenance": "GitHub pull request mergeCommit and resolver-based post-merge handoff are authoritative; merge SHA is unknown at this pre-merge acceptance snapshot."
 }

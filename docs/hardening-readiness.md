@@ -4,9 +4,11 @@ The repo remains alpha, not production, not public beta, and not multi-user SaaS
 The supported surface is a local operator workflow and composable libraries.
 `IF-0-HARDEN-13` is historical, not current GUARD acceptance. The shared command
 is now `pnpm verify`. GUARD merged with hosted CI and independent review; branch
-protection is optional for this solo project. Candidate-specific hosted checks
-and phase acceptance remain pending SL-2 verification for DATA. Local tests
-and workflow source alone are not proof of a successful hosted candidate run.
+protection is optional for this solo project. DATA acceptance is recorded in [the phase evidence](../plans/evidence/v2/DATA.json):
+600 deterministic tests, exact-source independent and panel reviews, hosted required
+checks and package rehearsal pass at `70d5be0`. The final closeout head must also pass
+required checks before merge. Local tests and workflow source alone are not hosted
+acceptance, and registry publication remains SHIP-owned.
 
 ## Evidence Scope
 
@@ -129,7 +131,7 @@ timing and review evidence. No coverage percentage is inferred from test counts.
 | ID | Status | Delivered scope or explicit deferral | Owner |
 | --- | --- | --- | --- |
 | HY-1/gate | delivered locally | One shared full gate for PR/main and release; stage failure propagation, source/artifact binding and publication-only OIDC have local falsifiers. Hosted Ubuntu is the selected topology; no fleet offload infrastructure is inferred. Evidence: [verify.mjs](../scripts/verify.mjs), [orchestration.test.ts](../tests/guard/orchestration.test.ts), [workflows.test.ts](../tests/guard/workflows.test.ts). | GUARD |
-| HY-1/hosted | deferred | Workflow wiring exists, but hosted execution and branch protection are not validated here. Required-check observation, exact-head rehearsal artifacts, post-merge verification and integrated review remain pending. Real OIDC/registry acceptance belongs to SHIP. Evidence: [verify.yml](../.github/workflows/verify.yml), [ci.yml](../.github/workflows/ci.yml). | SL-2 |
+| HY-1/hosted | deferred | DATA hosted required checks and source-bound rehearsal artifacts pass at the accepted implementation head. At this acceptance snapshot, post-merge verification and final integrated release review remain pending; branch protection is optional for the solo project. Real OIDC/registry acceptance is not validated here and belongs to SHIP. Evidence: [verify.yml](../.github/workflows/verify.yml), [ci.yml](../.github/workflows/ci.yml). | SL-2 |
 | HY-5/promises | delivered locally | `no-floating-promises` is limited to the explicit SL-0 tooling/test scope in ESLint; floating/awaited controls retain existing lint coverage. It is not a production-wide rule rollout. Evidence: [eslint.config.mjs](../eslint.config.mjs), [lint.test.ts](../tests/guard/lint.test.ts). | GUARD |
 | HY-5/process | delivered locally | GUARD test commands use a Linux-only Python subreaper with pidfd ownership and per-command descendant custody receipts. Ordinary child operations are bounded at 15 seconds by default; the 250 ms hung-child control escalates at 500 ms and requires reap proof within the following 2 seconds. Cooperative launcher cleanup has a separately declared reservation. SQL connects/statements/readiness use 5/10/30 seconds, image pull 300 seconds, and jobs 20 minutes. This is test tooling, not an automatic product supervisor. Evidence: [guard-process.ts](../tests/helpers/guard-process.ts), [guard-supervisor.py](../tests/helpers/guard-supervisor.py), [process.test.ts](../tests/guard/process.test.ts). | GUARD |
 | HY-5/measurement | deferred | Vitest defaults remain meaningful. New coverage instrumentation/thresholds, pool tuning and project-reference/build changes are deferred pending measurement, not treated as absent defaults or correctness proof. The production-wide promise rules requiring semantics belong to the owned DATA/COORD/WIRE/INTEG phases; PREP reconciles measured packaging/build work. Local timing is run-specific, not a performance claim. Evidence: [vitest.config.ts](../vitest.config.ts), [phase-plan-v2-GUARD.md](../plans/phase-plan-v2-GUARD.md). | PREP |

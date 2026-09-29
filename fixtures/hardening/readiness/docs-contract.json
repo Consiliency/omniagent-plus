@@ -438,7 +438,7 @@
       "Do not delete stale locks or use manual break-lock",
       "Authorized runtime prompts/content remain allowed",
       "License choice remains pending PREP",
-      "phase acceptance remain pending SL-2",
+      "DATA acceptance is recorded",
       "IF-0-HARDEN-13",
       "metadata_only",
       "retry storm",

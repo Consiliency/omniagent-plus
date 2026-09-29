@@ -161,10 +161,10 @@ Establish persistence that preserves valid records, recovers safely, and
 enforces its declared content policy.
 
 **Exit criteria**
-- [ ] EC-DATA-1 - Shared corpus covers scanner entry points, safe lookalikes, nested fields, evidence refs, and direct packet/schema bypass; metadata versus content behavior is frozen.
-- [ ] EC-DATA-2 - Crash injection proves monotonic sequences, safe incomplete-tail recovery, preserved schema-invalid records, owner-safe locks, and supported fsync ordering across processes. New locks atomically publish initialized identity; acquisition crashes cannot leave an unrecoverable identity-less lock at the contested path.
-- [ ] EC-DATA-3 - Read-only queries take no writer lock and do not mutate; bounded stable snapshots report incomplete/in-progress tails explicitly, never repair or return mixed/complete success from incomplete data. Blocked legacy locks allow nonmutating committed-data inspection. Replay selects correctly scoped latest state; retention preserves dependencies and newer schema versions fail explicitly.
-- [ ] EC-DATA-4 - Measured append/index changes preserve concurrency and recovery; required core fake-provider and identity-boundary cases pass without public contract drift.
+- [x] EC-DATA-1 - Shared corpus covers scanner entry points, safe lookalikes, nested fields, evidence refs, and direct packet/schema bypass; metadata versus content behavior is frozen.
+- [x] EC-DATA-2 - Crash injection proves monotonic sequences, safe incomplete-tail recovery, preserved schema-invalid records, owner-safe locks, and supported fsync ordering across processes. New locks atomically publish initialized identity; acquisition crashes cannot leave an unrecoverable identity-less lock at the contested path.
+- [x] EC-DATA-3 - Read-only queries take no writer lock and do not mutate; bounded stable snapshots report incomplete/in-progress tails explicitly, never repair or return mixed/complete success from incomplete data. Blocked legacy locks allow nonmutating committed-data inspection. Replay selects correctly scoped latest state; retention preserves dependencies and newer schema versions fail explicitly.
+- [x] EC-DATA-4 - Measured append/index changes preserve concurrency and recovery; required core fake-provider and identity-boundary cases pass without public contract drift.
 
 **Scope notes**
 Decompose into 3 lanes: core content/types and identity scanner; ledger/replay;

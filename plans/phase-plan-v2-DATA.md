@@ -2,7 +2,7 @@
 phase_loop_plan_version: 1
 phase: DATA
 roadmap: specs/phase-plans-v2.md
-roadmap_sha256: ee1f3152a5331e071042ed122e122143cc103544140a5ed8f4e849f6b649587c
+roadmap_sha256: ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74
 automation:
   suite_command: pnpm verify
 ---
@@ -47,10 +47,10 @@ Reference: [SQLite's POSIX lock/close constraint](https://www.sqlite.org/howtoco
 
 ## Interface Freeze Gates
 
-- [ ] IF-0-DATA-3a — Content policy: `sanitizeMetadataText`, `redactUntrustedText`, `runtimeEvidenceRefSchema`, `handoffPacketSchema`, `stateLedgerRecordSchema`, and `assertNoSecretLeaks` agree on metadata versus opt-in content. Keep opt-in content at the runtime boundary and sanitize export. A shared corpus covers safe lookalikes, nested fields, evidence refs, and direct packet/schema construction.
-- [ ] IF-0-DATA-3d — Shared release shape: timestamp-expired `worktree_lease` projection and release constructor preserve identity/fencing token and bounded cause/actor attribution; replay/UI distinguish recovery/reconciliation from holder release without inventing provenance for old records; latest-sequence replay and retention prevent older renewal resurrection. Emission/authority remain COORD's work.
-- [ ] IF-0-DATA-3b — Durable write protocol: `state_ledger_record.v0.1`, `state_ledger_store_manifest.v0.1`, `withFilesystemLock`, and `AppendOnlyStore` preserve sequence high-water and initialized lock identity. Complete schema-invalid lines are corruption; only a provably incomplete tail is repairable by an exclusive writer. Lock release checks owner/inode. Specify supported fsync order for ledger, indexes, manifest, compaction, and lock publication.
-- [ ] IF-0-DATA-3c — Read projection: `listRecords`, `queryRecords`, `replaySession`, and `replayUiControlSnapshotFromStateRoot` use one bounded stable validated visible snapshot without taking a writer lock or mutating files. Incomplete/in-progress tails are explicit, never reported as complete success. A blocked legacy lock permits nonmutating prefix inspection. Newer schema versions fail explicitly. Replay and retention preserve scoped latest state and dependencies.
+- [x] IF-0-DATA-3a — Content policy: `sanitizeMetadataText`, `redactUntrustedText`, `runtimeEvidenceRefSchema`, `handoffPacketSchema`, `stateLedgerRecordSchema`, and `assertNoSecretLeaks` agree on metadata versus opt-in content. Keep opt-in content at the runtime boundary and sanitize export. A shared corpus covers safe lookalikes, nested fields, evidence refs, and direct packet/schema construction.
+- [x] IF-0-DATA-3d — Shared release shape: timestamp-expired `worktree_lease` projection and release constructor preserve identity/fencing token and bounded cause/actor attribution; replay/UI distinguish recovery/reconciliation from holder release without inventing provenance for old records; latest-sequence replay and retention prevent older renewal resurrection. Emission/authority remain COORD's work.
+- [x] IF-0-DATA-3b — Durable write protocol: `state_ledger_record.v0.1`, `state_ledger_store_manifest.v0.1`, `withFilesystemLock`, and `AppendOnlyStore` preserve sequence high-water and initialized lock identity. Complete schema-invalid lines are corruption; only a provably incomplete tail is repairable by an exclusive writer. Lock release checks owner/inode. Specify supported fsync order for ledger, indexes, manifest, compaction, and lock publication.
+- [x] IF-0-DATA-3c — Read projection: `listRecords`, `queryRecords`, `replaySession`, and `replayUiControlSnapshotFromStateRoot` use one bounded stable validated visible snapshot without taking a writer lock or mutating files. Incomplete/in-progress tails are explicit, never reported as complete success. A blocked legacy lock permits nonmutating prefix inspection. Newer schema versions fail explicitly. Replay and retention preserve scoped latest state and dependencies.
 
 ## Lane Index & Dependencies
 
@@ -116,10 +116,10 @@ Build before targeted tests if package exports require it. Run SL-0 tests before
 
 ## Acceptance Criteria
 
-- [ ] EC-DATA-1 — proven by `pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src/{evidence-store,coordination-channel,supabase-coordination-channel}.test.ts packages/cli/src`; falsified by retained nested secrets/path disclosure entering metadata-only construction/export while safe lookalikes and authorized request content pass.
-- [ ] EC-DATA-2 — proven by `pnpm exec vitest run packages/state-ledger/src/{cross-process,data-fault,hardening-replay,migrations}.test.ts`; falsified by an ownerless contested lock, duplicate sequence, or deleted complete-invalid line after a crash.
-- [ ] EC-DATA-3 — proven by `pnpm exec vitest run packages/state-ledger/src/{data-fault,replay,retention,migrations}.test.ts`; falsified by a read mutating files, claiming completeness on an incomplete tail, or accepting a newer schema.
-- [ ] EC-DATA-4 — proven by `pnpm exec vitest run packages/state-ledger/src/{cross-process,data-performance}.test.ts packages/core-contracts/src packages/identity-isolation/src packages/cli/src` and `pnpm verify`; falsified by lost concurrent append, unsafe cache reuse, undocumented append/index work growth or public-schema drift. Record measured latency changes and durability tradeoffs.
+- [x] EC-DATA-1 — proven by `pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src/{evidence-store,coordination-channel,supabase-coordination-channel}.test.ts packages/cli/src`; falsified by retained nested secrets/path disclosure entering metadata-only construction/export while safe lookalikes and authorized request content pass.
+- [x] EC-DATA-2 — proven by `pnpm exec vitest run packages/state-ledger/src/{cross-process,data-fault,hardening-replay,migrations}.test.ts`; falsified by an ownerless contested lock, duplicate sequence, or deleted complete-invalid line after a crash.
+- [x] EC-DATA-3 — proven by `pnpm exec vitest run packages/state-ledger/src/{data-fault,replay,retention,migrations}.test.ts`; falsified by a read mutating files, claiming completeness on an incomplete tail, or accepting a newer schema.
+- [x] EC-DATA-4 — proven by `pnpm exec vitest run packages/state-ledger/src/{cross-process,data-performance}.test.ts packages/core-contracts/src packages/identity-isolation/src packages/cli/src` and `pnpm verify`; falsified by lost concurrent append, unsafe cache reuse, undocumented append/index work growth or public-schema drift. Record measured latency changes and durability tradeoffs.
 
 ## Spec Closeout Plan
 
