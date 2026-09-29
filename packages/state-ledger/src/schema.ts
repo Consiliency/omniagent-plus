@@ -84,15 +84,13 @@ export function assertBoundedPayload(
 
 export async function ensureParentDirectory(path: string): Promise<void> {
   const directory = resolve(dirname(path));
-  const firstCreated = await mkdir(directory, { recursive: true });
-  if (firstCreated !== undefined) {
-    const existingParent = dirname(resolve(firstCreated));
-    let current = directory;
-    while (true) {
-      await syncDirectory(current);
-      if (current === existingParent) break;
-      current = dirname(current);
-    }
+  await mkdir(directory, { recursive: true });
+  let current = directory;
+  while (true) {
+    await syncDirectory(current);
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
   }
 }
 

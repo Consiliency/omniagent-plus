@@ -47,6 +47,36 @@ function readFixture(): AuditFixture {
 }
 
 describe("audit ledger", () => {
+  it("validates operational paths without disallowing ordinary home workspaces", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-operational-path-")) });
+    const worktree = { id: fixture.worktreeLease.id, path: fixture.worktreeLease.path,
+      branchName: fixture.worktreeLease.branchName, mode: fixture.worktreeLease.mode };
+    await ledger.appendSession({ ...fixture.session, repoRoot: "/home/synthetic/project" });
+    await ledger.appendSession({ ...fixture.session, worktree });
+    for (const path of ["Bearer synthetic-token-123456", "state/.recovery/marker.tail", "password=synthetic-private-value"]) {
+      await expect(ledger.appendSession({ ...fixture.session, repoRoot: path })).rejects.toThrow(/workspace path/);
+      await expect(ledger.appendSession({ ...fixture.session, worktree: { ...worktree, path } })).rejects.toThrow(/workspace path/);
+      await expect(ledger.appendWorktreeLease({ ...fixture.worktreeLease, path })).rejects.toThrow(/workspace path/);
+    }
+    expect(await ledger.listRecords()).toHaveLength(2);
+  });
+
+  it("projects terminal runtime prose while preserving the source event", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-terminal-content-")) });
+    const base = { ...fixture.runtimeEvent, redaction: "content_allowed" as const, terminal: true };
+    const completed: RuntimeEvent = { ...base, type: "runtime.turn.completed", payload: { outcome: "completed", outputSummary: "Edited /home/synthetic/project/file.ts" } };
+    const cancelled: RuntimeEvent = { ...base, eventId: "cancelled", type: "runtime.turn.cancelled", payload: { outcome: "cancelled", reason: "token=synthetic-private-value" } };
+    await ledger.appendRuntimeEvent(completed);
+    await ledger.appendRuntimeEvent(cancelled);
+    expect(completed.payload.outputSummary).toContain("/home/synthetic");
+    const persisted = JSON.stringify(await ledger.listRecords());
+    expect(persisted).not.toContain("/home/synthetic");
+    expect(persisted).not.toContain("synthetic-private-value");
+    expect(persisted).toContain("[redacted]");
+  });
+
   it("projects authorized runtime content before metadata-only persistence", async () => {
     const fixture = readFixture();
     const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-runtime-content-")) });

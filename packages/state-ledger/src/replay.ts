@@ -147,7 +147,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
     ),
     (record) => {
       const turn = record.payload as TurnHandle;
-      return `${turn.sessionId}:${turn.turnId}`;
+      return JSON.stringify([turn.sessionId, turn.turnId]);
     },
   );
   const routeDecisionRecords = sortedRecords.filter(
@@ -165,7 +165,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
       (record): record is Extract<StateLedgerEntry, { kind: "approval_response" }> =>
         record.kind === "approval_response",
     ),
-    (record) => `${record.sessionId}:${record.turnId}:${(record.payload as RuntimeApprovalResponse).approvalRequestId}`,
+    (record) => JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalResponse).approvalRequestId]),
   );
   const cooldownRecords = latestByKey(
     sortedRecords.filter(
@@ -205,7 +205,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   );
   const runtimeEventsByTurn = latestEventByKey(
     runtimeEvents.filter((event) => event.turnId !== undefined),
-    (event) => `${event.sessionId}:${event.turnId}`,
+    (event) => JSON.stringify([event.sessionId, event.turnId]),
   );
   const eventCountBySession = new Map<string, number>();
   for (const event of runtimeEvents) {
@@ -226,7 +226,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   }
   const approvalResponsesById = new Map(
     approvalResponseRecords.map((record) => [
-      `${record.sessionId}:${record.turnId}:${(record.payload as RuntimeApprovalResponse).approvalRequestId}`,
+      JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalResponse).approvalRequestId]),
       record.payload as RuntimeApprovalResponse,
     ]),
   );
@@ -234,10 +234,10 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   const pendingApprovalCountBySession = new Map<string, number>();
   for (const record of approvalRequestRecords) {
     const request = record.payload as RuntimeApprovalRequest;
-    if (approvalResponsesById.has(`${request.sessionId}:${request.turnId}:${request.approvalRequestId}`)) {
+    if (approvalResponsesById.has(JSON.stringify([request.sessionId, request.turnId, request.approvalRequestId]))) {
       continue;
     }
-    pendingApprovalByTurn.set(`${request.sessionId}:${request.turnId}`, request);
+    pendingApprovalByTurn.set(JSON.stringify([request.sessionId, request.turnId]), request);
     pendingApprovalCountBySession.set(
       request.sessionId,
       (pendingApprovalCountBySession.get(request.sessionId) ?? 0) + 1,
@@ -318,7 +318,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
     .map((record) => record.payload as TurnHandle)
     .filter((turn) => !terminalTurnStates.has(turn.state))
     .map((turn) => {
-      const lastEvent = runtimeEventsByTurn.get(`${turn.sessionId}:${turn.turnId}`);
+      const lastEvent = runtimeEventsByTurn.get(JSON.stringify([turn.sessionId, turn.turnId]));
       return {
         sessionId: turn.sessionId,
         turnId: turn.turnId,
@@ -329,7 +329,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
         lastEventType: lastEvent?.type,
         lastEventAt: lastEvent?.occurredAt,
         pendingApprovalRequestId: pendingApprovalByTurn.get(
-          `${turn.sessionId}:${turn.turnId}`,
+          JSON.stringify([turn.sessionId, turn.turnId]),
         )?.approvalRequestId,
       };
     })
@@ -367,7 +367,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   const approvals = approvalRequestRecords
     .map((record) => {
       const request = record.payload as RuntimeApprovalRequest;
-      const response = approvalResponsesById.get(`${request.sessionId}:${request.turnId}:${request.approvalRequestId}`);
+      const response = approvalResponsesById.get(JSON.stringify([request.sessionId, request.turnId, request.approvalRequestId]));
       return {
         approvalRequestId: request.approvalRequestId,
         toolCallId: request.toolCallId,
@@ -518,17 +518,17 @@ export async function replaySession(ledger: AuditLedger, sessionId: string): Pro
   const taskIds = new Set(records.flatMap((record) => record.taskId ? [record.taskId] : []));
   return {
     session: records.filter((record) => record.kind === "session").at(-1)?.payload as AgentSession | undefined,
-    turns: latestByKey(records.filter((record) => record.kind === "turn"), (record) => `${record.sessionId}:${record.turnId}`)
+    turns: latestByKey(records.filter((record) => record.kind === "turn"), (record) => JSON.stringify([record.sessionId, record.turnId]))
       .map((record) => record.payload as TurnHandle),
     history: historyFromRecords(records, sessionId),
     routeDecisions: allRecords.filter((record) => record.kind === "route_decision"
       && (record.sessionId === sessionId || (record.sessionId === undefined && record.taskId !== undefined && taskIds.has(record.taskId))))
       .map((record) => record.payload as RouteDecision),
     approvalRequests: latestByKey(records.filter((record) => record.kind === "approval_request"),
-      (record) => `${record.sessionId}:${record.turnId}:${(record.payload as RuntimeApprovalRequest).approvalRequestId}`)
+      (record) => JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalRequest).approvalRequestId]))
       .map((record) => record.payload as RuntimeApprovalRequest),
     approvalResponses: latestByKey(records.filter((record) => record.kind === "approval_response"),
-      (record) => `${record.sessionId}:${record.turnId}:${(record.payload as RuntimeApprovalResponse).approvalRequestId}`)
+      (record) => JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalResponse).approvalRequestId]))
       .map((record) => record.payload as RuntimeApprovalResponse),
     evidenceRefs: records.filter((record) => record.kind === "evidence_ref").map((record) => record.payload as RuntimeEvidenceRef),
   };

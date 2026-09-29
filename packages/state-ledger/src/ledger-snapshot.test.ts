@@ -1,17 +1,18 @@
-import { mkdtemp, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import type { BigIntStats, PathLike, StatOptions } from "node:fs";
 import type * as FsPromises from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof FsPromises>();
-  return { ...actual, stat: vi.fn(actual.stat) };
+  return { ...actual, stat: vi.fn(actual.stat), open: vi.fn(actual.open) };
 });
 
 import { AppendOnlyStore } from "./append-only-store.js";
 import { readLedgerSnapshot } from "./ledger-snapshot.js";
+import { ensureParentDirectory } from "./schema.js";
 
 async function seeded() {
   const rootDir = await mkdtemp(join(tmpdir(), "data-snapshot-"));
@@ -21,6 +22,25 @@ async function seeded() {
 }
 
 describe("validated visible ledger snapshots", () => {
+  it("syncs existing ancestor entries even when another initializer created them", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "data-directory-race-"));
+    const { open: actualOpen } = await vi.importActual<typeof FsPromises>("node:fs/promises");
+    const sync = vi.fn(async () => undefined);
+    const close = vi.fn(async () => undefined);
+    vi.mocked(open).mockResolvedValue({ sync, close } as unknown as Awaited<ReturnType<typeof open>>);
+    const ancestors: string[] = [];
+    for (let current = directory; ; current = dirname(current)) {
+      ancestors.push(current);
+      if (dirname(current) === current) break;
+    }
+    try {
+      await ensureParentDirectory(join(directory, "entry"));
+      expect(vi.mocked(open).mock.calls.map(([path]) => path)).toEqual(ancestors);
+      expect(sync).toHaveBeenCalledTimes(ancestors.length);
+      expect(close).toHaveBeenCalledTimes(ancestors.length);
+    } finally { vi.mocked(open).mockImplementation(actualOpen); }
+  });
+
   it("inspects an absent root without creating it", async () => {
     const parent = await mkdtemp(join(tmpdir(), "data-readonly-"));
     const rootDir = join(parent, "absent");
@@ -85,6 +105,21 @@ describe("validated visible ledger snapshots", () => {
     await writeFile(store.paths.ledgerPath, '{"secret":"synthetic-private-value"}\n');
     try { await readLedgerSnapshot(rootDir); throw new Error("missing rejection"); }
     catch (error) { expect(String(error)).not.toContain("synthetic-private-value"); }
+  });
+
+  it("preserves complete historical content records that fail the metadata policy", async () => {
+    const { rootDir, store, record } = await seeded();
+    const historical = { ...record, kind: "runtime_event", payload: { schema: "runtime_event.v0.1", eventId: "historical",
+      sequence: 1, sessionId: "historical", type: "runtime.turn.started", occurredAt: record.recordedAt,
+      payload: { message: "Ordinary historical private conversation", state: "running" }, redaction: "metadata_only", terminal: false } };
+    for (const newline of ["", "\n"]) {
+      const raw = `${JSON.stringify(historical)}${newline}`;
+      await writeFile(store.paths.ledgerPath, raw);
+      await expect(readLedgerSnapshot(rootDir)).rejects.toMatchObject({ code: "ledger_corruption" });
+      await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
+      expect(await readFile(store.paths.ledgerPath, "utf8")).toBe(raw);
+      expect(await readdir(rootDir)).not.toContain(".recovery");
+    }
   });
 
   it("checks the whole JSON prefix before permitting tail repair", async () => {

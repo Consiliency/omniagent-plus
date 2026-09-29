@@ -9,12 +9,14 @@
     "packages/state-ledger/src/ledger-snapshot.ts": "78323a231f347368c5f476b8e421ed734f1baa9e081041b61e7ef3bbb6b50538",
     "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
     "packages/state-ledger/src/migrations.ts": "e71ce548a506d58aaa55f48cc2204957066a5cdd3cf9b571c1d4ff2163a880c6",
-    "packages/state-ledger/src/replay.ts": "bb2c4d6aebb98acc74e48278bb9027c5949320fcaab485779bbf76dd6614cabf",
-    "packages/state-ledger/src/retention.ts": "1534a35920d1f5f83259371873eea051b9a93562d6f3c035534a8ec219d3dfd5",
-    "packages/core-contracts/src/redaction.ts": "fac192882c166be35f3b537e6de197d5cac900635d263228218dfebe389fae55",
-    "fixtures/content-policy/corpus.json": "af0d1c70e1dd20d4a53979852c9719029c91b67b24fd7484cafa923f01166c7a",
-    "plans/phase-plan-v2-DATA.md": "abef0e02a2151f5cba7010ca5db37ab80234313d20d8de3f496139bd326cc34a",
-    "packages/core-contracts/src/state-ledger.ts": "005fd911af1638b45652c823172060002bcd381a6a7c98bae14469abd685cc3c"
+    "packages/state-ledger/src/replay.ts": "31e2c1ecda9ffb0f36deb7201c1d0b7ae13cdf646ed127dd58ad8248f92c0d62",
+    "packages/state-ledger/src/retention.ts": "fee46f4fcee5d2e70f83d2253fa8e8ace142c448429b920aa562f25586653b95",
+    "packages/core-contracts/src/redaction.ts": "2dd702ade20ff4e8b5feb0d2f3fe894e73685d2099c97585aac29f210a202bcb",
+    "fixtures/content-policy/corpus.json": "52a9663b4fadfc912c15c1c8af2ea54dae14e841a7071842db9ad96f2c1da28d",
+    "plans/phase-plan-v2-DATA.md": "88781928334953644ccf3b3d38dceeec5877c8bff39977a2e92c9bce6c18e423",
+    "packages/core-contracts/src/state-ledger.ts": "39af7cd658b97c18679af4c7df0ed3b4056051e372b3e0175ca4792d7316a0c0",
+    "packages/state-ledger/src/audit-ledger.ts": "5b03de075fd6f9b5d8efa5cfc717eb85f8d01790a44d6fd05d1fbe9759ec48ed",
+    "packages/state-ledger/src/schema.ts": "ddc7d2e2a51ce070db2cb4258ffb02244793f1f70d10b5beff3f31fee502a086"
   },
   "local_verification": {
     "targeted": {
@@ -51,22 +53,31 @@
         "files": 3,
         "passed": 32,
         "failed": 0
+      },
+      "content_scope_retention_durability_delta": {
+        "files": 47,
+        "passed": 185,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src tests/guard/boundaries.test.ts",
+        "scope": "candidate before final header-family corpus delta; full candidate suite pending"
       }
     },
     "typecheck": "passed on repaired working candidate",
     "lint": "passed on repaired working candidate",
     "full_gate": "Build/lint/typecheck/boundaries passed; local disposable Docker loopback fixture readiness failed. Hosted full gate required; prior d234929 gate found now-repaired missing synthetic fixture dependency and legacy diagnostic mismatch.",
     "deterministic_root": {
-      "source_sha": "0ddcfacaac7f9c408aa23ea1b0b4679965fa6182",
+      "source": "repaired candidate tree before review commit",
       "command": "pnpm test",
-      "passed": 556,
+      "passed": 563,
       "skipped": 1,
       "failed": 0,
-      "skip": "only explicitly opt-in live Omnigent case"
+      "skip": "only explicitly opt-in live Omnigent case",
+      "runner_report_path": ".phase-loop/guard/1790710433974-3660448-2909de7d-407e-448b-918a-3b0f2af29868/tests.json",
+      "runner_report_sha256": "3d8b8b41ab367fe22c4e14ae270d0e0ad27c797a2a838c703bda8323b663df12"
     }
   },
   "measurement": {
-    "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; synthetic identical ledger fixtures; one observational run",
+    "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; identical session workload; one candidate run after ancestor-sync repair",
     "initial_records": [
       0,
       100,
@@ -79,9 +90,9 @@
       160.734173
     ],
     "candidate_ms": [
-      84.858258,
-      89.030664,
-      101.331338
+      72.062479,
+      72.553496,
+      83.916098
     ],
     "candidate_append_snapshot_reads": [
       0,
@@ -180,6 +191,11 @@
         "small positive capacity can fit a short explicit-ID record but not its manifest"
       ],
       "resolution": "Candidate validates serialized manifests before initialization/checkpoint writes and before append writes, including historical high-water digit growth; adds initial200-byte and exact-manifest-capacity reopen regression. All earlier findings resolved; final re-review pending."
+    },
+    {
+      "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-3225162.json",
+      "resolution": "Candidate repairs all blocking scanner/path/scope findings; retention and concurrent-directory publication controls added. Passing four-seat harness panel and separate review remain required."
     }
   ],
   "remaining": [
@@ -196,12 +212,12 @@
     "PREP owns distribution and public independent package acceptance."
   ],
   "hosted_verification": {
-    "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
-    "ci_run_id": 36617639323,
-    "publish_rehearsal_run_id": 36617639295,
+    "source_sha": "33e54d1010ba1eb6b73419ab5fc1c38ebb5ce437",
+    "ci_run_id": 36618540370,
+    "publish_rehearsal_run_id": 36618540365,
     "required_check": "guard-required",
     "conclusion": "success",
     "actual_publish": "skipped",
-    "final_head": "pending capacity repair"
+    "final_head": "pending scanner/scope/retention/durability repair"
   }
 }

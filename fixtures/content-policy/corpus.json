@@ -14,7 +14,23 @@
     },
     "JWT verification is documented; no token value here.",
     "docs/npmrc-example.md",
-    "Service token rotation policy is ordinary metadata."
+    "Service token rotation policy is ordinary metadata.",
+    {
+      "password": {
+        "schema": "redacted_config_value.v0.1",
+        "value": "[redacted]",
+        "reason": "synthetic_fixture"
+      }
+    },
+    "NPM_PUBLISH_DRY_RUN=1",
+    "npm_config_registry",
+    "npm_package_version",
+    {
+      "maxTokens": 100,
+      "tokenCount": 2,
+      "autoRefreshToken": false,
+      "fencingToken": "synthetic-fence"
+    }
   ],
   "rejected": [
     "password: synthetic-only-value",
@@ -74,6 +90,77 @@
     },
     {
       "aws_secret_access_key": "synthetic-only-private-value"
+    },
+    {
+      "password": [
+        "synthetic-private-value"
+      ]
+    },
+    {
+      "password": {
+        "value": "synthetic-private-value"
+      }
+    },
+    {
+      "token": 123
+    },
+    {
+      "X-Api-Key": "synthetic-private-value"
+    },
+    {
+      "nested": {
+        "path": "state/.recovery/marker.tail"
+      }
+    },
+    "Read .recovery/marker.tail",
+    "{\"ref\":\".recovery/marker.tail\"}",
+    {
+      "password": {
+        "schema": "redacted_config_value.v0.1",
+        "value": "[redacted]",
+        "reason": "safe",
+        "extra": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "X-Auth-Token": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "Private-Token": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "Proxy-Authorization": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "Set-Cookie": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "client-secret": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "accessToken": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "refreshToken": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "privateKey": "synthetic-private-value"
+      }
     }
   ],
   "rejectedExportPaths": [

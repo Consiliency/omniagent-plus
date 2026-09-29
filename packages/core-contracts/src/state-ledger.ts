@@ -16,6 +16,7 @@ import {
 import {
   runtimeEvidenceRefSchema,
   metadataSchemaCheck,
+  sanitizeWorkspacePath,
   type RuntimeEvidenceRef,
 } from "./redaction.js";
 import { routeDecisionSchema, type RouteDecision } from "./route-decision.js";
@@ -210,6 +211,13 @@ export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
       || (event.type === "runtime.text.delta" && event.payload.delta !== "[runtime content omitted]")) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "Runtime content must be omitted before metadata-only ledger construction." });
     }
+  }
+  const operationalPaths = record.kind === "session" ? [record.payload.repoRoot, record.payload.worktree?.path]
+    : record.kind === "worktree_lease" ? [record.payload.path] : [];
+  for (const path of operationalPaths) {
+    if (path === undefined) continue;
+    try { sanitizeWorkspacePath(path, "operational workspace path"); }
+    catch { context.addIssue({ code: z.ZodIssueCode.custom, message: "Operational workspace path contains unsafe metadata." }); }
   }
   if (record.kind === "session") payload = { ...record.payload, repoRoot: undefined,
     worktree: record.payload.worktree === undefined ? undefined : { ...record.payload.worktree, path: undefined } };

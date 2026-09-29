@@ -10,6 +10,7 @@ import {
   runtimeEvidenceRefSchema,
   redactedTextSchema,
   projectMetadataExport,
+  scanMetadataLeaks,
 } from "./redaction.js";
 
 function readFixture<T>(path: string): T {
@@ -33,6 +34,7 @@ describe("handoff redaction helpers", () => {
     for (const value of corpus.rejected) {
       const text = typeof value === "string" ? value : JSON.stringify(value);
       expect(() => assertMetadataSafe(value)).toThrow();
+      expect(scanMetadataLeaks(projectMetadataExport(value))).toEqual([]);
       expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: "safe", excerpt: text })).toThrow();
       expect(() => redactedTextSchema.parse({ schema: "redacted_text.v0.1", redaction: "content_redacted",
         reason: "corpus", content: text, byteLength: Buffer.byteLength(text), truncated: false })).toThrow();

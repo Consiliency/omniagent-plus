@@ -23,7 +23,7 @@ const secretTextPatterns: Array<{
   },
   {
     reason: "api_key_token",
-    pattern: /\b(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|npm_|AIza)[a-z0-9._-]{8,}\b/i,
+    pattern: /\b(?:(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|AIza)[a-z0-9._-]{8,}|npm_[a-z0-9]{8,})\b/i,
   },
   {
     reason: "auth_assignment",
@@ -72,11 +72,23 @@ function providerPayload(value: unknown): boolean {
     || (typeof value.anthropic_version === "string") || plainRecord(value.providerPayload);
 }
 
+function sensitiveField(key: string): boolean {
+  const normalized = key.replaceAll(/[^a-z0-9]/gi, "").toLowerCase();
+  return /^(?:password|passwd|token|credential|authorization|proxyauthorization|authheader|authtoken|xauthtoken|privatetoken|accesstoken|refreshtoken|apikey|accesskey|clientsecret|secretkey|privatekey|servicerolekey|cookie|setcookie|xapikey|secret)$/.test(normalized)
+    || /[_-](?:token|password|passwd|credential|api[_-]key|access[_-]key|secret|secret[_-]key|service[_-]role[_-]key)$/.test(key.toLowerCase());
+}
+
+function redactedConfigPlaceholder(value: unknown): boolean {
+  return plainRecord(value) && Object.keys(value).every((key) => ["schema", "value", "reason", "updatedAt"].includes(key))
+    && redactedConfigValueSchema.safeParse(value).success;
+}
+
 export function scanMetadataLeaks(value: unknown, options: { readonly allowHomePaths?: boolean } = {}): MetadataLeak[] {
   const leaks: MetadataLeak[] = [];
   const visit = (entry: unknown, path: string, depth: number) => {
     if (depth > 64) { leaks.push({ path, reason: "metadata_depth_limit" }); return; }
     if (typeof entry === "string") {
+      if (/(?:^|[^a-z0-9_.-])\.recovery(?:[\\/]|$|[^a-z0-9_.-])/i.test(entry)) leaks.push({ path, reason: "private_recovery_path" });
       if (envDumpPattern.test(entry)) leaks.push({ path, reason: "environment_dump" });
       for (const rule of secretTextPatterns) if (!(options.allowHomePaths && rule.reason === "home_path") && rule.pattern.test(entry)) leaks.push({ path, reason: rule.reason });
       try {
@@ -91,12 +103,8 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
     Object.entries(entry).forEach(([key, item], index) => {
       const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(key) && !secretTextPatterns.some((rule) => rule.pattern.test(key)) ? key : `[field-${index}]`;
       const next = `${path}.${safeKey}`;
-      const normalized = key.replaceAll("_", "").toLowerCase();
-      if (/^(?:password|passwd|token|credential|authorization|authheader|apikey|accesskey|clientsecret|secretkey|servicerolekey|cookie|xapikey|secret)$/.test(normalized)
-        || /_(?:token|password|passwd|credential|api_key|access_key|secret|secret_key|service_role_key)$/.test(key.toLowerCase())) {
-        if (typeof item === "string") leaks.push({ path: next, reason: "sensitive_field" });
-      }
-      if ((key === "env" || key === "environment") && plainRecord(item) && Object.keys(item).length > 0
+      if (sensitiveField(key) && item !== undefined && !redactedConfigPlaceholder(item)) leaks.push({ path: next, reason: "sensitive_field" });
+      if ((key === "env" || key === "environment") && plainRecord(item) && !redactedConfigPlaceholder(item) && Object.keys(item).length > 0
         && Object.values(item).every((field) => typeof field === "string" || field === undefined)) leaks.push({ path: next, reason: "environment_dump" });
       if (secretTextPatterns.some((rule) => rule.pattern.test(key))) leaks.push({ path: `${path}.[field-${index}]`, reason: "sensitive_field_name" });
       visit(item, next, depth + 1);
@@ -136,7 +144,7 @@ export function projectMetadataExport(value: unknown): unknown {
     if (providerPayload(value)) return redactConfigValue("provider_payload_export");
     return Object.fromEntries(Object.entries(value).flatMap(([key, entry]) => {
       if (secretTextPatterns.some((rule) => rule.pattern.test(key))) return [];
-      if (typeof entry === "string" && scanMetadataLeaks({ [key]: entry }).some((leak) => leak.reason === "sensitive_field")) {
+      if (sensitiveField(key) && entry !== undefined && !redactedConfigPlaceholder(entry)) {
         return [[key, redactConfigValue("metadata_export")]];
       }
       if ((key === "env" || key === "environment") && plainRecord(entry) && Object.keys(entry).length > 0

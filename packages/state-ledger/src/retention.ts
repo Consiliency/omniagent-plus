@@ -42,14 +42,14 @@ export async function applyRetentionPolicy(
 
 function entityKey(record: StateLedgerEntry): string {
   switch (record.kind) {
-    case "session": return `session:${record.payload.id}`;
-    case "turn": return `turn:${record.payload.sessionId}:${record.payload.turnId}`;
-    case "worktree_lease": return `lease:${record.payload.id}`;
-    case "approval_request": return `request:${record.payload.sessionId}:${record.payload.turnId}:${record.payload.approvalRequestId}`;
-    case "approval_response": return `response:${record.sessionId}:${record.turnId}:${record.payload.approvalRequestId}`;
-    case "provider_cooldown": return `cooldown:${record.payload.provider}`;
-    case "identity_profile_status": return `identity:${record.payload.profileId}`;
-    default: return `record:${record.recordId}`;
+    case "session": return JSON.stringify(["session", record.payload.id]);
+    case "turn": return JSON.stringify(["turn", record.payload.sessionId, record.payload.turnId]);
+    case "worktree_lease": return JSON.stringify(["lease", record.payload.id]);
+    case "approval_request": return JSON.stringify(["request", record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId]);
+    case "approval_response": return JSON.stringify(["response", record.sessionId, record.turnId, record.payload.approvalRequestId]);
+    case "provider_cooldown": return JSON.stringify(["cooldown", record.payload.provider]);
+    case "identity_profile_status": return JSON.stringify(["identity", record.payload.profileId]);
+    default: return JSON.stringify(["record", record.recordId]);
   }
 }
 
@@ -74,20 +74,20 @@ function retentionClosure(
   for (const record of latest.values()) {
     if (record.kind === "session" && !["closed", "failed"].includes(record.payload.state)) sessions.add(record.payload.id);
     if (record.kind === "turn" && !["cancelled", "timed_out", "completed", "failed"].includes(record.payload.state)) {
-      turns.add(`${record.payload.sessionId}:${record.payload.turnId}`);
+      turns.add(JSON.stringify([record.payload.sessionId, record.payload.turnId]));
       sessions.add(record.payload.sessionId);
     }
     if (record.kind === "worktree_lease" && Date.parse(record.payload.expiresAt) > now) {
       leases.add(record.payload.id);
       if (record.payload.holder.sessionId) sessions.add(record.payload.holder.sessionId);
-      if (record.payload.holder.turnId) turns.add(`${record.payload.holder.sessionId}:${record.payload.holder.turnId}`);
+      if (record.payload.holder.turnId) turns.add(JSON.stringify([record.payload.holder.sessionId, record.payload.holder.turnId]));
     }
     if (record.kind === "approval_request") {
-      const key = `${record.payload.sessionId}:${record.payload.turnId}:${record.payload.approvalRequestId}`;
-      if (!latest.has(`response:${key}`)) {
+      const key = JSON.stringify([record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId]);
+      if (!latest.has(JSON.stringify(["response", record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId]))) {
         requests.add(key);
         sessions.add(record.payload.sessionId);
-        turns.add(`${record.payload.sessionId}:${record.payload.turnId}`);
+        turns.add(JSON.stringify([record.payload.sessionId, record.payload.turnId]));
       }
     }
   }
@@ -96,11 +96,12 @@ function retentionClosure(
     changed = false;
     for (const record of records) {
       const scopedSession = record.kind === "session" ? record.payload.id : record.sessionId;
-      const turn = `${record.sessionId}:${record.turnId}`;
-      if ((scopedSession && sessions.has(scopedSession)) || turns.has(turn)
+      const turn = JSON.stringify([record.sessionId, record.turnId]);
+      const protectedHistory = (scopedSession && sessions.has(scopedSession)) || turns.has(turn)
         || (record.taskId && tasks.has(record.taskId))
         || (record.kind === "worktree_lease" && leases.has(record.payload.id))
-        || (record.kind === "approval_request" && requests.has(`${record.payload.sessionId}:${record.payload.turnId}:${record.payload.approvalRequestId}`))) {
+        || (record.kind === "approval_request" && requests.has(JSON.stringify([record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId])));
+      if (protectedHistory) {
         if (!keep.has(record.sequence)) { keep.add(record.sequence); changed = true; }
       }
       if (!keep.has(record.sequence)) continue;
@@ -109,20 +110,24 @@ function retentionClosure(
       const add = (set: Set<string>, value: string | undefined) => {
         if (value && !set.has(value)) { set.add(value); changed = true; }
       };
-      add(sessions, scopedSession);
-      add(tasks, record.taskId);
-      if (record.turnId) add(turns, turn);
+      const reference = (...key: (string | undefined)[]) => {
+        const dependency = latest.get(JSON.stringify(key));
+        if (dependency && !keep.has(dependency.sequence)) { keep.add(dependency.sequence); changed = true; }
+      };
+      if (protectedHistory) add(tasks, record.taskId);
+      if (scopedSession) reference("session", scopedSession);
+      if (record.turnId) reference("turn", record.sessionId, record.turnId);
       if (record.kind === "session") {
-        add(sessions, record.payload.parentSessionId);
-        add(sessions, record.payload.rootSessionId);
-        add(leases, record.payload.worktree?.id);
-        for (const source of record.payload.handoffPacket?.sourceSessionIds ?? []) add(sessions, source);
+        reference("session", record.payload.parentSessionId);
+        reference("session", record.payload.rootSessionId);
+        reference("lease", record.payload.worktree?.id);
+        for (const source of record.payload.handoffPacket?.sourceSessionIds ?? []) reference("session", source);
       }
       if (record.kind === "worktree_lease") {
-        add(sessions, record.payload.holder.sessionId);
-        if (record.payload.holder.turnId) add(turns, `${record.payload.holder.sessionId}:${record.payload.holder.turnId}`);
+        reference("session", record.payload.holder.sessionId);
+        if (record.payload.holder.turnId) reference("turn", record.payload.holder.sessionId, record.payload.holder.turnId);
       }
-      if (record.kind === "approval_response") add(requests, `${record.sessionId}:${record.turnId}:${record.payload.approvalRequestId}`);
+      if (record.kind === "approval_response") reference("request", record.sessionId, record.turnId, record.payload.approvalRequestId);
     }
   }
   return keep;

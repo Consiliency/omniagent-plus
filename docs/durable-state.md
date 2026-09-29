@@ -43,8 +43,10 @@ pathname intact but do not fence arbitrary external tampering during a callback.
 
 Supported topology is one host/PID namespace on a local filesystem with SQLite
 locking, hard links, same-directory atomic rename, and file/directory fsync.
-Unsupported durability operations fail explicitly. Newly created directories
-are synced through every new ancestor and the first existing parent. A lock
+Unsupported durability operations fail explicitly. Directory initialization
+syncs every ancestor through the filesystem root, even when another initializer
+created the entries. This prevents an initializer from acknowledging work before
+the creator has synced those entries. A lock
 candidate is initialized, closed and synced before exclusive hard-link
 publication and parent sync. No owner unlinks the canonical database.
 
@@ -139,6 +141,12 @@ than trusting a `metadata_only` label.
 The audit helper performs omission; direct ledger schemas/store writes reject
 those known content fields unless already omitted. Existing complete records
 that violate this stricter rule are corruption and remain intact for diagnosis.
+This is a deliberate persistence-policy tightening, not transparent read
+compatibility for historical raw content. Readonly inspection reports a bounded
+error; writers do not silently redact, migrate, truncate or discard such records.
+Preserve the old root for private inspection and remediation before adopting a
+metadata-only root. Terminal runtime summaries/reasons are projected before
+audit persistence; their source runtime events remain unchanged.
 
 Operational roots remain absolute internally. CLI JSON/text, UI and handoff
 exports use repo-relative paths or opaque `path:sha256:<digest>` refs. Evidence
@@ -161,7 +169,7 @@ fake-provider evidence, not real upstream lifecycle acceptance.
 ## Measured Append Work
 
 Thirty appends to identical 0/100/1000-record fixtures took about 16/27/161 ms
-before DATA and 85/89/101 ms in the candidate run on this host. These are single
+before DATA and 72/73/84 ms in the candidate run on this host. These are single
 run observations, not speed guarantees. The comparison uses the same session-record workload; stronger sync increases small-ledger latency. Separate candidate controls record zero append
 snapshot rescans and zero index rewrites for unchanged ledgers. Foreign writes
 invalidate the cache under the writer transaction; competing-process tests check

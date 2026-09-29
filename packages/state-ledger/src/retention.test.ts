@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { AuditLedger } from "./audit-ledger.js";
 import { getStateLedgerPaths } from "./schema.js";
 import { applyRetentionPolicy } from "./retention.js";
+import { replayUiControlSnapshot } from "./replay.js";
 
 async function createLedger() {
   const rootDir = await mkdtemp(join(tmpdir(), "state-ledger-retain-"));
@@ -17,6 +18,40 @@ async function createLedger() {
 }
 
 describe("retention", () => {
+  it("prunes expired closed-session events while retaining session metadata", async () => {
+    const { ledger } = await createLedger();
+    const timestamp = "2026-06-30T00:00:00Z";
+    await ledger.store.appendRecord({ kind: "session", sessionId: "closed", recordedAt: timestamp,
+      payload: { id: "closed", runtime: "omnigent", targetHarness: "codex", title: "safe", state: "closed", createdAt: timestamp, updatedAt: timestamp } });
+    for (let sequence = 1; sequence <= 3; sequence += 1) {
+      await ledger.store.appendRecord({ kind: "runtime_event", sessionId: "closed", recordedAt: timestamp,
+        payload: { schema: "runtime_event.v0.1", eventId: `event-${sequence}`, sequence, sessionId: "closed",
+          type: "runtime.heartbeat", payload: { cursor: sequence }, occurredAt: timestamp, redaction: "metadata_only", terminal: false } });
+    }
+    const result = await applyRetentionPolicy(ledger, { pruneKinds: ["runtime_event"], maxAgeMs: 60_000 }, new Date("2026-06-30T01:00:00Z"));
+    expect(result.keptRecords.map((record) => record.kind)).toEqual(["session"]);
+    expect(result.prunedRecords).toHaveLength(3);
+  });
+
+  it("keeps colon-containing approval scopes distinct during replay and retention", async () => {
+    const { ledger } = await createLedger();
+    const timestamp = "2026-06-30T00:00:00Z";
+    for (const [sessionId, turnId, approvalRequestId] of [["a:b", "c", "d"], ["a", "b", "c:d"]]) {
+      await ledger.store.appendRecord({ kind: "session", sessionId, recordedAt: timestamp,
+        payload: { id: sessionId!, runtime: "omnigent", targetHarness: "codex", title: "safe", state: "closed", createdAt: timestamp, updatedAt: timestamp } });
+      await ledger.store.appendRecord({ kind: "approval_request", sessionId, turnId, recordedAt: timestamp,
+        payload: { sessionId: sessionId!, turnId: turnId!, approvalRequestId: approvalRequestId!, requestedAction: "safe", risk: "low", allowedApprovers: ["operator"] } });
+    }
+    await ledger.store.appendRecord({ kind: "approval_response", sessionId: "a", turnId: "b", recordedAt: timestamp,
+      payload: { approvalRequestId: "c:d", decision: "approved", decidedAt: timestamp } });
+    const snapshot = await replayUiControlSnapshot(ledger);
+    expect(snapshot.approvals.find((approval) => approval.sessionId === "a:b")?.status).toBe("pending");
+    expect(snapshot.approvals.find((approval) => approval.sessionId === "a")?.status).toBe("approved");
+    const result = await applyRetentionPolicy(ledger, { maxAgeMs: 60_000 }, new Date("2026-06-30T01:00:00Z"));
+    expect(result.keptRecords.map((record) => record.sessionId)).toEqual(["a:b", "a:b"]);
+    expect(result.prunedRecords).toHaveLength(3);
+  });
+
   it("preserves active, pending and live-lease dependencies while pruning expired terminal history", async () => {
     const { ledger, rootDir } = await createLedger();
     const timestamp = "2026-06-30T00:00:00Z";
