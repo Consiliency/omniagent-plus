@@ -72,7 +72,9 @@ Supabase acceptance. See
 
 ## Verification
 
-Use Node 24 and pnpm 11.1.1. From the repo root, the shared GUARD command is:
+Use Linux, Python 3.10 or newer, Node 24, and pnpm 11.1.1. GUARD's test
+commands use a Linux subreaper and pidfds; unsupported hosts fail before a
+guarded payload starts. From the repo root, the shared GUARD command is:
 
 ```bash
 pnpm verify
@@ -81,7 +83,8 @@ pnpm verify
 It runs frozen install, build, lint, workspace/tooling typecheck, source-boundary
 checks, mandatory disposable PostgreSQL setup, one full root suite, and packed
 transport consumer smoke using the retained verified tarball. Local full-gate
-execution requires Docker and `psql`; missing SQL setup fails rather than skips.
+execution requires Docker and `psql`, with published loopback ports reachable
+from the host; missing SQL setup fails rather than skips.
 The fixture is owned and disposable, not an ambient or production database.
 
 For deterministic local tests or focused docs checks, build first:

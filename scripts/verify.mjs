@@ -1,7 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { resolve, dirname, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cleanEnvironment, runProcess, ProcessScope, validateCustodyJournal, withCustodyContext } from "../tests/helpers/guard-process.ts";
+import { cleanEnvironment, runProcess, ProcessScope, NESTED_FIXTURE_SHUTDOWN_MS, validateCustodyJournal, withCustodyContext } from "../tests/helpers/guard-process.ts";
 import { STAGES, runStages } from "../tests/helpers/guard-stages.ts";
 import { createFixture, setupFixture, clientUrl } from "./prepare-test-postgres.mjs";
 import { packVerified } from "./pack-verified-packages.mjs";
@@ -47,7 +48,7 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
   const args = ["exec", "vitest", "run", "--config", "vitest.config.ts", "--reporter=default", "--reporter=json", `--outputFile.json=${reportPath}`];
   if (command === "test:guard") args.push("tests/guard");
   if (command === "test:integration") args.push("--project=guard-db", "tests/guard/fixture.integration.db.test.ts");
-  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout: 900_000 }); }
+  try { await run("pnpm", args, { env: suiteEnvironment(fixture), timeout: 900_000, shutdownReservationMs: NESTED_FIXTURE_SHUTDOWN_MS }); }
   catch (error) {
     try {
       const failures = summarizeTestFailures(JSON.parse(readFileSync(reportPath, "utf8")));
@@ -61,9 +62,10 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
 }
 export async function verify({ command = "verify", mode = "local", root = process.cwd(), run = runProcess, create = createFixture, setup = setupFixture, suite = runSuite, pack = packVerified, artifacts = verifyArtifacts, inputs = checkoutInputs, stageList = STAGES } = {}) {
   if (!["verify", "test", "test:guard", "test:integration"].includes(command)) throw new Error("Invalid GUARD command");
-  const scope = new ProcessScope();
-  const runDir = resolve(root, ".phase-loop/guard", `${Date.now()}-${process.pid}`);
+  const scope = new ProcessScope(3);
+  const runDir = resolve(root, ".phase-loop/guard", `${Date.now()}-${process.pid}-${randomUUID()}`);
   return await scope.run(() => withCustodyContext(runDir, "preflight", async () => {
+  /** @type {Awaited<ReturnType<typeof createFixture>> | undefined} */
   let fixture;
   let succeeded = false;
   /** @type {Awaited<ReturnType<typeof packVerified>> | undefined} */
@@ -71,8 +73,8 @@ export async function verify({ command = "verify", mode = "local", root = proces
   try {
     mkdirSync(runDir, { recursive: true });
     if (command !== "verify") {
-      if (command !== "test") { fixture = await create({ mode, root }); scope.addCleanup(fixture.cleanup); await setup(fixture); }
-      const result = await suite(command, fixture, runDir, run);
+      if (command !== "test") fixture = await withCustodyContext(runDir, "sql-setup", async () => { const created = await create({ mode, root }); scope.addCleanup(created.cleanup); await setup(created); return created; });
+      const result = await withCustodyContext(runDir, "root-suite", () => suite(command, fixture, runDir, run));
       scope.check();
       succeeded = true;
       return result;

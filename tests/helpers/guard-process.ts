@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import type { Readable, Writable } from "node:stream";
 
 export const PROCESS_MS = 15_000;
+export const NESTED_FIXTURE_SHUTDOWN_MS = 112_500;
 export function cleanEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {};
   for (const key of ["PATH", "HOME", "TMPDIR", "TEMP", "SystemRoot", "LANG", "LC_ALL", "CI", "PNPM_HOME", "XDG_CACHE_HOME", "GUARD_CUSTODY_RUN_DIR", "GUARD_CUSTODY_STAGE"]) {
@@ -15,7 +16,7 @@ export function cleanEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJ
   return result;
 }
 
-type OwnedOptions = SpawnOptionsWithoutStdio & { timeout?: number; input?: string; custodyControlId?: string };
+type OwnedOptions = SpawnOptionsWithoutStdio & { timeout?: number; input?: string; custodyControlId?: string; shutdownReservationMs?: number };
 type CustodyResult = {
   payload_pid: number | null;
   outcome: { exit_code?: number; signal?: NodeJS.Signals; not_started?: boolean };
@@ -56,10 +57,14 @@ type OwnedChild = {
   runDir?: string;
   stage: string;
   supervisorStart: string | null;
+  shutdownReservationMs: number;
+  cooperativeDeadline?: bigint;
+  shutdownDeadline?: bigint;
 };
 const owned = new Map<number, OwnedChild>();
 const context = new AsyncLocalStorage<ProcessScope | undefined>();
 const custodyContext = new AsyncLocalStorage<{ runDir: string; stage: string }>();
+const cleanupContext = new AsyncLocalStorage<{ deadline: bigint; remainingSlots: number }>();
 const controlCases = new Set(["hung-child", "normal-orphan", "immediate-orphan"]);
 const supervisorPath = fileURLToPath(new URL("./guard-supervisor.py", import.meta.url));
 const elapsedMs = (started: bigint) => Number((process.hrtime.bigint() - started) / 1_000_000n);
@@ -100,12 +105,12 @@ export function validateCustodyJournal(runDir: string): { admitted: number; natu
 function journal(record: OwnedChild, event: "admission" | "terminal", result?: CustodyResult): void {
   const dir = record.runDir;
   if (!dir) return;
-  const row = { event, command_id: record.id, stage: record.stage, supervisor_pid: record.child.pid, supervisor_start_identity: record.supervisorStart, control_case_id: record.options.custodyControlId ?? null, ...(result ? { custody: result.custody, adopted_count: result.adopted_count, adopted_natural_count: result.adopted_natural_count, adopted_signaled_count: result.adopted_signaled_count, adopted_unresolved_count: result.adopted_unresolved_count, force_killed_count: result.force_killed_count } : {}) };
+  const row = { event, command_id: record.id, stage: record.stage, supervisor_pid: record.child.pid, supervisor_start_identity: record.supervisorStart, control_case_id: record.options.custodyControlId ?? null, ...(result ? { custody: result.custody, proof_error: result.error, adopted_count: result.adopted_count, adopted_natural_count: result.adopted_natural_count, adopted_signaled_count: result.adopted_signaled_count, adopted_unresolved_count: result.adopted_unresolved_count, force_killed_count: result.force_killed_count } : {}) };
   appendFileSync(`${dir}/custody.jsonl`, `${JSON.stringify(row)}\n`);
 }
 
-function unprovenResult(result?: CustodyResult): CustodyResult {
-  return { payload_pid: result?.payload_pid ?? null, outcome: result?.outcome ?? {}, custody: "unproven", error: result?.error ?? "proof_failed", adopted_count: result?.adopted_count ?? 0, adopted_natural_count: result?.adopted_natural_count ?? 0, adopted_signaled_count: result?.adopted_signaled_count ?? 0, adopted_unresolved_count: result?.adopted_unresolved_count ?? 0, force_killed_count: result?.force_killed_count ?? 0 };
+function unprovenResult(result?: CustodyResult, error?: Error): CustodyResult {
+  return { payload_pid: result?.payload_pid ?? null, outcome: result?.outcome ?? {}, custody: "unproven", error: result?.error ?? error?.message ?? "proof_failed", adopted_count: result?.adopted_count ?? 0, adopted_natural_count: result?.adopted_natural_count ?? 0, adopted_signaled_count: result?.adopted_signaled_count ?? 0, adopted_unresolved_count: result?.adopted_unresolved_count ?? 0, force_killed_count: result?.force_killed_count ?? 0 };
 }
 
 function terminal(record: OwnedChild, result?: CustodyResult): void {
@@ -120,6 +125,14 @@ function send(record: OwnedChild, kind: string, fields: Record<string, unknown> 
   record.control.write(data);
 }
 
+function requestShutdown(record: OwnedChild): void {
+  if (record.closed || record.shutdownDeadline) return;
+  if (!record.admitted) { record.control.end(); return; }
+  const now = process.hrtime.bigint();
+  record.shutdownDeadline = record.cooperativeDeadline === undefined ? now + 2_500_000_000n : now + 2_500_000_000n < record.cooperativeDeadline ? now + 2_500_000_000n : record.cooperativeDeadline;
+  send(record, "SHUTDOWN", { epoch: 1, mode: "forced", deadline_ns: String(record.shutdownDeadline) });
+}
+
 function finish(record: OwnedChild): void {
   if (record.closed) return;
   record.closed = true;
@@ -128,12 +141,12 @@ function finish(record: OwnedChild): void {
   if (record.buffer.length) error = new Error("GUARD status frame truncated");
   if (!error && (!record.admitted || !record.workDrained || !result)) error = new Error("GUARD custody result missing");
   if (!error && result) {
-    if (result.custody !== "quiescent" || result.error || result.adopted_unresolved_count !== 0) error = new Error("GUARD custody unproven");
+    if (result.custody !== "quiescent" || result.error && !["payload_spawn_failed", "operation_deadline"].includes(result.error) || result.adopted_unresolved_count !== 0) error = new Error("GUARD custody unproven");
     else if (result.adopted_count !== result.adopted_natural_count + result.adopted_signaled_count) error = new Error("GUARD custody counts invalid");
     else if (result.outcome.signal ? record.child.signalCode !== result.outcome.signal : record.child.exitCode !== result.outcome.exit_code) error = new Error("GUARD supervisor/payload exit mismatch");
   }
   if (record.admissionJournaled) {
-    try { terminal(record, error ? unprovenResult(result) : result); }
+    try { terminal(record, error ? unprovenResult(result, error) : result); }
     catch { error = new Error("GUARD custody receipt write failed"); }
   }
   if (error || !result) record.reject(error ?? new Error("GUARD custody result missing"));
@@ -161,7 +174,7 @@ function handleStatus(record: OwnedChild, chunk: Buffer): void {
       try {
         journal(record, "admission");
         record.admissionJournaled = true;
-        send(record, "ADMIT", { command: record.command, argv: record.args, cwd, env, umask: process.umask(), stdio: { stdin: 0, stdout: 1, stderr: 2 }, deadline_ns: String(record.started + BigInt(record.timeout) * 1_000_000n) });
+        send(record, "ADMIT", { command: record.command, argv: record.args, cwd, env, umask: process.umask(), stdio: { stdin: 0, stdout: 1, stderr: 2 }, deadline_ns: String(record.started + BigInt(record.timeout) * 1_000_000n), shutdown_reservation_ns: String(BigInt(record.shutdownReservationMs) * 1_000_000n), shutdown_completion_ns: String(record.started + BigInt(record.timeout + record.shutdownReservationMs) * 1_000_000n) });
         record.admitted = true;
       } catch { record.fault = new Error("GUARD admission failed"); record.control.end(); }
     } else if (frame.type === "WORK_DRAINED" && record.admitted && !record.workDrained && !record.result && typeof frame.quiescent === "boolean") {
@@ -179,39 +192,72 @@ function handleStatus(record: OwnedChild, chunk: Buffer): void {
 export class ProcessScope {
   readonly controller = new AbortController();
   readonly children = new Set<ChildProcessWithoutNullStreams>();
+  private readonly cleanupSlots: number;
   private readonly cleanups = new Set<() => Promise<void>>();
   private closing?: Promise<void>;
+  private cooperativeSignal?: NodeJS.Signals;
   private readonly interrupt = () => {
+    this.cooperativeSignal = this.cooperativeSignal ?? "SIGTERM";
     this.controller.abort();
     this.close().catch(() => { process.exitCode = 1; });
   };
-  constructor() {
-    process.on("SIGINT", this.interrupt);
-    process.on("SIGTERM", this.interrupt);
+  constructor(cleanupSlots = 0) {
+    if (!Number.isSafeInteger(cleanupSlots) || cleanupSlots < 0) throw new Error("Invalid GUARD cleanup reservation");
+    this.cleanupSlots = cleanupSlots;
+    process.on("SIGINT", this.onInterrupt);
+    process.on("SIGTERM", this.onTerminate);
   }
+  private readonly onInterrupt = () => { this.cooperativeSignal = this.cooperativeSignal ?? "SIGINT"; this.interrupt(); };
+  private readonly onTerminate = () => { this.cooperativeSignal = this.cooperativeSignal ?? "SIGTERM"; this.interrupt(); };
   run<T>(operation: () => T): T { return context.run(this, operation); }
   check(): void { if (this.controller.signal.aborted || this.closing) throw new Error("GUARD operation interrupted/closed"); }
-  addCleanup(cleanup: () => Promise<void>): void { this.cleanups.add(cleanup); }
+  get cooperativeClosing(): boolean { return this.cooperativeSignal !== undefined; }
+  addCleanup(cleanup: () => Promise<void>): void {
+    if (this.closing || this.cleanups.size >= this.cleanupSlots) throw new Error("GUARD cleanup reservation exhausted");
+    this.cleanups.add(cleanup);
+  }
   close(): Promise<void> {
     return this.closing ??= Promise.resolve().then(() => this.finish());
   }
   private async finish(): Promise<void> {
     this.controller.abort();
+    const children = [...this.children];
+    const childReservation = Math.max(0, ...children.map((child) => child.pid === undefined ? 2_500 : owned.get(child.pid)?.shutdownReservationMs ?? 2_500));
+    const cleanup = { deadline: process.hrtime.bigint() + BigInt(2_500 + childReservation + this.cleanupSlots * 17_500) * 1_000_000n, remainingSlots: this.cleanupSlots };
     try {
-      const results = await Promise.allSettled([...this.children].map(cleanupChild));
+      if (this.cooperativeSignal) for (const child of children) if (child.pid !== undefined) signalOwned(child.pid, this.cooperativeSignal);
+      const results = await Promise.allSettled(children.map((child) => this.cooperativeSignal ? waitForCooperativeChild(child) : cleanupChild(child)));
       // Resource cleanup must be allowed to launch bounded commands after cancellation.
-      const resources = await context.run(undefined, async () => {
+      const resources = await context.run(undefined, () => cleanupContext.run(cleanup, async () => {
         const outcomes: PromiseSettledResult<void>[] = [];
-        for (const cleanup of this.cleanups) outcomes.push(...await Promise.allSettled([Promise.resolve().then(cleanup)]));
+        for (const callback of this.cleanups) {
+          const remaining = Number((cleanup.deadline - process.hrtime.bigint()) / 1_000_000n);
+          if (remaining <= 0) throw new Error("GUARD resource cleanup reservation exhausted");
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          try { outcomes.push(...await Promise.allSettled([Promise.race([Promise.resolve().then(callback), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD resource cleanup deadline")), remaining); })])])); }
+          finally { clearTimeout(timer); }
+        }
         return outcomes;
-      });
+      }));
       const failed = [...results, ...resources].find((result) => result.status === "rejected");
       if (failed?.status === "rejected") throw failed.reason;
     } finally {
-      process.off("SIGINT", this.interrupt);
-      process.off("SIGTERM", this.interrupt);
+      process.off("SIGINT", this.onInterrupt);
+      process.off("SIGTERM", this.onTerminate);
     }
   }
+}
+async function waitForCooperativeChild(child: ChildProcessWithoutNullStreams): Promise<void> {
+  const record = child.pid === undefined ? undefined : owned.get(child.pid);
+  if (!record) throw new Error("GUARD cooperative child missing");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([record.finished, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD cooperative shutdown deadline")), record.shutdownReservationMs); })]);
+    owned.delete(child.pid!);
+  } catch (error) {
+    await cleanupChild(child);
+    throw error;
+  } finally { clearTimeout(timer); }
 }
 export function currentProcessScope(): ProcessScope | undefined { return context.getStore(); }
 export function outsideProcessScope<T>(operation: () => T): T { return context.run(undefined, operation); }
@@ -220,6 +266,11 @@ export function signalOwned(pid: number, signal: NodeJS.Signals): void {
   const record = owned.get(pid);
   if (!record || pid === process.pid) throw new Error("Unowned process group");
   if (!["SIGINT", "SIGTERM", "SIGHUP"].includes(signal)) throw new Error("Unsupported GUARD forward signal");
+  if (!record.admitted) { record.control.end(); return; }
+  if (record.closed) return;
+  const now = process.hrtime.bigint();
+  const completion = record.started + BigInt(record.timeout + record.shutdownReservationMs) * 1_000_000n;
+  record.cooperativeDeadline ??= now + BigInt(record.shutdownReservationMs) * 1_000_000n < completion ? now + BigInt(record.shutdownReservationMs) * 1_000_000n : completion;
   send(record, "FORWARD", { signal });
 }
 
@@ -228,6 +279,15 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
   scope?.check();
   if (process.platform !== "linux") throw new Error("GUARD Linux custody backend required");
   if (options.custodyControlId && !controlCases.has(options.custodyControlId)) throw new Error("Unknown GUARD custody control");
+  const cleanup = cleanupContext.getStore();
+  if (cleanup) {
+    const remaining = Number((cleanup.deadline - process.hrtime.bigint()) / 1_000_000n) - 2_500;
+    if (cleanup.remainingSlots <= 0 || remaining <= 0) throw new Error("GUARD cleanup command reservation exhausted");
+    cleanup.remainingSlots--;
+    options = { ...options, timeout: Math.min(options.timeout ?? PROCESS_MS, remaining) };
+  }
+  const shutdownReservationMs = options.shutdownReservationMs ?? 2_500;
+  if (!Number.isSafeInteger(shutdownReservationMs) || shutdownReservationMs < 2_500) throw new Error("Invalid GUARD shutdown reservation");
   const custody = custodyContext.getStore();
   const runDir = custody?.runDir ?? process.env.GUARD_CUSTODY_RUN_DIR;
   const stage = custody?.stage ?? process.env.GUARD_CUSTODY_STAGE ?? "standalone";
@@ -240,7 +300,7 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     const finished = new Promise<CustodyResult>((yes, no) => { resolve = yes; reject = no; });
     let supervisorStart: string | null = null;
     try { supervisorStart = readFileSync(`/proc/${child.pid}/stat`, "utf8").split(") ").at(-1)?.split(" ")[19] ?? null; } catch { /* Spawn errors are handled by the status channel. */ }
-    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, finished, resolve, reject, timeout: options.timeout ?? PROCESS_MS, started, options, scope, runDir, stage, supervisorStart };
+    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, finished, resolve, reject, timeout: options.timeout ?? PROCESS_MS, started, options, scope, runDir, stage, supervisorStart, shutdownReservationMs };
     owned.set(child.pid, record);
     scope?.children.add(child);
     record.status.on("data", (chunk: Buffer) => handleStatus(record, chunk));
@@ -249,8 +309,7 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     child.on("error", () => { record.fault = new Error("GUARD supervisor spawn failed"); });
     child.once("close", () => finish(record));
     options.signal?.addEventListener("abort", () => {
-      if (!record.admitted) record.control.end();
-      else if (!record.closed) send(record, "SHUTDOWN", { epoch: 1, mode: "forced" });
+      requestShutdown(record);
     }, { once: true });
     void finished.catch(() => {});
   }
@@ -263,12 +322,12 @@ export function cleanupChild(child: ChildProcessWithoutNullStreams): Promise<voi
   if (!record) return Promise.resolve();
   return record.cleanup ??= (async () => {
     if (!record.closed) {
-      if (record.admitted) send(record, "SHUTDOWN", { epoch: 1, mode: "forced" });
-      else record.control.end();
+      requestShutdown(record);
     }
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await Promise.race([record.finished, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD custody deadline: supervisor retained")), 2_500); })]);
+      const remaining = record.shutdownDeadline === undefined ? 2_500 : Math.max(0, Number((record.shutdownDeadline - process.hrtime.bigint()) / 1_000_000n));
+      await Promise.race([record.finished, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD custody deadline: supervisor retained")), remaining); })]);
       owned.delete(child.pid!);
     } catch (error) {
       terminal(record, unprovenResult(record.result));
@@ -283,11 +342,12 @@ export async function waitExit(child: ChildProcessWithoutNullStreams, timeout = 
   if (!record) throw new Error("Child spawn failed");
   const remaining = Math.max(0, timeout - elapsedMs(record.started));
   const result = await new Promise<CustodyResult>((resolve, reject) => {
-    const timer = setTimeout(() => { if (!record.closed && record.admitted) send(record, "SHUTDOWN", { epoch: 1, mode: "forced" }); reject(new Error("Child operation timed out")); }, remaining);
-    const onAbort = () => { if (!record.closed && record.admitted) send(record, "SHUTDOWN", { epoch: 1, mode: "forced" }); reject(new Error("Child operation interrupted")); };
+    const timer = setTimeout(() => { requestShutdown(record); reject(new Error("Child operation timed out")); }, remaining);
+    const onAbort = () => { if (!record.scope?.cooperativeClosing) requestShutdown(record); reject(new Error("Child operation interrupted")); };
     signal?.addEventListener("abort", onAbort, { once: true });
     record.finished.then(resolve, reject).finally(() => { clearTimeout(timer); signal?.removeEventListener("abort", onAbort); });
   });
+  if (result.error === "operation_deadline") throw new Error("Child operation timed out");
   if (result.outcome.signal) throw new Error("Child terminated by signal");
   if (typeof result.outcome.exit_code !== "number") throw new Error("Child outcome missing");
   return result.outcome.exit_code;
@@ -328,14 +388,15 @@ export async function runProcess(command: string, args: string[], options: Owned
   let operationError: unknown;
   let cleanupError: unknown;
   try {
-    const code = await waitExit(child, options.timeout ?? PROCESS_MS, signal);
+    const record = child.pid === undefined ? undefined : owned.get(child.pid);
+    const code = await waitExit(child, record?.timeout ?? options.timeout ?? PROCESS_MS, signal);
     if (code !== 0) throw new Error(`${command} failed (exit ${code})`);
   } catch (error) {
     operationError = error;
   }
-  try { await cleanupChild(child); } catch (error) { cleanupError = error; }
+  if (!scope?.cooperativeClosing) try { await cleanupChild(child); } catch (error) { cleanupError = error; }
   const record = child.pid === undefined ? undefined : owned.get(child.pid);
-  scope?.children.delete(child);
+  if (!scope?.cooperativeClosing) scope?.children.delete(child);
   if (cleanupError && (!operationError || record?.admitted || !(operationError instanceof Error && /timed out|interrupted/.test(operationError.message)))) throw cleanupError;
   if (operationError) throw operationError;
   return stdout.trim();

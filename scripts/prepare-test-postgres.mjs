@@ -39,7 +39,7 @@ export async function awaitReadiness(fixture, { now = Date.now, sleep = (ms) => 
 export async function createFixture({ mode = "local", source = process.env, root = process.cwd(), run = runProcess } = {}) {
   if (!["local", "github-service"].includes(mode)) throw new Error("Invalid fixture mode");
   const inherited = currentProcessScope();
-  const scope = inherited ?? new ProcessScope();
+  const scope = inherited ?? new ProcessScope(3);
   let cleanup = async () => {};
   const operation = scope.run(() => createInScope({ mode, source, root, run }, scope, (resource) => { cleanup = resource; }));
   scope.addCleanup(async () => { await operation.catch(() => {}); await cleanup(); });

@@ -23,9 +23,9 @@ it("retains Vitest dependency exclusions when partitioning DB collection", () =>
   expect(project.test?.exclude).toEqual([...configDefaults.exclude, "tests/guard/**/*.db.test.ts"]);
 });
 it("leaks no fixture parameters to non-DB workers or their descendants", async () => {
-  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
+  const keys = Object.keys(process.env).filter((key) => key.startsWith("PG") || key.startsWith("GUARD_") && !key.startsWith("GUARD_CUSTODY_") || key.startsWith("SUPABASE_") || key === "DATABASE_URL");
   expect(keys).toEqual([]);
-  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k))))"], { env: process.env });
+  const output = await runProcess(process.execPath, ["-e", "console.log(JSON.stringify(Object.keys(process.env).filter(k=>/^(PG|GUARD_|SUPABASE_|DATABASE_URL)/.test(k)&&!k.startsWith('GUARD_CUSTODY_'))))"], { env: process.env });
   expect(JSON.parse(output)).toEqual([]);
 });
 it("rejects absent and forged hosted fixture tuples without docker writes", async () => {

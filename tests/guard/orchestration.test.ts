@@ -6,7 +6,7 @@ import { STAGES } from "../helpers/guard-stages.js";
 import { verify, checkResults, runSuite, summarizeTestFailures, LIVE_CASE } from "../../scripts/verify.mjs";
 import type { createFixture, setupFixture } from "../../scripts/prepare-test-postgres.mjs";
 import type { packVerified } from "../../scripts/pack-verified-packages.mjs";
-import { cleanupChild, spawnOwned, waitExit, waitReady } from "../helpers/guard-process.js";
+import { cleanupChild, NESTED_FIXTURE_SHUTDOWN_MS, spawnOwned, waitExit, waitReady } from "../helpers/guard-process.js";
 
 const inputs = async () => ({ source_sha: "a".repeat(40), lockfile_sha256: "b".repeat(64), package_manifest_sha256: {} });
 
@@ -18,17 +18,18 @@ it.each(["SIGINT", "SIGTERM"] as const)("quiesces nested build ownership on %s b
   const middle = `import {ProcessScope,spawnOwned,waitReady,waitExit} from ${JSON.stringify(helper)};
 const scope=new ProcessScope();await scope.run(async()=>{const child=spawnOwned(process.execPath,['-e',${JSON.stringify(leaf)}]);try{const pid=Number((await waitReady(child)).toString());console.log(JSON.stringify([process.pid,pid]));await waitExit(child,15000,scope.controller.signal);}finally{await scope.close();}}).catch(()=>{process.exitCode=1;});`;
   const worker = `import {writeFileSync} from 'node:fs';import {ProcessScope,spawnOwned,waitReady,waitExit} from ${JSON.stringify(helper)};
-const scope=new ProcessScope();await scope.run(async()=>{const child=spawnOwned(process.execPath,['--input-type=module','-e',${JSON.stringify(middle)}]);try{const pids=JSON.parse((await waitReady(child)).toString());await new Promise(r=>setTimeout(r,100));writeFileSync(${JSON.stringify(ready)},JSON.stringify([process.pid,...pids]));await waitExit(child,15000,scope.controller.signal);}finally{await scope.close();}}).catch(()=>{process.exitCode=1;});`;
+const scope=new ProcessScope();await scope.run(async()=>{const child=spawnOwned(process.execPath,['--input-type=module','-e',${JSON.stringify(middle)}],{shutdownReservationMs:5000});try{const pids=JSON.parse((await waitReady(child)).toString());await new Promise(r=>setTimeout(r,100));writeFileSync(${JSON.stringify(ready)},JSON.stringify([process.pid,...pids]));await waitExit(child,15000,scope.controller.signal);}finally{await scope.close();}}).catch(()=>{process.exitCode=1;});`;
   const script = `import {verify} from ${JSON.stringify(new URL("../../scripts/verify.mjs", import.meta.url).href)};import {runProcess} from ${JSON.stringify(helper)};
-try{await verify({root:${JSON.stringify(root)},inputs:async()=>({source_sha:'a'.repeat(40),lockfile_sha256:'b'.repeat(64),package_manifest_sha256:{}}),stageList:['build'],run:async()=>runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(worker)}])});}catch{process.exitCode=1;}`;
+try{await verify({root:${JSON.stringify(root)},inputs:async()=>({source_sha:'a'.repeat(40),lockfile_sha256:'b'.repeat(64),package_manifest_sha256:{}}),stageList:['build'],run:async()=>runProcess(process.execPath,['--input-type=module','-e',${JSON.stringify(worker)}],{shutdownReservationMs:7500})});}catch{process.exitCode=1;}`;
   const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
-  const launcher = spawnOwned(process.execPath, ["--input-type=module", "-e", script]);
-  launcher.stdout.resume(); launcher.stderr.resume();
+  const launcher = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { shutdownReservationMs: NESTED_FIXTURE_SHUTDOWN_MS });
+  let launcherError = "";
+  launcher.stdout.resume(); launcher.stderr.on("data", (chunk: Buffer) => { launcherError += chunk.toString(); });
   try {
     await waitReady(unrelated);
     const deadline = Date.now() + 10_000;
     while (!existsSync(ready) && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(existsSync(ready)).toBe(true);
+    expect(existsSync(ready), launcherError).toBe(true);
     const pids = JSON.parse(readFileSync(ready, "utf8")) as number[];
     expect(pids).toHaveLength(3);
     process.kill(launcher.pid!, signal);
@@ -62,6 +63,19 @@ it("preserves child failure when its test report is missing or malformed", async
     expect(log.mock.calls).toHaveLength(2);
     expect(JSON.stringify(log.mock.calls)).not.toContain("private");
   } finally { log.mockRestore(); rmSync(root, { recursive: true, force: true }); }
+});
+it("fails a successful root suite when its custody journal is unbalanced or rescues untagged work", async () => {
+  const root = mkdtempSync(join(tmpdir(), "guard-journal-gate-"));
+  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, control_case_id: control });
+  const terminal = (id: string, signaled: number, control: string | null = null) => ({ ...admission(id, control), event: "terminal", custody: "quiescent", adopted_count: signaled, adopted_natural_count: 0, adopted_signaled_count: signaled, adopted_unresolved_count: 0, force_killed_count: 0 });
+  try {
+    for (const rows of [
+      [admission("missing")],
+      [admission("expected", "immediate-orphan"), terminal("expected", 1, "immediate-orphan"), admission("unexpected"), terminal("unexpected", 1)],
+    ]) {
+      await expect(verify({ command: "test", root, suite: async (_command, _fixture, runDir) => { writeFileSync(join(runDir, "custody.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n"); return { passed: 1, skipped: 1 }; } })).rejects.toThrow(/GUARD (custody journal|unexpected signaled rescue)/);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 it.each([...STAGES, "success"])("real gate stops after failing stage %s", async (failed) => {

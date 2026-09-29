@@ -34,6 +34,9 @@ pnpm build
 OMNIAGENT_PLUS_LIVE_OMNIGENT=1 pnpm exec vitest run packages/omnigent-transport/src/live-omnigent-smoke.test.ts
 ```
 
+This direct test uses the GUARD process helper and requires Linux with Python
+3.10 or newer, subreaper support, and pidfds.
+
 pnpm test never enables live smoke, even when live variables are inherited.
 `pnpm test`, `pnpm verify`, `pnpm test:guard`, and `pnpm test:integration` use
 noncredentialed child environments that remove live opt-in, Omnigent settings,

@@ -171,11 +171,13 @@ def validate_admit(frame):
         raise CustodyError("invalid stdio admission")
     try:
         deadline_ns = int(frame["deadline_ns"])
+        shutdown_reservation_ns = int(frame["shutdown_reservation_ns"])
+        shutdown_completion_ns = int(frame["shutdown_completion_ns"])
     except (KeyError, TypeError, ValueError) as error:
         raise CustodyError("invalid operation deadline") from error
-    if deadline_ns <= time.monotonic_ns():
+    if deadline_ns <= time.monotonic_ns() or shutdown_reservation_ns < TAIL_NS or shutdown_completion_ns < deadline_ns + shutdown_reservation_ns:
         raise CustodyError("admission deadline elapsed")
-    return deadline_ns
+    return deadline_ns, shutdown_reservation_ns, shutdown_completion_ns
 
 
 class Supervisor:
@@ -196,12 +198,16 @@ class Supervisor:
         self.forced = False
         self.deadline_ns = time.monotonic_ns() + 15_000_000_000
         self.end_ns = None
+        self.shutdown_reservation_ns = TAIL_NS
+        self.shutdown_completion_ns = self.deadline_ns + TAIL_NS
+        self.cooperative_deadline_ns = None
         self.error = None
+        self.operation_timed_out = False
         self.signal_pending = []
         self.error_read = None
 
     def send(self, kind, **fields):
-        write_frame(self.nonce, self.out_seq, kind, self.end_ns or self.deadline_ns, **fields)
+        write_frame(self.nonce, self.out_seq, kind, self.end_ns or self.cooperative_deadline_ns or self.deadline_ns, **fields)
         self.out_seq += 1
 
     def on_signal(self, number, _frame):
@@ -241,6 +247,8 @@ class Supervisor:
                 os.close(entry["fd"])
             if pid == self.payload:
                 self.payload_status = status
+            elif entry is not None and entry["fd"] is None:
+                self.adopted_unresolved += 1
             elif entry is not None and entry["signaled"]:
                 self.adopted_signaled += 1
             else:
@@ -271,12 +279,26 @@ class Supervisor:
         if self.drain_start is None:
             self.drain_start = time.monotonic_ns()
             self.end_ns = self.drain_start + TAIL_NS
+            if self.cooperative_deadline_ns is not None:
+                self.end_ns = min(self.end_ns, self.cooperative_deadline_ns)
             self.forced = forced
             if forced:
                 self.signal_children(signal.SIGTERM)
         elif forced and not self.forced:
             self.forced = True
             self.signal_children(signal.SIGTERM)
+
+    def start_cooperative(self, number):
+        if self.payload_status is not None:
+            return
+        if self.cooperative_deadline_ns is None:
+            self.cooperative_deadline_ns = min(self.shutdown_completion_ns, time.monotonic_ns() + self.shutdown_reservation_ns)
+            entry = self.active.get(self.payload)
+            if entry is not None and entry["fd"] is not None:
+                signal.pidfd_send_signal(entry["fd"], number)
+            else:
+                self.error = self.error or "cooperative_payload_identity_unproven"
+                self.start_drain(True)
 
     def read_control(self):
         if b"\n" not in self.input:
@@ -308,24 +330,26 @@ class Supervisor:
     def handle(self, frame):
         kind = frame.get("type")
         if kind == "ADMIT" and self.payload is None and self.in_seq == 1:
-            self.deadline_ns = validate_admit(frame)
+            self.deadline_ns, self.shutdown_reservation_ns, self.shutdown_completion_ns = validate_admit(frame)
             self.payload, self.error_read = launch(frame, self.payload_out, self.payload_err)
             self.register(self.payload)
         elif kind == "FORWARD" and self.payload is not None:
             named = frame.get("signal")
             if named not in ("SIGINT", "SIGTERM", "SIGHUP"):
                 raise CustodyError("invalid forwarded signal")
-            entry = self.active.get(self.payload)
-            if entry is not None and entry["fd"] is not None:
-                signal.pidfd_send_signal(entry["fd"], getattr(signal, named))
+            self.start_cooperative(getattr(signal, named))
         elif kind == "SHUTDOWN":
+            try:
+                requested_end = int(frame["deadline_ns"])
+            except (KeyError, TypeError, ValueError) as error:
+                raise CustodyError("invalid shutdown deadline") from error
             self.start_drain(True)
+            self.end_ns = min(self.end_ns, requested_end)
         else:
             raise CustodyError("out-of-order control frame")
 
     def result(self, quiescent):
-        unresolved = sum(1 for pid, entry in self.active.items() if pid != self.payload and entry["adopted"])
-        self.adopted_unresolved = unresolved
+        unresolved = self.adopted_unresolved + sum(1 for pid, entry in self.active.items() if pid != self.payload and entry["adopted"])
         if self.payload_status is None:
             outcome = {"not_started": self.payload is None}
             if self.payload is not None:
@@ -340,7 +364,7 @@ class Supervisor:
         if self.error or unresolved:
             quiescent = False
         self.send("WORK_DRAINED", quiescent=quiescent)
-        self.send("RESULT", payload_pid=self.payload, outcome=outcome, custody="quiescent" if quiescent else "unproven", error=self.error, adopted_count=self.adopted_natural + self.adopted_signaled + unresolved, adopted_natural_count=self.adopted_natural, adopted_signaled_count=self.adopted_signaled, adopted_unresolved_count=unresolved, force_killed_count=self.force_killed)
+        self.send("RESULT", payload_pid=self.payload, outcome=outcome, custody="quiescent" if quiescent else "unproven", error=self.error or ("operation_deadline" if self.operation_timed_out else "payload_spawn_failed" if self.spawn_error else None), adopted_count=self.adopted_natural + self.adopted_signaled + unresolved, adopted_natural_count=self.adopted_natural, adopted_signaled_count=self.adopted_signaled, adopted_unresolved_count=unresolved, force_killed_count=self.force_killed)
         return outcome, quiescent
 
     def run(self):
@@ -369,8 +393,8 @@ class Supervisor:
                 pending = self.signal_pending[:]
                 self.signal_pending.clear()
                 for number in pending:
-                    if self.payload is not None and self.payload in self.active and self.active[self.payload]["fd"] is not None:
-                        signal.pidfd_send_signal(self.active[self.payload]["fd"], number)
+                    if self.payload is not None:
+                        self.start_cooperative(number)
                     else:
                         self.start_drain(True)
             if self.error_read is not None:
@@ -378,7 +402,6 @@ class Supervisor:
                     error_data = os.read(self.error_read, 32)
                     if error_data:
                         self.spawn_error = error_data.decode("ascii", "replace")
-                        self.error = "payload_spawn_failed"
                     else:
                         os.close(self.error_read)
                         self.error_read = None
@@ -391,9 +414,13 @@ class Supervisor:
                 break
             if self.payload is not None and self.payload_status is not None and self.drain_start is None:
                 self.start_drain(False)
-            if self.payload is not None and now >= self.deadline_ns and self.drain_start is None:
-                self.error = self.error or "operation_deadline"
+            if self.payload is not None and self.cooperative_deadline_ns is None and now >= self.deadline_ns and self.drain_start is None:
+                self.operation_timed_out = True
                 self.start_drain(True)
+            if self.cooperative_deadline_ns is not None and now >= self.cooperative_deadline_ns:
+                self.error = self.error or "cooperative_deadline"
+                self.start_drain(True)
+                self.end_ns = self.cooperative_deadline_ns
             if self.drain_start is not None:
                 elapsed = now - self.drain_start
                 if self.forced or elapsed >= NATURAL_NS:
