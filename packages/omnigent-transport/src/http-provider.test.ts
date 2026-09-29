@@ -308,7 +308,11 @@ describe("http provider", () => {
     await second.return?.();
   });
 
-  it.each([false, true])("v0.15 B does not consume a distinct durable item across subscribers (prior collision: %s)", async (priorCollision) => {
+  it.each([
+    { priorCollision: false, topLevelId: false },
+    { priorCollision: true, topLevelId: false },
+    { priorCollision: false, topLevelId: true },
+  ])("v0.15 B does not consume a distinct durable item across subscribers (%j)", async ({ priorCollision, topLevelId }) => {
     const snapshot = {
       active_response_id: "response-durable-collision", agent_id: "agent-durable-collision",
       created_at: 1_780_272_000, id: "session-durable-collision", items: [],
@@ -331,7 +335,7 @@ describe("http provider", () => {
     });
     const session = await provider.createSession({
       agentSpec: { kind: "named_agent", value: snapshot.agent_id },
-      idempotencyKey: `durable-collision-${priorCollision}`, runtime: "omnigent",
+      idempotencyKey: `durable-collision-${priorCollision}-${topLevelId}`, runtime: "omnigent",
       targetHarness: "codex", title: snapshot.title,
     });
     const first = provider.streamEvents(session.id, { afterSequence: 0 })[Symbol.asyncIterator]();
@@ -366,7 +370,9 @@ describe("http provider", () => {
       }));
     }
     const next = second.next();
-    controllers[1]?.enqueue(frame(done("durable-c", "alpha")));
+    controllers[1]?.enqueue(frame({ ...done("durable-c", "alpha"),
+      ...(topLevelId ? { message_id: "durable-c" } : {}),
+    }));
     expect((await next).value).toEqual(expect.objectContaining({
       type: "runtime.text.delta", payload: { delta: "alpha" },
     }));

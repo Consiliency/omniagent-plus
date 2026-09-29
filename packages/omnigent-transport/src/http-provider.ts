@@ -823,14 +823,15 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           }
           this.explicitMessageAliasesByTurnKey.set(key, aliases);
         }
-        const streamMessageId = rawEvent.message_id ??
-          (rawEvent.item?.type === "message" &&
+        const itemStreamMessageId = rawEvent.item?.type === "message" &&
           typeof rawEvent.item.stream_message_id === "string"
-            ? rawEvent.item.stream_message_id : undefined);
-        if (rawEvent.turnId && streamMessageId &&
-          this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
-            ?.get(streamMessageId)?.startsWith("\u0000invalid:")) {
-          mapper.invalidateStreamMessageId(rawEvent.turnId, streamMessageId);
+            ? rawEvent.item.stream_message_id : undefined;
+        for (const streamMessageId of [rawEvent.message_id, itemStreamMessageId]) {
+          if (rawEvent.turnId && streamMessageId &&
+            this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
+              ?.get(streamMessageId)?.startsWith("\u0000invalid:")) {
+            mapper.invalidateStreamMessageId(rawEvent.turnId, streamMessageId);
+          }
         }
         const mappedEvents = mapper.map(rawEvent);
         const replayEvents =
