@@ -77,6 +77,28 @@ it("lets an on-time payload finish its reserved descendant drain after the opera
     expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 1, signaled: 0 });
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }, 7_000);
+it("rejects a custody result after a suspended supervisor misses its tail", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-paused-supervisor-"));
+  const script = `const{spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setTimeout(()=>{},2800)'],{detached:true,stdio:'ignore'});child.unref();console.log('ready');setTimeout(()=>process.exit(0),50);`;
+  const child = withCustodyContext(dir, "paused-supervisor-control", () => spawnOwned(process.execPath, ["-e", script]));
+  child.stderr.resume(); child.stdin.end();
+  let paused = false;
+  try {
+    await waitReady(child);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    process.kill(child.pid!, "SIGSTOP");
+    paused = true;
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    process.kill(child.pid!, "SIGCONT");
+    paused = false;
+    await expect(waitExit(child)).rejects.toThrow();
+    expect(() => validateCustodyJournal(dir)).toThrow("unproven");
+  } finally {
+    if (paused) process.kill(child.pid!, "SIGCONT");
+    await cleanupChild(child).catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+  }
+}, 10_000);
 it("cleans owned active work after an ordinary failure without closing another scope", async () => {
   const scope = new ProcessScope(2);
   const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);

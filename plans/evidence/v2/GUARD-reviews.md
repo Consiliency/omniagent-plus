@@ -6,6 +6,15 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- Hosted CI and publish rehearsal both passed at `316c6b3`; its root custody
+  artifact has 469 balanced admissions/terminals, 101 tagged immediate-orphan
+  rescues (100 single-fork trials plus the double-fork control), and no
+  unresolved or unproven terminal. Astra and Sol independently rejected that
+  exact head after Astra reproduced a suspended supervisor reporting success
+  after the 2.5-second custody tail. The next candidate checks the deadline
+  before quiescence and before each status write; a paused-supervisor falsifier
+  and the 493-case local plain gate pass. A new exact-head hosted run and
+  four-seat review are still required.
 - Hosted CI and publish rehearsal both passed at `a5b8730`. Its CI custody
   artifact has 465 balanced root admissions/terminals, zero unresolved or
   unproven terminals, and two isolated 20-command quiescent journals. Sol's

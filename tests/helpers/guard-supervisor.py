@@ -73,6 +73,8 @@ def write_frame(nonce, seq, kind, deadline_ns, **fields):
     data = frame_bytes(nonce, seq, kind, **fields)
     offset = 0
     while offset < len(data):
+        if time.monotonic_ns() >= deadline_ns:
+            raise CustodyError("status channel deadline")
         try:
             offset += os.write(STATUS, data[offset:])
         except BlockingIOError:
@@ -481,10 +483,11 @@ class Supervisor:
                     self.signal_children(signal.SIGTERM)
                 if elapsed >= TERM_NS:
                     self.signal_children(signal.SIGKILL)
-                if exhausted and not self.active and not direct_children():
-                    break
+                now = time.monotonic_ns()
                 if now >= self.end_ns - RESULT_RESERVE_NS:
                     self.error = self.error or "custody_deadline"
+                    break
+                if exhausted and not self.active and not direct_children():
                     break
             time.sleep(0.005)
         try:
