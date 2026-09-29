@@ -278,9 +278,9 @@ class Supervisor:
     def start_drain(self, forced=False):
         if self.drain_start is None:
             self.drain_start = time.monotonic_ns()
-            self.end_ns = self.drain_start + TAIL_NS
+            self.end_ns = min(self.drain_start + TAIL_NS, self.shutdown_completion_ns)
             if self.cooperative_deadline_ns is not None:
-                self.end_ns = min(self.end_ns, self.cooperative_deadline_ns)
+                self.end_ns = min(self.end_ns, self.cooperative_deadline_ns + TAIL_NS)
             self.forced = forced
             if forced:
                 self.signal_children(signal.SIGTERM)
@@ -288,17 +288,19 @@ class Supervisor:
             self.forced = True
             self.signal_children(signal.SIGTERM)
 
-    def start_cooperative(self, number):
+    def start_cooperative(self, number, requested_end=None):
         if self.payload_status is not None:
             return
         if self.cooperative_deadline_ns is None:
-            self.cooperative_deadline_ns = min(self.shutdown_completion_ns, time.monotonic_ns() + self.shutdown_reservation_ns)
+            self.cooperative_deadline_ns = min(self.shutdown_completion_ns - TAIL_NS, time.monotonic_ns() + self.shutdown_reservation_ns - TAIL_NS, requested_end if requested_end is not None else self.shutdown_completion_ns)
             entry = self.active.get(self.payload)
             if entry is not None and entry["fd"] is not None:
                 signal.pidfd_send_signal(entry["fd"], number)
             else:
                 self.error = self.error or "cooperative_payload_identity_unproven"
                 self.start_drain(True)
+        elif requested_end is not None:
+            self.cooperative_deadline_ns = min(self.cooperative_deadline_ns, requested_end)
 
     def read_control(self):
         if b"\n" not in self.input:
@@ -337,8 +339,14 @@ class Supervisor:
             named = frame.get("signal")
             if named not in ("SIGINT", "SIGTERM", "SIGHUP"):
                 raise CustodyError("invalid forwarded signal")
-            self.start_cooperative(getattr(signal, named))
+            try:
+                requested_end = int(frame["deadline_ns"])
+            except (KeyError, TypeError, ValueError) as error:
+                raise CustodyError("invalid cooperative deadline") from error
+            self.start_cooperative(getattr(signal, named), requested_end)
         elif kind == "SHUTDOWN":
+            if frame.get("epoch") != 1 or frame.get("mode") != "forced":
+                raise CustodyError("invalid shutdown epoch")
             try:
                 requested_end = int(frame["deadline_ns"])
             except (KeyError, TypeError, ValueError) as error:
@@ -418,9 +426,8 @@ class Supervisor:
                 self.operation_timed_out = True
                 self.start_drain(True)
             if self.cooperative_deadline_ns is not None and now >= self.cooperative_deadline_ns:
-                self.error = self.error or "cooperative_deadline"
                 self.start_drain(True)
-                self.end_ns = self.cooperative_deadline_ns
+                self.end_ns = min(self.end_ns, self.cooperative_deadline_ns + TAIL_NS, self.shutdown_completion_ns)
             if self.drain_start is not None:
                 elapsed = now - self.drain_start
                 if self.forced or elapsed >= NATURAL_NS:

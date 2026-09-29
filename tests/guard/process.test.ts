@@ -93,6 +93,29 @@ it("keeps shutdown idempotent through reentrant cancellation and cleanup failure
   expect(finished).toBe(true);
   expect([process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")]).toEqual(listeners);
 });
+it("preserves the forced cleanup tail after a cooperative signal is ignored", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-cooperative-tail-"));
+  const child = withCustodyContext(dir, "cooperative-control", () => spawnOwned(process.execPath, ["-e", "process.on('SIGINT',()=>{});process.on('SIGTERM',()=>{});console.log(process.pid);setInterval(()=>{},1000)"], { shutdownReservationMs: 5_000 }));
+  child.stderr.resume();
+  child.stdin.end();
+  try {
+    const payload = Number((await waitReady(child)).toString());
+    const started = Date.now();
+    signalOwned(child.pid!, "SIGINT");
+    await expect(waitExit(child)).rejects.toThrow("signal");
+    await cleanupChild(child);
+    expect(Date.now() - started).toBeLessThan(5_000);
+    expect(existsSync(`/proc/${payload}`)).toBe(false);
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 0, signaled: 0 });
+  } finally { await cleanupChild(child); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("drains large payload output without blocking custody completion", async () => {
+  const output = await runProcess(process.execPath, ["-e", "process.stdout.write('x'.repeat(131072));process.stderr.write('y'.repeat(131072))"]);
+  expect(output).toHaveLength(131072);
+});
+it("delivers stdin EOF through the supervisor", async () => {
+  expect(await runProcess(process.execPath, ["-e", "process.stdin.resume();process.stdin.on('end',()=>console.log('eof'))"])).toBe("eof");
+});
 it("leaves Linux child discovery to the custody supervisor", async () => {
   const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
   const script = `import assert from 'node:assert/strict';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';import {runProcess} from ${JSON.stringify(helper)};

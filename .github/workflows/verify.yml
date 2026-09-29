@@ -64,3 +64,13 @@ jobs:
           name: guard-verified-packages
           path: ${{ steps.gate.outputs.artifact_path }}
           if-no-files-found: error
+      - name: Retain GUARD custody evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guard-custody
+          path: |
+            .phase-loop/guard/**/custody.jsonl
+            .phase-loop/guard/**/sql-setup.json
+          include-hidden-files: true
+          if-no-files-found: warn

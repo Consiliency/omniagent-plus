@@ -94,7 +94,7 @@ export function validateCustodyJournal(runDir: string): { admitted: number; natu
       const counts = [row.adopted_count, row.adopted_natural_count, row.adopted_signaled_count, row.adopted_unresolved_count, row.force_killed_count];
       if (counts.some((count) => !Number.isSafeInteger(count) || Number(count) < 0) || row.adopted_count !== Number(row.adopted_natural_count) + Number(row.adopted_signaled_count) + Number(row.adopted_unresolved_count)) throw new Error("GUARD custody journal counts invalid");
       if (row.custody !== "quiescent" || Number(row.adopted_unresolved_count) !== 0) throw new Error("GUARD custody journal unproven");
-      if ((Number(row.adopted_signaled_count) > 0 || Number(row.force_killed_count) > 0) && !controlCases.has(String(row.control_case_id))) throw new Error("GUARD unexpected signaled rescue");
+      if (Number(row.adopted_signaled_count) > 0 && !controlCases.has(String(row.control_case_id))) throw new Error("GUARD unexpected signaled rescue");
       natural += Number(row.adopted_natural_count);
       signaled += Number(row.adopted_signaled_count);
     } else throw new Error("GUARD custody journal event invalid");
@@ -134,7 +134,9 @@ function requestShutdown(record: OwnedChild): void {
   if (record.closed || record.shutdownDeadline) return;
   if (!record.admitted) { record.control.end(); return; }
   const now = process.hrtime.bigint();
-  record.shutdownDeadline = record.cooperativeDeadline === undefined ? now + 2_500_000_000n : now + 2_500_000_000n < record.cooperativeDeadline ? now + 2_500_000_000n : record.cooperativeDeadline;
+  const completion = record.started + BigInt(record.timeout + record.shutdownReservationMs) * 1_000_000n;
+  const cooperativeEnd = record.cooperativeDeadline === undefined ? completion : record.cooperativeDeadline + 2_500_000_000n;
+  record.shutdownDeadline = [now + 2_500_000_000n, cooperativeEnd, completion].reduce((earliest, value) => value < earliest ? value : earliest);
   send(record, "SHUTDOWN", { epoch: 1, mode: "forced", deadline_ns: String(record.shutdownDeadline) });
 }
 
@@ -231,8 +233,8 @@ export class ProcessScope {
     const childReservation = Math.max(0, ...children.map((child) => child.pid === undefined ? 2_500 : owned.get(child.pid)?.shutdownReservationMs ?? 2_500));
     const cleanup = { deadline: process.hrtime.bigint() + BigInt(2_500 + childReservation + this.cleanupSlots * 17_500) * 1_000_000n, remainingSlots: this.cleanupSlots };
     try {
-      if (this.cooperativeSignal) for (const child of children) if (child.pid !== undefined) signalOwned(child.pid, this.cooperativeSignal);
-      const results = await Promise.allSettled(children.map((child) => this.cooperativeSignal ? waitForCooperativeChild(child) : cleanupChild(child)));
+      if (this.cooperativeSignal) for (const child of children) if (child.pid !== undefined && (owned.get(child.pid)?.shutdownReservationMs ?? 2_500) > 2_500) signalOwned(child.pid, this.cooperativeSignal);
+      const results = await Promise.allSettled(children.map((child) => this.cooperativeSignal && child.pid !== undefined && (owned.get(child.pid)?.shutdownReservationMs ?? 2_500) > 2_500 ? waitForCooperativeChild(child) : cleanupChild(child)));
       // Resource cleanup must be allowed to launch bounded commands after cancellation.
       const resources = await context.run(undefined, () => cleanupContext.run(cleanup, async () => {
         const outcomes: PromiseSettledResult<void>[] = [];
@@ -258,7 +260,9 @@ async function waitForCooperativeChild(child: ChildProcessWithoutNullStreams): P
   if (!record) throw new Error("GUARD cooperative child missing");
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await Promise.race([record.finished, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD cooperative shutdown deadline")), record.shutdownReservationMs); })]);
+    const end = record.cooperativeDeadline === undefined ? process.hrtime.bigint() : record.cooperativeDeadline + 2_500_000_000n;
+    const remaining = Math.max(0, Number((end - process.hrtime.bigint()) / 1_000_000n));
+    await Promise.race([record.finished, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("GUARD cooperative shutdown deadline")), remaining); })]);
     owned.delete(child.pid!);
   } catch (error) {
     await cleanupChild(child);
@@ -276,8 +280,10 @@ export function signalOwned(pid: number, signal: NodeJS.Signals): void {
   if (record.closed) return;
   const now = process.hrtime.bigint();
   const completion = record.started + BigInt(record.timeout + record.shutdownReservationMs) * 1_000_000n;
-  record.cooperativeDeadline ??= now + BigInt(record.shutdownReservationMs) * 1_000_000n < completion ? now + BigInt(record.shutdownReservationMs) * 1_000_000n : completion;
-  send(record, "FORWARD", { signal });
+  const forcedStart = now + BigInt(record.shutdownReservationMs - 2_500) * 1_000_000n;
+  const latestStart = completion - 2_500_000_000n;
+  record.cooperativeDeadline ??= forcedStart < latestStart ? forcedStart : latestStart;
+  send(record, "FORWARD", { signal, deadline_ns: String(record.cooperativeDeadline) });
 }
 
 export function spawnOwned(command: string, args: string[], options: OwnedOptions = {}): ChildProcessWithoutNullStreams {

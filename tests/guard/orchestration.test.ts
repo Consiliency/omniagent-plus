@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
@@ -6,7 +6,7 @@ import { STAGES } from "../helpers/guard-stages.js";
 import { verify, checkResults, runSuite, summarizeTestFailures, LIVE_CASE } from "../../scripts/verify.mjs";
 import type { createFixture, setupFixture } from "../../scripts/prepare-test-postgres.mjs";
 import type { packVerified } from "../../scripts/pack-verified-packages.mjs";
-import { cleanupChild, NESTED_FIXTURE_SHUTDOWN_MS, spawnOwned, waitExit, waitReady } from "../helpers/guard-process.js";
+import { cleanupChild, NESTED_FIXTURE_SHUTDOWN_MS, spawnOwned, validateCustodyJournal, waitExit, waitReady } from "../helpers/guard-process.js";
 
 const inputs = async () => ({ source_sha: "a".repeat(40), lockfile_sha256: "b".repeat(64), package_manifest_sha256: {} });
 
@@ -35,6 +35,9 @@ try{await verify({root:${JSON.stringify(root)},inputs:async()=>({source_sha:'a'.
     process.kill(launcher.pid!, signal);
     // Observe launcher exit without the test parent's cleanup rescuing it.
     expect(await waitExit(launcher, 5_000)).toBe(1);
+    const runs = readdirSync(join(root, ".phase-loop/guard"));
+    expect(runs).toHaveLength(1);
+    expect(() => validateCustodyJournal(join(root, ".phase-loop/guard", runs[0]!))).not.toThrow();
     for (const pid of pids) expect(existsSync(`/proc/${pid}/stat`) && !readFileSync(`/proc/${pid}/stat`, "utf8").split(") ")[1]?.startsWith("Z")).toBe(false);
     expect(() => process.kill(unrelated.pid!, 0)).not.toThrow();
   } finally { await cleanupChild(launcher); await cleanupChild(unrelated); rmSync(root, { recursive: true, force: true }); }
