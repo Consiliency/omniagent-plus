@@ -19,7 +19,7 @@ try {
   while (!existsSync(ready) && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(existsSync(ready), true, "real Vitest test did not start");
   process.kill(child.pid, "SIGINT");
-  assert.equal(await waitExit(child), 1);
+  assert.equal(await waitExit(child, 40_000), 1);
   assert.equal(existsSync(finished), true, "active test did not finish after interrupt");
   const custody = validateCustodyJournal(dir);
   assert.ok(custody.admitted >= 2);

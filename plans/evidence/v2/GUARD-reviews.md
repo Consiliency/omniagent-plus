@@ -15,6 +15,13 @@ records. omniagent-plus#20 stays open.
   signaled adoptions; every other tagged rescue still requires exactly one.
   Three isolated repetitions and the 500-case local plain gate pass after the
   repair. Fresh hosted CI/rehearsal and final exact-head review remain required.
+- Opus 5.5's manual tool-enabled TUI review of `0f6de84` also returned NOT
+  ACCEPT. It independently mapped the failed hosted case to the owner-death
+  count above and found that the standalone real-suite interruption control
+  used `waitExit`'s 15-second default despite admitting a 40-second launcher.
+  The candidate now waits through that launcher's declared operation and
+  custody reservation; the standalone control passes locally. Hosted proof of
+  this repair and final exact-head review are pending.
 - The `5d615cf` hosted CI and publish rehearsal passed, including independent
   focused GUARD and integration fixtures and the standalone real-suite interrupt
   control. Its CI artifact has 464 balanced root admissions/terminals, 52
