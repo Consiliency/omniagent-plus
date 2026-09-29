@@ -1,118 +1,15 @@
 ---
 from: codex-plan-detailed
-timestamp: 2026-09-03T05:15:39Z
-repo: fcd59ee9
-repo_root: /home/viperjuice/code/omniagent-plus
-branch: main
-branch_slug: main
-commit: 9b66d53
-run_id: 20260903T051539Z-omnigent-v012-plan
-artifact: /home/viperjuice/code/omniagent-plus/plans/detailed-omnigent-v0-12-accommodation-20260903-051539.md
-artifact_state: untracked
-review_record: .dev-skills/handoffs/codex-plan-detailed/20260903T061405Z-omnigent-v012-advisor-board-review.md
-next_skill: codex-execute-detailed
-next_command: execute the final reviewed v0.12 plan from an isolated worktree
-next_phase: none
+timestamp: 2026-09-29T02:50:16Z
+repo: Consiliency/omniagent-plus
+repo_root: /home/viperjuice/workspace/worktrees/omniagent-plus-v015-implementation-20260928
+branch: codex/omnigent-v015-implementation-20260928
+branch_slug: codex-omnigent-v015-implementation-20260928
+commit: 63eabfc4a1a80316f53941f8108af72f3b4b8821
+run_id: 20260929T025016Z-v015-capability-snapshot
+artifact: plans/detailed-omnigent-capability-snapshot-provenance-20260928.md
 ---
 
-# Handoff: Omnigent v0.12.0 accommodation plan
+Section 14.5 of the runtime-provider specification requires detected upstream version and SHA. Health has neither, so the capability snapshot now leaves both optional fields absent instead of copying the v0.15 research fixture. The source fixture remains v0.15 and published transport support remains v0.12. Runtime version detection remains open for live qualification.
 
-## Outcome
-
-Created, four-vendor reviewed, and reconciled an execution-ready bounded plan to move the transport authority from
-official Omnigent v0.11.0 to v0.12.0 and prepare only
-`@consiliency/omnigent-transport@0.7.0`. The plan preserves runtime behavior,
-adds strict identity-free handling for elicitation-resolution metadata, and
-keeps project/import/fork/worktree additions outside the neutral provider.
-
-No implementation, tests, builds, commit, push, merge, or publication occurred
-in this planning gate.
-
-Final reviewed plan SHA-256:
-`02224bc4516b660d9fc4fbb2fe008d8f5306ef4b9f6ad25b442c1a01d23762c7`.
-
-The final confirmation board delivered four independent `OK` seats and four
-`AGREE` verdicts: Grok 4.6, Claude Fable 5 through the canonical subscription
-TUI adapter, GPT-5.6 Sol, and Gemini 3.7 Flash. The durable review record is
-`.dev-skills/handoffs/codex-plan-detailed/20260903T061405Z-omnigent-v012-advisor-board-review.md`.
-An execution preflight correction preserved property-map keys named `title`,
-expanded the structural schema list from four to six, and was unanimously
-reconfirmed by the same four-vendor board before source work resumed.
-
-## Frozen authority
-
-- Target: Omnigent `v0.12.0`
-- Tag commit: `f04b0354fb5344c1ea8b92795ceb6760a9ad7595`
-- Published: `2026-09-01T22:18:22Z`
-- PyPI: `omnigent==0.12.0`, Python `>=3.12`
-- OpenAPI: 101 operations, 73 paths, 146 schemas
-- Additions: `POST /v1/imports/local` plus `ImportedSessionRef`,
-  `LocalImportRequest`, and `LocalImportResponse`
-- Stable stream vocabulary: unchanged at exactly 54 events
-- Published transport baseline: `0.6.0`
-- Planned transport release: `0.7.0`
-
-## Load-bearing decisions
-
-- Recheck stable release/tag/PyPI/npm/tagged source immediately before edits;
-  stop and amend if stable is newer than v0.12 or transport 0.7.0 exists.
-- Preserve `omnigentStreamEventTypes` byte-for-byte at 54 literals.
-- Validate `response.elicitation_resolved` with required non-empty
-  `elicitation_id` and absent, null, or `accept|decline|cancel` action; normalize
-  absent and null action to `undefined`.
-- Make resolution identity-free before normalizer bookkeeping, mapper dedup, and
-  provider lifecycle/fence work. Preserve bounded raw metadata, emit no neutral
-  event, and grant no approval, lease, lock, routing, or authority.
-- Keep `CreateSessionRequest` and the legacy required-agent upstream request
-  unchanged. Never serialize project control from generic metadata.
-- Record project-aware create/import, configurable forks, and existing-branch
-  worktrees as observed non-capabilities.
-- Preserve v0.11, v0.10, and v0.9 fixtures/loaders unchanged.
-- Change only the transport package version; sibling packages, lockfile, and
-  npm OIDC workflow stay unchanged.
-- Use `NPM_PUBLISH_DRY_RUN=1`; do not pass a trailing `--dry-run` to the helper.
-- Keep merge and publication behind later explicit authorization.
-
-## Verification posture
-
-The unanimously reviewed plan contains fail-closed authority, focused transport, full suite,
-typecheck, lint, build, pack, JSON, dry-run publication, off-limit diff, and
-exact-head review commands. Plan review passed; implementation verification was
-intentionally not executed during planning.
-
-## Worktree state
-
-The primary worktree started clean at `main`/`origin/main`
-`9b66d53623099dade90d0b7bf198f6a91cefbe6c`. There were no pre-existing
-untracked files. Plan-owned outputs are the detailed plan, this run-specific
-handoff, `latest.md`, the advisor-board review record, the manifest entry, and
-the external reflection.
-
-## Automation
-
-```yaml
-automation:
-  status: reviewed
-  next_skill: codex-execute-detailed
-  next_command: execute the final reviewed v0.12 plan from an isolated worktree
-  next_model_hint: implementation
-  next_effort_hint: high
-  human_required: false
-  blocker_class: none
-  blocker_summary: none
-  required_human_inputs: []
-  verification_status: plan_review_passed_implementation_not_run
-  artifact: /home/viperjuice/code/omniagent-plus/plans/detailed-omnigent-v0-12-accommodation-20260903-051539.md
-  artifact_state: untracked
-```
-
-## Model provenance
-
-```yaml
-model_provenance:
-  model_profile: plan
-  model: gpt-5
-  reasoning_effort: high
-  source: default
-  override_reason: none
-```
+The companion replay split is `plans/detailed-omnigent-v015-identity-safe-replay-20260928.md`. Isolated workspace tests passed 375 with one opt-in live skip; build, typecheck, lint, and packed consumer smoke passed. Exact-head PR review and release gates remain open. The plan-manifest helper was unavailable; the manifest was left unchanged.

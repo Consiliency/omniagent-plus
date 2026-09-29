@@ -31,6 +31,35 @@ function toStream(text: string): ReadableStream<Uint8Array> {
 }
 
 describe("sse stream parser", () => {
+  it("v0.15 C validates passive frames and strips forged identity and content", async () => {
+    const skipped: string[] = [];
+    const frames = [
+      { type: "session.btw_sidechat", conversation_id: "other", question: "Q", answer: "A", response_id: "forged", id: "forged" },
+      { type: "session.codex_approval_mode", conversation_id: "other", approval_mode: "arbitrary", response_id: "forged" },
+      { type: "session.skills", response_id: "forged" },
+      { type: "session.btw_sidechat", conversation_id: "other", question: "Q" },
+      { type: "response.elicitation_resolved", elicitation_id: "elicit", reason: "unanswered" },
+      { type: "response.elicitation_resolved", elicitation_id: "elicit", reason: "invalid" },
+    ];
+    const events = await collectAsync(parseOmnigentSseStream(
+      toStream(frames.map((frame) => `data: ${JSON.stringify(frame)}\n\n`).join("")),
+      { sessionId: "session-passive" },
+      (skip) => skipped.push(skip.reason),
+    ));
+    expect(skipped).toEqual(["invalid_event_shape", "invalid_event_shape"]);
+    expect(events.map((event) => event.type)).toEqual([
+      "session.btw_sidechat", "session.codex_approval_mode", "session.skills",
+      "response.elicitation_resolved",
+    ]);
+    for (const event of events) {
+      expect(event.sessionId).toBe("session-passive");
+      expect(event.id).not.toBe("forged");
+      expect(event.turnId).toBeUndefined();
+      expect(event).not.toHaveProperty("question");
+      expect(event).not.toHaveProperty("answer");
+    }
+    expect(mapOmnigentEventSequence("session-passive", events)).toEqual([]);
+  });
   it("skips malformed JSON, non-objects, and unknown event types", async () => {
     const skipped: string[] = [];
     const events = await collectAsync(

@@ -1,14 +1,30 @@
 {
   "schema": "omnigent.source_metadata.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-09-03T16:23:40Z",
+  "captured_at": "2026-09-28T08:01:37Z",
   "repo": "omnigent-ai/omnigent",
   "freeze_target": {
+    "tag": "v0.15.0",
+    "commit": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
+    "published_at": "2026-09-22T15:10:55.683969Z",
+    "package_version": "0.15.0",
+    "requires_python": ">=3.12"
+  },
+  "historical_freeze_target": {
     "tag": "v0.12.0",
     "commit": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
-    "published_at": "2026-09-01T22:18:22Z",
-    "package_version": "0.12.0",
-    "requires_python": ">=3.12"
+    "package_version": "0.12.0"
+  },
+  "historical_release_observation": {
+    "observed_at": "2026-09-22T16:23:07.486Z",
+    "v0_15_github_release_present": false,
+    "note": "Formal GitHub release was published on 2026-09-24; this dated observation is retained."
+  },
+  "formal_github_release": {
+    "tag": "v0.15.0",
+    "commit": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
+    "published_at": "2026-09-24T05:41:35Z",
+    "url": "https://github.com/omnigent-ai/omnigent/releases/tag/v0.15.0"
   },
   "previous_probe": {
     "tag": "v0.11.0",
@@ -28,34 +44,41 @@
     "added_stream_events": []
   },
   "preflight_confirmation": {
-    "observed_at": "2026-09-03T16:23:40Z",
-    "previous_openapi_operation_count": 100,
-    "openapi_operation_count": 101,
-    "previous_openapi_path_count": 72,
-    "openapi_path_count": 73,
-    "previous_openapi_schema_count": 143,
-    "openapi_schema_count": 146,
+    "observed_at": "2026-09-28T08:01:37Z",
+    "previous_openapi_operation_count": 113,
+    "openapi_operation_count": 117,
+    "previous_openapi_path_count": 85,
+    "openapi_path_count": 88,
+    "previous_openapi_schema_count": 159,
+    "openapi_schema_count": 163,
     "added_operations": [
-      "POST /v1/imports/local"
+      "GET /v1/projects/order",
+      "GET /v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+      "GET /v1/skills",
+      "PUT /v1/projects/order"
     ],
     "removed_operations": [],
     "added_paths": [
-      "/v1/imports/local"
+      "/v1/projects/order",
+      "/v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+      "/v1/skills"
     ],
     "removed_paths": [],
     "added_schemas": [
-      "ImportedSessionRef",
-      "LocalImportRequest",
-      "LocalImportResponse"
+      "ErrorResponse",
+      "ImportFailureRef",
+      "ProjectOrderRequest",
+      "ProjectOrderResponse",
+      "SkillsResponse"
     ],
-    "removed_schemas": [],
+    "removed_schemas": ["SessionSkillsEvent"],
     "changed_schemas": [
-      "AutomaticSessionRenameRequest",
-      "ElicitationResolvedEvent",
-      "ImportSessionRequest",
+      "ErrorDetail",
+      "LocalImportResponse",
+      "RoutingDecisionData",
+      "ServerStreamEvent",
       "SessionForkRequest",
-      "SessionGitOptions",
-      "UpdateSessionRequest"
+      "SessionResponse"
     ],
     "annotation_only_fields_ignored": [
       "description",
@@ -63,8 +86,8 @@
       "title"
     ],
     "added_stream_events": [],
-    "removed_stream_events": [],
-    "official_release_event_count": 54,
+    "removed_stream_events": ["session.skills"],
+    "official_release_event_count": 55,
     "server_background_command": "omnigent server --background",
     "server_start_subcommand": "hidden deprecated alias",
     "newer_stable_release": false

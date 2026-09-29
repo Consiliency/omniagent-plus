@@ -12,6 +12,7 @@ export {
 } from "./cli-client.js";
 export {
   loadOmnigentV012WireContract,
+  loadOmnigentV015WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,

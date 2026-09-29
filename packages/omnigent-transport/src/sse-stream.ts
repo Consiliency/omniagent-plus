@@ -45,8 +45,20 @@ function hasValidEventShape(value: Record<string, unknown>): boolean {
         value.action === null ||
         value.action === "accept" ||
         value.action === "decline" ||
-        value.action === "cancel")
+        value.action === "cancel") &&
+      (value.reason === undefined || value.reason === null ||
+        value.reason === "unanswered")
     );
+  }
+  if (value.type === "session.btw_sidechat") {
+    return typeof value.conversation_id === "string" &&
+      typeof value.question === "string" &&
+      typeof value.answer === "string" &&
+      (value.truncated === undefined || typeof value.truncated === "boolean");
+  }
+  if (value.type === "session.codex_approval_mode") {
+    return typeof value.conversation_id === "string" &&
+      typeof value.approval_mode === "string";
   }
   if (value.type === "session.permission_mode") {
     return (
@@ -322,11 +334,15 @@ export class OmnigentSseNormalizer {
   normalize(tagged: OmnigentTaggedSseEvent): OmnigentRawEvent {
     this.frameOrdinal += 1;
     const raw = tagged as Record<string, unknown>;
-    if (tagged.type === "response.elicitation_resolved") {
+    if (tagged.type === "response.elicitation_resolved" ||
+      tagged.type === "session.btw_sidechat" ||
+      tagged.type === "session.codex_approval_mode" ||
+      tagged.type === "session.skills") {
       const sessionId = this.options.sessionId;
       return {
         action: raw.action === null ? undefined : stringValue(raw.action),
         elicitation_id: stringValue(raw.elicitation_id),
+        reason: raw.reason === "unanswered" ? "unanswered" : undefined,
         id: `${this.options.syntheticEventIdPrefix ?? sessionId}:${tagged.type}:${this.frameOrdinal}`,
         occurredAt: this.now(),
         sessionId,

@@ -1,5 +1,36 @@
 # Omnigent Contract Freeze
 
+## V0.15 accommodation candidate
+
+The latest tagged upstream contract is Omnigent `v0.15.0` at
+`c8b9b85f822f2c9203ff995c10f3cc49d064bbe5`. Its tagged OpenAPI has 117
+operations, 88 paths, 163 schemas, and 55 stream events. The transport accepts
+56 raw event literals because it retains historical `session.skills` input; the
+target release itself has removed that event. The exact target inventory is in
+`fixtures/omnigent/http/v0-15-wire-contract.json`.
+
+Persisted `ErrorData.level: "info"` is a notice: it produces no neutral turn
+failure or lifecycle event, while missing, null, `"error"`, and malformed levels
+retain the existing error behavior. `MessageData.stream_message_id` can link a
+durable item to stream previews within the same response; explicit identity
+takes precedence over text similarity. `session.btw_sidechat` and
+`session.codex_approval_mode` are validated and dropped before turn, fence, or
+approval state can change. `response.elicitation_resolved.reason` accepts absent,
+null, or `"unanswered"` without granting approval authority.
+
+For the three paginated GET consumers, a 400 response with exact nested
+`error.code: "stale_cursor"` after a nonempty cursor restarts enumeration once
+from the first page. The abandoned rows are discarded. Other errors propagate;
+mutations are never retried by this policy. The SSE route remains live-tail, and
+neutral `afterSequence` is a local sequence rather than an upstream cursor.
+
+This candidate does not supersede the frozen v0.12 interface until the GUARD and
+DATA freezes and full qualification gates in
+`plans/detailed-omnigent-v0-15-accommodation-20260922.md` are accepted.
+Exclusive transport ownership is recorded in Consiliency/omniagent-plus#25. New
+project-order, skills, model-options, file-sharing, import, fork, and resource
+surfaces remain observed upstream non-capabilities.
+
 `IF-0-CONTRACT-1` is frozen to official Omnigent `v0.12.0` at commit
 `f04b0354fb5344c1ea8b92795ceb6760a9ad7595`, published 2026-09-01. PyPI
 reports `omnigent==0.12.0` with Python `>=3.12`.

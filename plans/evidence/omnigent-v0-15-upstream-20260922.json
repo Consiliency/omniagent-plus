@@ -1,0 +1,4590 @@
+{
+  "schema": "omnigent.upstream_research.v1",
+  "captured_at": "2026-09-22T16:18:57.830Z",
+  "planning_only": true,
+  "base_commit": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
+  "predecessor": {
+    "path": "/mnt/workspace/worktrees/omniagent-plus-v2-guard-20260912/plans/detailed-omnigent-v0-14-accommodation-20260921-1133.md",
+    "sha256": "17da104104c8b788c7136a96c2426a8fa26696773bf60ba2a3a8ed11a055296d"
+  },
+  "authority": {
+    "pypi_latest": "0.15.0",
+    "requires_python": ">=3.12",
+    "files": [
+      {
+        "filename": "omnigent-0.15.0-py3-none-any.whl",
+        "sha256": "0881c9251dd753ebec140a0db00e5c2b24f7ee711c7e01b9e73e4b9d40ce1f15",
+        "uploaded_at": "2026-09-22T15:10:55.683969Z",
+        "url": "https://files.pythonhosted.org/packages/8e/fc/6ef63b44ed61b02c8e49b876c137e2024bbf34c59a5a63de0f4be00b4356/omnigent-0.15.0-py3-none-any.whl",
+        "yanked": false
+      },
+      {
+        "filename": "omnigent-0.15.0.tar.gz",
+        "sha256": "23614c8b006c5f0ea4fdc218f73b8dafd8f0858ea278da6666f9b3329eed988a",
+        "uploaded_at": "2026-09-22T15:11:02.411893Z",
+        "url": "https://files.pythonhosted.org/packages/0a/f3/68fbc0d3406910358a205f186830830da6b9ec939dceb5ac9db2d84d2af4/omnigent-0.15.0.tar.gz",
+        "yanked": false
+      }
+    ],
+    "github_latest": {
+      "tag": "v0.14.0",
+      "published_at": "2026-09-15T13:06:10Z",
+      "url": "https://github.com/omnigent-ai/omnigent/releases/tag/v0.14.0"
+    },
+    "tag": {
+      "sha": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
+      "type": "commit",
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/commits/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5"
+    },
+    "refs": {
+      "v0.12.0": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
+      "v0.14.0": "fc89a3ba3c4698a7d742343b443a7b2bdc01120a",
+      "v0.15.0": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5"
+    },
+    "tag_probes": {
+      "v0.12.0": {
+        "sha": "f04b0354fb5344c1ea8b92795ceb6760a9ad7595",
+        "type": "commit",
+        "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/commits/f04b0354fb5344c1ea8b92795ceb6760a9ad7595"
+      },
+      "v0.14.0": {
+        "sha": "fc89a3ba3c4698a7d742343b443a7b2bdc01120a",
+        "type": "commit",
+        "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/commits/fc89a3ba3c4698a7d742343b443a7b2bdc01120a"
+      },
+      "v0.15.0": {
+        "sha": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
+        "type": "commit",
+        "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/commits/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5"
+      }
+    },
+    "target_github_release": {
+      "http_status": 404,
+      "tag": null
+    },
+    "npm": {
+      "dist_tags": {
+        "latest": "0.7.0"
+      },
+      "candidate_0_8_0_occupied": false
+    },
+    "wheel_hash_verification": "Registry-reported digest only; distribution bytes not downloaded or executed.",
+    "tagged_pyproject_version": "0.15.0",
+    "tagged_changelog_latest": "v0.14.0"
+  },
+  "parser": {
+    "method": "JSON.parse; recursive sorted object comparison; annotations ignored only outside property maps; format retained; arrays order-sensitive",
+    "ignored_annotations": [
+      "description",
+      "title",
+      "examples",
+      "example",
+      "summary",
+      "externalDocs"
+    ],
+    "missing_values": "before_present/after_present distinguish absent properties from explicit null; paths use JSON Pointer escaping."
+  },
+  "counts": {
+    "v0.12.0": {
+      "paths": 73,
+      "operations": 101,
+      "schemas": 146,
+      "events": 54
+    },
+    "v0.14.0": {
+      "paths": 85,
+      "operations": 113,
+      "schemas": 159,
+      "events": 56
+    },
+    "v0.15.0": {
+      "paths": 88,
+      "operations": 117,
+      "schemas": 163,
+      "events": 55
+    }
+  },
+  "deltas": [
+    {
+      "base": "v0.12.0",
+      "target": "v0.14.0",
+      "paths": {
+        "added": [
+          "/v1/extensions",
+          "/v1/extensions/diagnostics",
+          "/v1/extensions/{extension_id}",
+          "/v1/extensions/{extension_id}/assets/{digest}/{asset_name}",
+          "/v1/hosts/{host_id}/credentials/{provider}",
+          "/v1/imports/local/stream",
+          "/v1/sessions/{session_id}/agent-title",
+          "/v1/sessions/{session_id}/model-override/reset",
+          "/v1/sessions/{session_id}/resources/github",
+          "/v1/sessions/{session_id}/resources/github/changes",
+          "/v1/sessions/{session_id}/resources/github/preferences",
+          "/v1/sessions/{session_id}/resources/github/prs"
+        ],
+        "removed": []
+      },
+      "operations": {
+        "added": [
+          "GET /v1/extensions",
+          "GET /v1/extensions/diagnostics",
+          "GET /v1/extensions/{extension_id}",
+          "GET /v1/extensions/{extension_id}/assets/{digest}/{asset_name}",
+          "GET /v1/hosts/{host_id}/credentials/{provider}",
+          "GET /v1/sessions/{session_id}/resources/github",
+          "GET /v1/sessions/{session_id}/resources/github/changes",
+          "POST /v1/imports/local/stream",
+          "POST /v1/sessions/{session_id}/agent-title",
+          "POST /v1/sessions/{session_id}/model-override/reset",
+          "POST /v1/sessions/{session_id}/resources/github/preferences",
+          "POST /v1/sessions/{session_id}/resources/github/prs"
+        ],
+        "removed": []
+      },
+      "schemas": {
+        "added": [
+          "ExtensionAssetErrorResponse",
+          "ExtensionBrowserBundleResponse",
+          "ExtensionDiagnosticsResponse",
+          "ExtensionListResponse",
+          "ExtensionLoadErrorResponse",
+          "ExtensionPageResponse",
+          "ExtensionPrimaryNavigationResponse",
+          "ExtensionResponse",
+          "HostModelOptionsResponse",
+          "ResetSessionModelOverrideRequest",
+          "ResetSessionModelOverrideResponse",
+          "SessionBtwSidechatEvent",
+          "SessionCodexApprovalModeEvent"
+        ],
+        "removed": []
+      },
+      "events": {
+        "added": [
+          "session.btw_sidechat",
+          "session.codex_approval_mode"
+        ],
+        "removed": []
+      },
+      "changed_schemas": [
+        {
+          "name": "AutomaticSessionRenameResponse",
+          "changes": [
+            {
+              "path": "/properties/reason/anyOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "enum": [
+                    "not_top_level",
+                    "no_seed",
+                    "title_changed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "after": [
+                {
+                  "enum": [
+                    "not_top_level",
+                    "no_seed",
+                    "title_changed",
+                    "generation_failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CompactionData",
+          "changes": [
+            {
+              "path": "/properties/window_id/anyOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "after": [
+                {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CompactionInProgressEvent",
+          "changes": [
+            {
+              "path": "/properties/started_at",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "ElicitationResolvedEvent",
+          "changes": [
+            {
+              "path": "/properties/reason",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "const": "unanswered",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "ErrorData",
+          "changes": [
+            {
+              "path": "/properties/level",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "error",
+                      "info"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/source/enum",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                "llm",
+                "execution",
+                "tool"
+              ],
+              "after": [
+                "llm",
+                "execution",
+                "tool",
+                "harness"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ErrorEvent",
+          "changes": [
+            {
+              "path": "/properties/source/enum",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                "llm",
+                "execution",
+                "tool"
+              ],
+              "after": [
+                "llm",
+                "execution",
+                "tool",
+                "harness"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "FailedEvent",
+          "changes": [
+            {
+              "path": "/properties/source",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": "execution",
+                "enum": [
+                  "llm",
+                  "execution",
+                  "tool",
+                  "harness"
+                ],
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "name": "ImportSessionRequest",
+          "changes": [
+            {
+              "path": "/properties/host_id",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LocalImportRequest",
+          "changes": [
+            {
+              "path": "/properties/session_id",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "MessageData",
+          "changes": [
+            {
+              "path": "/properties/stream_message_id",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ServerInfoResponse",
+          "changes": [
+            {
+              "path": "/properties/enabled_connections",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            {
+              "path": "/properties/sandbox_provider_capabilities",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object"
+                },
+                "default": {},
+                "type": "object"
+              }
+            },
+            {
+              "path": "/required",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                "accounts_enabled",
+                "single_user",
+                "login_url",
+                "needs_setup",
+                "databricks_features",
+                "managed_sandboxes_enabled",
+                "sandbox_provider",
+                "sandbox_providers",
+                "sharing_mode",
+                "public_sharing_enabled",
+                "server_version",
+                "smart_routing_enabled",
+                "smart_routing_sources",
+                "features",
+                "harness_install_enabled",
+                "installable_harnesses",
+                "dictation_available",
+                "branding"
+              ],
+              "after": [
+                "accounts_enabled",
+                "single_user",
+                "login_url",
+                "needs_setup",
+                "databricks_features",
+                "managed_sandboxes_enabled",
+                "sandbox_provider",
+                "sandbox_providers",
+                "enabled_connections",
+                "sharing_mode",
+                "public_sharing_enabled",
+                "server_version",
+                "smart_routing_enabled",
+                "smart_routing_sources",
+                "features",
+                "harness_install_enabled",
+                "installable_harnesses",
+                "dictation_available",
+                "branding"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ServerStreamEvent",
+          "changes": [
+            {
+              "path": "/discriminator/mapping/session.btw_sidechat",
+              "before_present": false,
+              "after_present": true,
+              "after": "#/components/schemas/SessionBtwSidechatEvent"
+            },
+            {
+              "path": "/discriminator/mapping/session.codex_approval_mode",
+              "before_present": false,
+              "after_present": true,
+              "after": "#/components/schemas/SessionCodexApprovalModeEvent"
+            },
+            {
+              "path": "/oneOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "$ref": "#/components/schemas/SessionStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionUsageEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTitleEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionReasoningEffortEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCollaborationModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPermissionModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionAgentChangedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTodosEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalPendingEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSandboxStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionMcpStartupEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSkillsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelOptionsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInputConsumedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInterruptedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSupersededEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPresenceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceDeletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChildSessionUpdatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChangedFilesInvalidatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalActivityEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOutputDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningSummaryTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputFileDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/HeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionHeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationResolvedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/BrowserActionRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyDeniedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/QueuedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/InProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/FailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CancelledEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/IncompleteEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/RetryEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionInProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ClientTaskCancelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCancelledEvent"
+                }
+              ],
+              "after": [
+                {
+                  "$ref": "#/components/schemas/SessionStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionUsageEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTitleEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionReasoningEffortEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCollaborationModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPermissionModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCodexApprovalModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionAgentChangedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTodosEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalPendingEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSandboxStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionMcpStartupEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSkillsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelOptionsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInputConsumedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInterruptedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSupersededEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionBtwSidechatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPresenceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceDeletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChildSessionUpdatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChangedFilesInvalidatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalActivityEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOutputDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningSummaryTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputFileDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/HeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionHeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationResolvedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/BrowserActionRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyDeniedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/QueuedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/InProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/FailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CancelledEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/IncompleteEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/RetryEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionInProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ClientTaskCancelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCancelledEvent"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "SessionForkRequest",
+          "changes": [
+            {
+              "path": "/properties/host_type",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": "external",
+                "enum": [
+                  "external",
+                  "managed"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "path": "/properties/sandbox_provider",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/workspace",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SessionResponse",
+          "changes": [
+            {
+              "path": "/properties/share_workspace_files",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            {
+              "path": "/properties/skills_status",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": "unavailable",
+                "enum": [
+                  "loading",
+                  "ready",
+                  "error",
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "name": "UpdateSessionRequest",
+          "changes": [
+            {
+              "path": "/properties/approval_mode",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/share_workspace_files",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "changed_operations": [
+        {
+          "operation": "GET /v1/hosts/{host_id}/harnesses/{harness}/model-options",
+          "changes": [
+            {
+              "path": "/responses/200/content/application~1json/schema/$ref",
+              "before_present": false,
+              "after_present": true,
+              "after": "#/components/schemas/HostModelOptionsResponse"
+            },
+            {
+              "path": "/responses/200/content/application~1json/schema/additionalProperties",
+              "before_present": true,
+              "after_present": false,
+              "before": {
+                "items": {},
+                "type": "array"
+              }
+            },
+            {
+              "path": "/responses/200/content/application~1json/schema/type",
+              "before_present": true,
+              "after_present": false,
+              "before": "object"
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_id",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_name",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "sort_by",
+                  "required": false,
+                  "schema": {
+                    "default": "created_at",
+                    "pattern": "^(created_at|updated_at)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "search_query",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_archived",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "kind",
+                  "required": false,
+                  "schema": {
+                    "default": "default",
+                    "pattern": "^(default|sub_agent|any)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "project",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "pinned",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_id",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_name",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "sort_by",
+                  "required": false,
+                  "schema": {
+                    "default": "created_at",
+                    "pattern": "^(created_at|updated_at)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "search_query",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_archived",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "kind",
+                  "required": false,
+                  "schema": {
+                    "default": "default",
+                    "pattern": "^(default|sub_agent|any)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "project",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "pinned",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "visibility",
+                  "required": false,
+                  "schema": {
+                    "default": "all",
+                    "pattern": "^(all|mine|shared|archived)$",
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}/resources/environments/{environment_id}/filesystem/{relative_path}",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "environment_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "relative_path",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "environment_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "relative_path",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "download",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              ]
+            },
+            {
+              "path": "/responses/200/content/application~1octet-stream",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "base": "v0.14.0",
+      "target": "v0.15.0",
+      "paths": {
+        "added": [
+          "/v1/projects/order",
+          "/v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+          "/v1/skills"
+        ],
+        "removed": []
+      },
+      "operations": {
+        "added": [
+          "GET /v1/projects/order",
+          "GET /v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+          "GET /v1/skills",
+          "PUT /v1/projects/order"
+        ],
+        "removed": []
+      },
+      "schemas": {
+        "added": [
+          "ErrorResponse",
+          "ImportFailureRef",
+          "ProjectOrderRequest",
+          "ProjectOrderResponse",
+          "SkillsResponse"
+        ],
+        "removed": [
+          "SessionSkillsEvent"
+        ]
+      },
+      "events": {
+        "added": [],
+        "removed": [
+          "session.skills"
+        ]
+      },
+      "changed_schemas": [
+        {
+          "name": "ErrorDetail",
+          "changes": [
+            {
+              "path": "/properties/cause/default",
+              "before_present": true,
+              "after_present": false,
+              "before": null
+            },
+            {
+              "path": "/properties/remediation/default",
+              "before_present": true,
+              "after_present": false,
+              "before": null
+            },
+            {
+              "path": "/properties/title/default",
+              "before_present": true,
+              "after_present": false,
+              "before": null
+            }
+          ]
+        },
+        {
+          "name": "LocalImportResponse",
+          "changes": [
+            {
+              "path": "/properties/failures",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "items": {
+                  "$ref": "#/components/schemas/ImportFailureRef"
+                },
+                "type": "array"
+              }
+            }
+          ]
+        },
+        {
+          "name": "RoutingDecisionData",
+          "changes": [
+            {
+              "path": "/properties/task_description",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ServerStreamEvent",
+          "changes": [
+            {
+              "path": "/discriminator/mapping/session.skills",
+              "before_present": true,
+              "after_present": false,
+              "before": "#/components/schemas/SessionSkillsEvent"
+            },
+            {
+              "path": "/oneOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "$ref": "#/components/schemas/SessionStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionUsageEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTitleEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionReasoningEffortEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCollaborationModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPermissionModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCodexApprovalModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionAgentChangedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTodosEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalPendingEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSandboxStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionMcpStartupEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSkillsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelOptionsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInputConsumedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInterruptedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSupersededEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionBtwSidechatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPresenceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceDeletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChildSessionUpdatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChangedFilesInvalidatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalActivityEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOutputDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningSummaryTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputFileDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/HeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionHeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationResolvedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/BrowserActionRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyDeniedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/QueuedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/InProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/FailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CancelledEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/IncompleteEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/RetryEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionInProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ClientTaskCancelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCancelledEvent"
+                }
+              ],
+              "after": [
+                {
+                  "$ref": "#/components/schemas/SessionStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionUsageEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTitleEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionReasoningEffortEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCollaborationModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPermissionModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCodexApprovalModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionAgentChangedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTodosEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalPendingEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSandboxStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionMcpStartupEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelOptionsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInputConsumedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInterruptedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSupersededEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionBtwSidechatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPresenceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceDeletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChildSessionUpdatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChangedFilesInvalidatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalActivityEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOutputDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningSummaryTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputFileDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/HeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionHeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationResolvedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/BrowserActionRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyDeniedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/QueuedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/InProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/FailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CancelledEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/IncompleteEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/RetryEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionInProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ClientTaskCancelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCancelledEvent"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "SessionForkRequest",
+          "changes": [
+            {
+              "path": "/properties/side_chat",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": false,
+                "type": "boolean"
+              }
+            }
+          ]
+        },
+        {
+          "name": "SessionResponse",
+          "changes": [
+            {
+              "path": "/properties/inference_configured",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            {
+              "path": "/properties/inference_error",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/skills",
+              "before_present": true,
+              "after_present": false,
+              "before": {
+                "items": {
+                  "$ref": "#/components/schemas/SkillSummary"
+                },
+                "type": "array"
+              }
+            },
+            {
+              "path": "/properties/skills_status",
+              "before_present": true,
+              "after_present": false,
+              "before": {
+                "default": "unavailable",
+                "enum": [
+                  "loading",
+                  "ready",
+                  "error",
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "path": "/properties/usage_included",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        }
+      ],
+      "changed_operations": [
+        {
+          "operation": "GET /v1/sessions",
+          "changes": [
+            {
+              "path": "/responses/400",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_items",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_liveness",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "refresh_state",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_items",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_liveness",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "refresh_state",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_usage",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}/child_sessions",
+          "changes": [
+            {
+              "path": "/responses/400",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}/items",
+          "changes": [
+            {
+              "path": "/responses/400",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "PATCH /v1/sessions/{session_id}",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_usage",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "base": "v0.12.0",
+      "target": "v0.15.0",
+      "paths": {
+        "added": [
+          "/v1/extensions",
+          "/v1/extensions/diagnostics",
+          "/v1/extensions/{extension_id}",
+          "/v1/extensions/{extension_id}/assets/{digest}/{asset_name}",
+          "/v1/hosts/{host_id}/credentials/{provider}",
+          "/v1/imports/local/stream",
+          "/v1/projects/order",
+          "/v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+          "/v1/sessions/{session_id}/agent-title",
+          "/v1/sessions/{session_id}/model-override/reset",
+          "/v1/sessions/{session_id}/resources/github",
+          "/v1/sessions/{session_id}/resources/github/changes",
+          "/v1/sessions/{session_id}/resources/github/preferences",
+          "/v1/sessions/{session_id}/resources/github/prs",
+          "/v1/skills"
+        ],
+        "removed": []
+      },
+      "operations": {
+        "added": [
+          "GET /v1/extensions",
+          "GET /v1/extensions/diagnostics",
+          "GET /v1/extensions/{extension_id}",
+          "GET /v1/extensions/{extension_id}/assets/{digest}/{asset_name}",
+          "GET /v1/hosts/{host_id}/credentials/{provider}",
+          "GET /v1/projects/order",
+          "GET /v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+          "GET /v1/sessions/{session_id}/resources/github",
+          "GET /v1/sessions/{session_id}/resources/github/changes",
+          "GET /v1/skills",
+          "POST /v1/imports/local/stream",
+          "POST /v1/sessions/{session_id}/agent-title",
+          "POST /v1/sessions/{session_id}/model-override/reset",
+          "POST /v1/sessions/{session_id}/resources/github/preferences",
+          "POST /v1/sessions/{session_id}/resources/github/prs",
+          "PUT /v1/projects/order"
+        ],
+        "removed": []
+      },
+      "schemas": {
+        "added": [
+          "ErrorResponse",
+          "ExtensionAssetErrorResponse",
+          "ExtensionBrowserBundleResponse",
+          "ExtensionDiagnosticsResponse",
+          "ExtensionListResponse",
+          "ExtensionLoadErrorResponse",
+          "ExtensionPageResponse",
+          "ExtensionPrimaryNavigationResponse",
+          "ExtensionResponse",
+          "HostModelOptionsResponse",
+          "ImportFailureRef",
+          "ProjectOrderRequest",
+          "ProjectOrderResponse",
+          "ResetSessionModelOverrideRequest",
+          "ResetSessionModelOverrideResponse",
+          "SessionBtwSidechatEvent",
+          "SessionCodexApprovalModeEvent",
+          "SkillsResponse"
+        ],
+        "removed": [
+          "SessionSkillsEvent"
+        ]
+      },
+      "events": {
+        "added": [
+          "session.btw_sidechat",
+          "session.codex_approval_mode"
+        ],
+        "removed": [
+          "session.skills"
+        ]
+      },
+      "changed_schemas": [
+        {
+          "name": "AutomaticSessionRenameResponse",
+          "changes": [
+            {
+              "path": "/properties/reason/anyOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "enum": [
+                    "not_top_level",
+                    "no_seed",
+                    "title_changed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "after": [
+                {
+                  "enum": [
+                    "not_top_level",
+                    "no_seed",
+                    "title_changed",
+                    "generation_failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CompactionData",
+          "changes": [
+            {
+              "path": "/properties/window_id/anyOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "after": [
+                {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "CompactionInProgressEvent",
+          "changes": [
+            {
+              "path": "/properties/started_at",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "ElicitationResolvedEvent",
+          "changes": [
+            {
+              "path": "/properties/reason",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "const": "unanswered",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            }
+          ]
+        },
+        {
+          "name": "ErrorData",
+          "changes": [
+            {
+              "path": "/properties/level",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "error",
+                      "info"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/source/enum",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                "llm",
+                "execution",
+                "tool"
+              ],
+              "after": [
+                "llm",
+                "execution",
+                "tool",
+                "harness"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ErrorDetail",
+          "changes": [
+            {
+              "path": "/properties/cause/default",
+              "before_present": true,
+              "after_present": false,
+              "before": null
+            },
+            {
+              "path": "/properties/remediation/default",
+              "before_present": true,
+              "after_present": false,
+              "before": null
+            },
+            {
+              "path": "/properties/title/default",
+              "before_present": true,
+              "after_present": false,
+              "before": null
+            }
+          ]
+        },
+        {
+          "name": "ErrorEvent",
+          "changes": [
+            {
+              "path": "/properties/source/enum",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                "llm",
+                "execution",
+                "tool"
+              ],
+              "after": [
+                "llm",
+                "execution",
+                "tool",
+                "harness"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "FailedEvent",
+          "changes": [
+            {
+              "path": "/properties/source",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": "execution",
+                "enum": [
+                  "llm",
+                  "execution",
+                  "tool",
+                  "harness"
+                ],
+                "type": "string"
+              }
+            }
+          ]
+        },
+        {
+          "name": "ImportSessionRequest",
+          "changes": [
+            {
+              "path": "/properties/host_id",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LocalImportRequest",
+          "changes": [
+            {
+              "path": "/properties/session_id",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LocalImportResponse",
+          "changes": [
+            {
+              "path": "/properties/failures",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "items": {
+                  "$ref": "#/components/schemas/ImportFailureRef"
+                },
+                "type": "array"
+              }
+            }
+          ]
+        },
+        {
+          "name": "MessageData",
+          "changes": [
+            {
+              "path": "/properties/stream_message_id",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "RoutingDecisionData",
+          "changes": [
+            {
+              "path": "/properties/task_description",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ServerInfoResponse",
+          "changes": [
+            {
+              "path": "/properties/enabled_connections",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            {
+              "path": "/properties/sandbox_provider_capabilities",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "additionalProperties": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object"
+                },
+                "default": {},
+                "type": "object"
+              }
+            },
+            {
+              "path": "/required",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                "accounts_enabled",
+                "single_user",
+                "login_url",
+                "needs_setup",
+                "databricks_features",
+                "managed_sandboxes_enabled",
+                "sandbox_provider",
+                "sandbox_providers",
+                "sharing_mode",
+                "public_sharing_enabled",
+                "server_version",
+                "smart_routing_enabled",
+                "smart_routing_sources",
+                "features",
+                "harness_install_enabled",
+                "installable_harnesses",
+                "dictation_available",
+                "branding"
+              ],
+              "after": [
+                "accounts_enabled",
+                "single_user",
+                "login_url",
+                "needs_setup",
+                "databricks_features",
+                "managed_sandboxes_enabled",
+                "sandbox_provider",
+                "sandbox_providers",
+                "enabled_connections",
+                "sharing_mode",
+                "public_sharing_enabled",
+                "server_version",
+                "smart_routing_enabled",
+                "smart_routing_sources",
+                "features",
+                "harness_install_enabled",
+                "installable_harnesses",
+                "dictation_available",
+                "branding"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ServerStreamEvent",
+          "changes": [
+            {
+              "path": "/discriminator/mapping/session.btw_sidechat",
+              "before_present": false,
+              "after_present": true,
+              "after": "#/components/schemas/SessionBtwSidechatEvent"
+            },
+            {
+              "path": "/discriminator/mapping/session.codex_approval_mode",
+              "before_present": false,
+              "after_present": true,
+              "after": "#/components/schemas/SessionCodexApprovalModeEvent"
+            },
+            {
+              "path": "/discriminator/mapping/session.skills",
+              "before_present": true,
+              "after_present": false,
+              "before": "#/components/schemas/SessionSkillsEvent"
+            },
+            {
+              "path": "/oneOf",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "$ref": "#/components/schemas/SessionStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionUsageEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTitleEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionReasoningEffortEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCollaborationModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPermissionModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionAgentChangedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTodosEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalPendingEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSandboxStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionMcpStartupEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSkillsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelOptionsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInputConsumedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInterruptedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSupersededEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPresenceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceDeletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChildSessionUpdatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChangedFilesInvalidatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalActivityEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOutputDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningSummaryTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputFileDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/HeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionHeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationResolvedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/BrowserActionRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyDeniedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/QueuedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/InProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/FailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CancelledEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/IncompleteEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/RetryEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionInProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ClientTaskCancelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCancelledEvent"
+                }
+              ],
+              "after": [
+                {
+                  "$ref": "#/components/schemas/SessionStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionUsageEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTitleEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionReasoningEffortEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCollaborationModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPermissionModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCodexApprovalModeEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionAgentChangedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTodosEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalPendingEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSandboxStatusEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionMcpStartupEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionModelOptionsEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInputConsumedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionInterruptedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionSupersededEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionBtwSidechatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionPresenceEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceCreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionResourceDeletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChildSessionUpdatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionChangedFilesInvalidatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionTerminalActivityEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ToolOutputDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ReasoningSummaryTextDeltaEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputItemDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/OutputFileDoneEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/HeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/SessionHeartbeatEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ElicitationResolvedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/BrowserActionRequestEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/PolicyDeniedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CreatedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/QueuedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/InProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/FailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CancelledEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/IncompleteEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/RetryEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ErrorEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionInProgressEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/CompactionFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/ClientTaskCancelEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnStartedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCompletedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnFailedEvent"
+                },
+                {
+                  "$ref": "#/components/schemas/TurnCancelledEvent"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "SessionForkRequest",
+          "changes": [
+            {
+              "path": "/properties/host_type",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": "external",
+                "enum": [
+                  "external",
+                  "managed"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "path": "/properties/sandbox_provider",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/side_chat",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            {
+              "path": "/properties/workspace",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SessionResponse",
+          "changes": [
+            {
+              "path": "/properties/inference_configured",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            {
+              "path": "/properties/inference_error",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/share_workspace_files",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            {
+              "path": "/properties/skills",
+              "before_present": true,
+              "after_present": false,
+              "before": {
+                "items": {
+                  "$ref": "#/components/schemas/SkillSummary"
+                },
+                "type": "array"
+              }
+            },
+            {
+              "path": "/properties/usage_included",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "default": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        },
+        {
+          "name": "UpdateSessionRequest",
+          "changes": [
+            {
+              "path": "/properties/approval_mode",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "/properties/share_workspace_files",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "changed_operations": [
+        {
+          "operation": "GET /v1/hosts/{host_id}/harnesses/{harness}/model-options",
+          "changes": [
+            {
+              "path": "/responses/200/content/application~1json/schema/$ref",
+              "before_present": false,
+              "after_present": true,
+              "after": "#/components/schemas/HostModelOptionsResponse"
+            },
+            {
+              "path": "/responses/200/content/application~1json/schema/additionalProperties",
+              "before_present": true,
+              "after_present": false,
+              "before": {
+                "items": {},
+                "type": "array"
+              }
+            },
+            {
+              "path": "/responses/200/content/application~1json/schema/type",
+              "before_present": true,
+              "after_present": false,
+              "before": "object"
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_id",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_name",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "sort_by",
+                  "required": false,
+                  "schema": {
+                    "default": "created_at",
+                    "pattern": "^(created_at|updated_at)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "search_query",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_archived",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "kind",
+                  "required": false,
+                  "schema": {
+                    "default": "default",
+                    "pattern": "^(default|sub_agent|any)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "project",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "pinned",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_id",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "agent_name",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "sort_by",
+                  "required": false,
+                  "schema": {
+                    "default": "created_at",
+                    "pattern": "^(created_at|updated_at)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "search_query",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_archived",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "kind",
+                  "required": false,
+                  "schema": {
+                    "default": "default",
+                    "pattern": "^(default|sub_agent|any)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "project",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "pinned",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "visibility",
+                  "required": false,
+                  "schema": {
+                    "default": "all",
+                    "pattern": "^(all|mine|shared|archived)$",
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            {
+              "path": "/responses/400",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_items",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_liveness",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "refresh_state",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_items",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_liveness",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "refresh_state",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_usage",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}/child_sessions",
+          "changes": [
+            {
+              "path": "/responses/400",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}/items",
+          "changes": [
+            {
+              "path": "/responses/400",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "GET /v1/sessions/{session_id}/resources/environments/{environment_id}/filesystem/{relative_path}",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "environment_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "relative_path",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "environment_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "path",
+                  "name": "relative_path",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "limit",
+                  "required": false,
+                  "schema": {
+                    "default": 20,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "after",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "before",
+                  "required": false,
+                  "schema": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "order",
+                  "required": false,
+                  "schema": {
+                    "default": "desc",
+                    "pattern": "^(asc|desc)$",
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "download",
+                  "required": false,
+                  "schema": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                }
+              ]
+            },
+            {
+              "path": "/responses/200/content/application~1octet-stream",
+              "before_present": false,
+              "after_present": true,
+              "after": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "operation": "PATCH /v1/sessions/{session_id}",
+          "changes": [
+            {
+              "path": "/parameters",
+              "before_present": true,
+              "after_present": true,
+              "before": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "in": "path",
+                  "name": "session_id",
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "in": "query",
+                  "name": "include_usage",
+                  "required": false,
+                  "schema": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "compare": {
+    "pages": [
+      {
+        "page": 1,
+        "total_commits": 286,
+        "returned": 100,
+        "status": "diverged"
+      },
+      {
+        "page": 2,
+        "total_commits": 286,
+        "returned": 100,
+        "status": "diverged"
+      },
+      {
+        "page": 3,
+        "total_commits": 286,
+        "returned": 86,
+        "status": "diverged"
+      }
+    ],
+    "unique_commits": 286,
+    "ahead_by": 286,
+    "behind_by": 2,
+    "file_list_limit": {
+      "returned": 300,
+      "complete": false,
+      "note": "GitHub compare files capped at 300; no full source-diff audit claimed. Direct tagged OpenAPI comparison is complete."
+    },
+    "commit_hashes": [
+      "358372f8161574e5e088eb509c50045c5244c01f",
+      "f6b935056054e476cf88f77b20c4f89349de5aba",
+      "e93230d568afb517386c258c6b877c404559f8b2",
+      "10c75689b16ed2d678a9c56df7980e76f1c44882",
+      "5d800e9fe43a2bda60bee4ff0e60317076137398",
+      "cd167494fe94ff050143d30c8374a222494fc27f",
+      "a77f52bcf947edfdeb4d8f53ca460ef1a89b704a",
+      "c6ac270ac37b19e4dbcbd7f655c8eca130637967",
+      "414044c1683d42f84653363a416b5221117d2ecf",
+      "c4a78ce88658274c89e15ae22a659423ef6c4619",
+      "880614251a12cdbc752787b616c61f9d36d25b71",
+      "871561a10dc531adf37f924611e47a99b3c40ad8",
+      "f59531c65a8b9029fdb9f99849fc81220f995901",
+      "a8cb956b5e751f623dff83e95333dafb1e4aac19",
+      "f6fd3b886a8a7d157063daa6821fe2ff65e29882",
+      "270e7142890fcf0c853d07b4c34c5a6158b0c42c",
+      "4c26bd31c851bbb72a9300bdc0f6e610840ced81",
+      "669fdc33d0c78d65833ea31966592809c518888a",
+      "b0db72d562955c91769d4205eeeef35ea2f74940",
+      "79374879466d92086fa8ea4343f3719abc62934c",
+      "4d963a360e798f076d4fdbd4665e7188e4da05df",
+      "b18138a5f205880bd20b927e3fb113579bb87e38",
+      "9381632ac95d1f6bd03e7a999083f6da635a12ef",
+      "bca4954342c4384ad24671cfc4a0558c61172e4d",
+      "a5625652ea6cb49f006f2b7c8a6432a2b9f149f6",
+      "bd80be068e26e4b531e1d4b63197aef46eba6871",
+      "ab0a35d63064d7d77fb0ac57662face41882898c",
+      "e7cb7646d8777f1251a3e5902aac0af8fe5bba3b",
+      "01f2aad0a658244eeaf14bac6250790dcb9678ae",
+      "1cb489702109c434dfc4121957f39dbc35447491",
+      "06c5ea016cd350260105e1696769f69aa5cca83e",
+      "3f528550f483c9deee9f9bd9bd990f8a07b116e6",
+      "a55c2be30b9baa91ddf31c718f5f0b35c6e7f024",
+      "91b892b57ca74d309173eec002b4b832f97640eb",
+      "d096ab04baa5f2080cbb7e86399d795181239f0e",
+      "0b922ae0c9a4c356b5ebf90f53b3f62bd1b9dc1c",
+      "4eec4804a8f35af68a7fef6f4f9c85bf8fbf251c",
+      "37daf3851dd43c7be03ebf9753b5cce8db6935df",
+      "86f3bff049469db3f2ace88c37c08faa674865f6",
+      "5fc83cf25ad20b2580c6fe625f9218d95b395024",
+      "301ec602d0a266407549bee8c9f5acde8eaeccae",
+      "9a56d4aa14adbbcda2b38a24a1dff152a31510fe",
+      "800ee9205ac950e409026cfaad50c790fe8e5174",
+      "cb0786709e1f079873355c8fafa02be68f40c3b4",
+      "f3d05a8728e2336aa63639095f0c21b3c5c8d1d5",
+      "59eac6b0102df8461880d05002b7fcd8c0648eb8",
+      "4aeaffc556f9a47bfea203cff32b209432c1a510",
+      "302d0ab72fe0866886462c9513deb24036f11763",
+      "7e270f52401b7b97c0621227669772084416c938",
+      "69e8bfd8e62edb0651166e5f16826be440361db8",
+      "6711c90b1bde2c75deef879b4a6d4bb81abd8610",
+      "7bd52387f939da9497db11698f60adafe102f00b",
+      "264123c72edf77e91b2916d54f3e511be40ee4ea",
+      "8877e51b60a8af27e4bad8a5db2e55e374d21bee",
+      "09835f0d8e4326fccb784c091b2857952497cc95",
+      "70a53d1d84cf2fae2767f69245e94e7c8da523d8",
+      "86655e0034d9a08ab9719377b91f2945c18f2c22",
+      "7b4255c479b155fdc307758f4f52de180d9047ce",
+      "d61e7cbd56f0a6cfd3e80cf5db263751dd82b353",
+      "5a276c02f998da500b8a33c40cf311f69f742890",
+      "362a83b0fce58c140ea79e8ec7d424cabbbcf0c1",
+      "36e9403ace2ab8a94a54156d9248a365d698c385",
+      "8a0f44fa95817ae93e3b829e6f7a9ba20bb60749",
+      "d33ea0da826670974b33e47592d3e13d32dc5e3a",
+      "73852d0528024cf079259197b40cda5c2de3ea1e",
+      "e5f9a21d2c1736155308d38e4fe8e0e1a382301b",
+      "7b6bc37517221ad18e0d6fd1ac0edc42e36925fa",
+      "a2413a9a14119c6f65fb140cbb451f0d97abb9e7",
+      "d75390cb3e86bc3bbf50a224c1c7241ad25a363e",
+      "2aacca5e77a05fc97def249560f7e4d601e0dc16",
+      "62e52d6d931984f859864137a611f9b296199478",
+      "fa5aa5872d8c78181d29f711dec96308a3106ec4",
+      "7094d3a1142f3509febd7f31d604d0fc5f344578",
+      "a852b211d92f2a45d2db5421c94e7c027d3f5c89",
+      "bc2f413950d8ab4714d7760b4c5767d1eff0f7e0",
+      "5d5b5b269cf9f864bb697d6e6933887ef8d559df",
+      "83af5b8e1ddc3896fa3c3e281a1d3ad8d50ffad6",
+      "8aabba16c85f9a53818a14347725ac17fb5be464",
+      "89a4811347006c9a7a0585ff5d2d298b6e325fd6",
+      "cd5723ca0d3a9a5876567568f30b8a0888fbaa4f",
+      "5e552ba70a0141071a57a9120a4ef1d5becb50f5",
+      "e3a02bbaa82a0bcd6982147532acf81a4907412c",
+      "060bdfabb6d3766bd6460dc9ea52d6788b0f9e34",
+      "c970a921545b62ffb7374541b6e7c99c39064595",
+      "ae7c5d8b7ec28fd9ed9c207fd6a8aa3c4c3dc066",
+      "570ec5e0d775c3e75b25e11aca5eb3c5dc74335d",
+      "17c4532de282b8a6c01b5aa9d1ab28dabdf9cf22",
+      "082a1bb574c78aae9d61330a4fe9978f5533804e",
+      "ea5c26cd0191a22ea0f623be1b0435ee6627317a",
+      "8cbac6635857faa1a779491d37d446782daf6234",
+      "4b2f42b2bd61fc3991ccb81a312e29fe2e955a0b",
+      "337aef3daea314d341f8a51481cfa21a62a44b07",
+      "beb043a64bebe904d89cb8b070e12d5fd66efb4a",
+      "3036207f39c2a57c7e343567f24bdccd2eac2a05",
+      "94907703f6370aaa878b22dc919bfc67a0b50b27",
+      "a8985effb9a33c75004b604e539b0e9b676d8773",
+      "db46d0da205ce352e367dfa5a868850747f217d4",
+      "9e50d41ab02d90010b87e2b9118020cc3d651e1a",
+      "1872f60c37f84c32bac91feae3ab9ed289045d60",
+      "d98264f899f6f514ece86d387d8074321f5ead20",
+      "d019b48ab2fbb6a215b690028ae86b17f7520385",
+      "7c43e75c746bba7de26f3e6afea25ae8e761c289",
+      "233c4d766209a01714d7f3aab2e14dd8d751b4e8",
+      "f4a8a9203e604871943e0457152b3dac25959f44",
+      "6492f2ebd77e389eb39d89abe703d46d19c7b8de",
+      "c7cc79d3a57238cf024e8b3e421f04e91435d855",
+      "084bcea65395e439bbb3da2017a0ac57c64fe99a",
+      "3277ae9c8111a3e427858c021a4796a74995b3f6",
+      "3eb09541d1cefe56155210d87461a4cf076e2273",
+      "4a673278c63f40fdc3b38be6e15898bfb7390131",
+      "c90e5de45018dc86893981ef01450a7702a64e4d",
+      "f754c1402d1f25aae1ed12f3140d3e2ad875d3b3",
+      "5f5829446f2119887715cc3ff39a42ddf1fc130a",
+      "7d74e502b50c879bb92519154b1859e9ff107ad4",
+      "585f0113c98b493ffab82dd0feb41e19bc3eac2f",
+      "d1f5684cd5291c0bc9baeec15b1de951f1cdd27d",
+      "08ecf9a45efb5ffd470c057011d24d523ae98919",
+      "74e3f14ed18435d2bc8b4f02dccdfd107bef06d4",
+      "6aef59afe6877943bb0c261df7d5fee30e733f7d",
+      "a405cab63fa78653134ae437d2c6e5891965835a",
+      "c4adcb7c4e7104e6eabbfb4d4f3d1cb263579ca1",
+      "9616bf97cd38494db7164a1f6f350e853da4d8d3",
+      "dca0c0686b465bc4942e9d80f8106b64a33f70a5",
+      "e282bf8f57a7c8b0d346bc1d92245bb5aaa5ff64",
+      "f876b85441b169bd2b97370539273ac833f50de4",
+      "e953ade21c2e45c1bdccda5cb477334b24aee4f5",
+      "f433121418a5bf7400da345dbe3ea1337b52afea",
+      "46625183e10afdc2ac8b76e890ceaa13c85f1617",
+      "d3f4f7731877b8a8716f5ddd407b7cd5cf045006",
+      "4e65136642b4a6916b31a81aa6a8d46238aeffd2",
+      "55de60f3dad750e35f29d72f94b2047a4608105f",
+      "c92ae76dc06fdcf51a27fae280398f1d3045cadb",
+      "94286e8de232709111874b8588c5d5cc42a22a0a",
+      "121d0e65fc86b3af6f24a66361fed7b9cd7fa511",
+      "04c6c171c01e38606892fc4f3610aa3c18160799",
+      "23d6a0839937d1a1df6aaced6b81ac5540d40f6a",
+      "e585b772c7dd60ae6ba3467d4f3abd4d3d7c5478",
+      "150dffdc70032e1506bb4d7453c3460be4b914d8",
+      "6daeaf6e687234bf17fdcd95446bb00b66335ab6",
+      "55b705d38bdb8406b1bb1ba9d9a2d07bb640e0c9",
+      "8da24ec37b29a094d79db3bdb8ae511bf8e756df",
+      "e170847b5d71f2ed58275855669dec28b6431ff5",
+      "7b74582ef4507f930863a00dd705fd2dd6e88daf",
+      "3d7ba875e1cf4cf944e9fb67c23cc1fa06f2ed4a",
+      "79c98895ccae0b240431edefe765b534aee4b222",
+      "fbd77aa180b38d0b848bee1ae2034e08aae4ff26",
+      "b3308f9f852617e6dd5be1c823f440785c40f26a",
+      "d8d07168c05ce1385be19dbd6ea64f4574c8d144",
+      "f30e94a5332010fcdb96641cf4dd1aaabd504666",
+      "925475e278c2692e9b4fe7bb23f4cdebacd98e2e",
+      "c12a0562e9e92000577db53d356dbf7014f8ceb1",
+      "9a7a1fc8f1c8120d99ba78675034330dbd0b74c3",
+      "1e824ca0c2d69b4c7b8b6d196ceccd10ee6d8863",
+      "42e553b348fa1074e2a4d0d07df047e1ef61883e",
+      "ea7028ee7531f3a281ca785a843457dec20afc6b",
+      "cd51eacb3f4f6d2a773213b7e06b0d27704277e9",
+      "a14087c86668abe23b0b1f85469739923cc37f50",
+      "2c0489fa3f90dea6dc15dd61822143e665fccc44",
+      "93356e0f4de3a7ef3fd35cb757d8b8dcb094adfd",
+      "af462705d46bdeecfffd017bf443476db4c0bfff",
+      "4d7dc07336fdf92d6b66e5336407511f2c6acecc",
+      "70600846f2dc9ad0b8b720aefc9848be27e4f2f2",
+      "97801b3523bd62b2d1b9307f53fd520a3096406a",
+      "7200b51212177f25d5a85741e2ed3a6142b3d0c5",
+      "b7c050a1542fcae27dc1af0d53ce3dd74d046251",
+      "e8ece9ce9d4bbc2c402e71f00985842924362e2e",
+      "bd121aabdb17b7b761ad7e6dd6083fb13ad7e2b3",
+      "6a728e10bdd3a672e3e2f34d769b602d2c04520e",
+      "e7d88600e260e180d3f2f22debc73bfc6eb5d9bf",
+      "4a0dce07bb8a133a4e6db4f82cb8138fa34b2040",
+      "91f23ecff8904caa051dc4db8bf2cdea70de8cf4",
+      "486bf16526b8ef8b1ee0253d5c5d1f24a4086f35",
+      "b0836134b0c27125a7dc15b892f4db7e257ea0af",
+      "67f6060616328e32a50bafb0880335719b149d4b",
+      "23ebce59f7c443acfb01224737d3d68f2caad158",
+      "0dd5cde7c42aa76ac35be2de0d16ed2ffe5dd8a7",
+      "a6ecc9c53af886d816f338bc0fb7ad464e431c37",
+      "8a0e6ea2dac15ce222dfdf72a0be97d30ae1d39f",
+      "7deeaa68e5dea307028d2e7a77f8c85dab17454a",
+      "8a2be29713c65fede401c11225d4db077a453436",
+      "ecca41408d6c0bf242ff5bfac5a6a63c099ebbbd",
+      "f275111a17a63ceea330a1e91d1ca714ab872c10",
+      "a8642b2f416333af6c78cb47ef2d2f5833166eaf",
+      "799b934ca58e15c5660b8f98e9e5c558db800c17",
+      "947f2eead70614e81d29ea0f01a367552ea72001",
+      "96f1de63641c58461a8b590f7b7bac81abe4e757",
+      "62017a29d3d471f20b9f8b7b821543fce5727c1e",
+      "d9393b14596eeb91ec38bb44a611178421f2edab",
+      "51b9c1464aa62d6d07fd1e44f6704a1a417b8ab1",
+      "5755c63dbf7085e33b6154b68d470158d9f8a4fb",
+      "3ed37041cc96b60bd2dc85347071dc89f412c93f",
+      "38d676b5397a5462fdf43e5aa347e31b69942219",
+      "2f3332b87ee1a077af6d8bf5dbe9fe9cabeac4fb",
+      "ca7f0e257b7acdf74fb69b248a50aab9660626c7",
+      "28acd5ebebdff7999f26f08ea098d13e779e0402",
+      "43eb8ab66d35cd9599a38af0b3f24feef4799644",
+      "812a9e3678f34167f311eb549203dae2875eb43c",
+      "2c8a26aaa1de85ca20848f0cdf4ae6ba5e42d9bf",
+      "f143852b5215c6e44ad5be04400b2a8521c312ae",
+      "7897684ee6466d26bf5df37fe78321ba6b17e394",
+      "87287c3b6bc1ce87b3597750a76d3c350dd36e2b",
+      "0a205cd0d2cdc1801c95d3fc9e6aaadcf3aefe5a",
+      "5cef71060b7325753465f8086c007eefbd0bd400",
+      "dfceb32fc1a6ba6ae9d7793817c15353b326d586",
+      "9e03599e3934d946c3d341c55bdc0c51411dbbbe",
+      "82ffd0c21cfe7193a8b898846354942ec7549ecd",
+      "10bfbb6f9cef1f6838a072f70eaa44a992552ace",
+      "0da52affceed86107a5cf7587ec0d8d8e73a5a5d",
+      "a68555dcd50d610e15a25765effa7b7b71fad7b2",
+      "f8e1e4bff5e9da8576ea6c44278d3b1c587e0e6e",
+      "7c1ce512920d05b5e057ea3a6f6c6a1536b55557",
+      "2357fd8bb5ee484d1097041d738ad2a38c4e898f",
+      "ab8a65144d39f9946020341eb9c093d4faabc264",
+      "49852d1055d3b27252721c7ab75dd9c9f998be68",
+      "fd7759bf1fab0226a87f1b44d1fdefaffbfa4cfa",
+      "6f9a0bc9d63b4af60afd12232d2211d93dbc009e",
+      "6724cbb3782861d9a5dc9a1a7636c4a4f96a585c",
+      "ef57f4507289a0bbfb61e476730847a6ab22ac01",
+      "a1dbcbb890e7389eb6f2a8caa2f3532804fb7da6",
+      "878a4c92b1d36f6de392fb996e7521e73b66db70",
+      "0b8460e2965fe263868fac51ae7e5e9500de8100",
+      "a47aaeaa181609b76d6b18fc3a7ac25a06353fdb",
+      "4595e37255dcb8f05e2adc41f7bfb2818fc5f59a",
+      "3e2bf9b8d8b3dcc6c476a795dadd41fc3a4a57c8",
+      "88752ab2dad275d7e2b093be68d84a79a4497334",
+      "70fa1ba0bdf490abe36cc05d4778f2c3570e757d",
+      "ece4021f97646727508b72b352e0dbff4393ce5a",
+      "821fa974c7fd74fefda66ff6a6b52b450933f705",
+      "d0cf2f0c30ac4fa2d2de3ac79a91f1d14d8c6873",
+      "6e2449138efe5c4b6c3e71ebf99b52c66230de99",
+      "aa84c88a9f9c707076e5be977ac450ca33e09c38",
+      "1e535001e6cbd10fcaf1d80f76608d6adf08d9e4",
+      "e047da5f734e0db77a6d4c32abb3dce433a2e216",
+      "6fdcd17044c2f7a29f1d58d64eeee41123607c08",
+      "656896d3bc676662083cb68449351ef3d10f05b5",
+      "a83f122ba8046b79dc2a9b62e982645b88a9af9a",
+      "071120272753083c7a46fe94685113e802cc798a",
+      "1f29f4ec0b9cb22a6982aa49b60c4fae9b32ae2c",
+      "39807219a599d9029de42dc477c7e9e283135ad9",
+      "66c74bfe6f785bfdb176c077aa9f821696543dd8",
+      "5eed51b65aa6f8b35f7c3feb9bdbc3262f1b7f87",
+      "0d5885bd6772bbdcfb71b9b757991d470cccd6c5",
+      "359b9a7e74a47a912a58c1072c6f84eef266a373",
+      "176aae5e18ff9c7344a571aac3db27a22fbd210a",
+      "3f95c8bef9c5949e480d2e3e6dd7ad2c66af1656",
+      "c7ed0f987f8e90cd38e53c6f225f827ac7bb83c3",
+      "d139dc18ee10cf2665626268f5a430a4ee8dfbf8",
+      "3ad4b6315e49f81f6e2c83590d53a07a00359533",
+      "4b8692f298c5f8db78d58a4d2858b17d34e7943a",
+      "1d2eae203fc7e63061e2d3c67e30015efd391846",
+      "181c829d0e5c9be677946d12f6181b9f183cebd6",
+      "b9d4502b00c39a7e86df1623cb59b53aa12a623f",
+      "acb9b53ca2478e861b986dc4d884c7e9a6028c41",
+      "e2e9e57a7f6a7374376a55607e624bb0d60838b3",
+      "88e800fd841498dd25c5ef3bbe03b152349dd176",
+      "79aecabc806573589232414d3679edc12fe144e9",
+      "63fc780e478c7357b4fb0dfad28e90155bb83535",
+      "fd582150ee95d2b53d7e2d7a735318882d012495",
+      "0dbf2226193a9465baf8977924f2b411ca938a7e",
+      "a41b000f1467c6b7e8ac19c169e5c56a044792c6",
+      "ccedb06493bb02270f7cb11dea05cd8084f2e5a0",
+      "6afe3ddf1a4c0e30a2ce96aef3fdbc38166cb17f",
+      "1c756be2d31b55a41c2bfd9e536c6b41caea2c8e",
+      "3bce1f0fe1fb114d04bee3dd5f24fa96814c6ea1",
+      "94c55788af11473532b79e75f0142427ab51c274",
+      "a18d9e833fc92cf941f154657f61860952042a09",
+      "75702ebcfb9172483c605fd2fa90932a7c6bdac3",
+      "b4b65274c4709c382a9ee2db7c95fc2346c38688",
+      "a7a26104cfb07d08480fe5b8712678ace719efcc",
+      "d16da5880bd23365e79c9b2a08ca83874b7a4b97",
+      "820994c3265e85a2978a5bb13dcc71eeb97ca789",
+      "44c0cfc6bed39be9016a6572ea78e8eaaffa3002",
+      "47e4dd59562f841b6604d2c27fd3ad7c663eef44",
+      "66152cc788ce010ca8ba9171c0237b781d08692c",
+      "398fe1b6690cb06a4adcb9b0597f382dcaf0aec3",
+      "b9ab5f025a12a442a6d9fe054872c9a9731714ef",
+      "42cd81b605895806135c2c6d61aef1af0aa04695",
+      "34a6acd4ff69bcba799e29b4e3c2e5ed64369f3f",
+      "2d1a5f9361e45fcf996e9bde679be2623d5a82ad",
+      "e6b1c83a70f0db705bd916cf63352985a9d48b39",
+      "1d735aa2ec175561dd711930cc164ea2d52dc629",
+      "98b8d48004e0fed38e68def0d346bea8cd307636",
+      "cbef868a92ff271c5f3730b6728e6ee9b485a4f3",
+      "8b14b27b69fce2d0629b9260fd8c70b1c6426e25",
+      "e0fdbc7fdf6bcb94d8e6ac9442cc0bb29a8f2b84",
+      "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5"
+    ],
+    "relevant_commits": [
+      {
+        "sha": "d096ab04baa5f2080cbb7e86399d795181239f0e",
+        "subject": "feat(skills): unify slash-menu discovery on the host (omnigent#7435)"
+      },
+      {
+        "sha": "9a56d4aa14adbbcda2b38a24a1dff152a31510fe",
+        "subject": "fix(server): fail loudly on stale pagination cursors instead of silently truncating (omnigent#7292)"
+      },
+      {
+        "sha": "4b8692f298c5f8db78d58a4d2858b17d34e7943a",
+        "subject": "fix(sessions): defer subtree usage for metadata requests (omnigent#7937)"
+      }
+    ]
+  },
+  "captures": [
+    {
+      "url": "https://pypi.org/pypi/omnigent/json",
+      "scratch_file": "pypi.json",
+      "sha256": "b2015299bfa197d0a18ffc200a8ebe69a5a29c5af31a656fffcc82eb4a1f5885",
+      "bytes": 92821
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/releases/latest",
+      "scratch_file": "github-release.json",
+      "sha256": "91bfab0432632de6aa89630086b539229f090e831023e7f9571ff433edfcaf70",
+      "bytes": 4207
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/ref/tags/v0.15.0",
+      "scratch_file": "tag.json",
+      "sha256": "6a15875a882ff9a661737510430ff946913c18e44208aa2f54ec4e847897cf0c",
+      "bytes": 345
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/f04b0354fb5344c1ea8b92795ceb6760a9ad7595/openapi.json",
+      "scratch_file": "v0.12.0-openapi.json",
+      "sha256": "2fad529777b266e54341cfa41934cb7fe211cad1d787afbacc4d16e6d38b7cdb",
+      "bytes": 517042
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/fc89a3ba3c4698a7d742343b443a7b2bdc01120a/openapi.json",
+      "scratch_file": "v0.14.0-openapi.json",
+      "sha256": "222c468fe0a269e92aa6faae08ea7081b5144ae227a2bdbc799b3af9077adb9c",
+      "bytes": 561421
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/openapi.json",
+      "scratch_file": "v0.15.0-openapi.json",
+      "sha256": "282eba5f5b253f399e8cef04e36ba798c348e7ddd23317ceff9847da8a95f48a",
+      "bytes": 573965
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/compare/fc89a3ba3c4698a7d742343b443a7b2bdc01120a...c8b9b85f822f2c9203ff995c10f3cc49d064bbe5?per_page=100&page=1",
+      "scratch_file": "compare-1.json",
+      "sha256": "eb3345297b1515665f30759e38b4ac071e3b2611e9b3774c41a851c25c1bb97e",
+      "bytes": 2003887
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/compare/fc89a3ba3c4698a7d742343b443a7b2bdc01120a...c8b9b85f822f2c9203ff995c10f3cc49d064bbe5?per_page=100&page=2",
+      "scratch_file": "compare-2.json",
+      "sha256": "2784d6c81370896ac75cb0aeef10a2bfda1ac0a93b3aaad96f00eca32435985c",
+      "bytes": 785910
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/compare/fc89a3ba3c4698a7d742343b443a7b2bdc01120a...c8b9b85f822f2c9203ff995c10f3cc49d064bbe5?per_page=100&page=3",
+      "scratch_file": "compare-3.json",
+      "sha256": "33fdbd03423c9879d9cc90d0d36d7b8aa13b15ec2f241dd96e5b4d21da0e8a6f",
+      "bytes": 569393
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/trees/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5?recursive=1",
+      "scratch_file": "tree.json",
+      "sha256": "96c9dc25d8c4d27653bd40c88a29c4d7bfe568417c0dcad15fac1f8cd1a4bb83",
+      "bytes": 1540254
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/CHANGELOG.md",
+      "scratch_file": "CHANGELOG.md",
+      "sha256": "f94ba50802b282cc83115df01ad007acbb8157e67d8b68d2d5e395ffad6318f3",
+      "bytes": 218873
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/pyproject.toml",
+      "scratch_file": "pyproject.toml",
+      "sha256": "c415be0a84bf518b908004f0537d0ba3a1b29ae0f2d6e586f22bc55a96cccad1",
+      "bytes": 37904
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/entities/conversation.py",
+      "scratch_file": "omnigent__entities__conversation.py",
+      "sha256": "139c47ab03410a6c0a25c12e7539d6742873ca79ad48c2c19b2facbd32313502",
+      "bytes": 41674
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/schemas.py",
+      "scratch_file": "omnigent__server__schemas.py",
+      "sha256": "7299f5184927887fd3ac9f4d3a67bbd67c1f236b3fd118025332793f64518dbb",
+      "bytes": 221508
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/routes/sessions/routes_core.py",
+      "scratch_file": "omnigent__server__routes__sessions__routes_core.py",
+      "sha256": "c53fbd72e3db99829f0be8a2af988802d8493ec7891f1da4218f965486313033",
+      "bytes": 180947
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/cli.py",
+      "scratch_file": "omnigent__cli.py",
+      "sha256": "dd9d6a31414462d25717a293bb5a103f4bd5d055ae41998daedbe91e9bfa040a",
+      "bytes": 540885
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/entities/pagination.py",
+      "scratch_file": "omnigent__entities__pagination.py",
+      "sha256": "900b63e8782859bf7410532c2d72adb435dc9b0f2d2017331f136b18f67669f4",
+      "bytes": 3394
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/errors.py",
+      "scratch_file": "omnigent__errors.py",
+      "sha256": "399fa17e7676350598a5f7397d537313496455c457d1141eccc4b394457a8066",
+      "bytes": 29977
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/app.py",
+      "scratch_file": "omnigent__server__app.py",
+      "sha256": "4c4e415753d64a5774efa5e6315d34954f16a8c2a0f04f579267536a65acbf8c",
+      "bytes": 191477
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/routes/sessions/routes_items.py",
+      "scratch_file": "omnigent__server__routes__sessions__routes_items.py",
+      "sha256": "455b5c3e940dad50d8f45fafc0f55e807d2ac491a9a336747391865109b2ede6",
+      "bytes": 7823
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/routes/sessions/routes_events.py",
+      "scratch_file": "omnigent__server__routes__sessions__routes_events.py",
+      "sha256": "c21d5c19db89199aea217a49c8a502605e467fb5110a0d7f9b4e011e9b985ebf",
+      "bytes": 129880
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/routes/skills.py",
+      "scratch_file": "omnigent__server__routes__skills.py",
+      "sha256": "18b5c9277661302c00e86b0df8a9a39625191c0f5664a2dd996d5ab322472217",
+      "bytes": 9194
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/tests/server/integration/test_sessions_deleted_cursor_truncation_e2e.py",
+      "scratch_file": "tests__server__integration__test_sessions_deleted_cursor_truncation_e2e.py",
+      "sha256": "455c2baaa2d5a307e9d49118201dff872581c49b18dd506469b070efe9e59a06",
+      "bytes": 7854
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/tests/entities/test_pagination.py",
+      "scratch_file": "tests__entities__test_pagination.py",
+      "sha256": "f0932f2c799554d961cf00e0a3e4015d93ac4aa5e6b3064f53b3818148f6c682",
+      "bytes": 6491
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/web/src/lib/staleCursor.ts",
+      "scratch_file": "web__src__lib__staleCursor.ts",
+      "sha256": "f42c2f5c4992f931c749e781c3c761735f0c105831ad574a1d53c4086825ae10",
+      "bytes": 2665
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/runtime/session_stream.py",
+      "scratch_file": "omnigent__runtime__session_stream.py",
+      "sha256": "adcc529a528ed2c7ac438c6ea0d8af77dd284de02667eba98407a128b6ea19f9",
+      "bytes": 22565
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/stores/conversation_store/sqlalchemy_store.py",
+      "scratch_file": "omnigent__stores__conversation_store__sqlalchemy_store.py",
+      "sha256": "9f3d405c7697938ebf5edeb0223d9b5143a810a121763fca75edc30373deffe3",
+      "bytes": 240762
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/routes/_errors.py",
+      "scratch_file": "omnigent__server__routes___errors.py",
+      "sha256": "6712372508664d59ba3482d14ce57abfd184e25546343649bc058254754075dd",
+      "bytes": 2034
+    },
+    {
+      "url": "https://raw.githubusercontent.com/omnigent-ai/omnigent/c8b9b85f822f2c9203ff995c10f3cc49d064bbe5/omnigent/server/API.md",
+      "scratch_file": "omnigent__server__API.md",
+      "sha256": "82c0182671bc73d0e5953aa56b054704f844d97be4cd5e73f3b66d35d18520a8",
+      "bytes": 60432
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/ref/tags/v0.12.0",
+      "scratch_file": "v0.12.0-ref.json",
+      "sha256": "162d2fa30eb4e160a1a8421da3d96083a87abd2e20ac374ae4c6d2ca731479c9",
+      "bytes": 345,
+      "http_status": 200
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/ref/tags/v0.14.0",
+      "scratch_file": "v0.14.0-ref.json",
+      "sha256": "8e25a5d1dddd1329f19109487db70b7ce0f9cb63041e4873bf62601443d48c2c",
+      "bytes": 345,
+      "http_status": 200
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/git/ref/tags/v0.15.0",
+      "scratch_file": "v0.15.0-ref.json",
+      "sha256": "6a15875a882ff9a661737510430ff946913c18e44208aa2f54ec4e847897cf0c",
+      "bytes": 345,
+      "http_status": 200
+    },
+    {
+      "url": "https://api.github.com/repos/omnigent-ai/omnigent/releases/tags/v0.15.0",
+      "scratch_file": "target-release.json",
+      "sha256": "010563d2cfb8f1e87f700936ce59ee3a33364da46e3db41b0049227918ece74d",
+      "bytes": 133,
+      "http_status": 404
+    },
+    {
+      "url": "https://registry.npmjs.org/@consiliency%2Fomnigent-transport",
+      "scratch_file": "npm-transport.json",
+      "sha256": "4d9a7e2faf5425e683e7d730f56bf6a5cb917345079be22df959e1634106e188",
+      "bytes": 16674,
+      "http_status": 200
+    }
+  ],
+  "verification": {
+    "research_performed": [
+      "public metadata fetches",
+      "immutable source hashes",
+      "parsed structural comparison",
+      "complete GitHub compare pagination"
+    ],
+    "tests": "NOT RUN",
+    "builds": "NOT RUN",
+    "live_sessions": "NOT RUN",
+    "provider_review": "NOT REQUESTED; no panel vote",
+    "compatibility": "NOT ESTABLISHED"
+  },
+  "local_sources": [
+    {
+      "path": "specs/phase-plans-v2.md",
+      "sha256": "b70e823737d4bf6a24700b83c1507ea4ea0f383344953780b327b8bf0fe4fd93"
+    },
+    {
+      "path": "fixtures/omnigent/discovery/source-metadata.json",
+      "sha256": "404057e609fcffcbe6f36960b1345602ffadef6180f0bac2e0ac62d2a9ded57f"
+    },
+    {
+      "path": "packages/omnigent-transport/package.json",
+      "sha256": "709f567bc638c5905e7bdee306b1a74a6502e19a7b330592144dfbcfd6a0d117"
+    },
+    {
+      "path": "packages/omnigent-transport/src/types.ts",
+      "sha256": "64fabb449fc176c557370a4e268b13aed6b29f4e296b75f70c067f21f5ae3b84"
+    },
+    {
+      "path": "packages/omnigent-transport/src/http-client.ts",
+      "sha256": "3c544f6fd1bc8577cdb7034a2b87393b6a8186c40ab24d32ecc416c72ccd5429"
+    },
+    {
+      "path": "packages/omnigent-transport/src/http-provider.ts",
+      "sha256": "294ec01300b1785de703c9f91f9d2445d1e28077ec1c1a3e5131e762aa561c4d"
+    },
+    {
+      "path": "packages/omnigent-transport/src/history-mapper.ts",
+      "sha256": "b8d2f47a01931b61004c532921a9f06c22eb7255f92468ac355c4582e14008e8"
+    },
+    {
+      "path": "packages/omnigent-transport/src/event-mapper.ts",
+      "sha256": "b64210afffdd08e25af98aa0a8e42d0908c11c15f3891700b01a7d1d897eb6d5"
+    },
+    {
+      "path": "packages/omnigent-transport/src/sse-stream.ts",
+      "sha256": "ee5038d2c28906845791944623f92336eb422da9160e2d45c45f87eb5f448d37"
+    },
+    {
+      "path": "packages/omnigent-transport/src/contract-fixtures.ts",
+      "sha256": "4e1a51773a37c9a92adb41318ee31ec3c90dca92cecd109bcedba267e880d51c"
+    },
+    {
+      "path": "packages/omnigent-transport/src/failure-mapper.ts",
+      "sha256": "cd6e3fa270e79b4e8a0e3e38d8de14adea65777953350873ff0eb8276144d86f"
+    },
+    {
+      "path": "packages/omnigent-transport/src/conformance.test.ts",
+      "sha256": "78805d889922e0aa19ae56bbeef9118fe387d5f81a30b76fe4a0a8ac7b63f52e"
+    },
+    {
+      "path": "packages/omnigent-transport/src/http-client.test.ts",
+      "sha256": "6318d6852e32aaadf244dccd7472e7c37c390519cec9d985ad94ab6046d33e16"
+    },
+    {
+      "path": "scripts/check-omnigent-openapi-delta.mjs",
+      "sha256": "15747aa1475461a328993322bce44610810cb9d9a54fe80394926c4bbb714efe"
+    },
+    {
+      "path": "docs/omnigent-contract.md",
+      "sha256": "d6f9776102e4ada20941dd84e4108b0488c84311df6b199a14ee7ddd8126a5fc"
+    },
+    {
+      "path": "package.json",
+      "sha256": "6d5562f5fbc57425fb2b36fc94b743ea5d943e0722f6aedbad040feee07d6344"
+    }
+  ],
+  "behavior_findings": [
+    {
+      "id": "notice",
+      "status": "source-confirmed; behavioral reproduction from predecessor not rerun",
+      "source": "packages/omnigent-transport/src/history-mapper.ts",
+      "finding": "Persisted errors map to terminal failure without level filtering; target info notices require omission before turn-state mutation."
+    },
+    {
+      "id": "identity",
+      "status": "source-confirmed gap; tests unrun",
+      "finding": "Target MessageData.stream_message_id is not represented or used locally; current replay uses durable IDs and text similarity."
+    },
+    {
+      "id": "passive",
+      "status": "target schema and local early exits inspected",
+      "finding": "Sidechat and approval-mode additions require identity-free drops; unanswered elicitation reason remains metadata only."
+    },
+    {
+      "id": "stale_cursor",
+      "status": "tagged SQL store, route metadata, exception handler, and upstream test source inspected; no upstream tests executed",
+      "finding": "Deleted SQL cursor raises StaleCursorError; HTTP 400 body.error.code=stale_cursor. Applies to sessions/items/child_sessions. In-memory pagination helper ignores unknown IDs and is not the evidence for this SQL route behavior."
+    },
+    {
+      "id": "reconnect",
+      "status": "tagged route and local consumer inspected",
+      "finding": "SSE is live-tail, not cursor replay. Local provider opens SSE before getHistory; history pagination failure occurs before mapping/yield and finally closes stream. afterSequence is local neutral sequence, not an upstream after cursor."
+    },
+    {
+      "id": "skills",
+      "status": "parsed delta",
+      "finding": "v0.15 removes SessionSkillsEvent/session.skills and SessionResponse.skills/skills_status; GET /v1/skills is not adopted. Keep historical accepted literal separate from exact 55-event target."
+    },
+    {
+      "id": "additive",
+      "status": "parsed delta and local normalization inspected",
+      "finding": "usage_included, inference fields, routing task_description, import failure details, fork side_chat and project-order/model-options surfaces confer no neutral capability or lifecycle authority."
+    }
+  ],
+  "research_completed_at": "2026-09-22T16:23:07.486Z"
+}

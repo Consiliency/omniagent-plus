@@ -78,7 +78,9 @@ export const omnigentStreamEventTypes = [
   "session.reasoning_effort",
   "session.collaboration_mode",
   "session.permission_mode",
+  "session.codex_approval_mode",
   "session.title",
+  "session.btw_sidechat",
   "session.agent_changed",
   "session.todos",
   "session.terminal_pending",
@@ -323,6 +325,7 @@ export interface OmnigentMessageData {
   readonly is_meta?: boolean;
   readonly model?: string | null;
   readonly role: "assistant" | "user";
+  readonly stream_message_id?: string | null;
 }
 
 export interface OmnigentFunctionCallData {
@@ -340,7 +343,8 @@ export interface OmnigentFunctionCallOutputData {
 export interface OmnigentPersistedErrorData {
   readonly code: string;
   readonly message: string;
-  readonly source: "execution" | "llm" | "tool";
+  readonly level?: "error" | "info" | null;
+  readonly source: "execution" | "harness" | "llm" | "tool";
 }
 
 export interface OmnigentNativeToolData {

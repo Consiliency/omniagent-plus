@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
   mkdtempSync,
@@ -31,6 +32,9 @@ try {
   if (tarballName === undefined) {
     throw new Error("pnpm pack produced no tarball");
   }
+  const tarballSha256 = createHash("sha256")
+    .update(readFileSync(join(scratch, tarballName)))
+    .digest("hex");
 
   execFileSync(
     "npm",
@@ -71,9 +75,11 @@ try {
       "-e",
       `import {
   loadOmnigentV012WireContract,
+  loadOmnigentV015WireContract,
   loadOmnigentV011WireContract,
   loadOmnigentV010WireContract,
   loadOmnigentV09WireContract,
+  createHttpProvider,
   snapshotFromHealth,
 } from "@consiliency/omnigent-transport";
 const snapshot = snapshotFromHealth({
@@ -83,28 +89,29 @@ const snapshot = snapshotFromHealth({
   runtime: "omnigent",
   sessionStateDrift: [],
 });
-const currentWire = loadOmnigentV012WireContract();
+const currentWire = loadOmnigentV015WireContract();
+const historicalV012Wire = loadOmnigentV012WireContract();
 const historicalV011Wire = loadOmnigentV011WireContract();
 const historicalV010Wire = loadOmnigentV010WireContract();
 const historicalV09Wire = loadOmnigentV09WireContract();
-if (snapshot.version !== "0.12.0") throw new Error("unexpected fixture version");
-if (snapshot.gitSha !== "f04b0354fb5344c1ea8b92795ceb6760a9ad7595") {
-  throw new Error("unexpected fixture git sha");
+if (snapshot.version !== undefined || snapshot.gitSha !== undefined) {
+  throw new Error("health-only snapshot claimed an unobserved runtime version");
 }
 if (
-  currentWire.authority.tag !== "v0.12.0" ||
-  currentWire.authority.commit !== "f04b0354fb5344c1ea8b92795ceb6760a9ad7595"
+  currentWire.authority.tag !== "v0.15.0" ||
+  currentWire.authority.commit !== "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5" ||
+  currentWire.release_event_types.length !== 55
 ) {
   throw new Error("unexpected current wire authority");
 }
 if (
-  currentWire.child_page.data[0]?.task_summary !==
+  historicalV012Wire.child_page.data[0]?.task_summary !==
     "Inspect the tagged v0.12 transport contract." ||
-  currentWire.child_page.data[1]?.task_summary !== null
+  historicalV012Wire.child_page.data[1]?.task_summary !== null
 ) {
   throw new Error("unexpected v0.12 task summary fixture");
 }
-const currentDeltas = currentWire.sse_frames.filter(
+const currentDeltas = historicalV012Wire.sse_frames.filter(
   (frame) => frame.type === "response.output_text.delta",
 );
 if (currentDeltas.length !== 2) {
@@ -122,18 +129,133 @@ if (
   throw new Error("unexpected historical v0.9 wire fixture");
 }
 if (
-  currentWire.observed_non_provider_requests.provider_serializes !== false ||
-  currentWire.elicitation_resolution_samples.valid.length !== 5 ||
-  currentWire.elicitation_resolution_samples.malformed.length !== 6
+  historicalV012Wire.observed_non_provider_requests.provider_serializes !== false ||
+  historicalV012Wire.elicitation_resolution_samples.valid.length !== 5 ||
+  historicalV012Wire.elicitation_resolution_samples.malformed.length !== 6
 ) {
   throw new Error("unexpected v0.12 metadata-only boundary fixture");
-}`,
+}
+const session = {
+  active_response_id: null, agent_id: "packed-agent", created_at: 1780272000,
+  id: "packed-session", items: [], status: "idle", title: "Packed",
+  updated_at: 1780272001,
+};
+const info = currentWire.samples.informational_error;
+const message = currentWire.samples.durable_message;
+let pages = 0;
+const provider = createHttpProvider({
+  baseUrl: "http://127.0.0.1:4010",
+  sessionMutationFenceStore: { read: async () => ({ rejectedTurnIds: [] }), write: async () => {} },
+  withExclusiveSessionLease: async (_id, operation) => operation(),
+  fetch: async (input, init) => {
+    const url = new URL(String(input));
+    if (init?.method === "POST") return new Response(JSON.stringify(session));
+    if (url.pathname.endsWith("/stream")) return new Response(
+      "data: " + JSON.stringify(currentWire.samples.sidechat) + "\\n\\n" +
+      "data: " + JSON.stringify({ type: "response.output_text.delta", response_id: "response-message", message_id: "stream-message", delta: "Hello" }) + "\\n\\n",
+      { headers: { "content-type": "text/event-stream" } },
+    );
+    if (url.pathname.endsWith("/items")) {
+      pages += 1;
+      if (url.searchParams.has("after") && pages === 2) {
+        return new Response(JSON.stringify(currentWire.samples.stale_cursor_error), { status: 400 });
+      }
+      return new Response(JSON.stringify(url.searchParams.has("after")
+        ? { data: [message], has_more: false, last_id: message.id }
+        : { data: [info], has_more: true, last_id: info.id }));
+    }
+    return new Response(JSON.stringify(session));
+  },
+});
+const created = await provider.createSession({
+  agentSpec: { kind: "named_agent", value: session.agent_id },
+  idempotencyKey: "packed-create", runtime: "omnigent",
+  targetHarness: "codex", title: session.title,
+});
+const history = await provider.readHistory(created.id);
+if (pages !== 4 || history.events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta).join("") !== "Hello") {
+  throw new Error("packed v0.15 history or cursor recovery failed");
+}
+const streamed = [];
+for await (const event of provider.streamEvents(created.id, { afterSequence: history.nextCursor })) streamed.push(event);
+if (streamed.some((event) => event.type === "runtime.text.delta") ||
+    (await provider.getSessionInfo(created.id)).lastError !== undefined) {
+  throw new Error("packed v0.15 passive or identity replay failed");
+}
+const previewSession = { ...session, id: "packed-preview" };
+const previewProvider = createHttpProvider({
+  baseUrl: "http://127.0.0.1:4010",
+  sessionMutationFenceStore: { read: async () => ({ rejectedTurnIds: [] }), write: async () => {} },
+  withExclusiveSessionLease: async (_id, operation) => operation(),
+  fetch: async (input, init) => {
+    const url = new URL(String(input));
+    if (init?.method === "POST") return new Response(JSON.stringify(previewSession));
+    if (url.pathname.endsWith("/stream")) return new Response([
+      { type: "response.output_text.delta", response_id: "response-message", message_id: "stream-message", delta: "Hello" },
+      { type: "response.output_item.done", item: { ...message, content: [{ type: "output_text", text: "Hello world" }] } },
+    ].map((event) => "data: " + JSON.stringify(event) + "\\n\\n").join(""),
+    { headers: { "content-type": "text/event-stream" } });
+    if (url.pathname.endsWith("/items")) return new Response(JSON.stringify({ data: [], has_more: false, last_id: null }));
+    return new Response(JSON.stringify(previewSession));
+  },
+});
+const previewCreated = await previewProvider.createSession({
+  agentSpec: { kind: "named_agent", value: previewSession.agent_id },
+  idempotencyKey: "packed-preview-create", runtime: "omnigent",
+  targetHarness: "codex", title: previewSession.title,
+});
+const previewEvents = [];
+for await (const event of previewProvider.streamEvents(previewCreated.id)) previewEvents.push(event);
+if (previewEvents.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta).join("") !== "Hello world") {
+  throw new Error("packed v0.15 preview-first identity failed");
+}
+const exhaustedSession = { ...session, id: "packed-exhausted" };
+let exhaustedReads = 0;
+let streamAborted = false;
+const exhaustedProvider = createHttpProvider({
+  baseUrl: "http://127.0.0.1:4010",
+  sessionMutationFenceStore: { read: async () => ({ rejectedTurnIds: [] }), write: async () => {} },
+  withExclusiveSessionLease: async (_id, operation) => operation(),
+  fetch: async (input, init) => {
+    const url = new URL(String(input));
+    if (init?.method === "POST") return new Response(JSON.stringify(exhaustedSession));
+    if (url.pathname.endsWith("/stream")) {
+      init?.signal?.addEventListener("abort", () => { streamAborted = true; });
+      return new Response(new ReadableStream({ start() {} }), { headers: { "content-type": "text/event-stream" } });
+    }
+    if (url.pathname.endsWith("/items")) {
+      exhaustedReads += 1;
+      return url.searchParams.has("after")
+        ? new Response(JSON.stringify(currentWire.samples.stale_cursor_error), { status: 400 })
+        : new Response(JSON.stringify({ data: [info], has_more: true, last_id: info.id }));
+    }
+    return new Response(JSON.stringify(exhaustedSession));
+  },
+});
+const exhaustedCreated = await exhaustedProvider.createSession({
+  agentSpec: { kind: "named_agent", value: exhaustedSession.agent_id },
+  idempotencyKey: "packed-exhausted-create", runtime: "omnigent",
+  targetHarness: "codex", title: exhaustedSession.title,
+});
+let exhaustedError;
+try {
+  for await (const _event of exhaustedProvider.streamEvents(exhaustedCreated.id)) {
+    throw new Error("partial event leaked during stale-cursor exhaustion");
+  }
+} catch (error) {
+  exhaustedError = error;
+}
+if (exhaustedError?.statusCode !== 400 || exhaustedReads !== 4 || !streamAborted) {
+  throw new Error("packed v0.15 stale-cursor exhaustion failed");
+}
+`,
     ],
     { cwd: consumer, stdio: "pipe" },
   );
   writeFileSync(
     join(consumer, "type-smoke.ts"),
-    `import type {
+    `import { loadOmnigentV015WireContract } from "@consiliency/omnigent-transport";
+import type {
   OmnigentBackgroundTaskInfo,
   OmnigentHttpClientOptions,
   OmnigentNativeModelOption,
@@ -193,10 +315,13 @@ const item = {
   status: "completed",
   type: "message",
 } satisfies OmnigentConversationItem;
+const latestWire = loadOmnigentV015WireContract();
+const latestTag: "v0.15.0" = latestWire.authority.tag;
 void snapshot;
 void backgroundTask;
 void child;
 void item;
+void latestTag;
 void httpOptions;
 void signal;
 `,
@@ -224,7 +349,7 @@ void signal;
     ["--noEmit", "--project", join(consumer, "tsconfig.json")],
     { cwd: consumer, stdio: "pipe" },
   );
-  console.log("packed Omnigent transport smoke: OK");
+  console.log(`packed Omnigent transport smoke: OK sha256=${tarballSha256}`);
 } finally {
   rmSync(scratch, { force: true, recursive: true });
 }

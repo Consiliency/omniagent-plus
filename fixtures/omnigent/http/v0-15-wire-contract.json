@@ -1,0 +1,64 @@
+{
+  "schema": "omnigent.v0_15_wire_contract.v1",
+  "authority": {
+    "tag": "v0.15.0",
+    "commit": "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
+    "openapi_sha256": "282eba5f5b253f399e8cef04e36ba798c348e7ddd23317ceff9847da8a95f48a"
+  },
+  "release_event_types": [
+    "browser.action_request", "response.cancelled", "response.client_task.cancel",
+    "response.compaction.completed", "response.compaction.failed", "response.compaction.in_progress",
+    "response.completed", "response.created", "response.elicitation_request",
+    "response.elicitation_resolved", "response.error", "response.failed",
+    "response.function_call_output.delta", "response.heartbeat", "response.in_progress",
+    "response.incomplete", "response.output_file.done", "response.output_item.done",
+    "response.output_text.delta", "response.policy_denied", "response.queued",
+    "response.reasoning.started", "response.reasoning_summary_text.delta",
+    "response.reasoning_text.delta", "response.retry", "session.agent_changed",
+    "session.btw_sidechat", "session.changed_files.invalidated",
+    "session.child_session.updated", "session.codex_approval_mode",
+    "session.collaboration_mode", "session.created", "session.heartbeat",
+    "session.input.consumed", "session.interrupted", "session.mcp_startup",
+    "session.model", "session.model_options", "session.permission_mode",
+    "session.presence", "session.reasoning_effort", "session.resource.created",
+    "session.resource.deleted", "session.sandbox_status", "session.status",
+    "session.superseded", "session.terminal.activity", "session.terminal_pending",
+    "session.title", "session.todos", "session.usage", "turn.cancelled",
+    "turn.completed", "turn.failed", "turn.started"
+  ],
+  "historical_only_event_types": ["session.skills"],
+  "delta_from_v0_14": {
+    "added_operations": [
+      "GET /v1/projects/order",
+      "GET /v1/sandbox-providers/{provider}/harnesses/{harness}/model-options",
+      "GET /v1/skills",
+      "PUT /v1/projects/order"
+    ],
+    "removed_operations": [],
+    "added_schemas": ["ErrorResponse", "ImportFailureRef", "ProjectOrderRequest", "ProjectOrderResponse", "SkillsResponse"],
+    "removed_schemas": ["SessionSkillsEvent"],
+    "changed_schemas": ["ErrorDetail", "LocalImportResponse", "RoutingDecisionData", "ServerStreamEvent", "SessionForkRequest", "SessionResponse"],
+    "added_events": [],
+    "removed_events": ["session.skills"]
+  },
+  "samples": {
+    "informational_error": {
+      "type": "error", "id": "error-info", "response_id": "response-info",
+      "status": "completed", "created_at": 1780272000,
+      "code": "routing_notice", "level": "info", "message": "Route selected", "source": "harness"
+    },
+    "durable_message": {
+      "type": "message", "id": "item-message", "response_id": "response-message",
+      "status": "completed", "created_at": 1780272001,
+      "role": "assistant", "content": [{ "type": "output_text", "text": "Hello" }], "stream_message_id": "stream-message"
+    },
+    "sidechat": { "type": "session.btw_sidechat", "conversation_id": "conversation-1", "question": "Q", "answer": "A", "truncated": false },
+    "codex_approval_mode": { "type": "session.codex_approval_mode", "conversation_id": "conversation-1", "approval_mode": "default" },
+    "stale_cursor_error": { "error": { "code": "stale_cursor", "message": "Cursor row was deleted" } }
+  },
+  "adversarial_vectors": [
+    { "purpose": "reject noncanonical stale-cursor envelope", "body": { "detail": { "code": "stale_cursor" } } },
+    { "purpose": "reject forged passive turn identity", "event": { "type": "session.btw_sidechat", "conversation_id": "conversation-1", "question": "", "answer": "", "response_id": "forged-response", "terminal": true } },
+    { "purpose": "preserve equal text under different explicit IDs", "durable_ids": ["item-a", "item-b"], "stream_message_ids": ["stream-a", "stream-b"], "text": "same" }
+  ]
+}

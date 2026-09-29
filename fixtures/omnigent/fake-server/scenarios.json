@@ -1,8 +1,13 @@
 {
   "schema": "omnigent.fake_server_scenarios.v1",
   "redaction": "metadata_only",
-  "captured_at": "2026-09-03T16:23:40Z",
+  "captured_at": "2026-09-28T08:01:37Z",
   "scenarios": [
+    {
+      "name": "v0_15_contract_vectors",
+      "capabilities": ["read_history", "stream_events", "reconnect"],
+      "fixtures": ["fixtures/omnigent/http/v0-15-wire-contract.json"]
+    },
     {
       "name": "v0_12_official_wire",
       "capabilities": [

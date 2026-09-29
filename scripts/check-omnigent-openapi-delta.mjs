@@ -1,7 +1,95 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const [baseTag = "v0.11.0", targetTag = "v0.12.0"] = process.argv.slice(2);
+const newPairs = new Set([
+  "v0.12.0:v0.14.0", "v0.14.0:v0.15.0", "v0.12.0:v0.15.0",
+]);
+if (newPairs.has(`${baseTag}:${targetTag}`)) {
+  const evidenceBytes = readFileSync(new URL("../plans/evidence/omnigent-v0-15-upstream-20260922.json", import.meta.url));
+  assert.equal(createHash("sha256").update(evidenceBytes).digest("hex"),
+    "5493c223497c3db81fbbf4bb4ff4339df69bfca894a7d87d8483c88dfa2a3fe6");
+  const evidence = JSON.parse(evidenceBytes.toString());
+  const delta = evidence.deltas.find((entry) => entry.base === baseTag && entry.target === targetTag);
+  assert.ok(delta);
+  const refs = {
+    "v0.12.0": ["f04b0354fb5344c1ea8b92795ceb6760a9ad7595", "2fad529777b266e54341cfa41934cb7fe211cad1d787afbacc4d16e6d38b7cdb"],
+    "v0.14.0": ["fc89a3ba3c4698a7d742343b443a7b2bdc01120a", "222c468fe0a269e92aa6faae08ea7081b5144ae227a2bdbc799b3af9077adb9c"],
+    "v0.15.0": ["c8b9b85f822f2c9203ff995c10f3cc49d064bbe5", "282eba5f5b253f399e8cef04e36ba798c348e7ddd23317ceff9847da8a95f48a"],
+  };
+  const documents = {};
+  for (const tag of [baseTag, targetTag]) {
+    const [commit, sha] = refs[tag];
+    const response = await fetch(`https://raw.githubusercontent.com/omnigent-ai/omnigent/${commit}/openapi.json`);
+    assert.equal(response.ok, true, `${tag} OpenAPI fetch failed: ${response.status}`);
+    const bytes = Buffer.from(await response.arrayBuffer());
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), sha);
+    documents[tag] = JSON.parse(bytes.toString());
+  }
+  const base = documents[baseTag];
+  const target = documents[targetTag];
+  const names = (object) => Object.keys(object).sort();
+  const difference = (left, right) => left.filter((name) => !right.includes(name));
+  const methods = new Set(["delete", "get", "head", "options", "patch", "post", "put", "trace"]);
+  const operations = (document) => Object.entries(document.paths).flatMap(([path, value]) =>
+    Object.keys(value).filter((method) => methods.has(method)).map((method) => `${method.toUpperCase()} ${path}`)).sort();
+  const events = (document) => {
+    const union = document.components.schemas.ServerStreamEvent;
+    return (union.oneOf ?? union.anyOf).map((member) =>
+      document.components.schemas[member.$ref.split("/").at(-1)].properties.type.const).sort();
+  };
+  for (const [kind, before, after] of [
+    ["paths", names(base.paths), names(target.paths)],
+    ["operations", operations(base), operations(target)],
+    ["schemas", names(base.components.schemas), names(target.components.schemas)],
+    ["events", events(base), events(target)],
+  ]) {
+    assert.equal(before.length, evidence.counts[baseTag][kind]);
+    assert.equal(after.length, evidence.counts[targetTag][kind]);
+    assert.deepEqual(difference(after, before), delta[kind].added);
+    assert.deepEqual(difference(before, after), delta[kind].removed);
+  }
+  const annotations = new Set(evidence.parser.ignored_annotations);
+  const normalize = (value, propertyNames = false) => {
+    if (Array.isArray(value)) return value.map((item) => normalize(item));
+    if (value === null || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value)
+      .filter(([key]) => propertyNames || !annotations.has(key))
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, normalize(child, key === "properties")]));
+  };
+  const changes = (left, right, path = "") => {
+    if (JSON.stringify(left) === JSON.stringify(right)) return [];
+    if (left && right && typeof left === "object" && typeof right === "object" &&
+      !Array.isArray(left) && !Array.isArray(right)) {
+      return [...new Set([...Object.keys(left), ...Object.keys(right)])].sort().flatMap((key) => {
+        const next = `${path}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}`;
+        if (!(key in left)) return [{ path: next, before_present: false, after_present: true, after: right[key] }];
+        if (!(key in right)) return [{ path: next, before_present: true, after_present: false, before: left[key] }];
+        return changes(left[key], right[key], next);
+      });
+    }
+    return [{ path, before_present: true, after_present: true, before: left, after: right }];
+  };
+  const changedSchemas = names(base.components.schemas).filter((name) => name in target.components.schemas).flatMap((name) => {
+    const differences = changes(normalize(base.components.schemas[name]), normalize(target.components.schemas[name]));
+    return differences.length ? [{ name, changes: differences }] : [];
+  });
+  assert.deepEqual(changedSchemas, delta.changed_schemas);
+  const operation = (document, name) => {
+    const split = name.indexOf(" ");
+    return document.paths[name.slice(split + 1)][name.slice(0, split).toLowerCase()];
+  };
+  const changedOperations = operations(base).filter((name) => operations(target).includes(name)).flatMap((name) => {
+    const differences = changes(normalize(operation(base, name)), normalize(operation(target, name)));
+    return differences.length ? [{ operation: name, changes: differences }] : [];
+  });
+  assert.deepEqual(changedOperations, delta.changed_operations);
+  console.log(JSON.stringify({ base: baseTag, target: targetTag, counts: evidence.counts[targetTag] }));
+  process.exit(0);
+}
 const expectedBaseTag = "v0.11.0";
 const expectedTargetTag = "v0.12.0";
 assert.equal(baseTag, expectedBaseTag);

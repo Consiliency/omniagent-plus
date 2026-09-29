@@ -1,0 +1,185 @@
+{
+  "schema": "omnigent.v0_15_accommodation_execution.v1",
+  "status": "provisional_implementation_pending_gates",
+  "recorded_at": "2026-09-29T02:50:16Z",
+  "branch": "codex/omnigent-v015-implementation-20260928",
+  "base_head": "6b464e94e55fd8483a1ae42ec61d93f07738a320",
+  "plan": {
+    "path": "plans/detailed-omnigent-v0-15-accommodation-20260922.md",
+    "sha256": "3bfebbb7322fe3a58fc461376b3b032e22e0102746594d6823a897628374d46d",
+    "panel_receipt": "plans/evidence/omnigent-v015-plan-review-20260928.md"
+  },
+  "owner_and_freeze_receipts": {
+    "guard_accepted": false,
+    "data_accepted": false,
+    "exclusive_transport_owner_recorded_in_omniagent_plus_25": true,
+    "exclusive_transport_owner_receipt": "https://github.com/Consiliency/omniagent-plus/issues/25#issuecomment-5873120581"
+  },
+  "source_sha256": {
+    "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
+    "packages/omnigent-transport/src/http-provider.ts": "bcb548d499172f541fe08fd91281eb5bc59dd4a239ecbd93e3d050b17924bcb5",
+    "packages/omnigent-transport/src/event-mapper.ts": "43d2bea421c8028feac2f56a99dea26d44b5547afa339ace0207d63de12038ed",
+    "packages/omnigent-transport/src/capability-probe.ts": "fb9bde13e1047b4850e90770c950a2f3871a8f22b120c2d912949814267f5a43",
+    "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
+    "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
+    "fixtures/omnigent/http/v0-15-wire-contract.json": "5fa285a9846ce1bbd05c6b8bb4dd407032cd4dc922a27a829c3ae911293db72a"
+  },
+  "verification": [
+    { "command": "pnpm install --frozen-lockfile", "exit_code": 0, "phase": "V0" },
+    { "command": "pnpm build", "exit_code": 0, "phase": "V0" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src", "exit_code": 0, "phase": "baseline", "selected": 176, "skipped": 1 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/history-mapper.test.ts", "exit_code": 1, "phase": "V1-A expected red", "cause": "info-level error emitted start and failure" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/history-mapper.test.ts", "exit_code": 0, "phase": "V1-A focused green" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/http-client.test.ts -t 'v0.15 D'", "exit_code": 1, "phase": "V1-D expected red", "cause": "stale cursor propagated without restart" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 A'", "exit_code": 0, "phase": "V1-A final", "selected": 2, "skipped": 188 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 B'", "exit_code": 0, "phase": "V1-B checkpoint", "selected": 5, "skipped": 185, "note": "one provider identity case was added and passed in a later focused run" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 C'", "exit_code": 0, "phase": "V1-C final", "selected": 1, "skipped": 189 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 D'", "exit_code": 0, "phase": "V1-D checkpoint", "selected": 4, "skipped": 186, "note": "history/child success case was added and passed in a later focused run" },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src -t 'v0.15 E'", "exit_code": 0, "phase": "V1-E final", "selected": 1, "skipped": 189 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src/http-client.test.ts packages/omnigent-transport/src/http-provider.test.ts", "exit_code": 0, "phase": "V1 final focused", "selected": 101 },
+    { "command": "pnpm exec vitest run packages/omnigent-transport/src", "exit_code": 0, "phase": "V2 final", "selected": 191, "skipped": 1 },
+    { "command": "pnpm --filter @consiliency/omnigent-transport typecheck", "exit_code": 0, "phase": "V2" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs", "exit_code": 0, "phase": "V3" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs v0.12.0 v0.14.0", "exit_code": 0, "phase": "V3" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs v0.14.0 v0.15.0", "exit_code": 0, "phase": "V3" },
+    { "command": "node scripts/check-omnigent-openapi-delta.mjs v0.12.0 v0.15.0", "exit_code": 0, "phase": "V3" },
+    { "command": "pnpm --filter @consiliency/omnigent-transport build", "exit_code": 0, "phase": "V4 prep" },
+    { "command": "pnpm --filter @consiliency/omnigent-transport test:pack", "exit_code": 0, "phase": "V4 partial", "tarball_sha256": "46a4afdd6a562898234ba7640e29cf68f9097f0092b929a3b907f315c2c0c5d1", "behavior": "installed JS/TypeScript consumer; info omission, identity in both orders, passive sidechat, stale restart and exhaustion" },
+    { "command": "pnpm lint", "exit_code": 0, "phase": "supplementary" },
+    { "command": "git diff --check", "exit_code": 0, "phase": "supplementary" }
+  ],
+  "unrun": [
+    { "command": "pnpm verify", "reason": "root verify script absent pending accepted GUARD gate" },
+    { "command": "NPM_PUBLISH_DRY_RUN=1 bash scripts/publish-package-if-needed.sh packages/omnigent-transport", "reason": "0.8.0 candidate and accepted release gates pending; 0.7.0 is already published" },
+    { "check": "live upstream Omnigent provider", "reason": "no live-provider qualification authorized or required by fake-server checks" }
+  ],
+  "registry_preflight": { "npm_latest": "0.7.0", "candidate_0_8_0_unoccupied": true },
+  "publication_authorized": false,
+  "published": false,
+  "draft_pr_attempt": {
+    "primitive": "phase_loop_runtime.publishing.publish_from_worktree",
+    "status": "publication_blocked",
+    "reason": "broker_required",
+    "detail": "publish mutation requires an admitted broker client"
+  },
+  "brokered_draft_pr": {
+    "url": "https://github.com/Consiliency/omniagent-plus/pull/30",
+    "initial_head": "613fe9475654beb816ce872e8e4f791611dc6b15",
+    "status": "open_draft"
+  },
+  "review_of_initial_head": {
+    "opus_5_5": "PARTIALLY AGREE",
+    "gemini_3_1_pro_high": "DISAGREE",
+    "astra": "DISAGREE",
+    "grok_4_7": "UNAVAILABLE: usage balance exhausted",
+    "disposition": "not merge-ready; code findings repaired after this review, exact-head re-review pending"
+  },
+  "delta_review_of_0b80255": {
+    "opus_5_5": "AGREE on the delta; external gates remain",
+    "astra": "PARTIALLY AGREE; response-local history replay duplication reproduced",
+    "disposition": "response-local history replay repaired after this delta review; exact-head re-review pending"
+  },
+  "review_fix_verification": {
+    "focused_mapper_tests": { "passed": 39, "exit_code": 0 },
+    "transport_tests": { "passed": 195, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "transport_typecheck_exit_code": 0,
+    "transport_build_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "0cedb3948ce28ddb749bf5c3c9930841af8c2d5c57e30af6907207b135749c1b" },
+    "lint_exit_code": 0
+  },
+  "manual_tui_review_followup": {
+    "reviewed_head": "3152c6c39eb8c21b711f8bf1e8a2b9cc9905bd42",
+    "gemini_3_1_pro_high": "DISAGREE on merge: GUARD/DATA/owner and full verification gates absent",
+    "opus_5_5": "DISAGREE on merge: same gates; raised text-replay, alias retention and conflict-reset risks",
+    "reconciliation": "Conflicting stream IDs lost preview text after history reload; a focused provider regression failed on the reviewed head and passes after preserving the invalid association across reload and mapper construction. Same-ID delayed-preview text matching is required by plan B; unbounded per-session cache policy remains owned by WIRE/TR-4, not waived.",
+    "collision_regression": { "expected_red_exit_code": 1, "focused_green_exit_code": 0 },
+    "transport_tests": { "passed": 196, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "transport_typecheck_exit_code": 0,
+    "transport_build_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "0f2e8dc562ec1ddbe9b39b0022956620718a230b34575956788573a5b38c1ad2" },
+    "lint_exit_code": 0,
+    "merge_ready": false,
+    "reason": "accepted GUARD/DATA freezes, full gate and exact new-head review remain pending"
+  },
+  "panel_review_of_59645ee": {
+    "reviewed_head": "59645ee8146cffe5b0be85b6efa311b3dacb99a5",
+    "seats": {
+      "sol": "DISAGREE: late alias could consume a distinct stream; collision duplication raised and reconciled as plan-required fail-open preservation",
+      "astra": "PARTIALLY AGREE: reproduced late-alias loss; DISAGREE on merge gates",
+      "opus_5_5_tui": "DISAGREE: invalid collision association lost after an empty history reload; capability snapshot version claim and coverage gaps",
+      "gemini_3_1_pro_high_tui": "No code blocker reported on initial pass; DISAGREE on merge gates; did not identify the reproduced identity defects"
+    },
+    "reconciliation": "The late-alias and empty-history collision defects were reproduced and narrowed with regression tests. Conflicting stream IDs remain fail-open: durable content is preserved even if preview text is repeated. A partial legacy text match before a contradictory late alias still loses its already-suppressed prefix; full identity acceptance remains open. The capability snapshot's v0.15 target versus current v0.12 support claim also needs reviewed disposition.",
+    "verification_after_fixes": {
+      "workspace_tests": { "passed": 373, "skipped_live_opt_in": 1, "exit_code": 0 },
+      "workspace_build_exit_code": 0,
+      "workspace_typecheck_exit_code": 0,
+      "lint_exit_code": 0,
+      "packed_smoke": { "exit_code": 0, "tarball_sha256": "2653d9097a104c9a4a4afa574178beb9c1a45a5f51b9f26ec323e8a7a8286ff4" }
+    },
+    "merge_ready": false,
+    "open_acceptance": ["GUARD/DATA accepted freezes", "full non-skipping gate", "candidate npm publish dry run", "late-alias suppressed-prefix recovery", "capability snapshot version disposition", "remaining plan A-E cases", "exact new-head panel approval"]
+  },
+  "identity_safe_split_20260929": {
+    "plan": "plans/detailed-omnigent-v015-identity-safe-replay-20260928.md",
+    "plan_sha256": "0ddfb4dc734dca29a6f79e75fefa7480a9c52380b69009f21e60e0aec7f22771",
+    "contract_decision": "Text alone cannot establish one logical message when an alias-free historical durable ID and a preview's nonempty ID differ. Emit in order and allow a possible duplicate until identity is known. This replaces the prior ambiguous legacy fallback through an explicit B amendment.",
+    "plan_review": {
+      "astra": "AGREE after amendment; requested guarded provider alias fallback",
+      "sol": "PARTIALLY AGREE; requested invalid collision cursor isolation, addressed in implementation",
+      "gemini_3_1_pro_high_tui": "AGREE with revised direction; identified mapper fallback and provider matching and sequencing changes",
+      "opus_5_5_tui": "Initial refund plan found incomplete; revised-plan review pending"
+    },
+    "focused_mapper_provider_tests": { "passed": 117, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 375, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "fff0619d4ef256059a86af9a6f9f798e20fa045df285d029ca46c9ab5307d0e7" },
+    "exact_head_review": "pending"
+  },
+  "capability_snapshot_disposition_20260929": {
+    "plan": "plans/detailed-omnigent-capability-snapshot-provenance-20260928.md",
+    "plan_sha256": "6224506831222a84adb53ba41c4b4f8ac4cdf1e2d1543090bfdc72122a7ef53b",
+    "basis": "specs/agent-runtime-provider-omnigent-spec.md section 14.5 requires detected upstream version and SHA; health has neither",
+    "change": "Health-only snapshots omit optional version and gitSha instead of copying the v0.15 research fixture; v0.12 published support claim and v0.15 comparison target remain distinct",
+    "live_runtime_version_detection": "open"
+  },
+  "exact_head_reconciliation_20260929": {
+    "reviewed_head": "7ff62a2c7f1a56251d6b5f3bf79aba089e4a194c",
+    "opus_5_5_tui": "P2: invalid collision previews bypassed stable cursor mapping, legacy v0.12 replay duplicates, and provider done-first coverage was replaced",
+    "resolution": "Restored stable numbered-frame cursors; synchronized invalid collisions into already-open mappers; tested both event orders and two subscribers. Published 0.7.0 is unchanged; candidate v0.15 replay may duplicate alias-free v0.12 text and must not claim legacy dedup compatibility.",
+    "focused_mapper_provider_tests": { "passed": 120, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 378, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "dfe79a93fc2b4e9a277dc679c5a6a5e68ca77e1e4d04c2d9f0e088cd89e6e707" },
+    "exact_new_head_review": "pending"
+  },
+  "durable_subscriber_reconciliation_20260929": {
+    "reviewed_head": "edf21766eeec6372e29855ac1cf6b8500601d41a",
+    "astra": "P2: a durable item can first create or follow a cross-subscriber stream-ID collision, while another mapper still holds preview credit",
+    "resolution": "Register durable aliases before mapping the item and propagate an invalid stream ID from preview message_id or durable stream_message_id into each mapper before it consumes the frame.",
+    "focused_mapper_provider_tests": { "passed": 122, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 380, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "25891dbfdce77e5ddd0e7f95cb8a60100b8c4ec942f0e64ed7bb1b43d93b2a96" },
+    "exact_new_head_review": "pending"
+  },
+  "dual_message_id_reconciliation_20260929": {
+    "reviewed_head": "8f308e66e4be09f47deba53effa8f5f2c0de5afe",
+    "sol": "P2: a durable frame carrying both a top-level message_id and an item stream_message_id could hide an invalid stream alias from another subscriber",
+    "resolution": "Check both IDs independently before mapper consumption; added the dual-ID variant to the concurrent durable regression.",
+    "focused_v015_b_tests": { "passed": 11, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 381, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "d49327d369b44b67e8938f4852fe073d5206e0ecf1c13dd47ad4ad63b9d1822b" },
+    "exact_new_head_review": "pending"
+  },
+  "current_open_acceptance": ["accepted GUARD/DATA freezes", "full non-skipping gate", "candidate npm publish dry run", "remaining plan A-E cases", "live runtime version detection", "exact implementation-head panel approval"]
+}

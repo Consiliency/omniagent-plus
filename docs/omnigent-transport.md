@@ -3,6 +3,20 @@
 `@consiliency/omnigent-transport@0.7.0` implements the official Omnigent
 `v0.12.0` boundary while preserving the neutral runtime-provider contract.
 
+An isolated v0.15 accommodation candidate adds informational-error omission,
+scoped persisted/stream message identity, passive sidechat and approval-mode
+event handling, and one fresh pagination walk after an exact stale-cursor error.
+The package's published support claim remains v0.12 until the accepted GUARD/DATA
+and transport-owner gates plus complete qualification are recorded. The
+`v0.15.0` target has 55 stream events; the parser accepts 56 including legacy
+`session.skills`. The adapter does not grant new approval, file-sharing, child,
+model, credential, or administrative authority.
+
+The v0.15 source fixture is a comparison target, not a detected server version.
+Capability snapshots leave their optional `version` and `gitSha` fields absent
+until live runtime metadata can populate them. Runtime version pinning remains
+an open qualification item.
+
 ## Modes
 
 - HTTP accepts an existing named agent, or uses an explicit agent-id resolver.
@@ -83,9 +97,18 @@ surfaces. The HTTP provider keeps its legacy required-agent create body, and
 the process manager keeps the canonical `omnigent server --background`,
 `server status --json`, and `server stop` lifecycle.
 
-`response.output_text.delta` is behaviorally unchanged. Equal identity-free
-text remains undecidable and is emitted losslessly; replay is deduplicated only
-when item/message identity or process-local cursor evidence supports it.
+`response.output_text.delta` keeps its wire shape. Equal identity-free text
+remains undecidable and is emitted losslessly. A preview with a nonempty message
+ID is also emitted when an alias-free historical item has a different ID and
+only its text matches; this may repeat historical text, but avoids losing a
+distinct message before a later alias arrives. Exact IDs, confirmed aliases,
+and process-local cursor evidence still deduplicate replay. A stream ID
+invalidated by a collision receives no text-based replay credit. A numbered
+upstream frame keeps its cursor across subscribers and reconnects; an unnumbered
+frame has only a connection-specific identity and may be delivered again after
+reconnect. This unpublished v0.15 candidate deliberately changes the v0.12
+cross-namespace text deduplication behavior in published 0.7.0. Qualification
+must not claim that the candidate preserves that legacy replay behavior.
 
 ## Boundary
 

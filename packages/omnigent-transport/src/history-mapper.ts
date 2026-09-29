@@ -149,7 +149,6 @@ export function mapOmnigentConversationHistory(
   const historicalToolCallIds = new Set<string>();
   const historicalToolResultIds = new Set<string>();
   let sequence = 1;
-
   const append = (
     event: Omit<RuntimeEvent, "redaction" | "schema" | "sequence" | "sessionId">,
   ): void => {
@@ -209,10 +208,13 @@ export function mapOmnigentConversationHistory(
         turnId,
         `${historicalTextByTurnId.get(turnId) ?? ""}${text.join("")}`,
       );
-      historicalTextByMessageId.set(item.id, text.join(""));
+      const streamMessageId = typeof data.stream_message_id === "string" &&
+        data.stream_message_id.length > 0
+          ? data.stream_message_id : undefined;
+      historicalTextByMessageId.set(`${turnId}\u0000${item.id}`, text.join(""));
       if (text.length > 0) {
         const historicalMessages = historicalMessagesByTurnId.get(turnId) ?? [];
-        historicalMessages.push({ messageId: item.id, text: text.join("") });
+        historicalMessages.push({ messageId: item.id, streamMessageId, text: text.join("") });
         historicalMessagesByTurnId.set(turnId, historicalMessages);
       }
       text.forEach((delta, index) => {
@@ -286,7 +288,7 @@ export function mapOmnigentConversationHistory(
       continue;
     }
 
-    if (item.type === "error" && !terminalTurnIds.has(turnId)) {
+    if (item.type === "error" && data.level !== "info" && !terminalTurnIds.has(turnId)) {
       ensureStarted(item, data, text);
       terminalTurnIds.add(turnId);
       append({

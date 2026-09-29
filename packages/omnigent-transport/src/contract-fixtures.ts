@@ -20,6 +20,11 @@ export interface OmnigentSourceMetadataFixture {
     readonly requires_python: string;
     readonly tag: string;
   };
+  readonly historical_freeze_target?: {
+    readonly commit: string;
+    readonly package_version: string;
+    readonly tag: string;
+  };
   readonly preflight_confirmation?: {
     readonly added_operations?: string[];
     readonly added_paths: string[];
@@ -179,6 +184,19 @@ export interface OmnigentV012WireFixture extends OmnigentV011WireFixture {
   };
 }
 
+export interface OmnigentV015WireFixture {
+  readonly authority: {
+    readonly commit: string;
+    readonly openapi_sha256: string;
+    readonly tag: "v0.15.0";
+  };
+  readonly release_event_types: readonly string[];
+  readonly historical_only_event_types: readonly string[];
+  readonly delta_from_v0_14: Readonly<Record<string, readonly string[]>>;
+  readonly samples: Readonly<Record<string, unknown>>;
+  readonly adversarial_vectors: readonly Readonly<Record<string, unknown>>[];
+}
+
 export interface OmnigentCliSurfaceFixture {
   readonly deprecated_aliases?: Array<{
     readonly command: string;
@@ -200,7 +218,7 @@ export interface OmnigentCliSurfaceFixture {
   readonly release?: {
     readonly commit: string;
     readonly tag: string;
-    readonly version_output: string;
+    readonly version_output?: string;
   };
 }
 
@@ -314,6 +332,12 @@ export function loadOmnigentV011WireContract(): OmnigentV011WireFixture {
 export function loadOmnigentV012WireContract(): OmnigentV012WireFixture {
   return readOmnigentFixture<OmnigentV012WireFixture>(
     "http/v0-12-wire-contract.json",
+  );
+}
+
+export function loadOmnigentV015WireContract(): OmnigentV015WireFixture {
+  return readOmnigentFixture<OmnigentV015WireFixture>(
+    "http/v0-15-wire-contract.json",
   );
 }
 
