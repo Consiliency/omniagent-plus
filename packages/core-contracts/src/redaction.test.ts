@@ -20,6 +20,42 @@ function readFixture<T>(path: string): T {
 }
 
 describe("handoff redaction helpers", () => {
+  it("ignores inert array method shadows and safely projects revoked proxies", () => {
+    const array = Object.assign([1, null], { some: "ordinary-extra", forEach: "ordinary-extra" });
+    expect(scanMetadataLeaks({ choices: array })).toEqual([]);
+    expect(projectMetadataExport({ choices: array })).toEqual({ choices: [1, null] });
+    const { proxy, revoke } = Proxy.revocable({}, {});
+    revoke();
+    expect(() => assertMetadataSafe({ choices: proxy })).toThrow(/non json metadata/);
+    expect(projectMetadataExport({ choices: proxy })).toEqual({ choices: "[redacted]" });
+    expect(projectMetadataExport({ choices: [proxy] })).toEqual({ choices: ["[redacted]"] });
+  });
+
+  it("keeps retained metadata faithful to JSON numeric and undefined semantics", () => {
+    for (const value of [NaN, Infinity, -Infinity, [undefined]]) {
+      expect(() => assertMetadataSafe(value)).toThrow(/non json metadata/);
+      expect(() => assertMetadataSafe(value, { inertOnly: true })).not.toThrow();
+      expect(scanMetadataLeaks(projectMetadataExport(value))).toEqual([]);
+    }
+    const sparse = new Array(2);
+    sparse[1] = 1;
+    expect(() => assertMetadataSafe({ optional: undefined, finite: 1, sparse })).not.toThrow();
+    expect(projectMetadataExport({ optional: undefined, values: [undefined, null, 1] })).toEqual({ values: [null, null, 1] });
+    const rawJSON = (JSON as { rawJSON?: (text: string) => unknown }).rawJSON;
+    if (rawJSON) {
+      expect(() => assertMetadataSafe(rawJSON("1e9999"))).toThrow(/non json metadata/);
+      expect(projectMetadataExport(rawJSON("123"))).toBe("[redacted]");
+    }
+    expect(() => assertMetadataSafe({ rawJSON: "123" })).not.toThrow();
+  });
+
+  it("accepts an empty array at the depth boundary", () => {
+    let value: unknown = [];
+    for (let depth = 0; depth < 64; depth += 1) value = { nested: value };
+    expect(() => assertMetadataSafe(value)).not.toThrow();
+    expect(() => assertMetadataSafe(value, { inertOnly: true })).not.toThrow();
+    expect(() => assertMetadataSafe({ nested: value }, { inertOnly: true })).toThrow(/depth limit/);
+  });
   it("rejects executable metadata and projects inert data without invoking hooks", () => {
     let invoked = 0;
     const hook = () => { invoked += 1; return { password: "synthetic-private-value" }; };

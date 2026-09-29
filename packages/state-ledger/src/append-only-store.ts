@@ -209,6 +209,7 @@ export class AppendOnlyStore {
       const cache = this.cache!;
       const nextSequence = Math.max(manifest.lastSequence, cache.lastSequence) + 1;
       if (!Number.isSafeInteger(nextSequence)) throw new LedgerReadError("ledger_corruption");
+      assertMetadataSafe(input, { inertOnly: true });
       if (input.schemaVersion !== undefined && input.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
       const record = normalizeLedgerScope(stateLedgerRecordSchema.parse({
         schema: "state_ledger_record.v0.1",
@@ -265,6 +266,7 @@ export class AppendOnlyStore {
       const keptIds = new Set<string>();
       for (let index = 0; index < keptRecords.length; index += 1) {
         const record = normalizeLedgerScope(stateLedgerRecordSchema.parse(keptRecords[index]) as StateLedgerEntry);
+        if (record.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
         assertBoundedPayload(record.payload, this.maxPayloadBytes);
         if (record.sequence > manifest.lastSequence || (index > 0 && record.sequence <= keptRecords[index - 1]!.sequence)
           || keptIds.has(record.recordId)) throw new LedgerReadError("ledger_corruption");

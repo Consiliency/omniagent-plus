@@ -190,8 +190,9 @@ function withPayload<TKind extends StateLedgerRecordKind, TPayload extends z.Zod
   });
 }
 
-function inertLedgerSchema<T extends z.ZodTypeAny>(schema: T): z.ZodType<z.output<T>, z.ZodTypeDef, z.input<T>> {
-  return new class extends z.ZodType<z.output<T>, z.ZodTypeDef, z.input<T>> {
+function inertLedgerSchema<T extends z.ZodTypeAny>(schema: T): T {
+  const Base = schema.constructor as new (def: z.ZodTypeDef) => z.ZodType<z.output<T>, z.ZodTypeDef, z.input<T>>;
+  return new class extends Base {
     private inertError(value: unknown, path: (string | number)[] = []) {
       try { assertMetadataSafe(value, { inertOnly: true }); }
       catch { return new z.ZodError<z.input<T>>([{ code: z.ZodIssueCode.custom, message: "Metadata contains non json metadata.", fatal: true, path }]); }
@@ -218,7 +219,7 @@ function inertLedgerSchema<T extends z.ZodTypeAny>(schema: T): z.ZodType<z.outpu
       const error = this.inertError(data);
       return error ? { issues: error.issues } : schema["~validate"](data);
     }
-  }(schema._def);
+  }(schema._def) as unknown as T;
 }
 
 export const stateLedgerRecordSchema = inertLedgerSchema(z.discriminatedUnion("kind", [
@@ -319,6 +320,7 @@ export type StateLedgerEntry =
 export function createStateLedgerRecord(
   record: Omit<StateLedgerEntry, "schema">,
 ): StateLedgerEntry {
+  assertMetadataSafe(record, { inertOnly: true });
   return stateLedgerRecordSchema.parse({
     ...record,
     schema: "state_ledger_record.v0.1",

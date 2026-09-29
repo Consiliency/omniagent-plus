@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import {
   stateLedgerRecordArraySchema,
   stateLedgerRecordKinds,
   stateLedgerRecordSchema,
+  createStateLedgerRecord,
   type StateLedgerEntry,
   type StateLedgerRecordKind,
 } from "./index.js";
@@ -20,6 +22,33 @@ function readFixture(name: string): StateLedgerEntry[] {
 }
 
 describe("state ledger contracts", () => {
+  it("preserves concrete effects and array APIs", () => {
+    expect(stateLedgerRecordSchema).toBeInstanceOf(z.ZodEffects);
+    expect(stateLedgerRecordSchema.innerType()).toBeInstanceOf(z.ZodDiscriminatedUnion);
+    expect(stateLedgerRecordSchema.sourceType()).toBeInstanceOf(z.ZodDiscriminatedUnion);
+    expect(stateLedgerRecordArraySchema).toBeInstanceOf(z.ZodArray);
+    expect(stateLedgerRecordArraySchema.element).toBe(stateLedgerRecordSchema);
+    const record = readFixture("ledger-records.json")[0]!;
+    expect(stateLedgerRecordArraySchema.min(1).max(1).length(1).nonempty().parse([record])).toHaveLength(1);
+    expect(stateLedgerRecordArraySchema.min(1).safeParse([]).success).toBe(false);
+    expect(stateLedgerRecordArraySchema.max(0).safeParse([record]).success).toBe(false);
+  });
+
+  it("guards the record factory before spreading caller fields", () => {
+    let invoked = 0;
+    const record = readFixture("ledger-records.json")[0]!;
+    const input = Object.defineProperty({ ...record }, "kind", { get() { invoked += 1; return record.kind; } });
+    expect(() => createStateLedgerRecord(input)).toThrow(/non json metadata/);
+    expect(invoked).toBe(0);
+  });
+
+  it("rejects retained nonfinite numbers while stripping ordinary unknown extensions", () => {
+    const record = readFixture("ledger-records.json").find((item) => item.kind === "session")!;
+    expect(() => stateLedgerRecordSchema.parse({ ...record, discarded: { number: Infinity, array: [undefined] } })).not.toThrow();
+    for (const nested of [NaN, Infinity, -Infinity, [undefined]]) {
+      expect(() => stateLedgerRecordSchema.parse({ ...record, payload: { ...record.payload, metadata: { nested } } })).toThrow(/non json metadata/);
+    }
+  });
   it("rejects executable input before reading known schema fields", async () => {
     const record = readFixture("ledger-records.json").find((item) => item.kind === "runtime_event")!;
     let invoked = 0;

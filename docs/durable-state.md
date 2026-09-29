@@ -151,9 +151,24 @@ or `Symbol.species` hooks.
 Descriptor checks include symbol keys and precede durable schema parsing, including
 hidden known fields and Zod's initial type inspection. Both exported ledger record
 and record-array schemas guard their own entrypoints; callers must guard arbitrary
-outer schemas that inspect inputs before delegating. Audit parsing first copies inert data without changing text;
-unsafe unknown tool values become placeholders. Compaction revalidates and bounds
-kept records after callbacks and before serialization or checkpoint publication.
+outer schemas that inspect inputs before delegating. Runtime-event audit parsing first copies inert data without changing text;
+unsupported audit values, including known scalar fields, become placeholders before
+schema validation; text policy still applies afterward. The exported schemas retain
+their concrete effects and array APIs. Derived or caller-built schemas that inspect
+raw roots first require the caller's guard.
+Append and local coordination recheck inputs after asynchronous waits and validate
+the complete inbox immediately before serialization. RPC sends use a detached inert
+copy so later caller mutations cannot change the serialized request.
+Compaction revalidates and bounds kept records, including the supported private
+record version, after callbacks and before serialization or checkpoint publication.
+Callbacks remain trusted selectors and can change records within those invariants.
+Retained numeric values must be finite; native `JSON.rawJSON` carriers and own
+undefined array entries reject. Optional undefined object fields are omitted and
+sparse holes retain normal JSON null serialization. Export projection replaces
+nonfinite/raw values, omits undefined object fields and maps undefined array entries
+to null. Inert preparse checks permit ordinary discarded nonfinite extensions so
+unknown-field stripping remains compatible. Descriptor traversal is depth bounded;
+shared-reference in-process graphs can still cost more than JSON-origin trees.
 Unknown-field stripping/passthrough behavior remains boundary-specific. Authorized
 runtime prompts, including empty, whitespace and long multibyte messages, remain
 usable. Durable started-message/text-delta records omit runtime content rather

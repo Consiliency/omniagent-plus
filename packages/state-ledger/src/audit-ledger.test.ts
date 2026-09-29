@@ -49,6 +49,47 @@ function readFixture(): AuditFixture {
 }
 
 describe("audit ledger", () => {
+  it("rechecks append input after asynchronous lock and manifest work", async () => {
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-pending-append-")) });
+    await ledger.appendEvidenceRef({ kind: "log", label: "original" });
+    const before = await readFile(ledger.store.paths.ledgerPath, "utf8");
+    const manifest = await readFile(ledger.store.paths.manifestPath, "utf8");
+    let invoked = 0;
+    const input = { kind: "evidence_ref" as const, payload: { kind: "log" as const, label: "safe" } };
+    const pending = ledger.store.appendRecord(input);
+    Object.defineProperty(input, "kind", { get() { invoked += 1; return "evidence_ref"; } });
+    await expect(pending).rejects.toThrow(/non json metadata/);
+    expect(invoked).toBe(0);
+    expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(before);
+    expect(await readFile(ledger.store.paths.manifestPath, "utf8")).toBe(manifest);
+  });
+
+  it("rejects lossy numeric metadata on append and preserves invalid complete records", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-number-append-")) });
+    const rawJSON = (JSON as { rawJSON?: (text: string) => unknown }).rawJSON;
+    for (const nested of [NaN, Infinity, -Infinity, [undefined], ...(rawJSON ? [rawJSON("123")] : [])]) {
+      await expect(ledger.store.appendRecord({ kind: "session", payload: { ...fixture.session, metadata: { nested } } })).rejects.toThrow(/non json metadata/);
+    }
+    const record = await ledger.store.appendRecord({ kind: "session", payload: { ...fixture.session, metadata: { nested: 1 } } });
+    const before = await readFile(ledger.store.paths.ledgerPath, "utf8");
+    const manifest = await readFile(ledger.store.paths.manifestPath, "utf8");
+    await expect(ledger.store.compactRecords((kept) => {
+      if (kept.kind === "session") Object.assign(kept.payload, { metadata: { nested: Infinity } });
+      return true;
+    })).rejects.toThrow(/non json metadata/);
+    expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(before);
+    expect(await readFile(ledger.store.paths.manifestPath, "utf8")).toBe(manifest);
+    const projected = await ledger.appendRuntimeEvent({ ...fixture.runtimeEvent, type: "runtime.tool.result", terminal: false,
+      payload: { toolCallId: "tool", outputRedacted: { number: Infinity, values: [undefined] } } });
+    expect(projected.payload).toMatchObject({ payload: { outputRedacted: { number: "[redacted]", values: [null] } } });
+    await ledger.store.compactRecords(() => true);
+    expect(await (await AuditLedger.open({ rootDir: ledger.store.paths.rootDir })).listRecords()).toHaveLength(2);
+    const invalid = JSON.stringify(record).replace('"nested":1', '"nested":1e9999') + "\n";
+    await writeFile(ledger.store.paths.ledgerPath, invalid);
+    await expect(AuditLedger.open({ rootDir: ledger.store.paths.rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
+    expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(invalid);
+  });
   it("checks known fields and append envelopes before schema parsing or helper reads", async () => {
     const fixture = readFixture();
     const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-known-field-hooks-")) });
@@ -80,6 +121,7 @@ describe("audit ledger", () => {
       (record: object) => Object.defineProperty(Object.getOwnPropertyDescriptor(record, "payload")!.value as object, "toJSON", { value: hook }),
       (record: object) => Object.defineProperty(record, "payload", { get: hook }),
       (record: object) => Object.assign(record, { payload: { kind: "log", label: "safe", excerpt: "x".repeat(300) } }),
+      (record: object) => Object.assign(record, { schemaVersion: 2 }),
     ]) {
       await expect(ledger.store.compactRecords((record) => { mutate(record); return true; })).rejects.toThrow();
       expect(await readFile(ledger.store.paths.ledgerPath, "utf8")).toBe(before);

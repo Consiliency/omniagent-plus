@@ -119,6 +119,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
     assertMetadataSafe(message, { inertOnly: true });
     return withFilesystemLock(this.lockPath, async () => {
+      assertMetadataSafe(message, { inertOnly: true });
       const built = buildMessage(message);
       const state = await this.readState(built.created_at);
       state.messages.push(built);
@@ -153,6 +154,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
     state: LocalCoordinationInboxState,
     now: string,
   ): Promise<void> {
+    assertMetadataSafe(state);
     await writeJsonAtomic(this.inboxPath, {
       ...state,
       updatedAt: now,

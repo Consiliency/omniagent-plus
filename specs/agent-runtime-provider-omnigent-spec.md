@@ -1136,6 +1136,11 @@ replaces non-JSON objects without invoking accessors or serialization hooks.
 Owned ledger schema entrypoints check descriptors before Zod type inspection;
 boxed primitives and symbol-keyed hooks reject. Projection copies arrays without
 species constructors, and compaction revalidates callback results before writing.
+Concrete Zod effects/array APIs remain available. Post-await checks protect append
+and local inbox serialization; RPC sends detach the validated payload. Compaction
+requires the supported private record version. Retained nonfinite numbers, native
+raw-JSON carriers and explicit undefined array entries reject; export projection
+replaces those values while preserving ordinary optional fields and sparse holes.
 Evidence paths are relative or opaque and
 CLI/UI/handoff export projects operational roots to opaque references. Release
 records retain lease identity/fencing and optional cause/actor/time provenance;
