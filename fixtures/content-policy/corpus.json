@@ -7,6 +7,8 @@
     { "nested": { "notes": ["safe lookalike", "src/index.ts"] } }
   ],
   "rejected": [
+    "password: synthetic-only-value",
+    "api_key: synthetic-only-value",
     { "nested": { "notes": ["Bearer synthetic-token-123456"] } },
     { "nested": { "password": "synthetic-private-value" } },
     { "environment": { "PATH": "/bin" } },

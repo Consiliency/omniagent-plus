@@ -78,6 +78,12 @@ Typed `LedgerReadError` diagnostics contain codes and offsets, never raw payload
 Array and replay APIs reject an incomplete snapshot rather than returning a
 misleading successful prefix.
 
+Store `maxSnapshotBytes` sets the same positive bounded capacity for writer
+recovery, compaction and default store reads. Append rejects growth beyond that
+capacity before writing/acknowledging it, so a warmed cache cannot create a ledger
+that its configured writer cannot reopen. Raise this option consistently for
+larger stores; standalone snapshot inspection retains the 64 MiB default.
+
 `readOnly: true` open, manifest/list/query reads and CLI session inspection do not
 create directories, acquire writer locks, repair tails or migrate manifests.
 CLI route dry-run uses this ledger mode; coordination effects remain COORD-owned.
@@ -129,6 +135,9 @@ Unknown-field stripping/passthrough behavior remains boundary-specific. Authoriz
 runtime prompts, including empty, whitespace and long multibyte messages, remain
 usable. Durable started-message/text-delta records omit runtime content rather
 than trusting a `metadata_only` label.
+The audit helper performs omission; direct ledger schemas/store writes reject
+those known content fields unless already omitted. Existing complete records
+that violate this stricter rule are corruption and remain intact for diagnosis.
 
 Operational roots remain absolute internally. CLI JSON/text, UI and handoff
 exports use repo-relative paths or opaque `path:sha256:<digest>` refs. Evidence
@@ -151,8 +160,8 @@ fake-provider evidence, not real upstream lifecycle acceptance.
 ## Measured Append Work
 
 Thirty appends to identical 0/100/1000-record fixtures took about 16/27/161 ms
-before DATA and 25/15/22 ms in the candidate run on this host. These are single
-run observations, not speed guarantees. Candidate controls record zero append
+before DATA and 85/89/101 ms in the candidate run on this host. These are single
+run observations, not speed guarantees. The comparison uses the same session-record workload; stronger sync increases small-ledger latency. Separate candidate controls record zero append
 snapshot rescans and zero index rewrites for unchanged ledgers. Foreign writes
 invalidate the cache under the writer transaction; competing-process tests check
 unique sequences and complete record preservation. Fsync adds filesystem-dependent

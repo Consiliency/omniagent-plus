@@ -20,6 +20,8 @@ export interface LedgerSnapshotOptions {
   readonly maxAttempts?: number;
 }
 
+export const DEFAULT_MAX_SNAPSHOT_BYTES = 64 * 1024 * 1024;
+
 export type LedgerSnapshot = {
   readonly status: "complete" | "incomplete_tail";
   readonly records: StateLedgerEntry[];
@@ -179,7 +181,7 @@ function parseBytes(raw: Buffer): Exclude<LedgerSnapshot, { status: "in_progress
 }
 
 export async function readLedgerSnapshot(rootDir: string, options: LedgerSnapshotOptions = {}): Promise<LedgerSnapshot> {
-  const maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
+  const maxBytes = options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_BYTES;
   const maxAttempts = options.maxAttempts ?? 3;
   if (![maxBytes, maxAttempts].every((value) => Number.isSafeInteger(value) && value > 0)) {
     throw new Error("Snapshot limits must be positive safe integers.");
@@ -204,7 +206,8 @@ export async function readLedgerSnapshot(rootDir: string, options: LedgerSnapsho
       let result: LedgerSnapshot | undefined;
       let failure: unknown;
       try {
-        await readStoreManifest(rootDir);
+        const manifest = await readStoreManifest(rootDir);
+        if (!before && manifest && manifest.recordCount > 0) throw new LedgerReadError("ledger_corruption");
         result = parseBytes(raw);
       } catch (error) { failure = error; }
       if (count !== raw.length || !same(before, handle ? await handle.stat({ bigint: true }) : undefined)

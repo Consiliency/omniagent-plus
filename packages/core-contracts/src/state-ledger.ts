@@ -203,6 +203,14 @@ export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
   withPayload("evidence_ref", runtimeEvidenceRefSchema),
 ]).superRefine((record, context) => {
   let payload: unknown = record.payload;
+  if (record.kind === "runtime_event") {
+    const event = record.payload;
+    if (event.redaction !== "metadata_only"
+      || (event.type === "runtime.turn.started" && event.payload.message !== "[runtime content omitted]")
+      || (event.type === "runtime.text.delta" && event.payload.delta !== "[runtime content omitted]")) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Runtime content must be omitted before metadata-only ledger construction." });
+    }
+  }
   if (record.kind === "session") payload = { ...record.payload, repoRoot: undefined,
     worktree: record.payload.worktree === undefined ? undefined : { ...record.payload.worktree, path: undefined } };
   if (record.kind === "worktree_lease") payload = { ...record.payload, path: undefined };

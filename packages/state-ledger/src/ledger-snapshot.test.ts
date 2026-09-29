@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import type { BigIntStats, PathLike, StatOptions } from "node:fs";
 import type * as FsPromises from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -145,5 +145,30 @@ describe("validated visible ledger snapshots", () => {
       await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
       expect(await readFile(store.paths.ledgerPath)).toEqual(corrupt);
     }
+  });
+
+  it("fails closed when a missing ledger contradicts a nonempty manifest", async () => {
+    const { rootDir, store } = await seeded();
+    const before = await readFile(store.paths.manifestPath);
+    await rename(store.paths.ledgerPath, `${store.paths.ledgerPath}.preserved`);
+    await expect(readLedgerSnapshot(rootDir)).rejects.toMatchObject({ code: "ledger_corruption" });
+    await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "ledger_corruption" });
+    expect(await readFile(store.paths.manifestPath)).toEqual(before);
+  });
+
+  it("bounds acknowledged growth to the configured reopen and compaction capacity", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "data-capacity-"));
+    const store = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: 400 });
+    const input = { kind: "evidence_ref" as const, payload: { kind: "log" as const, label: "capacity" } };
+    await store.appendRecord(input);
+    const before = await readFile(store.paths.ledgerPath);
+    await expect(store.appendRecord(input)).rejects.toMatchObject({ code: "snapshot_limit" });
+    expect(await readFile(store.paths.ledgerPath)).toEqual(before);
+    await expect((await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: 400 })).listRecords()).resolves.toHaveLength(1);
+    const enlarged = await AppendOnlyStore.open({ rootDir, maxSnapshotBytes: 1024 });
+    expect((await enlarged.appendRecord(input)).sequence).toBe(2);
+    await enlarged.compactRecords(() => false);
+    expect((await enlarged.appendRecord(input)).sequence).toBe(3);
+    await expect(AppendOnlyStore.open({ rootDir, maxSnapshotBytes: 0 })).rejects.toThrow(/positive safe integers/);
   });
 });

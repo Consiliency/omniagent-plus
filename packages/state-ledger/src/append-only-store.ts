@@ -30,7 +30,7 @@ import {
   writeJsonAtomic,
 } from "./schema.js";
 import { createEmptyManifest, migrateStoreManifest, readStoreManifest, writeStoreManifest } from "./migrations.js";
-import { completeSnapshotRecords, LedgerReadError, readLedgerSnapshot, type LedgerSnapshotOptions } from "./ledger-snapshot.js";
+import { completeSnapshotRecords, DEFAULT_MAX_SNAPSHOT_BYTES, LedgerReadError, readLedgerSnapshot, type LedgerSnapshotOptions } from "./ledger-snapshot.js";
 import { withFilesystemLock } from "./filesystem-lock.js";
 export { withFilesystemLock } from "./filesystem-lock.js";
 
@@ -40,6 +40,7 @@ export interface AppendOnlyStoreOptions {
   readonly lockRetryMs?: number;
   readonly lockTimeoutMs?: number;
   readonly readOnly?: boolean;
+  readonly maxSnapshotBytes?: number;
 }
 
 type StateLedgerPayloadForKind<TKind extends StateLedgerRecordKind> = Extract<
@@ -106,6 +107,7 @@ export class AppendOnlyStore {
   readonly paths: StateLedgerPaths;
 
   readonly maxPayloadBytes: number;
+  readonly maxSnapshotBytes: number;
 
   private readonly lockRetryMs: number;
 
@@ -117,6 +119,10 @@ export class AppendOnlyStore {
     this.paths = getStateLedgerPaths(options.rootDir);
     this.maxPayloadBytes =
       options.maxPayloadBytes ?? DEFAULT_MAX_PAYLOAD_BYTES;
+    this.maxSnapshotBytes = options.maxSnapshotBytes ?? DEFAULT_MAX_SNAPSHOT_BYTES;
+    if (!Number.isSafeInteger(this.maxSnapshotBytes) || this.maxSnapshotBytes <= 0) {
+      throw new Error("Snapshot limits must be positive safe integers.");
+    }
     this.lockRetryMs = options.lockRetryMs ?? 25;
     this.lockTimeoutMs = options.lockTimeoutMs ?? 2_000;
     this.readOnly = options.readOnly ?? false;
@@ -154,7 +160,7 @@ export class AppendOnlyStore {
   }
 
   async readSnapshot(options: LedgerSnapshotOptions = {}) {
-    return readLedgerSnapshot(this.paths.rootDir, options);
+    return readLedgerSnapshot(this.paths.rootDir, { maxBytes: this.maxSnapshotBytes, ...options });
   }
 
   async listRecords(): Promise<StateLedgerEntry[]> {
@@ -209,9 +215,15 @@ export class AppendOnlyStore {
         turnId: input.turnId, taskId: input.taskId, payload: input.payload,
       }) as Extract<StateLedgerEntry, { kind: TKind }>;
       if (cache.ids.has(record.recordId)) throw new LedgerReadError("ledger_corruption");
+      const serialized = `${JSON.stringify(record)}\n`;
+      const existingBytes = await stat(this.paths.ledgerPath).then((value) => value.size, (error: unknown) => {
+        if (isMissingFileError(error)) return 0;
+        throw error;
+      });
+      if (existingBytes + Buffer.byteLength(serialized) > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
       this.cache = undefined;
       const handle = await open(this.paths.ledgerPath, "a", 0o600);
-      try { await handle.writeFile(`${JSON.stringify(record)}\n`, "utf8"); await handle.sync(); }
+      try { await handle.writeFile(serialized, "utf8"); await handle.sync(); }
       finally { await handle.close(); }
       await syncDirectory(this.paths.rootDir);
       await writeStoreManifest(this.paths.rootDir, {

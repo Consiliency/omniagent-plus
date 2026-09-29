@@ -27,7 +27,7 @@ const secretTextPatterns: Array<{
   },
   {
     reason: "auth_assignment",
-    pattern: /\b(?:password|token|credential|authorization|api_key)\s*=\s*\S+/i,
+    pattern: /\b(?:password|token|credential|authorization|api_key)\s*(?:=|:)\s*\S+/i,
   },
   {
     reason: "secret_env_assignment",
@@ -104,11 +104,11 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
 
 export function assertMetadataSafe(value: unknown): void {
   const first = scanMetadataLeaks(value)[0];
-  if (first) throw new Error(`Metadata contains ${first.reason.replaceAll("_", " ")}.`);
+  if (first) throw new Error(`Metadata contains ${first.reason === "provider_payload" ? "raw provider payload" : first.reason.replaceAll("_", " ")}.`);
 }
 
 export function metadataSchemaCheck(value: unknown, context: z.RefinementCtx): void {
-  for (const leak of scanMetadataLeaks(value)) context.addIssue({ code: z.ZodIssueCode.custom, message: `Metadata contains ${leak.reason.replaceAll("_", " ")}.` });
+  for (const leak of scanMetadataLeaks(value)) context.addIssue({ code: z.ZodIssueCode.custom, message: `Metadata contains ${leak.reason === "provider_payload" ? "raw provider payload" : leak.reason.replaceAll("_", " ")}.` });
 }
 
 export function opaqueExportPath(path: string): string {

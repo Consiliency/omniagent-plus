@@ -57,6 +57,12 @@ describe("audit ledger", () => {
     expect(JSON.stringify(await ledger.listRecords())).not.toContain("synthetic-token-123456");
     expect(event.payload.message).toContain("synthetic-token-123456");
     expect((await ledger.listRecordsByKind("runtime_event"))[0]?.payload.redaction).toBe("metadata_only");
+    for (const raw of [event, { ...event, redaction: "metadata_only" as const, payload: { message: "Ordinary private conversation", state: "running" } },
+      { ...event, type: "runtime.text.delta" as const, redaction: "metadata_only" as const, payload: { delta: "Ordinary private conversation" } }]) {
+      await expect(ledger.store.appendRecord({ kind: "runtime_event", payload: raw as RuntimeEvent }))
+        .rejects.toThrow(/content must be omitted/);
+    }
+    expect(await ledger.listRecords()).toHaveLength(1);
   });
   it("persists and queries the required durable record families", async () => {
     const fixture = readFixture();

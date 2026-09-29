@@ -16,6 +16,7 @@ function fixture() {
   for (const name of ["process-profile.ts", "omnigent-isolation-policy.ts", "types.ts"]) write(`packages/identity-isolation/src/${name}`, 'import type { OmnigentProviderMode } from "../../omnigent-transport/src/types.js";');
   write("packages/omnigent-transport/src/types.ts", 'export type OmnigentProviderMode = "http";');
   write("packages/core-contracts/src/coordination-contract.ts", readFileSync("packages/core-contracts/src/coordination-contract.ts", "utf8"));
+  write("packages/core-contracts/src/redaction.ts", readFileSync("packages/core-contracts/src/redaction.ts", "utf8"));
   return { root, write, close: () => rmSync(root, { recursive: true, force: true }) };
 }
 it("accepts the exact three type edges and existing contract loader", () => {

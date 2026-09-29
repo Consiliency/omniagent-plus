@@ -45,4 +45,12 @@ describe("state ledger contracts", () => {
     expect(kinds).toContain("approval_response");
     expect(kinds).toContain("capability_snapshot");
   });
+
+  it("rejects ordinary runtime content at direct ledger construction", () => {
+    const record = readFixture("ledger-records.json").find((item) => item.kind === "runtime_event")!;
+    const event = { ...record.payload, type: "runtime.text.delta", terminal: false,
+      redaction: "metadata_only", payload: { delta: "Ordinary private conversation content" } };
+    expect(() => stateLedgerRecordSchema.parse({ ...record, payload: event })).toThrow(/content must be omitted/);
+    expect(() => stateLedgerRecordSchema.parse({ ...record, payload: { ...event, payload: { delta: "[runtime content omitted]" } } })).not.toThrow();
+  });
 });

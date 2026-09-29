@@ -5,15 +5,16 @@
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
   "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
   "source_binding": {
-    "packages/state-ledger/src/append-only-store.ts": "c47667a0f5e1d7d28cdcd58aa59e1de3c91644ee727c44214274083e98c195a2",
-    "packages/state-ledger/src/ledger-snapshot.ts": "3196da200e3fd7b03c6fb9ed452c96c93351d874d88f0677b96f31326866ba55",
+    "packages/state-ledger/src/append-only-store.ts": "eb1594a205b57c4a826b2256e93a68a7d1acb7b5d46952f5ac77c1277e652e9e",
+    "packages/state-ledger/src/ledger-snapshot.ts": "78323a231f347368c5f476b8e421ed734f1baa9e081041b61e7ef3bbb6b50538",
     "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
     "packages/state-ledger/src/migrations.ts": "e71ce548a506d58aaa55f48cc2204957066a5cdd3cf9b571c1d4ff2163a880c6",
     "packages/state-ledger/src/replay.ts": "bb2c4d6aebb98acc74e48278bb9027c5949320fcaab485779bbf76dd6614cabf",
     "packages/state-ledger/src/retention.ts": "1534a35920d1f5f83259371873eea051b9a93562d6f3c035534a8ec219d3dfd5",
-    "packages/core-contracts/src/redaction.ts": "bbc3e13cd8c3ff095115126bcb9ad0959fd3465a2b657bedfc56ecf5d2632e39",
-    "fixtures/content-policy/corpus.json": "85f664fc693dcf26a2a5892332abef04b21b75b7daa2fdf96f1e228a2b31218a",
-    "plans/phase-plan-v2-DATA.md": "123d658b66cd4a5ca50f2a2097bd69a5ad23f05f2d375bf705ec1af39f8fcb2e"
+    "packages/core-contracts/src/redaction.ts": "1e5eaaefb744a4b3163c45540c16aff91b9fbfc7b751ec1f5d3aadcc1918e119",
+    "fixtures/content-policy/corpus.json": "462ee36083cf30f0c0a6c86569748ab21a8a83109694a17dffc28183fedb84ce",
+    "plans/phase-plan-v2-DATA.md": "abef0e02a2151f5cba7010ca5db37ab80234313d20d8de3f496139bd326cc34a",
+    "packages/core-contracts/src/state-ledger.ts": "005fd911af1638b45652c823172060002bcd381a6a7c98bae14469abd685cc3c"
   },
   "local_verification": {
     "targeted": {
@@ -32,11 +33,17 @@
       "snapshot_hardening": {
         "files": 2,
         "passed": 10
+      },
+      "integrated_repair_round": {
+        "command": "pnpm build; pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/governed-pipeline-adapter/src tests/guard/boundaries.test.ts",
+        "files": 52,
+        "passed": 190,
+        "failed": 0
       }
     },
-    "typecheck": "passed before final documentation and UTF-8 control changes; rerun pending",
-    "lint": "pending corrected type-import lint control",
-    "full_gate": "pending clean committed candidate; dirty tracked inputs correctly refused"
+    "typecheck": "passed on repaired working candidate",
+    "lint": "passed on repaired working candidate",
+    "full_gate": "Build/lint/typecheck/boundaries passed; local disposable Docker loopback fixture readiness failed. Hosted full gate required; prior d234929 gate found now-repaired missing synthetic fixture dependency and legacy diagnostic mismatch."
   },
   "measurement": {
     "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; synthetic identical ledger fixtures; one observational run",
@@ -52,9 +59,9 @@
       160.734173
     ],
     "candidate_ms": [
-      24.539964,
-      14.557157,
-      21.96903
+      84.858258,
+      89.030664,
+      101.331338
     ],
     "candidate_append_snapshot_reads": [
       0,
@@ -66,7 +73,28 @@
       0,
       0
     ],
-    "limit": "No speed threshold or universal durability claim; startup and compaction scan and checkpoint; fsync latency is filesystem dependent."
+    "limit": "No speed threshold or universal durability claim; startup and compaction scan and checkpoint; fsync latency is filesystem dependent.",
+    "workload": "Baseline and candidate both seed 0/100/1000 session records through AuditLedger and time 30 appendSession calls with the same session fixture. No-rescan/index controls use a separate synthetic evidence-ref fixture; their timings are not compared to the baseline.",
+    "correctness_comparison": {
+      "complete_invalid_record_rejected": {
+        "baseline": false,
+        "candidate": true
+      },
+      "complete_invalid_record_preserved": {
+        "baseline": false,
+        "candidate": true
+      },
+      "stale_manifest_next_sequence": {
+        "baseline": 1,
+        "candidate": 3,
+        "expected": 3
+      },
+      "read_open_mutated_manifest": {
+        "baseline": true,
+        "candidate": false,
+        "candidate_mode": "explicit readOnly"
+      }
+    }
   },
   "fault_matrix": {
     "passed": [
@@ -105,6 +133,19 @@
         "explicit foreign session route incorrectly admitted by matching task"
       ],
       "resolution": "Candidate repairs all three; whole-prefix grammar and UTF-8 controls, bounded manifest decode errors, explicit-session precedence regression. Independent final re-review pending."
+    },
+    {
+      "source_sha": "d234929308057d938555f09715919a2dc169a3f7",
+      "review": "separate independent full-phase audit",
+      "verdict": "PARTIALLY AGREE",
+      "findings": [
+        "direct ledger construction retains ordinary raw runtime content",
+        "missing acknowledged ledger is reported as successful empty state",
+        "warmed append can exceed its own reopen/compaction snapshot limit",
+        "colon-assignment corpus/documentation coverage incomplete",
+        "stale route dry-run mutation statement"
+      ],
+      "resolution": "Candidate requires known runtime fields already omitted at direct ledger boundary; validates missing-ledger/nonempty-manifest contradiction; enforces configurable maxSnapshotBytes before append; adds colon assignments to shared corpus and corrects docs. Final re-review pending."
     }
   ],
   "remaining": [
