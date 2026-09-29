@@ -6,6 +6,20 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- Hosted CI and publish rehearsal both passed at `a5b8730`. Its CI custody
+  artifact has 465 balanced root admissions/terminals, zero unresolved or
+  unproven terminals, and two isolated 20-command quiescent journals. Sol's
+  exact-head review found that a tagged rescue control could conceal a second
+  signaled descendant; the candidate now requires exactly one for each tagged
+  rescue. The shutdown-budget control was untagged because it has no adopted
+  child, while the outer keeper-loss rescue has its own explicit tag. Gemini's
+  manual tool-enabled TUI review found that final status could be sent only
+  after the absolute deadline; the candidate reserves 200 ms for its final
+  protocol frames. Its zombie-leader, cooperative-deadline and blocking-writer
+  claims do not establish a success escape: live descendants keep the child
+  list nonempty, relative cooperative limits only shorten the admitted cap,
+  and READY precedes admission while final frames follow completed draining.
+  These dispositions require fresh exact-head review and hosted evidence.
 - The next candidate enforces inherited reservations even without a
   ProcessScope, carries the supervisor's first cancellation ceiling through
   nested cleanup, and binds hosted admissions to the 20-minute job's actual

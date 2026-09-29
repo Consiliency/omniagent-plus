@@ -23,6 +23,7 @@ STATUS = 4
 TAIL_NS = 2_500_000_000
 TERM_NS = 500_000_000
 NATURAL_NS = 250_000_000
+RESULT_RESERVE_NS = 200_000_000
 libc = ctypes.CDLL(None, use_errno=True)
 
 
@@ -463,7 +464,7 @@ class Supervisor:
                         self.error_read = None
                 except BlockingIOError:
                     pass
-            if self.payload is None and (self.error or now >= self.deadline_ns):
+            if self.payload is None and (self.error or now >= self.deadline_ns - RESULT_RESERVE_NS):
                 self.error = self.error or "admission_deadline"
                 break
             if self.payload is not None and self.payload_status is not None and self.drain_start is None:
@@ -482,7 +483,7 @@ class Supervisor:
                     self.signal_children(signal.SIGKILL)
                 if exhausted and not self.active and not direct_children():
                     break
-                if now >= self.end_ns:
+                if now >= self.end_ns - RESULT_RESERVE_NS:
                     self.error = self.error or "custody_deadline"
                     break
             time.sleep(0.005)

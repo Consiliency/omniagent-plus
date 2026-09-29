@@ -98,7 +98,7 @@ const owned = new Map<number, OwnedChild>();
 const context = new AsyncLocalStorage<ProcessScope | undefined>();
 const custodyContext = new AsyncLocalStorage<{ runDir: string; stage: string }>();
 const cleanupContext = new AsyncLocalStorage<{ deadline: bigint; remainingSlots: number }>();
-const controlCases = new Set(["hung-child", "normal-orphan", "immediate-orphan"]);
+const controlCases = new Set(["hung-child", "normal-orphan", "immediate-orphan", "keeper-loss"]);
 const supervisorPath = fileURLToPath(new URL("./guard-supervisor.py", import.meta.url));
 const elapsedMs = (started: bigint) => Number((process.hrtime.bigint() - started) / 1_000_000n);
 
@@ -127,7 +127,7 @@ export function validateCustodyJournal(runDir: string): { admitted: number; natu
       const counts = [row.adopted_count, row.adopted_natural_count, row.adopted_signaled_count, row.adopted_unresolved_count, row.force_killed_count];
       if (counts.some((count) => !Number.isSafeInteger(count) || Number(count) < 0) || row.adopted_count !== Number(row.adopted_natural_count) + Number(row.adopted_signaled_count) + Number(row.adopted_unresolved_count)) throw new Error("GUARD custody journal counts invalid");
       if (row.custody !== "quiescent" || Number(row.adopted_unresolved_count) !== 0) throw new Error("GUARD custody journal unproven");
-      if (Number(row.adopted_signaled_count) > 0 && !controlCases.has(String(row.control_case_id))) throw new Error("GUARD unexpected signaled rescue");
+      if (controlCases.has(String(row.control_case_id)) ? Number(row.adopted_signaled_count) !== 1 : Number(row.adopted_signaled_count) !== 0) throw new Error("GUARD unexpected signaled rescue");
       natural += Number(row.adopted_natural_count);
       signaled += Number(row.adopted_signaled_count);
     } else throw new Error("GUARD custody journal event invalid");
@@ -373,10 +373,10 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     scope?.children.add(child);
     record.status.on("data", (chunk: Buffer) => handleStatus(record, chunk));
     record.status.on("error", () => { record.fault = new Error("GUARD status channel failed"); });
-    record.status.once("end", () => { record.statusEnded = true; if (record.exited) finish(record); });
+    record.status.once("end", () => { record.statusEnded = true; if (record.exited && (!record.result || !record.workDrained || record.result.custody !== "quiescent" || record.fault)) finish(record); });
     record.control.on("error", () => { record.fault = new Error("GUARD control channel failed"); });
     child.on("error", () => { record.fault = new Error("GUARD supervisor spawn failed"); });
-    child.once("exit", () => { record.exited = true; if (record.statusEnded) finish(record); });
+    child.once("exit", () => { record.exited = true; if (record.statusEnded && (!record.result || !record.workDrained || record.result.custody !== "quiescent" || record.fault)) finish(record); });
     child.once("close", () => finish(record));
     options.signal?.addEventListener("abort", () => {
       requestShutdown(record);
