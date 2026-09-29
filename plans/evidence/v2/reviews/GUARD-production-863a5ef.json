@@ -1,0 +1,25 @@
+{
+  "schema": "manual-four-seat-production-review.v1",
+  "phase": "GUARD",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/29",
+  "full_review_head": "0f6de84c3dcf9bd52768695cc0a6935427c094e2",
+  "repair_review_head": "863a5efc5cf57ff69afadcb79e7561de8aff19d7",
+  "plan_sha256": "96c6fac4bedffd2ea316c588c93ede0c977b249d760746ead65164e7bea7884e",
+  "source_sha256": {
+    "tests/helpers/guard-supervisor.py": "5935768f9f6e66fd79f4834a5aec447ba400d7e81f542d5df19b8f4920f4fdc6",
+    "tests/helpers/guard-process.ts": "e2c2e1b4312fdcbc02e3e11bfa88c6f6f8cf5d7bcbf48ef155e2104af6e8297f",
+    "scripts/verify.mjs": "3be07d021850e31bd0fd7d3656cc4eaaebabe6c3f80a00002beee5390e2a5ae1",
+    "scripts/verify-guard-suite-interrupt.mjs": "fc9eb85ef2e02e6c1f3c4289d378438c8728abe49a615af43ee06647328c6e28",
+    "tests/guard/process.test.ts": "91dd2f869469486c5b083f2394c437a9ebaacf172dfc0cb64d57b5a11a1e6b19"
+  },
+  "seats": [
+    { "seat": "Astra", "route": "native read-only code review and independent focused probes", "full_head_verdict": "NOT_ACCEPT", "repair_head_verdict": "ACCEPT", "finding": "Owner-death control falsely rejected a valid second signaled adoption.", "reconciliation": "Only owner-death permits one or two; other controls retain their limits. Twelve synthetic count checks, targeted controls and real interruption passed." },
+    { "seat": "Sol", "route": "native read-only code review and independent process reproduction", "full_head_verdict": "NOT_ACCEPT", "repair_head_verdict": "ACCEPT", "finding": "The required process suite failed when the outer keeper adopted both the inner keeper and its leaf.", "reconciliation": "Verified the bounded owner-death receipt, vanished leaf and missing inner terminal; targeted and real interruption controls passed." },
+    { "seat": "Opus 5.5", "route": "manual Claude subscription TUI with read-only tools", "full_head_verdict": "NOT_ACCEPT", "repair_head_verdict": "ACCEPT", "finding": "Owner-death count flake and a 15-second wait on the 40-second real-suite interruption control.", "reconciliation": "Both scoped fixes inspected in 0f6de84..863a5ef; reviewer left only a theoretical, unreproduced zero-rescue scheduling concern as nonblocking.", "local_full_review_sha256": "b77f690a4b4494a4f87acb8561979ea64016733dd53a81336fd7bbea32521615" },
+    { "seat": "Gemini 3.1 Pro High", "route": "manual Antigravity subscription TUI with read-only tools", "full_head_verdict": "NOT_ACCEPT", "repair_head_verdict": "ACCEPT", "finding": "Owner-death false rejection and underfunded interruption wait; prior late-status orphan claim re-evaluated.", "reconciliation": "Both fixes inspected in 0f6de84..863a5ef. The live-child suspended-supervisor control addresses the earlier test weakness; the prior orphan escape claim was not reproduced.", "local_transcript_sha256": "ebcfe97acbce3596bbc3816e2f0731df0c361c690640ec01d0e89065a39d0f00" }
+  ],
+  "hosted_exact_repair_head": { "ci_run_id": 36543602533, "ci": "success", "guard_required": "success", "publish_rehearsal_run_id": 36543602483, "publish_rehearsal": "success" },
+  "decision": "Four usable seats accept the repaired code and plan bytes; merge still requires committed evidence, final exact-head check, and the maintainer-owned main protection decision.",
+  "vote_transfer": false,
+  "product_release": false
+}

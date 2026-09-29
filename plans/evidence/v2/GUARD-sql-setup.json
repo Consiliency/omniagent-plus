@@ -1,0 +1,57 @@
+{
+  "image": "postgres@sha256:45cd22f8d32e189d245403954882f88e7a8714301fda80dab6da90f1265b25a3",
+  "platform": "linux/amd64",
+  "container_id": "e074a4d011bc53a9a54a8222c88730d3b097a3c3e1f0aff221c40bbefc99509f",
+  "port": 32768,
+  "admitted": true,
+  "migrations": [
+    {
+      "file": "20260708215513_coordination_leases.sql",
+      "sha256": "9457176ceb3c71220c13c22bd4ec222ed57ae3104c42c73c96d23f03b680d224"
+    }
+  ],
+  "roles": [
+    {
+      "rolname": "anon",
+      "rolsuper": false,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false
+    },
+    {
+      "rolname": "authenticated",
+      "rolsuper": false,
+      "rolbypassrls": false,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false
+    },
+    {
+      "rolname": "guard_client",
+      "rolsuper": false,
+      "rolbypassrls": false,
+      "rolinherit": false,
+      "rolcanlogin": true,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false
+    },
+    {
+      "rolname": "service_role",
+      "rolsuper": false,
+      "rolbypassrls": true,
+      "rolinherit": true,
+      "rolcanlogin": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false
+    }
+  ],
+  "probe": "passed-signature-and-read-only-query",
+  "cleanup": "workflow-owned-service"
+}

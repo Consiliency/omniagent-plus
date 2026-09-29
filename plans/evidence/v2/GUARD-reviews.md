@@ -6,6 +6,18 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- On repaired code head `863a5ef`, hosted CI run `36543602533`, its
+  `guard-required` check, and publish rehearsal run `36543602483` all passed.
+  The CI custody artifact records 466 balanced root admissions/terminals,
+  52 natural and 103 named-control signaled adoptions, and zero unresolved or
+  unproven terminals. Focused GUARD and integration, isolated fixture checks,
+  the real-suite interruption control, producer binding and retained-package
+  rehearsal all passed. The retained workflow-owned SQL receipt is
+  `GUARD-sql-setup.json`. Astra, Sol, manual tool-enabled Opus 5.5 and manual
+  tool-enabled Gemini each accepted the 0f6de84..863a5ef repair after their
+  full earlier-head reviews; the exact source, route and finding dispositions
+  are in `reviews/GUARD-production-863a5ef.json`. This accepts candidate code,
+  not the unprotected main branch or a post-merge main run.
 - At `0f6de84`, hosted CI passed but the parallel publish rehearsal failed
   process case 35. Astra and Sol independently reproduced the owner-death
   control's false rejection: the outer keeper can legitimately signal the
