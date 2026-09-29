@@ -12,6 +12,28 @@ actual merged main SHA. Manual publish remains gated by
 `github.ref_protected=true`. Historical protection findings below record the
 earlier policy and do not supersede this owner decision.
 
+## 2026-09-29 Final Repair Checkpoint
+
+- The first agent-harness panel on `a6ea475` did not pass. Its Astra seat found
+  that the environment test imported `vitest.config.ts` in the assertion
+  worker, clearing admitted custody and the hosted job clock. Sol requested
+  final-head check evidence; the brokered Opus and Gemini seats returned no
+  usable verdict. None was counted as approval.
+- The repair at source head `13217de` moves config inspection into a guarded
+  child, preserves the assertion worker's custody state, allows the legitimate
+  hosted job clock in fixture-leak assertions, and independently marks guarded
+  workers so missing custody fails. An independent reviewer accepted the final
+  repair delta after catching the job-clock follow-up. Local tests passed
+  500/1 skip with a synthetic hosted job clock; typecheck and lint passed.
+  Hosted CI `36584478979`, `guard-required`, and publish rehearsal
+  `36584478982` passed. The retained CI artifact has 473 balanced root
+  admissions/terminals, 52 natural and 103 named-control signaled adoptions,
+  and zero unresolved/unproven terminals. Focused GUARD has 403 balanced
+  admissions/terminals; focused integration has 24. Publication was skipped.
+- A fresh agent-harness panel and independent final evidence-head review are
+  still required before merge. The separate manual Opus and Gemini tool-enabled
+  reviews of the repair are in progress.
+
 ## 2026-09-29 Implementation Checkpoint
 
 - On repaired code head `863a5ef`, hosted CI run `36543602533`, its

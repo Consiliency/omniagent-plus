@@ -3,7 +3,7 @@
   "phase": "GUARD",
   "status": "verified_candidate_pending_reviews_and_merge",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/29",
-  "tested_source_sha": "863a5efc5cf57ff69afadcb79e7561de8aff19d7",
+  "tested_source_sha": "13217de793bfd2146f7af5da7fd6e4fe85090eb4",
   "base_sha": "8d6b7c177f8ce10164b89375e37d927b0a28ad83",
   "plan": {
     "path": "plans/phase-plan-v2-GUARD.md",
@@ -12,19 +12,19 @@
   },
   "local_verification": {
     "environment": "Linux; Node v24.21.0; pnpm 11.1.1; Python 3.14.4",
-    "plain_ci_mode_test": { "command": "CI=true pnpm test", "passed": 500, "skipped": 1, "failed": 0 },
+    "plain_ci_mode_test": { "command": "GUARD_JOB_STARTED_MS=<current epoch ms> CI=true pnpm test", "passed": 500, "skipped": 1, "failed": 0 },
     "readiness": { "command": "pnpm exec vitest run packages/cli/src/hardening-readiness.test.ts", "passed": 5, "failed": 0 },
     "other_passed": ["pnpm typecheck", "pnpm lint", "node plans/evidence/v2/verify-triage.mjs", "node scripts/verify-guard-suite-interrupt.mjs", "git diff --check"],
     "limit": "The local Docker loopback fixture did not admit the full SQL gate; hosted CI ran the required full and focused fixture modes."
   },
   "hosted_verification": {
-    "ci": { "run_id": 36543602533, "conclusion": "success", "required_check": "guard-required", "custody_artifact_id": 11022046791, "package_artifact_id": 11022141539 },
-    "publish_rehearsal": { "run_id": 36543602483, "conclusion": "success", "actual_npm_publish": "skipped", "producer_binding": "passed", "retained_package_rehearsal": "passed" },
+    "ci": { "run_id": 36584478979, "conclusion": "success", "required_check": "guard-required", "custody_artifact_id": 11040464951, "package_artifact_id": 11040808989 },
+    "publish_rehearsal": { "run_id": 36584478982, "conclusion": "success", "actual_npm_publish": "skipped", "producer_binding": "passed", "retained_package_rehearsal": "passed" },
     "steps": ["pnpm verify --fixture-mode github-service", "pnpm test:guard", "pnpm test:integration", "real root-suite interruption control", "retained artifact recheck"]
   },
   "custody": {
-    "root_suite": { "admissions": 466, "terminals": 466, "adopted_natural": 52, "adopted_signaled_in_named_controls": 103, "unresolved": 0, "unproven": 0 },
-    "focused_guard": { "admissions": 396, "terminals": 396, "adopted_natural": 27, "adopted_signaled_in_named_controls": 103, "unresolved": 0, "unproven": 0 },
+    "root_suite": { "admissions": 473, "terminals": 473, "adopted_natural": 52, "adopted_signaled_in_named_controls": 103, "unresolved": 0, "unproven": 0 },
+    "focused_guard": { "admissions": 403, "terminals": 403, "adopted_natural": 27, "adopted_signaled_in_named_controls": 103, "unresolved": 0, "unproven": 0 },
     "focused_integration": { "admissions": 24, "terminals": 24, "adopted_natural": 1, "adopted_signaled": 0, "unresolved": 0, "unproven": 0 },
     "real_suite_interrupt": { "admissions": 2, "terminals": 2, "adopted_natural": 1, "adopted_signaled": 0, "unresolved": 0, "unproven": 0 },
     "sql_receipts": { "total": 29, "admitted": 19, "probed": 11, "workflow_owned": 3 }
@@ -38,6 +38,7 @@
     "record": "plans/evidence/v2/reviews/GUARD-production-863a5ef.json",
     "four_usable_seats": true,
     "repaired_code_and_plan_verdict": "accepted",
+    "independent_repair_delta_verdict": "accepted_on_13217de_source_head",
     "final_evidence_commit_review": "pending"
   },
   "criteria": {
@@ -45,5 +46,5 @@
     "EC-GUARD-2": "candidate passed focused GUARD and integration on independent admitted hosted fixtures with balanced custody and SQL receipts",
     "EC-GUARD-3": "readiness cases passed; source-grounded section-6 inventory distinguishes delivered local controls from deferred policy, measurement, source repair and license decisions"
   },
-  "limitations": ["The owner made main branch protection optional for this solo-project merge; manual publish remains gated by github.ref_protected.", "Panel code review and separate independent review of the final PR head remain pending.", "Post-merge main verification cannot be claimed from PR-head runs.", "No product release or hosted Supabase proof is claimed."]
+  "limitations": ["The owner made main branch protection optional for this solo-project merge; manual publish remains gated by github.ref_protected.", "Passing agent-harness panel code review and final evidence-head independent review remain pending.", "Post-merge main verification cannot be claimed from PR-head runs.", "No product release or hosted Supabase proof is claimed."]
 }
