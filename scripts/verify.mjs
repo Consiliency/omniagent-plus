@@ -77,6 +77,7 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
 }
 export async function verify({ command = "verify", mode = "local", root = process.cwd(), run = runProcess, create = createFixture, setup = setupFixture, suite = runSuite, pack = packVerified, artifacts = verifyArtifacts, inputs = checkoutInputs, stageList = STAGES } = {}) {
   if (!["verify", "test", "test:guard", "test:integration"].includes(command)) throw new Error("Invalid GUARD command");
+  if (process.env.GITHUB_ACTIONS === "true" && !process.env.GUARD_JOB_STARTED_MS) throw new Error("GUARD hosted job clock missing");
   jobBudgetMs();
   const scope = new ProcessScope(3);
   const runDir = resolve(root, ".phase-loop/guard", `${Date.now()}-${process.pid}-${randomUUID()}`);

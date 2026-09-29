@@ -29,6 +29,11 @@ records. omniagent-plus#20 stays open.
 - The deadline-edge and buffered-ADMIT follow-up passed the local plain gate
   with 484 cases and the one permitted live-smoke skip. Exact-head hosted and
   reviewer evidence is still pending.
+- Hosted CI passed at `df5a274`; the publish rehearsal reached its artifact
+  verifier but failed because the new job-clock requirement also reached that
+  separate consumer job. The follow-up scopes clock admission to the hosted
+  GUARD gate. Its consumer verifier passed under a simulated GitHub Actions
+  environment; a fresh hosted rehearsal is required.
 
 - Linux subreaper/pidfd custody, scope cleanup, SQL fixture admission and
   custody journaling are implemented through `3254f0a`. This is an implementation
