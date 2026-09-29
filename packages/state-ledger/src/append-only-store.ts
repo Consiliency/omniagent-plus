@@ -207,7 +207,6 @@ export class AppendOnlyStore {
       const cache = this.cache!;
       const nextSequence = Math.max(manifest.lastSequence, cache.lastSequence) + 1;
       if (!Number.isSafeInteger(nextSequence)) throw new LedgerReadError("ledger_corruption");
-      assertBoundedPayload(input.payload, this.maxPayloadBytes);
       if (input.schemaVersion !== undefined && input.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
       const record = normalizeLedgerScope(stateLedgerRecordSchema.parse({
         schema: "state_ledger_record.v0.1",
@@ -216,6 +215,7 @@ export class AppendOnlyStore {
         recordedAt: nowIsoString(input.recordedAt), sessionId: input.sessionId,
         turnId: input.turnId, taskId: input.taskId, payload: input.payload,
       }) as StateLedgerEntry) as Extract<StateLedgerEntry, { kind: TKind }>;
+      assertBoundedPayload(record.payload, this.maxPayloadBytes);
       if (cache.ids.has(record.recordId)) throw new LedgerReadError("ledger_corruption");
       const serialized = `${JSON.stringify(record)}\n`;
       const nextManifest = {

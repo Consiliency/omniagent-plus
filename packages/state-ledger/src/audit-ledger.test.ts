@@ -176,6 +176,33 @@ describe("audit ledger", () => {
     expect(persisted).not.toContain("getToken");
   });
 
+  it("never invokes tool serialization hooks at direct or projected durable boundaries", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-tool-hooks-")) });
+    let invoked = 0;
+    const hook = () => { invoked += 1; return { password: "synthetic-private-value" }; };
+    const values = [{ toJSON: hook }, Object.defineProperty({}, "toJSON", { value: hook }),
+      Object.create({ toJSON: hook }) as unknown,
+      Object.defineProperty({}, "text", { enumerable: true, get: hook }),
+      Object.defineProperty([], "0", { enumerable: true, get: hook }), Object.assign([], { toJSON: hook }), { nested: hook }];
+    for (const [index, body] of values.entries()) {
+      const call: RuntimeEvent = { ...fixture.runtimeEvent, eventId: `call-${index}`, redaction: "metadata_only", terminal: false,
+        type: "runtime.tool.call", payload: { toolCall: { toolCallId: "tool", sessionId: fixture.session.id, turnId: fixture.turn.turnId,
+          toolName: "read", argumentsRedacted: body, approvalRequired: false } } };
+      const result: RuntimeEvent = { ...fixture.runtimeEvent, eventId: `result-${index}`, redaction: "metadata_only", terminal: false,
+        type: "runtime.tool.result", payload: { toolCallId: "tool", outputRedacted: body } };
+      for (const event of [call, result]) {
+        await expect(ledger.store.appendRecord({ kind: "runtime_event", payload: event })).rejects.toThrow(/non json metadata/);
+        await ledger.appendRuntimeEvent(event);
+      }
+    }
+    expect(invoked).toBe(0);
+    const raw = await readFile(ledger.store.paths.ledgerPath, "utf8");
+    expect(raw).not.toContain("synthetic-private-value");
+    expect(raw).not.toContain("toJSON");
+    expect(await (await AuditLedger.open({ rootDir: ledger.store.paths.rootDir })).listRecords()).toHaveLength(values.length * 2);
+  });
+
   it("projects authorized runtime content before metadata-only persistence", async () => {
     const fixture = readFixture();
     const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-runtime-content-")) });

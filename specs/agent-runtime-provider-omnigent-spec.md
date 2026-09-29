@@ -1131,6 +1131,8 @@ Metadata-only construction and export share a recursive finite-corpus scanner.
 Authorized runtime messages remain unrestricted strings; persistence omits raw
 started-message/text-delta content and projects terminal/tool bodies. Public tool
 bodies retain unknown-value compatibility through live/history transport mapping.
+Durable metadata rejects executable object behavior; audit/export projection
+replaces non-JSON objects without invoking accessors or serialization hooks.
 Evidence paths are relative or opaque and
 CLI/UI/handoff export projects operational roots to opaque references. Release
 records retain lease identity/fencing and optional cause/actor/time provenance;

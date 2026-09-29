@@ -20,6 +20,29 @@ function readFixture<T>(path: string): T {
 }
 
 describe("handoff redaction helpers", () => {
+  it("rejects executable metadata and projects inert data without invoking hooks", () => {
+    let invoked = 0;
+    const hook = () => { invoked += 1; return { password: "synthetic-private-value" }; };
+    const hiddenHook = Object.defineProperty({}, "toJSON", { value: hook });
+    const accessor = Object.defineProperty({}, "text", { enumerable: true, get: hook });
+    const arrayAccessor = Object.defineProperty([], "0", { enumerable: true, get: hook });
+    const arrayHook = Object.assign([], { toJSON: hook });
+    const customPrototype = Object.create({ toJSON: hook }) as unknown;
+    const proxy = new Proxy({}, { get: hook, has: () => { invoked += 1; return false; } });
+    const arrayMethods = Object.assign([], { map: hook, forEach: hook, some: hook });
+    for (const value of [{ toJSON: hook }, hiddenHook, accessor, arrayAccessor, arrayHook, customPrototype, { nested: hook },
+      proxy, { choices: [proxy] }, { choices: arrayMethods }, { env: accessor }, { password: accessor }]) {
+      expect(() => assertMetadataSafe(value)).toThrow(/non json metadata|sensitive field/);
+      expect(scanMetadataLeaks(value).some((leak) => leak.reason === "non_json_metadata")).toBe(true);
+      const projected = projectMetadataExport(value);
+      expect(scanMetadataLeaks(projected)).toEqual([]);
+      expect(JSON.stringify(projected)).not.toContain("synthetic-private-value");
+    }
+    expect(invoked).toBe(0);
+    expect(() => assertMetadataSafe({ toJSON: "ordinary JSON key", nested: [null, true, 1] })).not.toThrow();
+    expect(projectMetadataExport({ toJSON: "ordinary JSON key" })).toEqual({ toJSON: "ordinary JSON key" });
+  });
+
   it("bounds original evidence strings including whitespace padding", () => {
     for (const value of [" ".repeat(3000) + "ok", "ok" + " ".repeat(3000)]) {
       expect(() => runtimeEvidenceRefSchema.parse({ kind: "log", label: "safe", excerpt: value })).toThrow(/exceeds/);

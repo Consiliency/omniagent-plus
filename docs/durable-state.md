@@ -43,7 +43,8 @@ pathname intact but do not fence arbitrary external tampering during a callback.
 
 Supported topology is one host/PID namespace on a local filesystem with SQLite
 locking, hard links, same-directory atomic rename, and file/directory fsync.
-Unsupported durability operations fail explicitly. Directory initialization
+Unsupported durability operations fail explicitly. Each directory-initialization,
+lock-acquisition and checkpoint-write path
 syncs every writable ancestor, even when another initializer created the entries,
 and stops before the first ancestor this user cannot modify. Pre-existing
 execute-only workspace parents are not opened; this user cannot publish entries
@@ -66,6 +67,8 @@ Only a syntactically valid but incomplete final JSON/UTF-8 prefix is repairable.
 Recovery writes exact rejected bytes to `.recovery/<random-id>.tail`, using a
 0700 directory and 0600 files, and syncs the file and directory before truncating
 and syncing the ledger. Recovery bytes and references are never exported.
+The repair counter can undercount if a later capacity check fails after a tail
+repair; private recovery evidence remains intact and sequences are unaffected.
 A valid record missing only its newline is finalized rather than dropped.
 Tests inject process death at write, sync, rename, publication and recovery
 boundaries. They do not simulate every filesystem or a physical power failure.
@@ -138,10 +141,15 @@ The shared scanner checks retained metadata recursively, including encoded JSON,
 durable tool bodies and coordination messages. Public runtime tool bodies retain
 their unknown-value compatibility, including normal home paths and code. A finite corpus covers known secret and
 provider-payload shapes plus safe lookalikes; it is not universal secret detection.
+Retained metadata is inert JSON data: functions, accessors, proxies, custom
+prototypes and serialization hooks reject at direct durable boundaries and are
+replaced during export/audit projection without invocation. Payload byte sizing
+follows durable schema validation. Public tool-body compatibility is unchanged.
 Unknown-field stripping/passthrough behavior remains boundary-specific. Authorized
 runtime prompts, including empty, whitespace and long multibyte messages, remain
 usable. Durable started-message/text-delta records omit runtime content rather
-than trusting a `metadata_only` label.
+than trusting a `metadata_only` label. Tool bodies exceeding the existing 16 KiB
+payload bound still fail closed; INTEG owns bounded lifecycle composition.
 Evidence bounds include the original bytes, including whitespace padding.
 Private recovery references are forbidden in values, object keys and encoded
 JSON strings. Credential fields cover the corpus's container/header/vendor
@@ -184,7 +192,7 @@ fake-provider evidence, not real upstream lifecycle acceptance.
 ## Measured Append Work
 
 Thirty appends to identical 0/100/1000-record fixtures took about 16/27/161 ms
-before DATA and 113/102/67 ms in the candidate run on this host. These are single
+before DATA and 113/102/67 ms in the `279f315` candidate run on this host. These are single
 run observations, not speed guarantees. The comparison uses the same session-record workload; stronger sync increases small-ledger latency. Separate candidate controls record zero append
 snapshot rescans and zero index rewrites for unchanged ledgers. Foreign writes
 invalidate the cache under the writer transaction; competing-process tests check

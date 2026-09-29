@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { isAbsolute, posix } from "node:path";
+import { types } from "node:util";
 
 import { z } from "zod";
 
@@ -65,11 +66,21 @@ function plainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function inertMetadataObject(value: object): boolean {
+  if (types.isProxy(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (Array.isArray(value) ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) return false;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  if (Object.values(descriptors).some((descriptor) => !("value" in descriptor) || ["function", "symbol", "bigint"].includes(typeof descriptor.value))) return false;
+  const hook = descriptors.toJSON ?? (prototype === null ? undefined : Object.getOwnPropertyDescriptor(prototype, "toJSON"));
+  return hook === undefined || ("value" in hook && typeof hook.value !== "function");
+}
+
 function providerPayload(value: unknown): boolean {
-  if (!plainRecord(value)) return false;
-  return (Array.isArray(value.choices) && value.choices.some((item) => plainRecord(item) && ("message" in item || "delta" in item)))
-    || (Array.isArray(value.messages) && value.messages.some((item) => plainRecord(item) && "role" in item))
-    || (Array.isArray(value.candidates) && value.candidates.some((item) => plainRecord(item) && "content" in item))
+  if (!plainRecord(value) || !inertMetadataObject(value)) return false;
+  return (Array.isArray(value.choices) && inertMetadataObject(value.choices) && value.choices.some((item) => plainRecord(item) && inertMetadataObject(item) && ("message" in item || "delta" in item)))
+    || (Array.isArray(value.messages) && inertMetadataObject(value.messages) && value.messages.some((item) => plainRecord(item) && inertMetadataObject(item) && "role" in item))
+    || (Array.isArray(value.candidates) && inertMetadataObject(value.candidates) && value.candidates.some((item) => plainRecord(item) && inertMetadataObject(item) && "content" in item))
     || (typeof value.anthropic_version === "string") || plainRecord(value.providerPayload);
 }
 
@@ -81,7 +92,7 @@ function sensitiveField(key: string, value: unknown): boolean {
 }
 
 function redactedConfigPlaceholder(value: unknown): boolean {
-  return plainRecord(value) && Object.keys(value).every((key) => ["schema", "value", "reason", "updatedAt"].includes(key))
+  return plainRecord(value) && inertMetadataObject(value) && Object.keys(value).every((key) => ["schema", "value", "reason", "updatedAt"].includes(key))
     && redactedConfigValueSchema.safeParse(value).success;
 }
 
@@ -89,6 +100,10 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
   const leaks: MetadataLeak[] = [];
   const visit = (entry: unknown, path: string, depth: number) => {
     if (depth > 64) { leaks.push({ path, reason: "metadata_depth_limit" }); return; }
+    if (["function", "symbol", "bigint"].includes(typeof entry)
+      || (entry !== null && typeof entry === "object" && !inertMetadataObject(entry))) {
+      leaks.push({ path, reason: "non_json_metadata" }); return;
+    }
     if (typeof entry === "string") {
       if (privateRecoveryReferencePattern.test(entry)) leaks.push({ path, reason: "private_recovery_path" });
       if (envDumpPattern.test(entry)) leaks.push({ path, reason: "environment_dump" });
@@ -106,7 +121,7 @@ export function scanMetadataLeaks(value: unknown, options: { readonly allowHomeP
       const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(key) && !secretTextPatterns.some((rule) => rule.pattern.test(key)) ? key : `[field-${index}]`;
       const next = `${path}.${safeKey}`;
       if (sensitiveField(key, item) && item !== undefined && !redactedConfigPlaceholder(item)) leaks.push({ path: next, reason: "sensitive_field" });
-      if ((key === "env" || key === "environment") && plainRecord(item) && !redactedConfigPlaceholder(item) && Object.keys(item).length > 0
+      if ((key === "env" || key === "environment") && plainRecord(item) && inertMetadataObject(item) && !redactedConfigPlaceholder(item) && Object.keys(item).length > 0
         && Object.values(item).every((field) => typeof field === "string" || field === undefined)) leaks.push({ path: next, reason: "environment_dump" });
       if (privateRecoveryReferencePattern.test(key) || secretTextPatterns.some((rule) => rule.pattern.test(key))) leaks.push({ path: `${path}.[field-${index}]`, reason: "sensitive_field_name" });
       visit(item, next, depth + 1);
@@ -135,6 +150,8 @@ export function opaqueExportPath(path: string): string {
 }
 
 export function projectMetadataExport(value: unknown): unknown {
+  if (["function", "symbol", "bigint"].includes(typeof value)
+    || (value !== null && typeof value === "object" && !inertMetadataObject(value))) return "[redacted]";
   if (typeof value === "string") {
     if (isSecretLikePath(value.replaceAll("\\", "/"))) return "[redacted]";
     if (isAbsolute(value) || /^[A-Z]:[\\/]/i.test(value)) return opaqueExportPath(value);
@@ -149,7 +166,7 @@ export function projectMetadataExport(value: unknown): unknown {
       if (sensitiveField(key, entry) && entry !== undefined && !redactedConfigPlaceholder(entry)) {
         return [[key, redactConfigValue("metadata_export")]];
       }
-      if ((key === "env" || key === "environment") && plainRecord(entry) && Object.keys(entry).length > 0
+      if ((key === "env" || key === "environment") && plainRecord(entry) && inertMetadataObject(entry) && Object.keys(entry).length > 0
         && Object.values(entry).every((field) => typeof field === "string" || field === undefined)) {
         return [[key, redactConfigValue("environment_export")]];
       }
