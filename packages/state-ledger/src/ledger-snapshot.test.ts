@@ -22,12 +22,44 @@ async function seeded() {
 }
 
 describe("validated visible ledger snapshots", () => {
+  it("does not finalize a pending record after a zero-byte newline write", async () => {
+    const { rootDir, store, record } = await seeded();
+    const raw = JSON.stringify(record);
+    await writeFile(store.paths.ledgerPath, raw);
+    const manifest = await readFile(store.paths.manifestPath);
+    const { open: actualOpen } = await vi.importActual<typeof FsPromises>("node:fs/promises");
+    const write = vi.fn(async () => ({ bytesWritten: 0, buffer: Buffer.from("\n") }));
+    const sync = vi.fn(async () => undefined);
+    let closed = false;
+    vi.mocked(open).mockImplementation(async (path, flags, mode) => {
+      const handle = await actualOpen(path, flags, mode);
+      if (path === store.paths.ledgerPath && flags === "r+") {
+        const close = handle.close.bind(handle);
+        Object.assign(handle, { write, sync, close: async () => { closed = true; await close(); } });
+      }
+      return handle;
+    });
+    try {
+      await expect(AppendOnlyStore.open({ rootDir })).rejects.toMatchObject({ code: "incomplete_snapshot" });
+      expect(write).toHaveBeenCalledOnce();
+      expect(sync).not.toHaveBeenCalled();
+      expect(closed).toBe(true);
+      expect(await readFile(store.paths.ledgerPath, "utf8")).toBe(raw);
+      expect(await readFile(store.paths.manifestPath)).toEqual(manifest);
+    } finally { vi.mocked(open).mockImplementation(actualOpen); }
+    const reopened = await AppendOnlyStore.open({ rootDir });
+    expect(await readFile(store.paths.ledgerPath, "utf8")).toBe(`${raw}\n`);
+    expect((await readLedgerSnapshot(rootDir)).status).toBe("complete");
+    expect((await reopened.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "after finalization" } })).sequence).toBe(2);
+    expect(await (await AppendOnlyStore.open({ rootDir })).listRecords()).toHaveLength(2);
+  });
+
   it("syncs existing ancestor entries even when another initializer created them", async () => {
     const directory = await mkdtemp(join(tmpdir(), "data-directory-race-"));
     const { open: actualOpen } = await vi.importActual<typeof FsPromises>("node:fs/promises");
     const sync = vi.fn(async () => undefined);
     const close = vi.fn(async () => undefined);
-    vi.mocked(open).mockResolvedValue({ sync, close } as unknown as Awaited<ReturnType<typeof open>>);
+    vi.mocked(open).mockClear().mockResolvedValue({ sync, close } as unknown as Awaited<ReturnType<typeof open>>);
     const ancestors: string[] = [];
     for (let current = directory; ; current = dirname(current)) {
       try { await access(current, constants.W_OK); } catch { break; }

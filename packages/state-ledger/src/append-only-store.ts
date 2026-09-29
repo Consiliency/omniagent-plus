@@ -328,7 +328,8 @@ export class AppendOnlyStore {
     try {
       if (snapshot.pendingRecord) {
         if (snapshot.byteLength + 1 > this.maxSnapshotBytes) throw new LedgerReadError("snapshot_limit");
-        await ledger.write(Buffer.from("\n"), 0, 1, snapshot.byteLength);
+        const written = await ledger.write(Buffer.from("\n"), 0, 1, snapshot.byteLength);
+        if (written.bytesWritten !== 1) throw new LedgerReadError("incomplete_snapshot");
         await ledger.sync();
         return { records: [...snapshot.records, snapshot.pendingRecord], truncations: 0 };
       }

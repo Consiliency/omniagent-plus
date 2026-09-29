@@ -159,6 +159,8 @@ raw roots first require the caller's guard.
 Append and local coordination recheck inputs after asynchronous waits and validate
 the complete inbox immediately before serialization. RPC sends use a detached inert
 copy so later caller mutations cannot change the serialized request.
+RPC sends retain the whole input and therefore apply the full metadata check before
+copying; they do not have the local schema's unknown-field stripping stage.
 Compaction revalidates and bounds kept records, including the supported private
 record version, after callbacks and before serialization or checkpoint publication.
 Callbacks remain trusted selectors and can change records within those invariants.
@@ -169,6 +171,9 @@ nonfinite/raw values, omits undefined object fields and maps undefined array ent
 to null. Inert preparse checks permit ordinary discarded nonfinite extensions so
 unknown-field stripping remains compatible. Descriptor traversal is depth bounded;
 shared-reference in-process graphs can still cost more than JSON-origin trees.
+Pending-record finalization requires the newline write to report one byte before
+syncing or returning success. A zero-progress write fails with `incomplete_snapshot`
+and leaves the ledger and manifest available for a later recovery attempt.
 Unknown-field stripping/passthrough behavior remains boundary-specific. Authorized
 runtime prompts, including empty, whitespace and long multibyte messages, remain
 usable. Durable started-message/text-delta records omit runtime content rather

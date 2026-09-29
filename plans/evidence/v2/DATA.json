@@ -5,7 +5,7 @@
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
   "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
   "source_binding": {
-    "packages/state-ledger/src/append-only-store.ts": "f99662f705b5da77c4b5ec2683005300d6626ca825e3fe539b3faa29a5f1ec93",
+    "packages/state-ledger/src/append-only-store.ts": "b8ab1dd4792c249cbb97cf668caa215fa2a9d4145ec385789b53b8cbd7036517",
     "packages/state-ledger/src/ledger-snapshot.ts": "a64e4c730df8088daf6a4d196bb45ac3b619f62d0ea3b70cdbd4230d4771aa11",
     "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
     "packages/state-ledger/src/migrations.ts": "9872be61b43e8865ba29a58bfdde641354196f41b973f0b5968b84d51c810354",
@@ -13,7 +13,7 @@
     "packages/state-ledger/src/retention.ts": "4c17780521c23815d64a5e64ab3029507bd8f9eff212b06b2f1ba5363dc75ebd",
     "packages/core-contracts/src/redaction.ts": "b77a9106b8c5c245d83775360a8cf501d1ea94a1f25845947b9c932a2f8dc95a",
     "fixtures/content-policy/corpus.json": "01b57b105a1aff1b599db5cd6441edaf513ab833ebc8e1d79dd43cdbd79d2e57",
-    "plans/phase-plan-v2-DATA.md": "dbdb086bbfc7ad203cc589f4c3608fc2bb634770c3b0b38a833c8c356f750e58",
+    "plans/phase-plan-v2-DATA.md": "3d364391ac12afce5cc337345390e9d5dcea11cee76e55e68c23e40260c2c23b",
     "packages/core-contracts/src/state-ledger.ts": "261bfcaf5fe9f4d915f68328d4ae0d7a965ed9bc3a395ed591ac10c13270e20b",
     "packages/state-ledger/src/audit-ledger.ts": "7311d52eb9ef19ebcb8b82a2c66a24914b879e5f5a5d82a5d61abb630916de4b",
     "packages/state-ledger/src/schema.ts": "b118cec2849cdd48c47b5652da2983287ce84fa4fd602e8fc3e09932b22aec14",
@@ -107,20 +107,27 @@
           "failed": 0,
           "note": "Extends one existing test after the wider run with numeric compaction byte preservation and runtime audit projection/reopen. Session helpers remain direct metadata boundaries."
         }
+      },
+      "pending_newline_write_reconciliation": {
+        "command": "pnpm exec vitest run packages/state-ledger/src/ledger-snapshot.test.ts",
+        "files": 1,
+        "passed": 19,
+        "failed": 0,
+        "scope": "Actual production-path zero-progress injection, unchanged ledger/manifest, no success sync, closed handle, restored one-byte finalization and monotonic next append. Full root run also passes all remaining fault/concurrency/performance cases."
       }
     },
     "typecheck": "passed on repaired working candidate",
     "lint": "passed on repaired working candidate",
-    "full_gate": "Local full command previously passed frozen install/build/lint/typecheck/boundaries then failed disposable SQL setup with GUARD status frame out of order. Canonical hosted full command passed 9e7f25e; required on the new async/API/JSON repair head. No local full-gate acceptance claimed.",
+    "full_gate": "Local full command previously passed frozen install/build/lint/typecheck/boundaries then failed disposable SQL setup with GUARD status frame out of order. Canonical hosted full command passed e31310b; required on the pending-newline repair head. No local full-gate acceptance claimed.",
     "deterministic_root": {
-      "source": "Async guards, concrete API, private version and JSON fidelity repair candidate before review commit",
+      "source": "Pending-newline byte-count repair candidate before final review commit",
       "command": "pnpm test",
-      "passed": 599,
+      "passed": 600,
       "skipped": 1,
       "failed": 0,
       "skip": "only explicitly opt-in live Omnigent case",
-      "runner_report_path": ".phase-loop/guard/1790718255701-308411-d2999b16-5c95-4e41-be41-ae833cf9d444/tests.json",
-      "runner_report_sha256": "d609cae00d346b88f26914fe457453c60ce1050046d744ff36ab2296fceb2f30"
+      "runner_report_path": ".phase-loop/guard/1790719426687-411986-8e390477-5879-4e12-a65b-4275c8112e3d/tests.json",
+      "runner_report_sha256": "54c02a135cce275cc0ce80abf2ba301b2a10a52abfb0feacbb2c0e94b08b4a12"
     }
   },
   "measurement": {
@@ -269,6 +276,11 @@
       "source_sha": "9e7f25eb342bc81438759e7926bd757d8588c118",
       "record": "plans/evidence/v2/reviews/DATA-implementation-9e7f25e.json",
       "resolution": "All four harness seats and independent review completed with blocking findings; successful manual Opus/Gemini agree, with prior failed attempts preserved as unusable. Candidate addresses async aliases, concrete Zod APIs, private compaction versions, array shadows, JSON fidelity, revoked proxies, depth accounting and guarded factory construction. Renewed exact-head reviews remain required."
+    },
+    {
+      "source_sha": "e31310be021597eaeb7480cad6dab6d981cb8de1",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-e31310b.json",
+      "resolution": "Four harness seats agree. Separate independent review confirms prior repairs but reproduces unchecked zero-byte newline finalization, also raised by Gemini. Candidate requires one reported byte before sync/success. Other Gemini objections are independently adjudicated: RPC retains the whole input, and unknown literal/current version is corruption. All standing exact-head reviews must pass before merge."
     }
   ],
   "remaining": [
@@ -285,13 +297,13 @@
     "PREP owns distribution and public independent package acceptance."
   ],
   "hosted_verification": {
-    "source_sha": "9e7f25eb342bc81438759e7926bd757d8588c118",
-    "ci_run_id": 36630709614,
-    "publish_rehearsal_run_id": 36630709622,
+    "source_sha": "e31310be021597eaeb7480cad6dab6d981cb8de1",
+    "ci_run_id": 36635647496,
+    "publish_rehearsal_run_id": 36635647514,
     "required_check": "guard-required",
     "conclusion": "success",
     "actual_publish": "skipped",
-    "final_head": "pending async/API/JSON fidelity repair",
-    "artifact_manifest_sha256": "870de72e3b700409b494b52d899e67f56b60b75d032e5562257367557b08b859"
+    "final_head": "pending pending-newline byte-count repair",
+    "artifact_manifest_sha256": "a14eeaf0bac9949c2832e9f2a672d3e62de09ca58a90e6e06ec41ac9685ff647"
   }
 }

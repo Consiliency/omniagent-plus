@@ -37,6 +37,8 @@ Descriptor guards cover symbol-keyed executable properties and run before durabl
 
 Async boundary reconciliation: append and local coordination recheck caller fields after awaited lock/manifest work; the inbox is fully validated immediately before serialization, and RPC sends receive a detached inert copy. Concrete exported Zod effects/array APIs remain available. Compaction also rejects unsupported private record versions before any checkpoint publication. Scanner/provider detection uses trusted array traversal and classifies revoked proxies before array inspection.
 
+Pending-record finalization must verify its newline write reports exactly one byte before sync or success. A zero-progress write fails with bounded incomplete_snapshot diagnostics and preserves ledger/manifest bytes for later recovery. Genuine future numeric versions are unsupported with either old or new literals; an unknown literal paired with current version1 is malformed current data. RPC sends retain the entire input, so the full metadata check precedes the detached copy rather than assuming a nonexistent local stripping stage.
+
 Retained JSON fidelity: nonfinite numbers, native JSON.rawJSON carriers and own undefined array entries reject at durable boundaries; exports replace nonfinite/raw values, omit undefined object fields and map explicit undefined array entries to null. Sparse holes and optional undefined object fields keep normal JSON semantics. Inert preparse guards allow ordinary discarded nonfinite/undefined extensions; only retained values receive the full metadata policy. The record factory guards before spreading raw input, and array length is excluded from descriptor depth accounting.
 
 Further acceptance repairs: evidence byte bounds include untrimmed input; recovery references in keys and encoded scalar strings reject. Private ledger append/read normalization derives omitted scope from kind-specific payload IDs and rejects conflicting duplicate scope, without changing public schemas or inferring response/evidence context. Retained requests keep their latest resolution. Compaction validates both checkpoints and serialized kept records, and pending-record finalization checks its added newline byte, before acknowledging growth. Future manifest version/literal combinations classify as unsupported schemas. Renewed review must verify these cases against EC-DATA-1..4.
@@ -99,7 +101,7 @@ Reference: [SQLite's POSIX lock/close constraint](https://www.sqlite.org/howtoco
 ### SL-3 — Spec and evidence reducer
 
 - **Scope**: Reconcile producer findings into the repo runtime spec, durable-state docs, and metadata-only closeout.
-- **Owned files**: `specs/agent-runtime-provider-omnigent-spec.md`, `docs/durable-state.md`, `docs/hardening-readiness.md`, `plans/evidence/v2/DATA.json`, `plans/evidence/v2/DATA-closeout.json`, `plans/evidence/v2/reviews/DATA-*.json`
+- **Owned files**: `specs/agent-runtime-provider-omnigent-spec.md`, `docs/durable-state.md`, `docs/hardening-readiness.md`, `fixtures/hardening/readiness/docs-contract.json`, `plans/evidence/v2/DATA.json`, `plans/evidence/v2/DATA-closeout.json`, `plans/evidence/v2/reviews/DATA-*.json`
 - **Interfaces provided**: IF-0-DATA-3 closeout for COORD/WIRE.
 - **Interfaces consumed**: SL-0 recovery/snapshot/lock proof, SL-1 content corpus, and SL-2 fault/measurement evidence.
 - **Parallel-safe**: no

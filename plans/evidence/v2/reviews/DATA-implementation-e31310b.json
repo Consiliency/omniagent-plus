@@ -1,0 +1,94 @@
+{
+  "schema": "data-review-reconciliation.v1",
+  "source_sha": "e31310be021597eaeb7480cad6dab6d981cb8de1",
+  "delta_base": "9e7f25eb342bc81438759e7926bd757d8588c118",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "b38cdf38b9d5587fc3c53cd42415c860d9a48c3fdc3fe1506ece23efc368bf35"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "e7151ba1802aed75edafc501b0f31f2588c6f8964695aea9d95eaf483da52447"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "2ac63beaaa65ac186cb57da369482a02d8d99e637ea3b1dfc9bf5cff4168268b"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "fe9e45be1174e7b34de694bf7cf9636f06d4dc258c3e5269c1f5ed48b29f68c4"
+      }
+    ]
+  },
+  "manual_gemini": {
+    "model": "Gemini 3.1 Pro (High)",
+    "status": "OK",
+    "usable": true,
+    "verdict": "DISAGREE",
+    "review_sha256": "d0d2ef0c53a2e2389b2a1135acecb71026956ecdb234d9587465d9442004a4b3",
+    "adapter": "manual tool-enabled subscription CLI"
+  },
+  "manual_opus": {
+    "model": "claude-opus-5-5",
+    "status": "OK",
+    "usable": true,
+    "verdict": "AGREE",
+    "review_sha256": "359ef384fb061a506efb304df1cfaf6e3fe65f91afee0f086039e7652181dce6",
+    "adapter": "manual subscription TUI, tools enabled"
+  },
+  "independent": {
+    "reviewer": "data_independent_design",
+    "verdict": "PARTIALLY AGREE",
+    "review_sha256": "609db08ce47fbc58820e7bfbd47450b4e5d08e1997608a3e9a3c97da255f9d3b",
+    "method": "76 exact-source schema/redaction assertions, pending-call mutation controls, actual offline Supabase SDK serialization, numeric snapshot/audit and compaction probes; independently adjudicated all Gemini findings."
+  },
+  "findings": [
+    "Pending-record newline finalization ignores the actual bytesWritten result; injected zero-progress return can permit concatenated records on the following append"
+  ],
+  "resolution": "Candidate requires exactly one byte reported before sync/finalization; actual production-path fault test preserves ledger and manifest, proves no success sync and a closed handle, then restores real I/O and proves successful finalization/reopen/monotonic append. Full candidate root run passes600 tests with one intended live skip. Renewed exact-head reviews required.",
+  "gemini_dispositions": [
+    {
+      "finding": "RPC full guard should be inert-only",
+      "decision": "not_demonstrated_DATA_blocker",
+      "basis": "RPC sends the entire message and has no local Zod stripping stage. Full retained-metadata validation before the detached copy prevents nonfinite/undefined values entering the serialized wire payload. Independent actual SDK probes confirm this boundary."
+    },
+    {
+      "finding": "Unknown literal/current version should be unsupported_schema",
+      "decision": "not_demonstrated_DATA_blocker",
+      "basis": "Unknown literal with current version1 is malformed current data. Genuine future numeric version2 is unsupported with both old/new literals, as frozen tests prove. Chronology is not inferred from arbitrary strings."
+    },
+    {
+      "finding": "Unchecked newline write result",
+      "decision": "accepted_blocker",
+      "basis": "Independent exact-method/API zero-progress fault probe demonstrates false finalization. Official Node24 API reports actual bytesWritten. This is controlled fault injection, not spontaneous zero-write reproduction on this host."
+    }
+  ],
+  "suggestions_disposition": {
+    "local_inbox_depth": "Non-blocking conservative full-state depth check can reject deeply nested historical inbox messages; bytes remain intact. COORD owns bounded inbox/query behavior and integration; documented traversal limits are retained.",
+    "encoded_nonfinite_text": "Non-blocking conservative decoded-JSON scanning treats overflowing numeric text as unsafe despite string round-trip; existing tightened historical metadata policy fails closed without mutation. No transparent historical content migration claimed.",
+    "evidence_store_field_reads": "Pre-existing helper repeated reads can bypass its smaller configurable excerpt threshold, but final common evidence schema still bounds and validates persisted values. Follow-up; no EC falsified by reviewed probes.",
+    "rpc_list_aliases": "Read-query alias hardening remains COORD-owned RPC semantics, outside DATA durable-write boundary.",
+    "derived_schemas": "Documented caller guard requirement remains; concrete APIs preserved, arbitrary derived/outer root inspection is not claimed guarded.",
+    "coordination_private_json": "Pre-existing COORD-owned lease/cooldown JSON emission before ledger validation retained as downstream boundary work.",
+    "nested_append_regression": "Non-blocking additional regression suggestion; recursive post-await guard already covers nested aliases and completed Opus independently reproduced them."
+  },
+  "decision": "not_accepted"
+}
