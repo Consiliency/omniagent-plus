@@ -250,10 +250,10 @@ export class FakeEventStream {
     }) as RuntimeHeartbeatEvent;
   }
 
-  appendFixture(upstreamEvents: UpstreamFixtureEvent[]): RuntimeEvent[] {
+  appendFixture(upstreamEvents: UpstreamFixtureEvent[], turnId = this.turnId): RuntimeEvent[] {
     const normalized = normalizeOmnigentFixture(
       this.sessionId,
-      this.turnId,
+      turnId,
       upstreamEvents,
     );
     const appended = normalized.events.map((event) =>
@@ -283,13 +283,10 @@ export class FakeEventStream {
   }
 
   read(afterSequence = 0, includeHeartbeats = true): RuntimeEvent[] {
-    const filtered = this.events.filter(
-      (event) =>
-        event.sequence > afterSequence &&
-        (includeHeartbeats || event.type !== "runtime.heartbeat"),
-    );
-
-    if (filtered.length > 0 && filtered[0]?.sequence !== afterSequence + 1) {
+    const window = this.events.filter((event) => event.sequence > afterSequence);
+    let expected = afterSequence + 1;
+    for (const event of window) {
+      if (event.sequence !== expected) {
       throw createRuntimeFailure({
         actor: "provider",
         category: "protocol",
@@ -297,9 +294,11 @@ export class FakeEventStream {
         retryable: false,
         scope: "session",
       });
+      }
+      expected += 1;
     }
 
-    return filtered;
+    return window.filter((event) => includeHeartbeats || event.type !== "runtime.heartbeat");
   }
 
   async *stream(afterSequence = 0, includeHeartbeats = true): AsyncIterable<RuntimeEvent> {

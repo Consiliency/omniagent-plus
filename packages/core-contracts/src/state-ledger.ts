@@ -15,6 +15,7 @@ import {
 } from "./rate-limit.js";
 import {
   runtimeEvidenceRefSchema,
+  metadataSchemaCheck,
   type RuntimeEvidenceRef,
 } from "./redaction.js";
 import { routeDecisionSchema, type RouteDecision } from "./route-decision.js";
@@ -169,8 +170,8 @@ export const omnigentCapabilitySnapshotSchema = z.object({
 const stateLedgerRecordBaseSchema = z.object({
   schema: z.literal("state_ledger_record.v0.1"),
   recordId: z.string().min(1),
-  sequence: z.number().int().positive(),
-  schemaVersion: z.number().int().positive(),
+  sequence: z.number().int().safe().positive(),
+  schemaVersion: z.number().int().safe().positive(),
   recordedAt: z.string().datetime({ offset: true }),
   sessionId: z.string().min(1).optional(),
   turnId: z.string().min(1).optional(),
@@ -200,7 +201,13 @@ export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
   withPayload("approval_response", runtimeApprovalResponseSchema),
   withPayload("capability_snapshot", omnigentCapabilitySnapshotSchema),
   withPayload("evidence_ref", runtimeEvidenceRefSchema),
-]);
+]).superRefine((record, context) => {
+  let payload: unknown = record.payload;
+  if (record.kind === "session") payload = { ...record.payload, repoRoot: undefined,
+    worktree: record.payload.worktree === undefined ? undefined : { ...record.payload.worktree, path: undefined } };
+  if (record.kind === "worktree_lease") payload = { ...record.payload, path: undefined };
+  metadataSchemaCheck({ ...record, payload }, context);
+});
 
 export const stateLedgerRecordArraySchema = z.array(stateLedgerRecordSchema);
 

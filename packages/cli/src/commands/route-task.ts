@@ -156,6 +156,7 @@ export async function runRouteTaskCommand(
 
   const ledger = await AuditLedger.open({
     rootDir: request.stateRoot,
+    readOnly: !request.record,
   });
   const statusRecords = await ledger.listRecordsByKind("identity_profile_status");
   const cooldownRecords = await ledger.listRecordsByKind("provider_cooldown");

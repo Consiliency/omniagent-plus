@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 
 import { z } from "zod";
+import { metadataSchemaCheck } from "./redaction.js";
 
 const require = createRequire(import.meta.url);
 
@@ -105,7 +106,7 @@ export const coordinationMessageSchema = z.object({
   lease_id: z.string().min(1).optional(),
   handoff_packet_id: z.string().min(1).optional(),
   body: z.record(z.unknown()).optional(),
-});
+}).superRefine(metadataSchemaCheck);
 export type CoordinationMessage = z.infer<typeof coordinationMessageSchema>;
 
 export function toContractTimestamp(value: string | Date): string {

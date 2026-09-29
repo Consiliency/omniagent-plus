@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { isAbsolute, posix } from "node:path";
 
 import { z } from "zod";
@@ -22,7 +23,7 @@ const secretTextPatterns: Array<{
   },
   {
     reason: "api_key_token",
-    pattern: /\b(?:sk|gh[pousr]|xox[baprs]?)-?[a-z0-9._-]{8,}\b/i,
+    pattern: /\b(?:sk-|gh[pousr]_|xox[baprs]?-)[a-z0-9._-]{8,}\b/i,
   },
   {
     reason: "auth_assignment",
@@ -35,8 +36,12 @@ const secretTextPatterns: Array<{
   },
   {
     reason: "private_key",
-    pattern: /-----BEGIN [A-Z ]+PRIVATE KEY-----/,
+    pattern: /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/,
   },
+  { reason: "aws_access_key", pattern: /\bAKIA[0-9A-Z]{16}\b/ },
+  { reason: "auth_header", pattern: /\bauthorization:\s*\S+/i },
+  { reason: "url_userinfo", pattern: /\b[a-z][a-z0-9+.-]*:\/\/[^/\s@]+:[^/\s@]+@/i },
+  { reason: "home_path", pattern: /(?:\/(?:home|Users)\/[^/\s]+|[A-Z]:[\\/]Users[\\/][^\\/\s]+)/i },
 ];
 
 const secretPathPatterns = [
@@ -47,15 +52,97 @@ const secretPathPatterns = [
   /\.(?:pem|p12|key)$/i,
 ] as const;
 
-const providerPayloadPatterns = [
-  /"choices"\s*:/,
-  /"anthropic_version"\s*:/,
-  /"candidates"\s*:/,
-  /"providerPayload"\s*:/i,
-  /"messages"\s*:\s*\[/,
-] as const;
-
 const envDumpPattern = /(^|\n)(?:HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|AZURE_OPENAI_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=/m;
+
+export interface MetadataLeak { readonly path: string; readonly reason: string }
+
+function plainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function providerPayload(value: unknown): boolean {
+  if (!plainRecord(value)) return false;
+  return (Array.isArray(value.choices) && value.choices.some((item) => plainRecord(item) && ("message" in item || "delta" in item)))
+    || (Array.isArray(value.messages) && value.messages.some((item) => plainRecord(item) && "role" in item))
+    || (Array.isArray(value.candidates) && value.candidates.some((item) => plainRecord(item) && "content" in item))
+    || (typeof value.anthropic_version === "string") || plainRecord(value.providerPayload);
+}
+
+export function scanMetadataLeaks(value: unknown, options: { readonly allowHomePaths?: boolean } = {}): MetadataLeak[] {
+  const leaks: MetadataLeak[] = [];
+  const visit = (entry: unknown, path: string, depth: number) => {
+    if (depth > 64) { leaks.push({ path, reason: "metadata_depth_limit" }); return; }
+    if (typeof entry === "string") {
+      if (envDumpPattern.test(entry)) leaks.push({ path, reason: "environment_dump" });
+      for (const rule of secretTextPatterns) if (!(options.allowHomePaths && rule.reason === "home_path") && rule.pattern.test(entry)) leaks.push({ path, reason: rule.reason });
+      try {
+        const parsed: unknown = JSON.parse(entry);
+        if (plainRecord(parsed) || Array.isArray(parsed)) visit(parsed, path, depth + 1);
+      } catch { /* Ordinary text remains text. */ }
+      return;
+    }
+    if (Array.isArray(entry)) { entry.forEach((item, index) => visit(item, `${path}[${index}]`, depth + 1)); return; }
+    if (!plainRecord(entry)) return;
+    if (providerPayload(entry)) leaks.push({ path, reason: "provider_payload" });
+    Object.entries(entry).forEach(([key, item], index) => {
+      const safeKey = /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(key) && !secretTextPatterns.some((rule) => rule.pattern.test(key)) ? key : `[field-${index}]`;
+      const next = `${path}.${safeKey}`;
+      const normalized = key.replaceAll("_", "").toLowerCase();
+      if (/^(?:password|token|credential|authorization|authheader|apikey)$/.test(normalized)
+        || /_(?:token|password|credential|api_key)$/.test(key.toLowerCase())) {
+        if (typeof item === "string") leaks.push({ path: next, reason: "sensitive_field" });
+      }
+      if ((key === "env" || key === "environment") && plainRecord(item) && Object.keys(item).length > 0
+        && Object.values(item).every((field) => typeof field === "string" || field === undefined)) leaks.push({ path: next, reason: "environment_dump" });
+      if (secretTextPatterns.some((rule) => rule.pattern.test(key))) leaks.push({ path: `${path}.[field-${index}]`, reason: "sensitive_field_name" });
+      visit(item, next, depth + 1);
+    });
+  };
+  visit(value, "$", 0);
+  return leaks;
+}
+
+export function assertMetadataSafe(value: unknown): void {
+  const first = scanMetadataLeaks(value)[0];
+  if (first) throw new Error(`Metadata contains ${first.reason.replaceAll("_", " ")}.`);
+}
+
+export function metadataSchemaCheck(value: unknown, context: z.RefinementCtx): void {
+  for (const leak of scanMetadataLeaks(value)) context.addIssue({ code: z.ZodIssueCode.custom, message: `Metadata contains ${leak.reason.replaceAll("_", " ")}.` });
+}
+
+export function opaqueExportPath(path: string): string {
+  if (/^path:sha256:[a-f0-9]{64}$/.test(path)) return path;
+  const normalized = path.replaceAll("\\", "/");
+  if (isAbsolute(path) || /^[A-Z]:\//i.test(normalized) || secretTextPatterns.some((rule) => rule.pattern.test(path))) {
+    return `path:sha256:${createHash("sha256").update(path).digest("hex")}`;
+  }
+  return sanitizeMetadataPath(path);
+}
+
+export function projectMetadataExport(value: unknown): unknown {
+  if (typeof value === "string") {
+    if (isAbsolute(value) || /^[A-Z]:[\\/]/i.test(value)) return opaqueExportPath(value);
+    if (scanMetadataLeaks(value).length > 0) return "[redacted]";
+    return value.replace(/(^|[\s'"])(\/[\w.~-][^\s'"]*)/g, (_match, before: string, path: string) => `${before}${opaqueExportPath(path)}`);
+  }
+  if (Array.isArray(value)) return value.map(projectMetadataExport);
+  if (plainRecord(value)) {
+    if (providerPayload(value)) return redactConfigValue("provider_payload_export");
+    return Object.fromEntries(Object.entries(value).flatMap(([key, entry]) => {
+      if (secretTextPatterns.some((rule) => rule.pattern.test(key))) return [];
+      if (typeof entry === "string" && scanMetadataLeaks({ [key]: entry }).some((leak) => leak.reason === "sensitive_field")) {
+        return [[key, redactConfigValue("metadata_export")]];
+      }
+      if ((key === "env" || key === "environment") && plainRecord(entry) && Object.keys(entry).length > 0
+        && Object.values(entry).every((field) => typeof field === "string" || field === undefined)) {
+        return [[key, redactConfigValue("environment_export")]];
+      }
+      return [[key, projectMetadataExport(entry)]];
+    }));
+  }
+  return value;
+}
 
 export const redactionStatusSchema = z.enum(redactionStatuses);
 
@@ -79,6 +166,12 @@ export const runtimeEvidenceRefSchema = z.object({
   label: z.string().min(1),
   path: z.string().min(1).optional(),
   excerpt: z.string().min(1).optional(),
+}).superRefine((value, context) => {
+  try {
+    sanitizeMetadataText(value.label, "evidence label");
+    if (value.path !== undefined) sanitizeMetadataPath(value.path);
+    if (value.excerpt !== undefined) sanitizeMetadataText(value.excerpt, "evidence excerpt", DEFAULT_UNTRUSTED_TEXT_MAX_BYTES);
+  } catch (error) { context.addIssue({ code: z.ZodIssueCode.custom, message: error instanceof Error ? error.message : "Invalid evidence metadata." }); }
 });
 
 export interface RedactedConfigValue {
@@ -111,6 +204,11 @@ export const redactedTextSchema = z.object({
   content: z.string().min(1),
   byteLength: z.number().int().positive(),
   truncated: z.literal(false),
+}).superRefine((value, context) => {
+  metadataSchemaCheck(value, context);
+  if (value.byteLength !== Buffer.byteLength(value.content, "utf8") || value.byteLength > DEFAULT_UNTRUSTED_TEXT_MAX_BYTES) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Redacted text byte length must agree with bounded content." });
+  }
 });
 
 function normalizeText(value: string, label: string): string {
@@ -145,50 +243,43 @@ export function sanitizeMetadataText(
     throw new Error(`${label} must not contain environment dump content.`);
   }
 
-  if (providerPayloadPatterns.some((pattern) => pattern.test(normalized))) {
-    throw new Error(`${label} must not contain raw provider payload content.`);
-  }
-
-  for (const rule of secretTextPatterns) {
-    if (rule.pattern.test(normalized)) {
-      throw new Error(`${label} contains ${rule.reason}.`);
-    }
-  }
+  assertMetadataSafe(normalized);
 
   return normalized;
 }
 
 export function sanitizeMetadataPath(pathValue: string): string {
-  const normalized = sanitizeMetadataText(pathValue, "path");
-  const posixPath = normalized.replaceAll("\\", "/");
+  const posixPath = pathValue.trim().replaceAll("\\", "/");
   const collapsed = posix.normalize(posixPath);
 
-  if (isAbsolute(normalized) || posixPath.startsWith("/")) {
+  if (isAbsolute(pathValue) || posixPath.startsWith("/") || /^[A-Z]:\//i.test(posixPath)) {
     throw new Error("Evidence paths must be repo-relative metadata, not absolute paths.");
   }
 
-  if (collapsed === ".." || collapsed.startsWith("../")) {
+  if (posixPath.split("/").includes("..")) {
     throw new Error("Evidence paths must not traverse outside the repository.");
   }
 
-  if (isSecretLikePath(collapsed)) {
+  if (isSecretLikePath(collapsed) || collapsed === ".recovery" || collapsed.startsWith(".recovery/")) {
     throw new Error("Evidence paths must not reference secret-bearing locations.");
   }
+
+  sanitizeMetadataText(pathValue, "path");
 
   return collapsed;
 }
 
 export function sanitizeWorkspacePath(pathValue: string, label: string): string {
-  const normalized = sanitizeMetadataText(
-    pathValue,
-    label,
-    DEFAULT_UNTRUSTED_TEXT_MAX_BYTES,
-  );
+  const normalized = normalizeText(pathValue, label);
+  assertMaxBytes(normalized, label, DEFAULT_UNTRUSTED_TEXT_MAX_BYTES);
   const posixPath = normalized.replaceAll("\\", "/");
 
   if (isSecretLikePath(posixPath)) {
     throw new Error(`${label} must not reference secret-bearing locations.`);
   }
+
+  const leak = scanMetadataLeaks(normalized, { allowHomePaths: true })[0];
+  if (leak) throw new Error(`Workspace path contains ${leak.reason.replaceAll("_", " ")}.`);
 
   return normalized;
 }
@@ -211,15 +302,7 @@ export function redactUntrustedText(
     throw new Error(`${label} must not include environment dump content.`);
   }
 
-  if (providerPayloadPatterns.some((pattern) => pattern.test(normalized))) {
-    throw new Error(`${label} must not include raw provider payload content.`);
-  }
-
-  for (const rule of secretTextPatterns) {
-    if (rule.pattern.test(normalized)) {
-      throw new Error(`${label} contains ${rule.reason}.`);
-    }
-  }
+  assertMetadataSafe(normalized);
 
   return redactedTextSchema.parse({
     schema: "redacted_text.v0.1",

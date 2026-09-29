@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { harnessIds } from "./types.js";
-import type { HandoffPacket } from "./handoff-packet.js";
+import { handoffPacketSchema, type HandoffPacket } from "./handoff-packet.js";
 
 export type HandoffRendererTarget = (typeof harnessIds)[number];
 
@@ -173,6 +173,8 @@ export function renderHandoffPrompt(
   target: HandoffRendererTarget,
   packet: HandoffPacket,
 ): RenderedHandoffPrompt {
+  packet = handoffPacketSchema.parse(packet);
+  target = handoffRendererTargetSchema.parse(target);
   const labels = rendererLabels[target];
   const trustedSection = buildTrustedSection(packet);
   const untrustedSection = buildUntrustedSection(packet);

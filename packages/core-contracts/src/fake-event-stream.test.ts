@@ -71,6 +71,7 @@ describe("fake event stream", () => {
       "runtime.turn.completed",
     ]);
     expect(reduceTurnState(replayed)).toBe("completed");
+    expect(stream.read(1, false).map((event) => event.sequence)).toEqual([3]);
 
     stream.forceSequenceGap();
     stream.append({
@@ -87,6 +88,7 @@ describe("fake event stream", () => {
     });
 
     expect(() => stream.read(3)).toThrow(/Sequence gap/);
+    expect(() => stream.read(0, false)).toThrow(/Sequence gap/);
   });
 
   it("skips malformed frames and only yields valid event content", () => {

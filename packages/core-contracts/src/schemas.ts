@@ -10,6 +10,7 @@ import { identityProfileSchema } from "./identity-profile.js";
 import { limitClassificationSchema } from "./rate-limit.js";
 import type { AgentRuntimeProvider } from "./provider.js";
 import { routeDecisionSchema } from "./route-decision.js";
+import { metadataSchemaCheck } from "./redaction.js";
 import { agentSessionStates, turnStates } from "./state-machines.js";
 import {
   backendIds,
@@ -87,7 +88,7 @@ export const createSessionRequestSchema = z.object({
   agentSpec: omnigentAgentSpecRefSchema.optional(),
   initialMessage: z.string().min(1).optional(),
   handoffPacket: handoffPacketSchema.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).superRefine(metadataSchemaCheck).optional(),
 });
 
 export const sendTurnRequestSchema = z.object({
@@ -100,7 +101,7 @@ export const sendTurnRequestSchema = z.object({
   files: z.array(runtimeFileRefSchema).optional(),
   timeoutMs: z.number().int().positive().optional(),
   retryPolicy: runtimeRetryPolicySchema.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).superRefine(metadataSchemaCheck).optional(),
 });
 
 export const agentSessionSchema = z.object({
@@ -119,7 +120,7 @@ export const agentSessionSchema = z.object({
   rootSessionId: z.string().min(1).optional(),
   worktree: worktreeLeaseRefSchema.optional(),
   handoffPacket: handoffPacketSchema.optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).superRefine(metadataSchemaCheck).optional(),
 });
 
 export const agentSessionInfoSchema = agentSessionSchema.extend({

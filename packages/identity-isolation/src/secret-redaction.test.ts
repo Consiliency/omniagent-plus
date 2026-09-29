@@ -25,6 +25,18 @@ function readFixture(name: string): LeakFixture {
 }
 
 describe("secret redaction", () => {
+  it("consumes the shared corpus and returns no secret samples or unsafe field names", () => {
+    const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
+    for (const value of corpus.allowed) expect(scanForSecretLeaks(value).ok).toBe(true);
+    for (const value of corpus.rejected) {
+      const result = scanForSecretLeaks(value);
+      expect(result.ok).toBe(false);
+      expect(result.leaks.every((leak) => leak.sample === "[redacted]")).toBe(true);
+      expect(JSON.stringify(result)).not.toContain("synthetic-private-value");
+    }
+    const diagnostic = scanForSecretLeaks({ "Bearer synthetic-token-123456": "value" });
+    expect(JSON.stringify(diagnostic)).not.toContain("synthetic-token-123456");
+  });
   it("rejects raw bearer tokens, API keys, env dumps, and secret-bearing payloads", () => {
     const fixture = readFixture("raw-secrets.json");
 

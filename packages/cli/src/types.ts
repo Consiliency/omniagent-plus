@@ -6,6 +6,7 @@ import {
   redactedConfigValueSchema,
   routeDecisionSchema,
   uiControlSnapshotSchema,
+  opaqueExportPath,
 } from "@consiliency/runtime-provider";
 import { z } from "zod";
 
@@ -47,11 +48,13 @@ export const persistedRecordSchema = z.object({
   sequence: z.number().int().positive(),
 });
 
+const exportedPathSchema = z.string().min(1).transform(opaqueExportPath);
+
 const stateLedgerPathsSchema = z.object({
-  rootDir: z.string().min(1),
-  ledgerPath: z.string().min(1),
-  manifestPath: z.string().min(1),
-  coordinationDir: z.string().min(1),
+  rootDir: exportedPathSchema,
+  ledgerPath: exportedPathSchema,
+  manifestPath: exportedPathSchema,
+  coordinationDir: exportedPathSchema,
 });
 
 export const healthResultSchema = z.object({
@@ -59,8 +62,8 @@ export const healthResultSchema = z.object({
   interfaceFreezeGate: z.literal("IF-0-CLI-11"),
   redactionPosture: z.literal("metadata_only"),
   releaseSurfaceDecision: z.literal("no_doc_delta"),
-  defaultProfilesDir: z.string().min(1),
-  defaultStateRoot: z.string().min(1),
+  defaultProfilesDir: exportedPathSchema,
+  defaultStateRoot: exportedPathSchema,
   stateStorePresent: z.boolean(),
   stateLedgerPaths: stateLedgerPathsSchema,
   commands: z.array(cliCommandKeySchema).min(1),
@@ -76,7 +79,7 @@ const sessionListItemSchema = z.object({
   state: z.string().min(1),
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
-  repoRoot: z.string().min(1).optional(),
+  repoRoot: exportedPathSchema.optional(),
   turnCount: z.number().int().nonnegative(),
   eventCount: z.number().int().nonnegative(),
   approvalRequestCount: z.number().int().nonnegative(),
@@ -193,7 +196,7 @@ export const identitiesPreflightResultSchema = z.object({
 const worktreeLeaseSummarySchema = z.object({
   id: z.string().min(1),
   repoId: z.string().min(1),
-  path: z.string().min(1),
+  path: exportedPathSchema,
   branchName: z.string().min(1),
   mode: z.enum(["exclusive_write", "read_only", "sequential_continue"]),
   dirtyState: z.enum(["clean", "dirty", "unknown"]),

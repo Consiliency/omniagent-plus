@@ -20,6 +20,14 @@ function readFixture() {
 }
 
 describe("health command", () => {
+  it("exports opaque health paths in JSON and human output", async () => {
+    for (const format of [[], ["--json"]]) {
+      const result = await executeCli(["health", "--state-root", "/home/synthetic/data-state-absent", ...format], COMMAND_REGISTRY);
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).not.toContain("/home/synthetic");
+      expect(result.stdout).toContain("path:sha256:");
+    }
+  });
   it("reports the CLI entrypoint surface in a schema-backed envelope", async () => {
     const fixture = readFixture();
     const result = await executeCli(["health", "--json"], COMMAND_REGISTRY);

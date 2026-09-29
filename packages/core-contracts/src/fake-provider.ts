@@ -36,6 +36,7 @@ interface FakeSessionRecord {
   turnsById: Map<string, MutableTurnHandle>;
   turnsByKey: Map<string, MutableTurnHandle>;
   createKey: string;
+  closePromise?: Promise<void>;
 }
 
 type MutableAgentSessionInfo = {
@@ -246,7 +247,7 @@ export class FakeAgentRuntimeProvider implements AgentRuntimeProvider {
     }
 
     existingHandle.state = applyTurnTransition(existingHandle.state, "cancelling");
-    record.stream.appendFixture([...CANCEL_TERMINAL_FIXTURE]);
+    record.stream.appendFixture([...CANCEL_TERMINAL_FIXTURE], handle.turnId);
     existingHandle.state = "cancelled";
     existingHandle.updatedAt = timestamp();
     existingHandle.eventCursor = record.stream.lastSequence();
@@ -260,6 +261,9 @@ export class FakeAgentRuntimeProvider implements AgentRuntimeProvider {
 
   async closeSession(sessionId: string): Promise<void> {
     const record = this.getRecord(sessionId);
+    if (record.session.state === "closed") return;
+    if (record.closePromise) return record.closePromise;
+    record.closePromise = (async () => {
     if (record.session.activeTurnId) {
       const activeHandle = record.turnsById.get(record.session.activeTurnId);
       if (activeHandle) {
@@ -282,6 +286,8 @@ export class FakeAgentRuntimeProvider implements AgentRuntimeProvider {
       type: "runtime.session.closed",
     }) as RuntimeSessionClosedEvent;
     record.session.eventCursor = closedEvent.sequence;
+    })();
+    return record.closePromise;
   }
 
   async getSessionInfo(sessionId: string): Promise<AgentSessionInfo> {
@@ -313,8 +319,10 @@ export class FakeAgentRuntimeProvider implements AgentRuntimeProvider {
       });
     }
 
-    record.stream.appendFixture([...NORMAL_TERMINAL_FIXTURE]);
-    handle.state = applyTurnTransition(handle.state, "completed");
+    if (handle.state === "completed") return handle;
+    const completedState = applyTurnTransition(handle.state, "completed");
+    record.stream.appendFixture([...NORMAL_TERMINAL_FIXTURE], turnId);
+    handle.state = completedState;
     handle.updatedAt = timestamp();
     handle.eventCursor = record.stream.lastSequence();
     record.session.state = applySessionTransition(record.session.state, "idle");

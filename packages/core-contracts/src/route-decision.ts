@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { runtimeEvidenceRefSchema } from "./redaction.js";
+import { metadataSchemaCheck, runtimeEvidenceRefSchema } from "./redaction.js";
 
 export const routeDecisionLaunchGateActions = [
   "allowed",
@@ -162,4 +162,4 @@ export const routeDecisionSchema = z.object({
   ]),
   silentDowngrade: z.literal(false),
   evidenceRefs: z.array(runtimeEvidenceRefSchema).optional(),
-});
+}).superRefine(metadataSchemaCheck);

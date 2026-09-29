@@ -1,5 +1,5 @@
-import type { AgentSession, RuntimeEvent, TurnHandle } from "@consiliency/runtime-provider";
-import { AuditLedger, replaySessionHistory } from "@omniagent-plus/state-ledger";
+import type { AgentSession, RuntimeEvent } from "@consiliency/runtime-provider";
+import { AuditLedger, replaySession } from "@omniagent-plus/state-ledger";
 
 import { createCliError } from "../errors.js";
 import type {
@@ -27,7 +27,7 @@ function sessionSummary(
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,
     repoRoot: session.repoRoot,
-    turnCount: records.filter((record) => record.kind === "turn").length,
+    turnCount: new Set(records.filter((record) => record.kind === "turn").map((record) => record.turnId)).size,
     eventCount: records.filter((record) => record.kind === "runtime_event").length,
     approvalRequestCount: records.filter((record) => record.kind === "approval_request").length,
     approvalResponseCount: records.filter((record) => record.kind === "approval_response").length,
@@ -40,21 +40,14 @@ async function runSessionsList(
 ) {
   const ledger = await AuditLedger.open({
     rootDir: request.stateRoot,
+    readOnly: true,
   });
-  const sessions = await ledger.listRecordsByKind("session");
-  const sorted = [...sessions].sort((left, right) =>
-    ((left.payload as AgentSession).id).localeCompare((right.payload as AgentSession).id),
-  );
-  const limited = request.limit === undefined
-    ? sorted
-    : sorted.slice(0, request.limit);
-
-  const results = await Promise.all(
-    limited.map(async (record) => {
-      const session = record.payload as AgentSession;
-      return sessionSummary(session, await ledger.listSessionRecords(session.id));
-    }),
-  );
+  const records = await ledger.listRecords();
+  const latest = new Map<string, AgentSession>();
+  for (const record of records) if (record.kind === "session") latest.set(record.payload.id, record.payload);
+  const sorted = [...latest.values()].sort((left, right) => left.id.localeCompare(right.id));
+  const limited = request.limit === undefined ? sorted : sorted.slice(0, request.limit);
+  const results = limited.map((session) => sessionSummary(session, records.filter((record) => record.sessionId === session.id)));
 
   return sessionsListResultSchema.parse({
     schema: "cli.sessions.list.result.v0.1",
@@ -68,31 +61,26 @@ async function runSessionsShow(
 ) {
   const ledger = await AuditLedger.open({
     rootDir: request.stateRoot,
+    readOnly: true,
   });
-  const records = await ledger.listSessionRecords(request.sessionId);
-  const session = records.find((record) => record.kind === "session")
-    ?.payload as AgentSession | undefined;
-
+  const replay = await replaySession(ledger, request.sessionId);
+  const session = replay.session;
   if (session === undefined) {
-    throw createCliError("missing_record", `Session ${request.sessionId} was not found.`, {
-      sessionId: request.sessionId,
-    });
+    throw createCliError("missing_record", `Session ${request.sessionId} was not found.`, { sessionId: request.sessionId });
   }
-
-  const summary = sessionSummary(session, records);
-  const turns = records
-    .filter((record) => record.kind === "turn")
-    .map((record) => record.payload as TurnHandle)
-    .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-    .map((turn) => ({
-      turnId: turn.turnId,
-      idempotencyKey: turn.idempotencyKey,
-      state: turn.state,
-      createdAt: turn.createdAt,
-      updatedAt: turn.updatedAt,
-      eventCursor: turn.eventCursor,
-    }));
-  const history = await replaySessionHistory(ledger, request.sessionId);
+  const summary = {
+    id: session.id, runtime: session.runtime, targetHarness: session.targetHarness,
+    targetProvider: session.targetProvider, identityProfileId: session.identityProfileId,
+    title: session.title, state: session.state, createdAt: session.createdAt, updatedAt: session.updatedAt,
+    repoRoot: session.repoRoot, turnCount: replay.turns.length, eventCount: replay.history.events.length,
+    approvalRequestCount: replay.approvalRequests.length, approvalResponseCount: replay.approvalResponses.length,
+    evidenceRefCount: replay.evidenceRefs.length,
+  };
+  const turns = replay.turns.map((turn) => ({
+    turnId: turn.turnId, idempotencyKey: turn.idempotencyKey, state: turn.state,
+    createdAt: turn.createdAt, updatedAt: turn.updatedAt, eventCursor: turn.eventCursor,
+  }));
+  const history = replay.history;
   const events = history.events.map((event: RuntimeEvent) => ({
     sequence: event.sequence,
     type: event.type,

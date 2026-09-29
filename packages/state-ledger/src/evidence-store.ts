@@ -1,3 +1,5 @@
+import { runtimeEvidenceRefSchema, redactUntrustedText } from "@consiliency/runtime-provider";
+
 import type {
   RuntimeEvidenceRef,
   StateLedgerEntry,
@@ -5,16 +7,6 @@ import type {
 
 import type { AuditLedger } from "./audit-ledger.js";
 import { DEFAULT_MAX_EVIDENCE_EXCERPT_BYTES } from "./schema.js";
-
-const SECRET_PATTERNS = [
-  /AKIA[0-9A-Z]{16}/,
-  /sk-[A-Za-z0-9]{16,}/,
-  /ghp_[A-Za-z0-9]{20,}/,
-  /Bearer\s+[A-Za-z0-9._-]{12,}/i,
-  /-----BEGIN [A-Z ]+PRIVATE KEY-----/,
-  /(OPENAI|ANTHROPIC|GOOGLE|AZURE)_[A-Z0-9_]*KEY=/,
-  /OMNIGENT_[A-Z0-9_]*(API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY)=/,
-] as const;
 
 export interface EvidenceInput {
   readonly kind: RuntimeEvidenceRef["kind"];
@@ -51,12 +43,12 @@ export class EvidenceStore {
     input: EvidenceInput,
   ): Promise<Extract<StateLedgerEntry, { kind: "evidence_ref" }>> {
     this.assertAllowed(input);
-    const record: RuntimeEvidenceRef = {
+    const record = runtimeEvidenceRefSchema.parse({
       kind: input.kind,
       label: input.label,
       path: input.path,
       excerpt: input.excerpt,
-    };
+    });
     return this.ledger.appendEvidenceRef(record, {
       sessionId: input.sessionId,
       turnId: input.turnId,
@@ -91,25 +83,6 @@ export class EvidenceStore {
       throw new Error("Redacted excerpt evidence requires excerpt content.");
     }
 
-    const excerptBytes = Buffer.byteLength(input.excerpt, "utf8");
-    if (excerptBytes > this.maxExcerptBytes) {
-      throw new Error(
-        `Evidence excerpt exceeds ${this.maxExcerptBytes} bytes (${excerptBytes} bytes).`,
-      );
-    }
-
-    for (const pattern of SECRET_PATTERNS) {
-      if (pattern.test(input.excerpt)) {
-        throw new Error("Secret-bearing evidence cannot be persisted.");
-      }
-    }
-
-    if (
-      /(^|\n)(HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=/m.test(
-        input.excerpt,
-      )
-    ) {
-      throw new Error("Environment dumps cannot be persisted.");
-    }
+    redactUntrustedText(input.excerpt, { label: "evidence excerpt", maxBytes: this.maxExcerptBytes });
   }
 }

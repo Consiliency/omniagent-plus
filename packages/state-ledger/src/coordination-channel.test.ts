@@ -17,6 +17,13 @@ const scope = {
 };
 
 describe("coordination channel", () => {
+  it("applies the shared corpus to local retained coordination bodies", async () => {
+    const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
+    const channel = new LocalCoordinationChannel({ rootDir: await mkdtemp(join(tmpdir(), "data-coordination-corpus-")) });
+    for (const value of corpus.allowed) await channel.send({ type: "done", sender: "operator", scope, body: { nested: value } });
+    for (const value of corpus.rejected) await expect(channel.send({ type: "done", sender: "operator", scope, body: { nested: value } })).rejects.toThrow();
+    expect(await channel.list()).toHaveLength(corpus.allowed.length);
+  });
   it("records messages without mutating lease state", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "coordination-channel-"));
     const channel = new LocalCoordinationChannel({ rootDir });

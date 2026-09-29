@@ -1,4 +1,5 @@
 import {
+  runtimeEventSchema,
   type AgentSession,
   type IdentityProfileStatus,
   type LimitClassification,
@@ -52,6 +53,14 @@ export class AuditLedger {
   async appendRuntimeEvent(
     event: RuntimeEvent,
   ): Promise<Extract<StateLedgerEntry, { kind: "runtime_event" }>> {
+    const parsed = runtimeEventSchema.parse(event) as RuntimeEvent;
+    if (parsed.type === "runtime.turn.started") {
+      event = { ...parsed, redaction: "metadata_only", payload: { ...parsed.payload, message: "[runtime content omitted]" } };
+    } else if (parsed.type === "runtime.text.delta") {
+      event = { ...parsed, redaction: "metadata_only", payload: { delta: "[runtime content omitted]" } };
+    } else {
+      event = { ...parsed, redaction: "metadata_only" };
+    }
     return this.store.appendRecord({
       kind: "runtime_event",
       payload: event,

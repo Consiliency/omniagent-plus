@@ -1,0 +1,20 @@
+{
+  "allowed": [
+    "Sketchbook indexing is ordinary metadata.",
+    "Token bucket limits are documented.",
+    "{\"choices\":[\"first\",\"second\"]}",
+    "{\"messages\":[\"safe notes\"]}",
+    { "nested": { "notes": ["safe lookalike", "src/index.ts"] } }
+  ],
+  "rejected": [
+    { "nested": { "notes": ["Bearer synthetic-token-123456"] } },
+    { "nested": { "password": "synthetic-private-value" } },
+    { "environment": { "PATH": "/bin" } },
+    "-----BEGIN PRIVATE KEY-----",
+    "https://synthetic:synthetic-pass@example.invalid/path",
+    "{\"token\":\"synthetic-private-value\"}",
+    { "choices": [{ "message": { "role": "assistant", "content": "synthetic provider payload" } }] }
+  ],
+  "rejectedExportPaths": ["/home/synthetic/.config/tool", "../outside.txt", "a/../outside.txt", "C:\\Users\\synthetic\\tool", ".recovery/private.tail"],
+  "allowedEvidencePaths": ["src/index.ts", "path:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+}

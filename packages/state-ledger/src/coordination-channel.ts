@@ -130,7 +130,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
 
   async list(query: CoordinationMessageQuery = {}): Promise<readonly CoordinationMessage[]> {
     const state = await this.readState(nowIsoString());
-    return state.messages
+    return state.messages.map((message) => coordinationMessageSchema.parse(message))
       .filter((message) => query.type === undefined || message.type === query.type)
       .filter((message) => scopeMatches(message, query.scope))
       .sort((left, right) => left.created_at.localeCompare(right.created_at));

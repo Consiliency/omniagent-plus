@@ -5,6 +5,7 @@ import { limitClassificationSchema, type LimitClassification } from "./rate-limi
 import {
   redactionStatusSchema,
   runtimeEvidenceRefSchema,
+  metadataSchemaCheck,
   type RedactionStatus,
   type RuntimeEvidenceRef,
 } from "./redaction.js";
@@ -127,7 +128,7 @@ export const runtimeToolCallSchema = z.object({
   sessionId: z.string().min(1),
   turnId: z.string().min(1),
   toolName: z.string().min(1),
-  argumentsRedacted: z.unknown(),
+  argumentsRedacted: z.unknown().superRefine(metadataSchemaCheck),
   approvalRequired: z.boolean(),
   evidenceRefs: z.array(runtimeEvidenceRefSchema).optional(),
 });
@@ -205,7 +206,7 @@ export const runtimeEventSchema = z.discriminatedUnion("type", [
     "runtime.tool.result",
     z.object({
       toolCallId: z.string().min(1),
-      outputRedacted: z.unknown(),
+      outputRedacted: z.unknown().superRefine(metadataSchemaCheck),
     }),
   ),
   withPayload(

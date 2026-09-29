@@ -117,6 +117,11 @@ export {
   sanitizeMetadataPath,
   sanitizeMetadataText,
   sanitizeWorkspacePath,
+  scanMetadataLeaks,
+  assertMetadataSafe,
+  metadataSchemaCheck,
+  opaqueExportPath,
+  projectMetadataExport,
 } from "./redaction.js";
 export type {
   UiActiveTurnSummary,
@@ -248,10 +253,13 @@ export type {
   WorktreeLeaseMode,
   WorktreeLeaseRef,
   WorktreeLeaseRequest,
+  WorktreeLeaseRelease,
 } from "./worktree.js";
 export {
   worktreeLeaseModes,
   worktreeLeaseRefSchema,
   worktreeLeaseRequestSchema,
   worktreeLeaseSchema,
+  worktreeLeaseReleaseSchema,
+  createWorktreeLeaseRelease,
 } from "./worktree.js";

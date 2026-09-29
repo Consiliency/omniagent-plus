@@ -14,6 +14,10 @@ import {
   runtimeFailureSchema,
   turnHandleSchema,
   worktreeLeaseSchema,
+  sendTurnRequestSchema,
+  createSessionRequestSchema,
+  createWorktreeLeaseRelease,
+  runtimeToolCallSchema,
   type AgentRuntimeProvider,
   type AgentSession,
   type HandoffPacket,
@@ -36,6 +40,37 @@ function readFixture<T>(name: string): T {
 }
 
 describe("schemas", () => {
+  it("preserves request-string and unknown-field compatibility while checking retained metadata", () => {
+    const base = { sessionId: "session", idempotencyKey: "key" };
+    for (const message of ["", " \n ", "normal", "é".repeat(10_000), "Bearer synthetic-token-123456"]) {
+      const result = sendTurnRequestSchema.parse({ ...base, message, extension: { password: "discarded extension" } });
+      expect(result.message).toBe(message);
+      expect(result).not.toHaveProperty("extension");
+    }
+    for (const message of [undefined, null, 1, {}]) expect(() => sendTurnRequestSchema.parse({ ...base, message })).toThrow();
+    const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
+    for (const value of corpus.allowed) expect(() => sendTurnRequestSchema.parse({ ...base, message: "safe", metadata: { nested: value } })).not.toThrow();
+    for (const value of corpus.rejected) expect(() => sendTurnRequestSchema.parse({ ...base, message: "safe", metadata: { nested: value } })).toThrow();
+    for (const value of corpus.rejected) expect(() => runtimeToolCallSchema.parse({ toolCallId: "tool", sessionId: "session", turnId: "turn",
+      toolName: "read", argumentsRedacted: { nested: value }, approvalRequired: false })).toThrow();
+    expect(createSessionRequestSchema.parse({ runtime: "omnigent", targetHarness: "codex", idempotencyKey: "root", title: "safe", repoRoot: "/home/synthetic/project" }).repoRoot)
+      .toBe("/home/synthetic/project");
+  });
+
+  it("represents lease release with preserved fencing and explicit bounded provenance", () => {
+    const lease = readFixture<WorktreeLease>("worktree-lease.json");
+    for (const cause of ["holder_release", "reconciliation", "recovery"] as const) {
+      const release = { cause, actor: "test-operator", releasedAt: lease.expiresAt };
+      const result = createWorktreeLeaseRelease(lease, release);
+      expect(result.id).toBe(lease.id);
+      expect(result.fencingToken).toBe(lease.fencingToken);
+      expect(result.renewedAt).toBe(result.expiresAt);
+      expect(worktreeLeaseSchema.parse(result).release).toEqual(release);
+    }
+    expect(worktreeLeaseSchema.parse(lease).release).toBeUndefined();
+    expect(() => createWorktreeLeaseRelease(lease, { cause: "recovery", actor: "Bearer synthetic-token-123456", releasedAt: lease.expiresAt })).toThrow();
+    expect(() => createWorktreeLeaseRelease(lease, { cause: "recovery", actor: "é".repeat(141), releasedAt: lease.expiresAt })).toThrow();
+  });
   it("parses the core contract fixtures", () => {
     expect(
       agentSessionSchema.parse(

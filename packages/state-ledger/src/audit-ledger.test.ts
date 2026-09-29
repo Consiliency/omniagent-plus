@@ -47,6 +47,17 @@ function readFixture(): AuditFixture {
 }
 
 describe("audit ledger", () => {
+  it("projects authorized runtime content before metadata-only persistence", async () => {
+    const fixture = readFixture();
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-runtime-content-")) });
+    const event: RuntimeEvent = { schema: "runtime_event.v0.1", eventId: "content", sequence: 1,
+      sessionId: fixture.session.id, turnId: fixture.turn.turnId, occurredAt: fixture.session.createdAt,
+      type: "runtime.turn.started", payload: { message: "Bearer synthetic-token-123456", state: "running" }, redaction: "content_allowed", terminal: false };
+    await ledger.appendRuntimeEvent(event);
+    expect(JSON.stringify(await ledger.listRecords())).not.toContain("synthetic-token-123456");
+    expect(event.payload.message).toContain("synthetic-token-123456");
+    expect((await ledger.listRecordsByKind("runtime_event"))[0]?.payload.redaction).toBe("metadata_only");
+  });
   it("persists and queries the required durable record families", async () => {
     const fixture = readFixture();
     const ledger = await AuditLedger.open({

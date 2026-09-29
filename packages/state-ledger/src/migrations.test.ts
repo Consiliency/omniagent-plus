@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -85,5 +85,49 @@ describe("migrations", () => {
 
     expect(records).toHaveLength(1);
     expect(manifest.recoveredTailTruncations).toBe(1);
+    const recoveryDir = join(rootDir, ".recovery");
+    const evidence = await readdir(recoveryDir);
+    expect(evidence).toHaveLength(1);
+    expect(await readFile(join(recoveryDir, evidence[0]!), "utf8"))
+      .toBe('{"schema":"state_ledger_record.v0.1"');
+    expect((await stat(recoveryDir)).mode & 0o777).toBe(0o700);
+    expect((await stat(join(recoveryDir, evidence[0]!))).mode & 0o777).toBe(0o600);
+  });
+
+  it("preserves complete schema-invalid records rather than repairing them", async () => {
+    const rootDir = await createTempRoot("state-ledger-corrupt-");
+    await AppendOnlyStore.open({ rootDir });
+    const path = getStateLedgerPaths(rootDir).ledgerPath;
+    for (const suffix of ["\n", ""]) {
+      const raw = `{"schema":"state_ledger_record.v0.1","payload":"invalid"}${suffix}`;
+      await writeFile(path, raw);
+      await expect(AppendOnlyStore.open({ rootDir })).rejects.toThrow(/corruption/i);
+      expect(await readFile(path, "utf8")).toBe(raw);
+    }
+  });
+
+  it("recovers sequence allocation from records when the manifest lags", async () => {
+    const rootDir = await createTempRoot("state-ledger-high-water-");
+    const store = await AppendOnlyStore.open({ rootDir });
+    const empty = await store.getManifest();
+    for (let index = 0; index < 2; index += 1) {
+      await store.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "safe" } });
+    }
+    await writeFile(store.paths.manifestPath, JSON.stringify(empty));
+    const reopened = await AppendOnlyStore.open({ rootDir });
+    const next = await reopened.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "safe" } });
+    expect(next.sequence).toBe(3);
+    await reopened.compactRecords(() => false);
+    const afterCompaction = await AppendOnlyStore.open({ rootDir });
+    expect((await afterCompaction.appendRecord({ kind: "evidence_ref", payload: { kind: "log", label: "safe" } })).sequence).toBe(4);
+  });
+
+  it("fails on newer manifests without replacing them", async () => {
+    const rootDir = await createTempRoot("state-ledger-future-");
+    const store = await AppendOnlyStore.open({ rootDir });
+    const raw = JSON.stringify({ ...await store.getManifest(), schemaVersion: 2 });
+    await writeFile(store.paths.manifestPath, raw);
+    await expect(AppendOnlyStore.open({ rootDir })).rejects.toThrow(/unsupported/i);
+    expect(await readFile(store.paths.manifestPath, "utf8")).toBe(raw);
   });
 });
