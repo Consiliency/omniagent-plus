@@ -91,33 +91,31 @@ it("keeps shutdown idempotent through reentrant cancellation and cleanup failure
   expect(finished).toBe(true);
   expect([process.listenerCount("SIGINT"), process.listenerCount("SIGTERM")]).toEqual(listeners);
 });
-it("discovers descendants through owned task links without a host-wide proc scan", async () => {
+it("leaves Linux child discovery to the custody supervisor", async () => {
   const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
   const script = `import assert from 'node:assert/strict';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';import {runProcess} from ${JSON.stringify(helper)};
-const read=fs.readdirSync;const paths=[];fs.readdirSync=function(path,...args){assert.notEqual(String(path),'/proc');paths.push(String(path));return read.call(this,path,...args);};syncBuiltinESMExports();
-await runProcess(process.execPath,['-e','setTimeout(()=>{},150)']);assert(paths.length>0);assert(paths.every(path=>/^\\/proc\\/\\d+\\/task$/.test(path)));console.log('owned task links only');`;
-  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script])).toBe("owned task links only");
+const read=fs.readdirSync;fs.readdirSync=function(path,...args){assert(!String(path).startsWith('/proc'));return read.call(this,path,...args);};syncBuiltinESMExports();
+await runProcess(process.execPath,['-e','setTimeout(()=>{},150)']);console.log('Node did not scan proc');`;
+  expect(await runProcess(process.execPath, ["--input-type=module", "-e", script])).toBe("Node did not scan proc");
 });
-it("signals the owned POSIX group after its leader closes, with an unrelated group surviving", async () => {
-  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
-  const leaf = "process.on('SIGTERM',()=>{});console.log(process.pid);setInterval(()=>{},1000)";
-  const leader = `const{spawn}=require('node:child_process');const child=spawn(process.execPath,['-e',${JSON.stringify(leaf)}],{stdio:['ignore','pipe','ignore']});child.stdout.once('data',data=>{console.log(data.toString().trim());child.stdout.destroy();child.unref();process.exit(0);});`;
-  const script = `import assert from 'node:assert/strict';import {existsSync,readFileSync} from 'node:fs';import {spawnOwned,waitReady,waitExit,cleanupChild} from ${JSON.stringify(helper)};
-const platform=process.platform;Object.defineProperty(process,'platform',{value:'darwin'});
-const kill=process.kill.bind(process);const calls=[];let killed=false;let descendant=0;
-const alive=pid=>{try{return !readFileSync('/proc/'+pid+'/stat','utf8').split(') ')[1].startsWith('Z');}catch(error){if(error.code==='ENOENT'||error.code==='ESRCH')return false;throw error;}};
-const unrelated=spawnOwned(process.execPath,['-e',"console.log('ready');setInterval(()=>{},1000)"]);
-const child=spawnOwned(process.execPath,['-e',${JSON.stringify(leader)}]);
-try{await waitReady(unrelated);descendant=Number((await waitReady(child)).toString());assert.equal(await waitExit(child),0);
-process.kill=(pid,signal)=>{assert.equal(pid,-child.pid);calls.push(signal);if(signal==='SIGKILL')killed=true;
-// Model init reaping after real SIGKILL: this Linux host can retain orphan zombies.
-if(signal===0&&killed&&!alive(descendant))throw Object.assign(Error('reaped'),{code:'ESRCH'});return kill(pid,signal);};
-await cleanupChild(child);assert(calls.includes('SIGTERM'));assert(calls.includes('SIGKILL'));assert(!alive(descendant));kill(unrelated.pid,0);console.log('owned POSIX group cleaned');
-}finally{process.kill=kill;try{kill(-child.pid,'SIGKILL');}catch(error){if(error.code!=='ESRCH')throw error;}await cleanupChild(unrelated);Object.defineProperty(process,'platform',{value:platform});}`;
-  const child = spawnOwned(process.execPath, ["--input-type=module", "-e", script]);
-  let stdout = "", stderr = "";
-  child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-  child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
-  try { expect(await waitExit(child), stderr).toBe(0); expect(stdout.trim()).toBe("owned POSIX group cleaned"); }
-  finally { await cleanupChild(child); }
-}, 10_000);
+it("refuses unsupported platforms before launching a payload", () => {
+  const original = Object.getOwnPropertyDescriptor(process, "platform")!;
+  try {
+    for (const platform of ["darwin", "win32"]) {
+      Object.defineProperty(process, "platform", { ...original, value: platform });
+      expect(() => spawnOwned(process.execPath, ["-e", "process.exit(0)"])).toThrow("Linux custody backend required");
+    }
+  } finally { Object.defineProperty(process, "platform", original); }
+});
+it("reaps 100 immediate-exit detached descendants before each command returns", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-immediate-"));
+  try {
+    for (let index = 0; index < 100; index++) {
+      const pidFile = join(dir, String(index));
+      const script = `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const child=spawn(process.execPath,['-e','setTimeout(()=>{},5000)'],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(child.pid));child.unref();process.exit(0);`;
+      await runProcess(process.execPath, ["-e", script]);
+      const pid = Number(readFileSync(pidFile, "utf8"));
+      expect(existsSync(`/proc/${pid}`), `trial ${index} escaped`).toBe(false);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 120_000);
