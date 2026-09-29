@@ -564,7 +564,7 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   KILL remains fixed at 500 ms from that exit and final quiescence/RESULT at
   2.5 seconds. Forced parent teardown sends TERM immediately and keeps the
   same 500 ms/2.5-second boundaries. No child receives a fresh budget on
-  adoption, and no command returns before kernel-confirmed quiescence.
+  adoption, and no command returns success before kernel-confirmed quiescence.
   The Node helper retains validated RESULT in memory
   and appends metadata-only admission and terminal records to the owned
   .phase-loop/guard/<run-id>/custody.jsonl when verify.mjs supplies that run
@@ -576,11 +576,16 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   one random command_id, stage, supervisor identity and optional static
   control_case_id passed by its adversarial test call; terminal records repeat
   those IDs and include quiescent/unproven, adopted_count,
-  adopted_natural_count, adopted_signaled_count and force_killed_count.
+  adopted_natural_count, adopted_signaled_count,
+  adopted_unresolved_count and force_killed_count.
   Natural means an adopted child exited and was reaped before any supervisor
-  signal to that child; signaled includes TERM or KILL. Count by kernel child
-  identity/status, never command name, and make the categories sum to
-  adopted_count. An admission is recorded before ADMIT is enqueued, and
+  signal to that child; signaled means it was reaped after TERM or KILL.
+  Unresolved means no confirmed reap, including a live child whose pidfd could
+  not be acquired and a signaled child still alive when proof ends. Count by
+  kernel child identity/status, never command name, and require the three
+  exclusive categories to sum to adopted_count. Quiescent results require
+  adopted_unresolved_count=0; any unresolved child makes custody unproven.
+  An admission is recorded before ADMIT is enqueued, and
   every admission must have exactly one terminal record, including a typed
   unproven terminal when RESULT is missing or malformed. A failed terminal
   write fails the owning command; a missing terminal, duplicate ID, orphan
@@ -682,7 +687,9 @@ evidence; do not shorten polling intervals or add readiness sleeps as the fix.
   signal/nonzero/spawn failures, concurrent/reentrant cleanup, control EOF,
   denied/missing capability with no payload effect, and malformed/missing
   completion controls. Test pidfd identity rejection and clone-child exhaustion
-  semantics. Include nested supervisors with competing cancellation deadlines,
+  semantics, including a discovered live adopted child whose pidfd acquisition
+  fails: its terminal must be unproven with adopted_unresolved_count=1, never
+  falsely natural or signaled. Include nested supervisors with competing cancellation deadlines,
   inner custodian loss under an outer owner, build interruption and admitted
   root-suite interruption. Assert children are quiescent before fixture cleanup
   and launcher exit, the parent/unrelated process survives, and real lock/race
