@@ -7,7 +7,7 @@ import {
 import { snapshotFromHealth } from "./capability-probe.js";
 
 describe("capability probe", () => {
-  it("builds a capability snapshot from provider health and frozen contract fixtures", () => {
+  it("does not report a fixture target as an observed runtime version", () => {
     const snapshot = snapshotFromHealth(
       {
         activeSessions: 1,
@@ -25,8 +25,12 @@ describe("capability probe", () => {
     expect(snapshot.capabilities.canClose).toBe(true);
     expect(snapshot.capabilities.canSpawnChildSessions).toBe(false);
     expect(snapshot.endpoint).toBe("http://127.0.0.1:4010");
-    expect(snapshot.gitSha).toBe("c8b9b85f822f2c9203ff995c10f3cc49d064bbe5");
-    expect(snapshot.version).toBe("0.15.0");
+    expect(snapshot.gitSha).toBeUndefined();
+    expect(snapshot.version).toBeUndefined();
+    expect(loadOmnigentSourceMetadata().freeze_target).toEqual(expect.objectContaining({
+      commit: "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5",
+      package_version: "0.15.0",
+    }));
   });
 
   it("keeps v0.12 metadata and administration behavior non-capabilities", () => {

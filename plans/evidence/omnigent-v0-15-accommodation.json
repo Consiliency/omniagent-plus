@@ -1,12 +1,12 @@
 {
   "schema": "omnigent.v0_15_accommodation_execution.v1",
   "status": "provisional_implementation_pending_gates",
-  "recorded_at": "2026-09-28T15:51:27Z",
+  "recorded_at": "2026-09-29T02:50:16Z",
   "branch": "codex/omnigent-v015-implementation-20260928",
   "base_head": "6b464e94e55fd8483a1ae42ec61d93f07738a320",
   "plan": {
     "path": "plans/detailed-omnigent-v0-15-accommodation-20260922.md",
-    "sha256": "7e091cb1c4b16b6f7256fc73ba06e1ca10293b66ab8cb896b69903ff10ee85d1",
+    "sha256": "3bfebbb7322fe3a58fc461376b3b032e22e0102746594d6823a897628374d46d",
     "panel_receipt": "plans/evidence/omnigent-v015-plan-review-20260928.md"
   },
   "owner_and_freeze_receipts": {
@@ -17,8 +17,9 @@
   },
   "source_sha256": {
     "packages/omnigent-transport/src/http-client.ts": "a249aa793cfaeaf335be8ce36ee96576cc8436be032cbfd5053f1179984058de",
-    "packages/omnigent-transport/src/http-provider.ts": "5482f235cdddcfde75eca5a7d2b1ebf90c13f7914cd496038174ac36051c64a0",
-    "packages/omnigent-transport/src/event-mapper.ts": "ce782e8d98b4baf9ebbd4c3259232e3fbbff222c3125430103e449967ea986a3",
+    "packages/omnigent-transport/src/http-provider.ts": "a6b0084cbd8afe270b38781897ab52ea5af6198e4a0df4bdb246a72dce14c25d",
+    "packages/omnigent-transport/src/event-mapper.ts": "ccaf60278607a2c3994b4e661b70672b218ac18eef2f2eeef0fce0c924d97a71",
+    "packages/omnigent-transport/src/capability-probe.ts": "fb9bde13e1047b4850e90770c950a2f3871a8f22b120c2d912949814267f5a43",
     "packages/omnigent-transport/src/history-mapper.ts": "b82f89aa66c2379bbebed01ff8815e2129870cc77c1f16fb67d86e662e97ddb3",
     "packages/omnigent-transport/src/sse-stream.ts": "8cf94e9c7927fab63857b0ac42544f95773be0644ef9ba226e9d5dd7fea069bf",
     "fixtures/omnigent/http/v0-15-wire-contract.json": "5fa285a9846ce1bbd05c6b8bb4dd407032cd4dc922a27a829c3ae911293db72a"
@@ -118,5 +119,31 @@
     },
     "merge_ready": false,
     "open_acceptance": ["GUARD/DATA accepted freezes", "full non-skipping gate", "candidate npm publish dry run", "late-alias suppressed-prefix recovery", "capability snapshot version disposition", "remaining plan A-E cases", "exact new-head panel approval"]
-  }
+  },
+  "identity_safe_split_20260929": {
+    "plan": "plans/detailed-omnigent-v015-identity-safe-replay-20260928.md",
+    "plan_sha256": "ad9cfc6850fcdad14cb36bb92a157b58dfb9be36b498e430452bb88ef366e713",
+    "contract_decision": "Text alone cannot establish one logical message when an alias-free historical durable ID and a preview's nonempty ID differ. Emit in order and allow a possible duplicate until identity is known. This replaces the prior ambiguous legacy fallback through an explicit B amendment.",
+    "plan_review": {
+      "astra": "AGREE after amendment; requested guarded provider alias fallback",
+      "sol": "PARTIALLY AGREE; requested invalid collision cursor isolation, addressed in implementation",
+      "gemini_3_1_pro_high_tui": "AGREE with revised direction; identified mapper fallback and provider matching and sequencing changes",
+      "opus_5_5_tui": "Initial refund plan found incomplete; revised-plan review pending"
+    },
+    "focused_mapper_provider_tests": { "passed": 117, "exit_code": 0 },
+    "workspace_tests_isolated": { "passed": 375, "skipped_live_opt_in": 1, "exit_code": 0 },
+    "workspace_build_exit_code": 0,
+    "workspace_typecheck_exit_code": 0,
+    "lint_exit_code": 0,
+    "packed_smoke": { "exit_code": 0, "tarball_sha256": "fff0619d4ef256059a86af9a6f9f798e20fa045df285d029ca46c9ab5307d0e7" },
+    "exact_head_review": "pending"
+  },
+  "capability_snapshot_disposition_20260929": {
+    "plan": "plans/detailed-omnigent-capability-snapshot-provenance-20260928.md",
+    "plan_sha256": "6224506831222a84adb53ba41c4b4f8ac4cdf1e2d1543090bfdc72122a7ef53b",
+    "basis": "specs/agent-runtime-provider-omnigent-spec.md section 14.5 requires detected upstream version and SHA; health has neither",
+    "change": "Health-only snapshots omit optional version and gitSha instead of copying the v0.15 research fixture; v0.12 published support claim and v0.15 comparison target remain distinct",
+    "live_runtime_version_detection": "open"
+  },
+  "current_open_acceptance": ["accepted GUARD/DATA freezes", "full non-skipping gate", "candidate npm publish dry run", "remaining plan A-E cases", "live runtime version detection", "exact implementation-head panel approval"]
 }

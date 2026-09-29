@@ -94,9 +94,8 @@ const historicalV012Wire = loadOmnigentV012WireContract();
 const historicalV011Wire = loadOmnigentV011WireContract();
 const historicalV010Wire = loadOmnigentV010WireContract();
 const historicalV09Wire = loadOmnigentV09WireContract();
-if (snapshot.version !== "0.15.0") throw new Error("unexpected fixture version");
-if (snapshot.gitSha !== "c8b9b85f822f2c9203ff995c10f3cc49d064bbe5") {
-  throw new Error("unexpected fixture git sha");
+if (snapshot.version !== undefined || snapshot.gitSha !== undefined) {
+  throw new Error("health-only snapshot claimed an unobserved runtime version");
 }
 if (
   currentWire.authority.tag !== "v0.15.0" ||

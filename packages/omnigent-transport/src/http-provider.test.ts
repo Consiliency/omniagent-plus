@@ -171,7 +171,7 @@ describe("http provider", () => {
         const url = String(input);
         if (init?.method === "POST") return new Response(JSON.stringify(snapshot));
         if (url.endsWith("/stream")) return new Response(
-          `data: ${JSON.stringify({ type: "response.output_item.done", response_id: "response-late-alias", item: { ...item, stream_message_id: "stream-a" } })}\n\ndata: ${JSON.stringify({ type: "response.output_text.delta", response_id: "response-late-alias", message_id: "stream-b", delta: "same", index: 0 })}\n\n`,
+          `data: ${JSON.stringify({ type: "response.output_text.delta", response_id: "response-late-alias", message_id: "stream-b", delta: "same", index: 0 })}\n\ndata: ${JSON.stringify({ type: "response.output_item.done", response_id: "response-late-alias", item: { ...item, stream_message_id: "stream-a" } })}\n\n`,
           { headers: { "content-type": "text/event-stream" } },
         );
         if (url.includes("/items")) return new Response(JSON.stringify({
@@ -188,6 +188,9 @@ describe("http provider", () => {
     const history = await provider.readHistory(session.id);
     const events = await collectAsync(provider.streamEvents(session.id, { afterSequence: history.nextCursor }));
     expect(events.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+    const cursor = Math.max(history.nextCursor ?? 0, ...events.map((event) => event.sequence));
+    const replay = await collectAsync(provider.streamEvents(session.id, { afterSequence: cursor }));
+    expect(replay.filter((event) => event.type === "runtime.text.delta")).toEqual([]);
   });
 
   it("v0.15 B preserves previews after a stream ID collision and history reload", async () => {
@@ -236,6 +239,9 @@ describe("http provider", () => {
     const cursor = Math.max(history.nextCursor ?? 0, ...firstStream.map((event) => event.sequence));
     const secondStream = await collectAsync(provider.streamEvents(session.id, { afterSequence: cursor }));
     expect(secondStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
+    const secondCursor = Math.max(cursor, ...secondStream.map((event) => event.sequence));
+    const thirdStream = await collectAsync(provider.streamEvents(session.id, { afterSequence: secondCursor }));
+    expect(thirdStream.filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["same"]);
   });
 
   it("v0.15 B retains a collision when reloaded history is empty", async () => {
@@ -5811,7 +5817,7 @@ describe("http provider", () => {
     await expect(pending).resolves.toEqual({ done: true, value: undefined });
   });
 
-  it("dedupes a buffered message that commits after stream open", async () => {
+  it("preserves a buffered preview without a confirmed history alias", async () => {
     const snapshot = {
       active_response_id: "response-shared",
       agent_id: "agent-message-replay",
@@ -5906,7 +5912,7 @@ describe("http provider", () => {
       events
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
-    ).toEqual(["A", "Hello world"]);
+    ).toEqual(["A", "Hello world", "Hello", " world"]);
   });
 
   it("emits a terminal-backed assistant item without preceding text deltas", async () => {
@@ -7435,7 +7441,7 @@ describe("http provider", () => {
     ).toEqual([]);
   });
 
-  it("matches delivered text to the correct persisted message", async () => {
+  it("preserves persisted text without a confirmed preview alias", async () => {
     const snapshot = {
       active_response_id: "response-shared-text",
       agent_id: "agent-shared-text",
@@ -7525,7 +7531,7 @@ describe("http provider", () => {
       replay.events
         .filter((event) => event.type === "runtime.text.delta")
         .map((event) => event.payload.delta),
-    ).toEqual(["same"]);
+    ).toEqual(["same", "same more"]);
   });
 
   it("assigns newly persisted lifecycle events after the prior live cursor", async () => {

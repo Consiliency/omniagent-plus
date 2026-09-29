@@ -328,7 +328,7 @@ describe("history mapper", () => {
     )).toEqual(["same"]);
   });
 
-  it("v0.15 B still deduplicates response-local history when another response uses its stream id", () => {
+  it("v0.15 B preserves response-local preview text without a matching historical alias", () => {
     const history = mapOmnigentConversationHistory("session-explicit", [{
       content: [{ text: "beta", type: "output_text" }],
       created_at: 1_780_272_000,
@@ -347,7 +347,7 @@ describe("history mapper", () => {
       delta: "beta", id: "preview-b", message_id: "shared-stream",
       occurredAt, sessionId: "session-explicit", turnId: "response-b",
       type: "response.output_text.delta",
-    })).toEqual([]);
+    }).filter((event) => event.type === "runtime.text.delta").map((event) => event.payload.delta)).toEqual(["beta"]);
   });
 
   it("v0.15 B learns a late alias from an already-seen durable item", () => {

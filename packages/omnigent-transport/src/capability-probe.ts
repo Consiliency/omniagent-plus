@@ -7,7 +7,6 @@ import type {
 
 import {
   loadOmnigentCapabilityMatrix,
-  loadOmnigentSourceMetadata,
 } from "./contract-fixtures.js";
 
 export interface OmnigentCapabilityProbeOptions {
@@ -44,17 +43,14 @@ function buildSnapshot(
   health: ProviderHealth,
   options: OmnigentCapabilityProbeOptions = {},
 ): OmnigentCapabilitySnapshot {
-  const sourceMetadata = loadOmnigentSourceMetadata();
   return {
     capabilities: mapCapabilities(),
     capturedAt: options.capturedAt ?? new Date().toISOString(),
     endpoint: options.endpoint,
-    gitSha: sourceMetadata.freeze_target.commit,
     runtime: health.runtime,
     schema: "omnigent_capability_snapshot.v0.1",
     supportedHarnesses:
       options.supportedHarnesses ?? ["claude-code", "codex", "opencode", "pi"],
-    version: sourceMetadata.freeze_target.package_version,
   };
 }
 

@@ -166,6 +166,8 @@ function matchDeliveredTextGroups(
   const matched = new Map<RuntimeTextGroup, DeliveredTextGroup>();
   const remainingCurrent = new Set(currentGroups);
   const remainingDelivered = new Set(deliveredGroups);
+  const invalidAlias = (messageId: string | undefined) =>
+    aliases.get(messageId ?? "")?.startsWith("\u0000invalid:") ?? false;
   const match = (
     predicate: (
       current: RuntimeTextGroup,
@@ -187,11 +189,15 @@ function matchDeliveredTextGroups(
   match(
     (current, delivered) =>
       current.messageId !== undefined &&
+      !invalidAlias(current.messageId) &&
+      !invalidAlias(delivered.messageId) &&
       (current.messageId === delivered.messageId ||
         (aliases.has(current.messageId) && aliases.get(current.messageId) === aliases.get(delivered.messageId ?? ""))),
   );
   const identityCompatible = (current: RuntimeTextGroup, delivered: DeliveredTextGroup): boolean =>
-    !aliases.has(current.messageId ?? "") && !aliases.has(delivered.messageId ?? "");
+    !aliases.has(current.messageId ?? "") &&
+    !aliases.has(delivered.messageId ?? "") &&
+    !(current.messageId && delivered.messageId && current.messageId !== delivered.messageId);
   match(
     (current, delivered) =>
       identityCompatible(current, delivered) &&
@@ -831,6 +837,9 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
           sessionId,
           replayEvents,
           options?.afterSequence,
+          !!(rawEvent.turnId && rawEvent.message_id &&
+            this.explicitMessageAliasesByTurnKey.get(`${sessionId}:${rawEvent.turnId}`)
+              ?.get(rawEvent.message_id)?.startsWith("\u0000invalid:")),
         ).filter(
           (event) => event.sequence > (options?.afterSequence ?? 0),
         );
@@ -1538,6 +1547,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     sessionId: string,
     events: readonly RuntimeEvent[],
     sequenceFloor = 0,
+    forceNewTextSequence = false,
   ): RuntimeEvent[] {
     const sequences = this.eventSequences.get(sessionId) ?? new Map();
     let nextSequence = Math.max(
@@ -1546,10 +1556,13 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
     );
     const resequenced = events.map((event) => {
       const key = runtimeEventSequenceKey(event);
-      const existingSequence = sequences.get(key);
+      const existingSequence = forceNewTextSequence && event.type === "runtime.text.delta"
+        ? undefined : sequences.get(key);
       const sequence = existingSequence ?? nextSequence;
       if (existingSequence === undefined) {
-        sequences.set(key, sequence);
+        if (!forceNewTextSequence || event.type !== "runtime.text.delta") {
+          sequences.set(key, sequence);
+        }
         nextSequence += 1;
       }
       return event.sequence === sequence
@@ -1648,7 +1661,7 @@ export class OmnigentHttpProvider implements AgentRuntimeProvider {
   ): void {
     for (const event of events) {
       if (event.type === "runtime.text.delta" && event.turnId) {
-        const eventKey = `${sessionId}:${runtimeEventSequenceKey(event)}`;
+        const eventKey = `${sessionId}:${runtimeEventSequenceKey(event)}:${event.sequence}`;
         const turnKey = `${sessionId}:${event.turnId}`;
         const delivered =
           this.deliveredTextEventsByTurnIds.get(turnKey) ?? new Map();

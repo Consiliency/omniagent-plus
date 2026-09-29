@@ -12,6 +12,11 @@ and transport-owner gates plus complete qualification are recorded. The
 `session.skills`. The adapter does not grant new approval, file-sharing, child,
 model, credential, or administrative authority.
 
+The v0.15 source fixture is a comparison target, not a detected server version.
+Capability snapshots leave their optional `version` and `gitSha` fields absent
+until live runtime metadata can populate them. Runtime version pinning remains
+an open qualification item.
+
 ## Modes
 
 - HTTP accepts an existing named agent, or uses an explicit agent-id resolver.
@@ -92,9 +97,13 @@ surfaces. The HTTP provider keeps its legacy required-agent create body, and
 the process manager keeps the canonical `omnigent server --background`,
 `server status --json`, and `server stop` lifecycle.
 
-`response.output_text.delta` is behaviorally unchanged. Equal identity-free
-text remains undecidable and is emitted losslessly; replay is deduplicated only
-when item/message identity or process-local cursor evidence supports it.
+`response.output_text.delta` keeps its wire shape. Equal identity-free text
+remains undecidable and is emitted losslessly. A preview with a nonempty message
+ID is also emitted when an alias-free historical item has a different ID and
+only its text matches; this may repeat historical text, but avoids losing a
+distinct message before a later alias arrives. Exact IDs, confirmed aliases,
+and process-local cursor evidence still deduplicate replay. A stream ID
+invalidated by a collision receives no replay credit across reconnects.
 
 ## Boundary
 

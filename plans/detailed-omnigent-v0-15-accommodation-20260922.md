@@ -241,8 +241,16 @@ preview suppresses duplicate chunks, including repeated/chunked late previews.
 Keep finalized suppression in the existing mapper/subscription lifecycle; no
 global cache or retention-policy change. New authoritative item content remains
 eligible for reconciliation; arbitrary equal identity-free text stays lossless.
-Absent/null/empty/non-string stream fields create no alias and retain legacy
-behavior. Conflicting aliases (one stream ID, multiple durable items) invalidate
+Absent/null/empty/non-string stream fields create no alias. Legacy replay
+suppression remains for an exact message ID or validated alias, and for
+identity-free text. An alias-free historical durable ID and a different,
+nonempty preview message ID are **not** enough to suppress by text alone:
+emit the preview in order, accepting a possible duplicate until an alias is
+known. This is the reviewed lossless exception to the former cross-namespace
+text fallback. Because SSE is live-tail and runtime events are append-only,
+buffering or retrospectively refunding guessed matches cannot guarantee both
+immediate output and ordered, lossless delivery across subscriptions.
+Conflicting aliases (one stream ID, multiple durable items) invalidate
 that association and preserve content instead of suppressing by guesswork.
 
 Add cases to `src/history-mapper.test.ts`, `src/event-mapper.test.ts`, and
