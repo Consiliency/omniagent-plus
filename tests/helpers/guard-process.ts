@@ -98,7 +98,7 @@ const owned = new Map<number, OwnedChild>();
 const context = new AsyncLocalStorage<ProcessScope | undefined>();
 const custodyContext = new AsyncLocalStorage<{ runDir: string; stage: string }>();
 const cleanupContext = new AsyncLocalStorage<{ deadline: bigint; remainingSlots: number }>();
-const controlCases = new Set(["hung-child", "normal-orphan", "immediate-orphan", "keeper-loss"]);
+const controlCases = new Set(["hung-child", "normal-orphan", "immediate-orphan", "keeper-loss", "owner-death"]);
 const supervisorPath = fileURLToPath(new URL("./guard-supervisor.py", import.meta.url));
 const elapsedMs = (started: bigint) => Number((process.hrtime.bigint() - started) / 1_000_000n);
 

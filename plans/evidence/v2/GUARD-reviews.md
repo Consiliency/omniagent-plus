@@ -6,6 +6,22 @@ records. omniagent-plus#20 stays open.
 
 ## 2026-09-29 Implementation Checkpoint
 
+- The `5d615cf` hosted CI and publish rehearsal passed, including independent
+  focused GUARD and integration fixtures and the standalone real-suite interrupt
+  control. Its CI artifact has 464 balanced root admissions/terminals, 52
+  natural and 103 explicitly tagged signaled rescues, with zero unresolved or
+  unproven terminals. Gemini's manual tool-enabled TUI review of `e0db9f4`
+  returned NOT ACCEPT. The reported orphan escape after a late status write
+  does not reproduce: the supervisor catches the deadline error and drains
+  adopted children. Gemini correctly observed that the prior suspended-keeper
+  test used a child that could exit naturally before the keeper resumed. The
+  candidate now repeats the case with a live 10-second child, records its PID,
+  and proves the child is absent after the failed result. It also adds explicit
+  foreground INT, signal-mask/default, SIGCHLD, missing/denied/stalled READY,
+  descriptor-churn, controller-death, sibling-keeper and journal-fault controls
+  in response to the Opus review. Local plain CI-mode tests pass 500 cases with
+  one documented live skip; typecheck and lint pass. A hosted run and exact-head
+  four-seat review of these additional tests are still required.
 - Opus 5.5's manual subscription TUI review of `a5b8730` returned REQUEST
   CHANGES. Its count and final-delivery findings were repaired by `316c6b3`;
   its real-root-suite finding showed that `pnpm exec vitest` exits or strands
