@@ -121,6 +121,16 @@ it("reaps 100 immediate-exit detached descendants before each command returns", 
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }, 120_000);
+it("reaps a double-forked child in a new session before the launcher returns", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-double-fork-"));
+  const pidFile = join(dir, "leaf");
+  try {
+    const middle = `const{spawn}=require('node:child_process');const{writeFileSync}=require('node:fs');const leaf=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{detached:true,stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(leaf.pid));leaf.unref();process.exit(0);`;
+    const launcher = `const{spawn}=require('node:child_process');const middle=spawn(process.execPath,['-e',${JSON.stringify(middle)}],{detached:true,stdio:'ignore'});middle.unref();process.exit(0);`;
+    await runProcess(process.execPath, ["-e", launcher], { custodyControlId: "immediate-orphan" });
+    expect(existsSync(`/proc/${Number(readFileSync(pidFile, "utf8"))}`)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 it("retains the original polling helper as a failing positive control", async () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-old-probe-"));
   try {
@@ -192,7 +202,7 @@ print('pidfd refusal retained')`;
 });
 it("rejects unbalanced custody receipts and an unexpected rescue beside an expected control", () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-journal-"));
-  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, control_case_id: control });
+  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, supervisor_start_identity: "456", control_case_id: control });
   const terminal = (id: string, signaled = 0, control: string | null = null) => ({ ...admission(id, control), event: "terminal", custody: "quiescent", adopted_count: signaled, adopted_natural_count: 0, adopted_signaled_count: signaled, adopted_unresolved_count: 0, force_killed_count: 0 });
   const check = (rows: object[]) => { writeFileSync(join(dir, "custody.jsonl"), rows.map((row) => JSON.stringify(row)).join("\n") + "\n"); return () => validateCustodyJournal(dir); };
   try {

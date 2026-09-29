@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import type { ChildProcessWithoutNullStreams, SpawnOptionsWithoutStdio } from "node:child_process";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { closeSync, constants, existsSync, openSync, readFileSync, writeSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { Readable, Writable } from "node:stream";
 
@@ -84,6 +84,7 @@ export function validateCustodyJournal(runDir: string): { admitted: number; natu
     const id = row.command_id;
     if (typeof id !== "string") throw new Error("GUARD custody journal ID invalid");
     if (row.event === "admission") {
+      if (typeof row.stage !== "string" || !row.stage || !Number.isSafeInteger(row.supervisor_pid) || Number(row.supervisor_pid) <= 0 || typeof row.supervisor_start_identity !== "string" || !row.supervisor_start_identity || row.control_case_id !== null && !controlCases.has(String(row.control_case_id))) throw new Error("GUARD custody admission identity invalid");
       if (admissions.has(id)) throw new Error("GUARD duplicate custody admission");
       admissions.set(id, { ...row, terminal: false });
     } else if (row.event === "terminal") {
@@ -106,7 +107,11 @@ function journal(record: OwnedChild, event: "admission" | "terminal", result?: C
   const dir = record.runDir;
   if (!dir) return;
   const row = { event, command_id: record.id, stage: record.stage, supervisor_pid: record.child.pid, supervisor_start_identity: record.supervisorStart, control_case_id: record.options.custodyControlId ?? null, ...(result ? { custody: result.custody, proof_error: result.error, adopted_count: result.adopted_count, adopted_natural_count: result.adopted_natural_count, adopted_signaled_count: result.adopted_signaled_count, adopted_unresolved_count: result.adopted_unresolved_count, force_killed_count: result.force_killed_count } : {}) };
-  appendFileSync(`${dir}/custody.jsonl`, `${JSON.stringify(row)}\n`);
+  const data = Buffer.from(`${JSON.stringify(row)}\n`);
+  const fd = openSync(`${dir}/custody.jsonl`, constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT, 0o600);
+  try {
+    if (writeSync(fd, data) !== data.length) throw new Error("GUARD custody journal partial append");
+  } finally { closeSync(fd); }
 }
 
 function unprovenResult(result?: CustodyResult, error?: Error): CustodyResult {
@@ -168,6 +173,7 @@ function handleStatus(record: OwnedChild, chunk: Buffer): void {
       const capabilities = frame.capabilities as Record<string, unknown> | undefined;
       if (!capabilities || Object.values(capabilities).length !== 4 || Object.values(capabilities).some((value) => value !== true)) { record.fault = new Error("GUARD custody capability refused"); record.control.end(); return; }
       if (record.options.signal?.aborted || record.scope?.controller.signal.aborted || elapsedMs(record.started) >= record.timeout) { record.fault = new Error("GUARD admission cancelled"); record.control.end(); return; }
+      if (!record.supervisorStart) { record.fault = new Error("GUARD supervisor identity unproven"); record.control.end(); return; }
       const env = Object.fromEntries(Object.entries(record.options.env ?? cleanEnvironment()).filter((entry): entry is [string, string] => entry[1] !== undefined));
       if (record.runDir) { env.GUARD_CUSTODY_RUN_DIR = record.runDir; env.GUARD_CUSTODY_STAGE = record.stage; }
       const cwd = record.options.cwd instanceof URL ? fileURLToPath(record.options.cwd) : record.options.cwd ?? process.cwd();
@@ -396,7 +402,7 @@ export async function runProcess(command: string, args: string[], options: Owned
   }
   if (!scope?.cooperativeClosing) try { await cleanupChild(child); } catch (error) { cleanupError = error; }
   const record = child.pid === undefined ? undefined : owned.get(child.pid);
-  if (!scope?.cooperativeClosing) scope?.children.delete(child);
+  if (!scope?.cooperativeClosing && !owned.has(child.pid!)) scope?.children.delete(child);
   if (cleanupError && (!operationError || record?.admitted || !(operationError instanceof Error && /timed out|interrupted/.test(operationError.message)))) throw cleanupError;
   if (operationError) throw operationError;
   return stdout.trim();

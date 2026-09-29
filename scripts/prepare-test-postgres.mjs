@@ -41,9 +41,11 @@ export async function createFixture({ mode = "local", source = process.env, root
   const inherited = currentProcessScope();
   const scope = inherited ?? new ProcessScope(3);
   let cleanup = async () => {};
-  const operation = scope.run(() => createInScope({ mode, source, root, run }, scope, (resource) => { cleanup = resource; }));
-  scope.addCleanup(async () => { await operation.catch(() => {}); await cleanup(); });
+  /** @type {ReturnType<typeof createInScope> | undefined} */
+  let operation;
   try {
+    scope.addCleanup(async () => { await operation?.catch(() => {}); await cleanup(); });
+    operation = scope.run(() => createInScope({ mode, source, root, run }, scope, (resource) => { cleanup = resource; }));
     const fixture = await operation;
     return { ...fixture, scope, cleanup: inherited ? () => outsideProcessScope(cleanup) : () => scope.close() };
   } catch (error) {

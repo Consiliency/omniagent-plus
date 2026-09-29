@@ -12,6 +12,14 @@ export const LIVE_CASE = "live Omnigent smoke collects metadata_only live eviden
 function requireCustodyAdmissions(admitted) {
   if (admitted === 0) throw new Error("GUARD custody journal has no admissions");
 }
+async function closeAndValidate(scope, runDir) {
+  let closeError;
+  try { await withCustodyContext(runDir, "cleanup", () => scope.close()); }
+  catch (error) { closeError = error; }
+  const custody = validateCustodyJournal(runDir);
+  if (closeError) throw closeError;
+  return custody;
+}
 export function checkResults(report, command, root = process.cwd()) {
   const manifest = JSON.parse(readFileSync(resolve(root, "tests/guard/required-cases.json"), "utf8"));
   const cases = report.testResults.flatMap((suite) => suite.assertionResults.map((test) => ({ ...test, file: suite.name })));
@@ -71,9 +79,10 @@ export async function verify({ command = "verify", mode = "local", root = proces
   /** @type {Awaited<ReturnType<typeof packVerified>> | undefined} */
   let packed;
   try {
+    scope.addCleanup(async () => { await fixture?.cleanup(); });
     mkdirSync(runDir, { recursive: true });
     if (command !== "verify") {
-      if (command !== "test") fixture = await withCustodyContext(runDir, "sql-setup", async () => { const created = await create({ mode, root }); scope.addCleanup(created.cleanup); await setup(created); return created; });
+      if (command !== "test") fixture = await withCustodyContext(runDir, "sql-setup", async () => { const created = await create({ mode, root }); await setup(created); return created; });
       const result = await withCustodyContext(runDir, "root-suite", () => suite(command, fixture, runDir, run));
       scope.check();
       succeeded = true;
@@ -89,7 +98,7 @@ export async function verify({ command = "verify", mode = "local", root = proces
       if (stage === "install") await run("pnpm", ["install", "--frozen-lockfile"], { timeout: 300_000 });
       else if (["build", "lint", "typecheck"].includes(stage)) await run("pnpm", [stage], { timeout: 180_000 });
       else if (stage === "boundaries") await run(process.execPath, ["scripts/check-dependency-boundaries.mjs"], { timeout: 60_000 });
-      else if (stage === "sql-setup") { fixture = await create({ mode, root }); scope.addCleanup(fixture.cleanup); await setup(fixture); }
+      else if (stage === "sql-setup") { fixture = await create({ mode, root }); await setup(fixture); }
       else if (stage === "root-suite") await suite(command, fixture, runDir, run);
       else if (stage === "pack-and-manifest") packed = await pack(root, resolve(runDir, "artifacts"), source);
       else if (stage === "transport-smoke") {
@@ -109,8 +118,7 @@ export async function verify({ command = "verify", mode = "local", root = proces
     succeeded = true;
     return packed;
   } finally {
-    await withCustodyContext(runDir, "cleanup", () => scope.close());
-    const custody = validateCustodyJournal(runDir);
+    const custody = await closeAndValidate(scope, runDir);
     if (succeeded && run === runProcess && stageList === STAGES) requireCustodyAdmissions(custody.admitted);
     if (fixture) console.log(`SQL metadata: ${resolve(fixture.runDir, "sql-setup.json")}`);
   }

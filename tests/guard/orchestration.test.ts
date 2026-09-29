@@ -66,7 +66,7 @@ it("preserves child failure when its test report is missing or malformed", async
 });
 it("fails a successful root suite when its custody journal is unbalanced or rescues untagged work", async () => {
   const root = mkdtempSync(join(tmpdir(), "guard-journal-gate-"));
-  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, control_case_id: control });
+  const admission = (id: string, control: string | null = null) => ({ event: "admission", command_id: id, stage: "root-suite", supervisor_pid: 123, supervisor_start_identity: "456", control_case_id: control });
   const terminal = (id: string, signaled: number, control: string | null = null) => ({ ...admission(id, control), event: "terminal", custody: "quiescent", adopted_count: signaled, adopted_natural_count: 0, adopted_signaled_count: signaled, adopted_unresolved_count: 0, force_killed_count: 0 });
   try {
     for (const rows of [

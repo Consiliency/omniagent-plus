@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { configDefaults } from "vitest/config";
 import config from "../../vitest.config.js";
-import { cleanEnvironment, runProcess } from "../helpers/guard-process.js";
+import { cleanEnvironment, ProcessScope, runProcess } from "../helpers/guard-process.js";
 import { suiteEnvironment } from "../../scripts/verify.mjs";
 import { awaitReadiness, connectionEnvironment, createFixture, pullImage, validateMetadata, IMAGE, PLATFORM } from "../../scripts/prepare-test-postgres.mjs";
 
@@ -34,6 +34,15 @@ it("rejects absent and forged hosted fixture tuples without docker writes", asyn
   await expect(createFixture({ mode: "github-service", source: {}, run })).rejects.toThrow("hosted fixture");
   expect(calls).toEqual([]);
   await expect(createFixture({ mode: "remote", run })).rejects.toThrow("mode");
+});
+it("refuses fixture work before effects when cleanup admission is exhausted", async () => {
+  const calls: string[][] = [];
+  const scope = new ProcessScope(0);
+  try {
+    await expect(scope.run(() => createFixture({ run: async (_command, args) => { calls.push(args); return ""; } }))).rejects.toThrow("cleanup reservation exhausted");
+    await Promise.resolve();
+    expect(calls).toEqual([]);
+  } finally { await scope.close(); }
 });
 it("separates cold pull budget from readiness and propagates failed pulls", async () => {
   const calls: unknown[] = [];
