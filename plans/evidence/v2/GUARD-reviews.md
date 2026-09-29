@@ -34,6 +34,19 @@ records. omniagent-plus#20 stays open.
   separate consumer job. The follow-up scopes clock admission to the hosted
   GUARD gate. Its consumer verifier passed under a simulated GitHub Actions
   environment; a fresh hosted rehearsal is required.
+- Hosted CI and publish rehearsal both passed at `27b6ac0`. Fresh Astra
+  exact-head review then reproduced two P1 gaps: forced teardown did not
+  publish its earlier cancellation ceiling, and a cleanup callback could
+  admit an oversized nested launcher. The next candidate publishes a
+  monotone forced ceiling and charges each cleanup command's entire declared
+  shutdown reservation before admission. Focused falsifiers passed.
+- Further controls exercise zero/non-SIGCHLD clone children, a child forked
+  after its thread leader exits, and inner supervisor death under an outer
+  owner. The keeper-loss control exposed a status/stdio wait cycle: an orphan
+  held stdout open after its keeper died. The next candidate settles on the
+  separate status channel and drops orphan-held streams on failed custody.
+  Its plain local gate passed 489 cases with the one permitted live skip;
+  GUARD typecheck and lint passed. Hosted and exact-head review are pending.
 
 - Linux subreaper/pidfd custody, scope cleanup, SQL fixture admission and
   custody journaling are implemented through `3254f0a`. This is an implementation

@@ -69,9 +69,14 @@ it("cleans a detached descendant after its direct parent exits normally", async 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 it("lets an on-time payload finish its reserved descendant drain after the operation deadline", async () => {
-  const script = `const{spawn}=require('node:child_process');const child=spawn(process.execPath,['-e','setTimeout(()=>{},500)'],{detached:true,stdio:'ignore'});child.unref();setTimeout(()=>process.exit(0),350);`;
-  await expect(runProcess(process.execPath, ["-e", script], { timeout: 500 })).resolves.toBe("");
-}, 5_000);
+  const dir = mkdtempSync(join(tmpdir(), "guard-deadline-drain-"));
+  const leaf = `const end=BigInt(process.env.GUARD_ADMITTED_OPERATION_NS)+50000000n;setTimeout(()=>{},Math.max(0,Number((end-process.hrtime.bigint())/1000000n)))`;
+  const script = `const{spawn}=require('node:child_process');const end=BigInt(process.env.GUARD_ADMITTED_OPERATION_NS);const child=spawn(process.execPath,['-e',${JSON.stringify(leaf)}],{detached:true,stdio:'ignore'});child.unref();setTimeout(()=>process.exit(0),Math.max(0,Number((end-process.hrtime.bigint())/1000000n)-100));`;
+  try {
+    await expect(withCustodyContext(dir, "deadline-drain-control", () => runProcess(process.execPath, ["-e", script], { timeout: 3_000 }))).resolves.toBe("");
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 1, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}, 7_000);
 it("cleans owned active work after an ordinary failure without closing another scope", async () => {
   const scope = new ProcessScope(2);
   const unrelated = spawnOwned(process.execPath, ["-e", "console.log('ready');setInterval(()=>{},1000)"]);
@@ -220,6 +225,37 @@ console.log('initial '+readFileSync(process.env.GUARD_ADMITTED_EPOCH_FILE,'ascii
     expect(BigInt(nested!)).toBeLessThanOrEqual(signalNs + 20_200_000_000n);
   } finally { await cleanupChild(child); }
 }, 30_000);
+it("rejects nested work after forced shutdown starts", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-forced-epoch-"));
+  const marker = join(dir, "nested-effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {runProcess} from ${JSON.stringify(helper)};
+process.on('SIGTERM',async()=>{await new Promise(r=>setTimeout(r,100));try{await runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}])}catch(error){console.log('rejected '+error.message)}});
+console.log('ready');setInterval(()=>{},1000);`;
+  const child = spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 3, maxChildReservationMs: 2_500 }, custodyControlId: "hung-child" });
+  let output = "";
+  child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+  child.stderr.resume(); child.stdin.end();
+  try {
+    await waitReady(child);
+    await cleanupChild(child);
+    expect(output).toContain("rejected GUARD inherited cleanup reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { await cleanupChild(child); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
+it("rejects an oversized cleanup launcher before payload effects", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-cleanup-budget-"));
+  const marker = join(dir, "nested-effect");
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {ProcessScope,runProcess} from ${JSON.stringify(helper)};
+const scope=new ProcessScope(1);scope.addCleanup(()=>runProcess(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(marker)},'effect')`)}],{launcherBudget:{cleanupSlots:3,maxChildReservationMs:2500}}));
+try{await scope.close()}catch(error){console.log(error.message)}`;
+  try {
+    const output = await runProcess(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 1, maxChildReservationMs: 0 } });
+    expect(output).toContain("cleanup command reservation exhausted");
+    expect(existsSync(marker)).toBe(false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
 it("refuses unsupported platforms before launching a payload", () => {
   const original = Object.getOwnPropertyDescriptor(process, "platform")!;
   try {
@@ -251,6 +287,84 @@ it("reaps a double-forked child in a new session before the launcher returns", a
     expect(existsSync(`/proc/${Number(readFileSync(pidFile, "utf8"))}`)).toBe(false);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+it("reaps clone children with zero and non-SIGCHLD exit signals", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-clone-exit-"));
+  const program = join(dir, "clone-exit");
+  const source = `#define _GNU_SOURCE
+#include <sched.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+static int leaf(void *arg) { (void)arg; usleep(100000); return 0; }
+int main(void) {
+  signal(SIGUSR1, SIG_IGN);
+  for (int i = 0; i < 2; i++) {
+    void *stack = malloc(65536);
+    if (!stack || clone(leaf, (char *)stack + 65536, i ? SIGUSR1 : 0, NULL) < 0) return 2;
+  }
+  return 0;
+}`;
+  try {
+    await runProcess("cc", ["-x", "c", "-", "-o", program], { input: source });
+    await withCustodyContext(dir, "clone-exit-control", () => runProcess(program, []));
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 2, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("tracks children forked after a thread leader exits", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-thread-leader-"));
+  const program = join(dir, "thread-leader");
+  const pidFile = join(dir, "leaf-pid");
+  const source = `#include <pthread.h>
+#include <stdio.h>
+#include <unistd.h>
+static void *worker(void *arg) {
+  usleep(50000);
+  pid_t child = fork();
+  if (child == 0) { usleep(100000); _exit(0); }
+  FILE *file = fopen((char *)arg, "w");
+  if (!file || child < 0) _exit(2);
+  fprintf(file, "%d", child); fclose(file);
+  return NULL;
+}
+int main(int argc, char **argv) {
+  if (argc != 2) return 2;
+  pthread_t thread;
+  if (pthread_create(&thread, NULL, worker, argv[1])) return 2;
+  pthread_exit(NULL);
+}`;
+  try {
+    await runProcess("cc", ["-x", "c", "-pthread", "-", "-o", program], { input: source });
+    await withCustodyContext(dir, "thread-leader-control", () => runProcess(program, [pidFile]));
+    expect(existsSync(pidFile)).toBe(true);
+    expect(existsSync(`/proc/${Number(readFileSync(pidFile, "utf8"))}`)).toBe(false);
+    expect(validateCustodyJournal(dir)).toEqual({ admitted: 1, natural: 1, signaled: 0 });
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+it("keeps an inner keeper-loss failure while the outer owner rescues its child", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "guard-keeper-loss-"));
+  const helper = new URL("../helpers/guard-process.ts", import.meta.url).href;
+  const script = `import {spawnOwned,waitReady,waitExit,cleanupChild} from ${JSON.stringify(helper)};
+const inner=spawnOwned(process.execPath,['-e',"console.log(process.pid);setInterval(()=>{},1000)"]);
+inner.stderr.resume();inner.stdin.end();
+const pid=Number((await waitReady(inner)).toString().trim());console.log('payload '+pid);
+process.kill(inner.pid,'SIGKILL');
+try{await waitExit(inner)}catch(error){console.log('inner '+error.message)}
+try{await cleanupChild(inner)}catch(error){console.log('cleanup '+error.message)}`;
+  let outer: ReturnType<typeof spawnOwned> | undefined;
+  try {
+    outer = withCustodyContext(dir, "keeper-loss-control", () => spawnOwned(process.execPath, ["--input-type=module", "-e", script], { launcherBudget: { cleanupSlots: 0, maxChildReservationMs: 2_500 }, custodyControlId: "hung-child" }));
+    let output = "";
+    outer.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
+    outer.stderr.resume(); outer.stdin.end();
+    expect(await waitExit(outer, 5_000)).toBe(0);
+    await cleanupChild(outer);
+    const pid = Number(output.match(/payload (\d+)/)?.[1]);
+    expect(pid).toBeGreaterThan(0);
+    expect(existsSync(`/proc/${pid}`)).toBe(false);
+    expect(output).toContain("inner GUARD custody result missing");
+    expect(() => validateCustodyJournal(dir)).toThrow("unproven");
+  } finally { if (outer) await cleanupChild(outer).catch(() => {}); rmSync(dir, { recursive: true, force: true }); }
+}, 10_000);
 it("retains the original polling helper as a failing positive control", async () => {
   const dir = mkdtempSync(join(tmpdir(), "guard-old-probe-"));
   try {

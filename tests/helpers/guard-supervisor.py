@@ -212,11 +212,13 @@ class Supervisor:
         self.error_read = None
         self.epoch_fd = None
         self.epoch_path = None
+        self.published_epoch_ns = None
 
     def publish_epoch(self, ceiling_ns):
         if self.epoch_fd is None:
             return
-        os.pwrite(self.epoch_fd, f"{ceiling_ns:020d}".encode("ascii"), 0)
+        self.published_epoch_ns = min(self.published_epoch_ns, ceiling_ns) if self.published_epoch_ns is not None else ceiling_ns
+        os.pwrite(self.epoch_fd, f"{self.published_epoch_ns:020d}".encode("ascii"), 0)
 
     def send(self, kind, **fields):
         write_frame(self.nonce, self.out_seq, kind, self.end_ns or self.cooperative_deadline_ns or self.deadline_ns, **fields)
@@ -307,9 +309,11 @@ class Supervisor:
                 self.end_ns = min(self.end_ns, self.cooperative_deadline_ns + TAIL_NS)
             self.forced = forced
             if forced:
+                self.publish_epoch(self.end_ns)
                 self.signal_children(signal.SIGTERM)
         elif forced and not self.forced:
             self.forced = True
+            self.publish_epoch(self.end_ns)
             self.signal_children(signal.SIGTERM)
 
     def start_cooperative(self, number, requested_end=None):
@@ -394,6 +398,7 @@ class Supervisor:
                 raise CustodyError("invalid shutdown deadline") from error
             self.start_drain(True)
             self.end_ns = min(self.end_ns, requested_end)
+            self.publish_epoch(self.end_ns)
         else:
             raise CustodyError("out-of-order control frame")
 

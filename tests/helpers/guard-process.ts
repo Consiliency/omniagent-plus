@@ -75,6 +75,8 @@ type OwnedChild = {
   result?: CustodyResult;
   fault?: Error;
   closed: boolean;
+  exited: boolean;
+  statusEnded: boolean;
   finished: Promise<CustodyResult>;
   resolve: (result: CustodyResult) => void;
   reject: (error: Error) => void;
@@ -186,6 +188,12 @@ function finish(record: OwnedChild): void {
   if (record.admissionJournaled) {
     try { terminal(record, error ? unprovenResult(result, error) : result); }
     catch { error = new Error("GUARD custody receipt write failed"); }
+  }
+  if (error && record.exited) {
+    record.child.stdout.destroy();
+    record.child.stderr.destroy();
+    record.child.stdin.destroy();
+    record.control.destroy();
   }
   if (error || !result) record.reject(error ?? new Error("GUARD custody result missing"));
   else record.resolve(result);
@@ -328,19 +336,19 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
   if (process.platform !== "linux") throw new Error("GUARD Linux custody backend required");
   if (options.custodyControlId && !controlCases.has(options.custodyControlId)) throw new Error("Unknown GUARD custody control");
   const cleanup = cleanupContext.getStore();
-  if (cleanup) {
-    const inheritedCeiling = inheritedBudget(0, true, true)?.ceilingNs;
-    const deadline = inheritedCeiling && inheritedCeiling < cleanup.deadline ? inheritedCeiling : cleanup.deadline;
-    const remaining = Number((deadline - process.hrtime.bigint()) / 1_000_000n) - 2_500;
-    if (cleanup.remainingSlots <= 0 || remaining <= 0) throw new Error("GUARD cleanup command reservation exhausted");
-    cleanup.remainingSlots--;
-    options = { ...options, timeout: Math.min(options.timeout ?? PROCESS_MS, remaining) };
-  }
   const slots = options.launcherBudget?.cleanupSlots ?? 0;
   const childReservation = options.launcherBudget?.maxChildReservationMs ?? (options.shutdownReservationMs ?? TAIL_MS) - TAIL_MS;
   if (![slots, childReservation].every((value) => Number.isSafeInteger(value) && value >= 0)) throw new Error("Invalid GUARD shutdown reservation");
   const shutdownReservationMs = TAIL_MS + slots * CLEANUP_SLOT_MS + childReservation;
   if (!Number.isSafeInteger(shutdownReservationMs) || options.shutdownReservationMs !== undefined && options.shutdownReservationMs !== shutdownReservationMs) throw new Error("Invalid GUARD shutdown reservation");
+  if (cleanup) {
+    const inheritedCeiling = inheritedBudget(0, true, true)?.ceilingNs;
+    const deadline = inheritedCeiling && inheritedCeiling < cleanup.deadline ? inheritedCeiling : cleanup.deadline;
+    const remaining = Number((deadline - process.hrtime.bigint()) / 1_000_000n) - shutdownReservationMs;
+    if (cleanup.remainingSlots <= 0 || remaining <= 0) throw new Error("GUARD cleanup command reservation exhausted");
+    cleanup.remainingSlots--;
+    options = { ...options, timeout: Math.min(options.timeout ?? PROCESS_MS, remaining) };
+  }
   const custody = custodyContext.getStore();
   const runDir = custody?.runDir ?? process.env.GUARD_CUSTODY_RUN_DIR;
   const stage = custody?.stage ?? process.env.GUARD_CUSTODY_STAGE ?? "standalone";
@@ -360,13 +368,15 @@ export function spawnOwned(command: string, args: string[], options: OwnedOption
     const finished = new Promise<CustodyResult>((yes, no) => { resolve = yes; reject = no; });
     let supervisorStart: string | null = null;
     try { supervisorStart = readFileSync(`/proc/${child.pid}/stat`, "utf8").split(") ").at(-1)?.split(" ")[19] ?? null; } catch { /* Spawn errors are handled by the status channel. */ }
-    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, finished, resolve, reject, timeout, started, options, scope, runDir, stage, supervisorStart, shutdownReservationMs, budgetSlots: slots, budgetChildMs: childReservation };
+    const record: OwnedChild = { child, id: randomUUID(), nonce, command, args, control: child.stdio[3] as Writable, status: child.stdio[4] as Readable, buffer: "", inputSeq: 0, outputSeq: 0, admitted: false, admissionJournaled: false, terminalWritten: false, workDrained: false, closed: false, exited: false, statusEnded: false, finished, resolve, reject, timeout, started, options, scope, runDir, stage, supervisorStart, shutdownReservationMs, budgetSlots: slots, budgetChildMs: childReservation };
     owned.set(child.pid, record);
     scope?.children.add(child);
     record.status.on("data", (chunk: Buffer) => handleStatus(record, chunk));
     record.status.on("error", () => { record.fault = new Error("GUARD status channel failed"); });
+    record.status.once("end", () => { record.statusEnded = true; if (record.exited) finish(record); });
     record.control.on("error", () => { record.fault = new Error("GUARD control channel failed"); });
     child.on("error", () => { record.fault = new Error("GUARD supervisor spawn failed"); });
+    child.once("exit", () => { record.exited = true; if (record.statusEnded) finish(record); });
     child.once("close", () => finish(record));
     options.signal?.addEventListener("abort", () => {
       requestShutdown(record);
