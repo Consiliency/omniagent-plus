@@ -7,6 +7,7 @@ import {
   sanitizeMetadataPath,
   sanitizeMetadataText,
   sanitizeWorkspacePath,
+  opaqueExportPath,
 } from "./redaction.js";
 import {
   agentSessionStateSchema,
@@ -15,6 +16,7 @@ import {
   runtimeIdSchema,
   turnStateSchema,
 } from "./schemas.js";
+import { worktreeLeaseReleaseSchema } from "./worktree.js";
 
 export const uiReadModelInterfaceFreezeGate = "IF-0-UI-12";
 
@@ -53,7 +55,7 @@ function metadataPathSchema(label: string) {
 function workspacePathSchema(label: string) {
   return z.string().transform((value, context) => {
     try {
-      return sanitizeWorkspacePath(value, label);
+      return opaqueExportPath(sanitizeWorkspacePath(value, label));
     } catch (error) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -220,6 +222,7 @@ export const uiWorktreeLeaseSummarySchema = z.object({
   acquiredAt: z.string().datetime({ offset: true }),
   renewedAt: z.string().datetime({ offset: true }),
   expiresAt: z.string().datetime({ offset: true }),
+  release: worktreeLeaseReleaseSchema.optional(),
 });
 
 export const uiHandoffSummarySchema = z.object({

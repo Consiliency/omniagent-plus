@@ -1,0 +1,320 @@
+{
+  "schema": "data-acceptance-candidate.v1",
+  "phase": "DATA",
+  "status": "accepted_implementation_pending_authorized_merge",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/31",
+  "base_sha": "ac6b08993ed333361ef9f3d0d5daf4d70137da88",
+  "source_binding": {
+    "packages/state-ledger/src/append-only-store.ts": "b8ab1dd4792c249cbb97cf668caa215fa2a9d4145ec385789b53b8cbd7036517",
+    "packages/state-ledger/src/ledger-snapshot.ts": "a64e4c730df8088daf6a4d196bb45ac3b619f62d0ea3b70cdbd4230d4771aa11",
+    "packages/state-ledger/src/filesystem-lock.ts": "7c80188d930d4b6f8e6a68240aff3a3b54164e111139f6baa1fa2f403c292950",
+    "packages/state-ledger/src/migrations.ts": "9872be61b43e8865ba29a58bfdde641354196f41b973f0b5968b84d51c810354",
+    "packages/state-ledger/src/replay.ts": "31e2c1ecda9ffb0f36deb7201c1d0b7ae13cdf646ed127dd58ad8248f92c0d62",
+    "packages/state-ledger/src/retention.ts": "4c17780521c23815d64a5e64ab3029507bd8f9eff212b06b2f1ba5363dc75ebd",
+    "packages/core-contracts/src/redaction.ts": "b77a9106b8c5c245d83775360a8cf501d1ea94a1f25845947b9c932a2f8dc95a",
+    "fixtures/content-policy/corpus.json": "01b57b105a1aff1b599db5cd6441edaf513ab833ebc8e1d79dd43cdbd79d2e57",
+    "plans/phase-plan-v2-DATA.md": "ce48e20332c7781430e7c04707790ed2394c9df32fdde332d2b836bbc7760034",
+    "packages/core-contracts/src/state-ledger.ts": "261bfcaf5fe9f4d915f68328d4ae0d7a965ed9bc3a395ed591ac10c13270e20b",
+    "packages/state-ledger/src/audit-ledger.ts": "7311d52eb9ef19ebcb8b82a2c66a24914b879e5f5a5d82a5d61abb630916de4b",
+    "packages/state-ledger/src/schema.ts": "b118cec2849cdd48c47b5652da2983287ce84fa4fd602e8fc3e09932b22aec14",
+    "packages/core-contracts/src/events.ts": "05c610af0efd1173d701002a7f7f2b4d8f411fe28c7ed161fc77d6b7eec9fc99",
+    "packages/state-ledger/src/coordination-channel.ts": "c97e23a43d62ea36fe22bff95a69b1444b183d1823a7dd030f9bf24ff1641c6a",
+    "packages/state-ledger/src/supabase-coordination-channel.ts": "5d5cb890e08cc61f1e791000e550bfdc715ce9ab9159a80b239024e882fd4963"
+  },
+  "local_verification": {
+    "targeted": {
+      "content_cli_initial": {
+        "files": 38,
+        "passed": 95
+      },
+      "fault_performance_snapshot": {
+        "files": 3,
+        "passed": 25
+      },
+      "concurrency_replay_migration": {
+        "files": 3,
+        "passed": 13
+      },
+      "snapshot_hardening": {
+        "files": 2,
+        "passed": 10
+      },
+      "integrated_repair_round": {
+        "command": "pnpm build; pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/governed-pipeline-adapter/src tests/guard/boundaries.test.ts",
+        "files": 52,
+        "passed": 190,
+        "failed": 0
+      },
+      "scanner_export_delta": {
+        "files": 3,
+        "passed": 8,
+        "failed": 0,
+        "command": "pnpm build; pnpm exec vitest run packages/core-contracts/src/redaction.test.ts packages/cli/src/output.test.ts packages/cli/src/health.test.ts; pnpm lint"
+      },
+      "manifest_capacity_crash_delta": {
+        "command": "pnpm exec vitest run packages/state-ledger/src/ledger-snapshot.test.ts packages/state-ledger/src/migrations.test.ts packages/state-ledger/src/data-fault.test.ts",
+        "files": 3,
+        "passed": 32,
+        "failed": 0
+      },
+      "content_scope_retention_durability_delta": {
+        "files": 47,
+        "passed": 185,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src tests/guard/boundaries.test.ts",
+        "scope": "candidate before final header-family corpus delta; full candidate suite pending"
+      },
+      "scope_and_capacity_reconciliation": {
+        "files": 47,
+        "passed": 194,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src tests/guard/boundaries.test.ts"
+      },
+      "workspace_tool_and_index_reconciliation": {
+        "files": 49,
+        "passed": 229,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/omnigent-transport/src/event-mapper.test.ts packages/omnigent-transport/src/history-mapper.test.ts tests/guard/boundaries.test.ts"
+      },
+      "inert_metadata_serialization_reconciliation": {
+        "files": 49,
+        "passed": 231,
+        "failed": 0,
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/omnigent-transport/src/event-mapper.test.ts packages/omnigent-transport/src/history-mapper.test.ts tests/guard/boundaries.test.ts"
+      },
+      "serialization_and_preparse_reconciliation": {
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/omnigent-transport/src/event-mapper.test.ts packages/omnigent-transport/src/history-mapper.test.ts tests/guard/boundaries.test.ts",
+        "files": 49,
+        "passed": 239,
+        "failed": 0,
+        "additional_final_test": {
+          "command": "pnpm exec vitest run packages/state-ledger/src/coordination-channel.test.ts",
+          "files": 1,
+          "passed": 7,
+          "failed": 0,
+          "note": "Adds one known-field getter/proxy case after the 239-test run; all seven coordination tests overlap the full root run."
+        }
+      },
+      "async_api_json_fidelity_reconciliation": {
+        "command": "pnpm exec vitest run packages/core-contracts/src packages/identity-isolation/src packages/state-ledger/src packages/cli/src packages/omnigent-transport/src/event-mapper.test.ts packages/omnigent-transport/src/history-mapper.test.ts tests/guard/boundaries.test.ts",
+        "files": 49,
+        "passed": 251,
+        "failed": 0,
+        "additional_final_test": {
+          "command": "pnpm exec vitest run packages/state-ledger/src/audit-ledger.test.ts",
+          "files": 1,
+          "passed": 15,
+          "failed": 0,
+          "note": "Extends one existing test after the wider run with numeric compaction byte preservation and runtime audit projection/reopen. Session helpers remain direct metadata boundaries."
+        }
+      },
+      "pending_newline_write_reconciliation": {
+        "command": "pnpm exec vitest run packages/state-ledger/src/ledger-snapshot.test.ts",
+        "files": 1,
+        "passed": 19,
+        "failed": 0,
+        "scope": "Actual production-path zero-progress injection, unchanged ledger/manifest, no success sync, closed handle, restored one-byte finalization and monotonic next append. Full root run also passes all remaining fault/concurrency/performance cases."
+      }
+    },
+    "typecheck": "passed on repaired working candidate",
+    "lint": "passed on repaired working candidate",
+    "full_gate": "Canonical hosted pnpm verify passed on the accepted implementation source70d5be0. Local root600 tests, build, lint and typechecks pass. The earlier local full command failed in disposable SQL process-custody setup; no local canonical full-gate success is claimed.",
+    "deterministic_root": {
+      "source": "Pending-newline byte-count repair candidate before final review commit",
+      "command": "pnpm test",
+      "passed": 600,
+      "skipped": 1,
+      "failed": 0,
+      "skip": "only explicitly opt-in live Omnigent case",
+      "runner_report_path": ".phase-loop/guard/1790719426687-411986-8e390477-5879-4e12-a65b-4275c8112e3d/tests.json",
+      "runner_report_sha256": "54c02a135cce275cc0ce80abf2ba301b2a10a52abfb0feacbb2c0e94b08b4a12"
+    }
+  },
+  "measurement": {
+    "topology": "single Linux host, local workspace filesystem, Node24.21.0 pnpm11.1.1; identical session workload; candidate run after writable-ancestor repair, without concurrent broad verification",
+    "initial_records": [
+      0,
+      100,
+      1000
+    ],
+    "appends": 30,
+    "baseline_ms": [
+      16.029224,
+      27.201366,
+      160.734173
+    ],
+    "candidate_ms": [
+      112.99248,
+      101.60056399999996,
+      66.81699899999967
+    ],
+    "candidate_append_snapshot_reads": [
+      0,
+      0,
+      0
+    ],
+    "candidate_append_index_rewrites": [
+      0,
+      0,
+      0
+    ],
+    "limit": "No speed threshold or universal durability claim; startup and compaction scan and checkpoint; fsync latency is filesystem dependent.",
+    "workload": "Baseline and candidate both seed 0/100/1000 session records through AuditLedger and time 30 appendSession calls with the same session fixture. No-rescan/index controls use a separate synthetic evidence-ref fixture; their timings are not compared to the baseline.",
+    "correctness_comparison": {
+      "complete_invalid_record_rejected": {
+        "baseline": false,
+        "candidate": true
+      },
+      "complete_invalid_record_preserved": {
+        "baseline": false,
+        "candidate": true
+      },
+      "stale_manifest_next_sequence": {
+        "baseline": 1,
+        "candidate": 3,
+        "expected": 3
+      },
+      "read_open_mutated_manifest": {
+        "baseline": true,
+        "candidate": false,
+        "candidate_mode": "explicit readOnly"
+      }
+    },
+    "source_sha": "279f3158568269458a23ceb61affa2cf5a1526f0"
+  },
+  "fault_matrix": {
+    "passed": [
+      "append_write",
+      "append_sync",
+      "manifest_write",
+      "manifest_sync",
+      "manifest_rename",
+      "manifest_parent_sync",
+      "compact_rename",
+      "index_write",
+      "recovery_write",
+      "recovery_sync",
+      "recovery_dir_sync",
+      "recovery_truncate",
+      "lock_link",
+      "lock_parent_sync"
+    ],
+    "construction_site_proof": "Each child arms actual production filesystem hooks and records the exact reached point before SIGKILL. A removed operation cannot satisfy its fault marker.",
+    "custody": "Uses existing GUARD process supervisor; physical power-loss and arbitrary foreign lock-inode replacement are outside the supported topology."
+  },
+  "criteria": {
+    "EC-DATA-1": "accepted implementation: finite shared retained-metadata corpus, direct schemas/rendering, evidence and opaque path exports; exact-source reviews and hosted verification passed",
+    "EC-DATA-2": "accepted implementation: initialized permanent SQLite ownership, historical sequence high-water, private recovery evidence, sync and atomic replacement; exact-source reviews and hosted verification passed",
+    "EC-DATA-3": "accepted implementation: bounded stable read-only snapshots, complete corruption preservation, scoped latest replay, locked retention closure; exact-source reviews and hosted verification passed",
+    "EC-DATA-4": "accepted implementation: zero rescan/index append controls, foreign cache invalidation, simultaneous process writers, compatible runtime request strings; exact-source reviews and hosted verification passed"
+  },
+  "review_reconciliation": [
+    {
+      "source_sha": "faa6196bb749e2171b3419ea47897355de7efd8d",
+      "review": "separate independent SL0/SL1 audit",
+      "verdict": "PARTIALLY AGREE",
+      "findings": [
+        "interior malformed JSON accepted by partial-literal suffix heuristic",
+        "malformed manifest raw SyntaxError may expose input",
+        "explicit foreign session route incorrectly admitted by matching task"
+      ],
+      "resolution": "Candidate repairs all three; whole-prefix grammar and UTF-8 controls, bounded manifest decode errors, explicit-session precedence regression. Independent final re-review pending."
+    },
+    {
+      "source_sha": "d234929308057d938555f09715919a2dc169a3f7",
+      "review": "separate independent full-phase audit",
+      "verdict": "PARTIALLY AGREE",
+      "findings": [
+        "direct ledger construction retains ordinary raw runtime content",
+        "missing acknowledged ledger is reported as successful empty state",
+        "warmed append can exceed its own reopen/compaction snapshot limit",
+        "colon-assignment corpus/documentation coverage incomplete",
+        "stale route dry-run mutation statement"
+      ],
+      "resolution": "Candidate requires known runtime fields already omitted at direct ledger boundary; validates missing-ledger/nonempty-manifest contradiction; enforces configurable maxSnapshotBytes before append; adds colon assignments to shared corpus and corrects docs. Final re-review pending."
+    },
+    {
+      "source_sha": "d234929308057d938555f09715919a2dc169a3f7",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-d234929.json",
+      "resolution": "Candidate covers inherited JWT/Google/GitLab/npm token and colon/underscore assignment/header families, credential paths and nested .recovery refs with shared corpus. Both degraded seats must rerun through normal authorization on a fresh immutable review clone."
+    },
+    {
+      "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
+      "review": "separate independent full-phase audit",
+      "verdict": "PARTIALLY AGREE",
+      "findings": [
+        "small positive capacity can fit a short explicit-ID record but not its manifest"
+      ],
+      "resolution": "Candidate validates serialized manifests before initialization/checkpoint writes and before append writes, including historical high-water digit growth; adds initial200-byte and exact-manifest-capacity reopen regression. All earlier findings resolved; final re-review pending."
+    },
+    {
+      "source_sha": "3225162f74eefe25d9129f5f1ebd8fc0f792662a",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-3225162.json",
+      "resolution": "Candidate repairs all blocking scanner/path/scope findings; retention and concurrent-directory publication controls added. Passing four-seat harness panel and separate review remain required."
+    },
+    {
+      "source_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-f86f5bf.json",
+      "resolution": "6693c9e repaired the prior eight finding groups. Completed manual Opus review also requires writable-ancestor sync and public tool-body compatibility repairs; included in next candidate with renewed review required."
+    },
+    {
+      "source_sha": "6693c9e44f4dcf02fc76415eac362a3884a7d0ce",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-6693c9e.json",
+      "resolution": "Candidate uses prototype-free index dictionaries and proves normalized prototype-name IDs through append/reopen/compaction and persisted indexes. Also repairs completed Opus B1/B2 with real permissions and transport regressions."
+    },
+    {
+      "source_sha": "279f3158568269458a23ceb61affa2cf5a1526f0",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-279f315.json",
+      "resolution": "Three harness seats, manual Opus/Gemini and independent reviewer agree. Fourth harness seat found callable serialization hooks bypassing metadata scanning; candidate rejects executable retained metadata and projects it without invocation, with shared and durable controls. Passing renewed reviews required."
+    },
+    {
+      "source_sha": "ef11d4109fa4026153cc8a4e72097532f39fb8c2",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-ef11d41.json",
+      "resolution": "All four harness seats, manual Opus/Gemini and independent reviewer completed. Candidate repairs array species, boxed coercion, symbol/hidden descriptors, pre-Zod guards and compaction callback validation. Gemini classification dissent separately adjudicated against unchanged selector, boolean continuation and replay scope. All standing reviews must rerun."
+    },
+    {
+      "source_sha": "9e7f25eb342bc81438759e7926bd757d8588c118",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-9e7f25e.json",
+      "resolution": "All four harness seats and independent review completed with blocking findings; successful manual Opus/Gemini agree, with prior failed attempts preserved as unusable. Candidate addresses async aliases, concrete Zod APIs, private compaction versions, array shadows, JSON fidelity, revoked proxies, depth accounting and guarded factory construction. Renewed exact-head reviews remain required."
+    },
+    {
+      "source_sha": "e31310be021597eaeb7480cad6dab6d981cb8de1",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-e31310b.json",
+      "resolution": "Four harness seats agree. Separate independent review confirms prior repairs but reproduces unchecked zero-byte newline finalization, also raised by Gemini. Candidate requires one reported byte before sync/success. Other Gemini objections are independently adjudicated: RPC retains the whole input, and unknown literal/current version is corruption. All standing exact-head reviews must pass before merge."
+    },
+    {
+      "source_sha": "70d5be0ab60278ab463e254a2bd79421d2efb61b",
+      "record": "plans/evidence/v2/reviews/DATA-implementation-70d5be0.json",
+      "resolution": "All four harness seats, both requested manual tool-enabled legs and separate independent reviewer agree on the exact implementation; hosted required checks/rehearsal and artifact bindings pass. Final acceptance-metadata review and current-head checks remain required before authorized merge."
+    }
+  ],
+  "remaining": [
+    "Final acceptance-metadata panel and independent review",
+    "Required checks on final PR head",
+    "Authorized merge and post-merge verification, tracked in GitHub and resolver handoff"
+  ],
+  "downstream": [
+    "COORD owns actual lease-release emission, fencing authority, coordination policy/RPC concurrency and CLI effect semantics.",
+    "WIRE owns real public stream/history labels and transport lifecycle.",
+    "INTEG owns production provider-to-ledger lifecycle composition.",
+    "PREP owns distribution and public independent package acceptance."
+  ],
+  "hosted_verification": {
+    "source_sha": "70d5be0ab60278ab463e254a2bd79421d2efb61b",
+    "ci_run_id": 36638185118,
+    "publish_rehearsal_run_id": 36638185129,
+    "required_check": "guard-required",
+    "conclusion": "success",
+    "actual_publish": "skipped",
+    "final_head": "Acceptance-only final PR head must pass required checks before merge; current receipts are authoritative in GitHub checks.",
+    "artifact_manifest_sha256": "ae66b1fcc06f704a604b2e103270013c816d76a34b7c00fe423ceb3b37f4992c"
+  },
+  "implementation_source_sha": "70d5be0ab60278ab463e254a2bd79421d2efb61b",
+  "accepted_at": "2026-09-29T22:24:24.830166+00:00",
+  "produced_if_gates": [
+    "IF-0-DATA-3a",
+    "IF-0-DATA-3b",
+    "IF-0-DATA-3c",
+    "IF-0-DATA-3d"
+  ]
+}

@@ -1,4 +1,5 @@
 export { AuditLedger } from "./audit-ledger.js";
+export { readLedgerSnapshot, LedgerReadError, type LedgerSnapshot, type LedgerSnapshotOptions } from "./ledger-snapshot.js";
 export {
   AppendOnlyStore,
   withFilesystemLock,

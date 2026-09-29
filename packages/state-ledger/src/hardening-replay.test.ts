@@ -81,7 +81,7 @@ describe("hardening replay", () => {
       createdAt: fixture.session.createdAt,
       updatedAt: fixture.session.updatedAt,
     });
-    await ledger.appendEvidenceRef(
+    await expect(ledger.appendEvidenceRef(
       {
         kind: "log",
         label: "unsafe evidence",
@@ -90,10 +90,9 @@ describe("hardening replay", () => {
       {
         sessionId: fixture.session.id,
       },
-    );
-
-    await expect(replayUiControlSnapshot(ledger)).rejects.toThrow(
+    )).rejects.toThrow(
       /environment dump/,
     );
+    expect((await replayUiControlSnapshot(ledger)).evidenceRefs).toEqual([]);
   });
 });

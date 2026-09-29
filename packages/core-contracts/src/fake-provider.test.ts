@@ -16,6 +16,24 @@ function readProviderFixture<T>(name: string): T {
 }
 
 describe("fake provider", () => {
+  it("drives supported lifecycle states and emits one close across concurrent/repeated calls", async () => {
+    const provider = new FakeAgentRuntimeProvider();
+    const session = await provider.createSession({ runtime: "omnigent", targetHarness: "codex", title: "lifecycle", idempotencyKey: "lifecycle" });
+    expect(session.state).toBe("idle");
+    const turn = await provider.sendTurn({ sessionId: session.id, message: "", idempotencyKey: "first" });
+    expect(turn.state).toBe("running");
+    expect((await provider.getSessionInfo(session.id)).state).toBe("turn_active");
+    expect(provider.completeTurn(session.id, turn.turnId).state).toBe("completed");
+    expect((await provider.getSessionInfo(session.id)).state).toBe("idle");
+    const active = await provider.sendTurn({ sessionId: session.id, message: "Bearer synthetic-token-123456", idempotencyKey: "second" });
+    await Promise.all([provider.closeSession(session.id), provider.closeSession(session.id), provider.closeSession(session.id)]);
+    await provider.closeSession(session.id);
+    expect((await provider.getSessionInfo(session.id)).state).toBe("closed");
+    const history = await provider.readHistory(session.id);
+    expect(history.events.filter((event) => event.type === "runtime.session.closed")).toHaveLength(1);
+    expect(history.events.filter((event) => event.turnId === active.turnId && event.type === "runtime.turn.cancelled")).toHaveLength(1);
+    await expect(provider.sendTurn({ sessionId: session.id, message: "late", idempotencyKey: "late" })).rejects.toMatchObject({ category: "state_conflict" });
+  });
   it("returns the same session for duplicate createSession idempotency keys", async () => {
     const fixture = readProviderFixture<{
       idempotencyKey: string;

@@ -1471,6 +1471,92 @@
       "task_summary": "Plan WORKTREE worktree leasing implementation lanes.",
       "type": "phase",
       "updated_at": "2026-06-30T19:16:48Z"
+    },
+    {
+      "acceptance_criteria_count": 4,
+      "created_at": "2026-09-29T15:27:05.908714+00:00",
+      "file": "plans/phase-plan-v2-DATA.md",
+      "handoff_ref": null,
+      "if_gates_produced": [
+        "IF-0-DATA-3a",
+        "IF-0-DATA-3b",
+        "IF-0-DATA-3c",
+        "IF-0-DATA-3d"
+      ],
+      "lanes": [
+        "SL-0",
+        "SL-1",
+        "SL-2",
+        "SL-3"
+      ],
+      "lifecycle": [
+        {
+          "at": "2026-09-29T19:52:32Z",
+          "by": "codex-execute-phase",
+          "metadata": {
+            "implementation_head": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+            "issue_inventory": [
+              "Consiliency/omniagent-plus#21",
+              "Consiliency/omniagent-plus#22"
+            ],
+            "produced_if_gates": [],
+            "run_id": "20260929-data-review-reconciliation",
+            "verification_status": "pending_final_candidate"
+          },
+          "transition": "executing"
+        },
+        {
+          "at": "2026-09-29T22:24:24Z",
+          "by": "codex-execute-phase",
+          "metadata": {
+            "acceptance_evidence": "plans/evidence/v2/DATA.json",
+            "implementation_head": "70d5be0ab60278ab463e254a2bd79421d2efb61b",
+            "issue_application": "On authorized PR merge via verified automatic closing references; not a claim that open issues are already closed.",
+            "issue_dispositions": [
+              {
+                "disposition": "closed",
+                "issue_id": "Consiliency/omniagent-plus#21",
+                "owner": "codex-execute-phase",
+                "phase": "DATA"
+              },
+              {
+                "disposition": "closed",
+                "issue_id": "Consiliency/omniagent-plus#22",
+                "owner": "codex-execute-phase",
+                "phase": "DATA"
+              }
+            ],
+            "issue_inventory": [
+              "Consiliency/omniagent-plus#21",
+              "Consiliency/omniagent-plus#22"
+            ],
+            "merge_status_at_recording": "authorized merge pending final metadata review and required checks",
+            "produced_if_gates": [
+              "IF-0-DATA-3a",
+              "IF-0-DATA-3b",
+              "IF-0-DATA-3c",
+              "IF-0-DATA-3d"
+            ],
+            "run_id": "20260929-data-closeout",
+            "verification_status": "passed_at_implementation_head"
+          },
+          "transition": "completed"
+        }
+      ],
+      "owner_skill": "codex-plan-phase",
+      "phase_alias": "DATA",
+      "reflection_ref": null,
+      "roadmap_ref": {
+        "file": "specs/phase-plans-v2.md",
+        "slug": "v2",
+        "status": "committed",
+        "type": "roadmap"
+      },
+      "slug": "v2-data",
+      "status": "completed",
+      "task_summary": "DATA implementation accepted by exact-source harness/manual/independent reviews and hosted gates; authorized merge follows final metadata admission.",
+      "type": "phase",
+      "updated_at": "2026-09-29T22:24:24Z"
     }
   ],
   "schema_version": 1

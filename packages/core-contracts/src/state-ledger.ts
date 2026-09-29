@@ -15,6 +15,9 @@ import {
 } from "./rate-limit.js";
 import {
   runtimeEvidenceRefSchema,
+  metadataSchemaCheck,
+  assertMetadataSafe,
+  sanitizeWorkspacePath,
   type RuntimeEvidenceRef,
 } from "./redaction.js";
 import { routeDecisionSchema, type RouteDecision } from "./route-decision.js";
@@ -169,8 +172,8 @@ export const omnigentCapabilitySnapshotSchema = z.object({
 const stateLedgerRecordBaseSchema = z.object({
   schema: z.literal("state_ledger_record.v0.1"),
   recordId: z.string().min(1),
-  sequence: z.number().int().positive(),
-  schemaVersion: z.number().int().positive(),
+  sequence: z.number().int().safe().positive(),
+  schemaVersion: z.number().int().safe().positive(),
   recordedAt: z.string().datetime({ offset: true }),
   sessionId: z.string().min(1).optional(),
   turnId: z.string().min(1).optional(),
@@ -187,7 +190,39 @@ function withPayload<TKind extends StateLedgerRecordKind, TPayload extends z.Zod
   });
 }
 
-export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
+function inertLedgerSchema<T extends z.ZodTypeAny>(schema: T): T {
+  const Base = schema.constructor as new (def: z.ZodTypeDef) => z.ZodType<z.output<T>, z.ZodTypeDef, z.input<T>>;
+  return new class extends Base {
+    private inertError(value: unknown, path: (string | number)[] = []) {
+      try { assertMetadataSafe(value, { inertOnly: true }); }
+      catch { return new z.ZodError<z.input<T>>([{ code: z.ZodIssueCode.custom, message: "Metadata contains non json metadata.", fatal: true, path }]); }
+      return undefined;
+    }
+
+    _parse(input: z.ParseInput): z.ParseReturnType<z.output<T>> {
+      const error = this.inertError(input.data, input.path);
+      if (error) { input.parent.common.issues.push(...error.issues); return z.INVALID; }
+      return schema._parse(input);
+    }
+
+    override safeParse(data: unknown, params?: Partial<z.ParseParams>): z.SafeParseReturnType<z.input<T>, z.output<T>> {
+      const error = this.inertError(data, params?.path);
+      return error ? { success: false, error } : super.safeParse(data, params);
+    }
+
+    override async safeParseAsync(data: unknown, params?: Partial<z.ParseParams>): Promise<z.SafeParseReturnType<z.input<T>, z.output<T>>> {
+      const error = this.inertError(data, params?.path);
+      return error ? { success: false, error } : super.safeParseAsync(data, params);
+    }
+
+    override "~validate"(data: unknown) {
+      const error = this.inertError(data);
+      return error ? { issues: error.issues } : schema["~validate"](data);
+    }
+  }(schema._def) as unknown as T;
+}
+
+export const stateLedgerRecordSchema = inertLedgerSchema(z.discriminatedUnion("kind", [
   withPayload("session", agentSessionSchema),
   withPayload("turn", turnHandleSchema),
   withPayload("runtime_event", runtimeEventSchema),
@@ -200,9 +235,30 @@ export const stateLedgerRecordSchema = z.discriminatedUnion("kind", [
   withPayload("approval_response", runtimeApprovalResponseSchema),
   withPayload("capability_snapshot", omnigentCapabilitySnapshotSchema),
   withPayload("evidence_ref", runtimeEvidenceRefSchema),
-]);
+]).superRefine((record, context) => {
+  let payload: unknown = record.payload;
+  if (record.kind === "runtime_event") {
+    const event = record.payload;
+    if (event.redaction !== "metadata_only"
+      || (event.type === "runtime.turn.started" && event.payload.message !== "[runtime content omitted]")
+      || (event.type === "runtime.text.delta" && event.payload.delta !== "[runtime content omitted]")) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Runtime content must be omitted before metadata-only ledger construction." });
+    }
+  }
+  const operationalPaths = record.kind === "session" ? [record.payload.repoRoot, record.payload.worktree?.path]
+    : record.kind === "worktree_lease" ? [record.payload.path] : [];
+  for (const path of operationalPaths) {
+    if (path === undefined) continue;
+    try { sanitizeWorkspacePath(path, "operational workspace path"); }
+    catch { context.addIssue({ code: z.ZodIssueCode.custom, message: "Operational workspace path contains unsafe metadata." }); }
+  }
+  if (record.kind === "session") payload = { ...record.payload, repoRoot: undefined,
+    worktree: record.payload.worktree === undefined ? undefined : { ...record.payload.worktree, path: undefined } };
+  if (record.kind === "worktree_lease") payload = { ...record.payload, path: undefined };
+  metadataSchemaCheck({ ...record, payload }, context);
+}));
 
-export const stateLedgerRecordArraySchema = z.array(stateLedgerRecordSchema);
+export const stateLedgerRecordArraySchema = inertLedgerSchema(z.array(stateLedgerRecordSchema));
 
 export type SessionLedgerRecord = StateLedgerRecord<"session", AgentSession>;
 export type TurnLedgerRecord = StateLedgerRecord<"turn", TurnHandle>;
@@ -264,6 +320,7 @@ export type StateLedgerEntry =
 export function createStateLedgerRecord(
   record: Omit<StateLedgerEntry, "schema">,
 ): StateLedgerEntry {
+  assertMetadataSafe(record, { inertOnly: true });
   return stateLedgerRecordSchema.parse({
     ...record,
     schema: "state_ledger_record.v0.1",

@@ -3,12 +3,14 @@ import { z } from "zod";
 import {
   CURRENT_STATE_LEDGER_SCHEMA_VERSION,
   ensureStateLedgerDirectories,
+  getStateLedgerPaths,
   nowIsoString,
   readJsonFile,
   storeManifestSchema,
   type StoreManifest,
   writeJsonAtomic,
 } from "./schema.js";
+import { LedgerReadError } from "./ledger-snapshot.js";
 
 const legacyStoreManifestSchema = storeManifestSchema
   .omit({ schema: true, recoveredTailTruncations: true, schemaVersion: true })
@@ -26,7 +28,7 @@ export interface MigrationResult {
   readonly steps: string[];
 }
 
-function createEmptyManifest(timestamp: string): StoreManifest {
+export function createEmptyManifest(timestamp: string): StoreManifest {
   return {
     schema: "state_ledger_store_manifest.v0.1",
     schemaVersion: CURRENT_STATE_LEDGER_SCHEMA_VERSION,
@@ -62,18 +64,24 @@ function migrateLegacyManifest(raw: unknown): MigrationResult {
 export async function readStoreManifest(
   rootDir: string,
 ): Promise<StoreManifest | undefined> {
-  const paths = await ensureStateLedgerDirectories(rootDir);
-  const raw = await readJsonFile<unknown>(paths.manifestPath);
+  const paths = getStateLedgerPaths(rootDir);
+  const raw = await readJsonFile<unknown>(paths.manifestPath).catch((error: unknown) => {
+    if (error instanceof SyntaxError) throw new LedgerReadError("ledger_corruption");
+    throw error;
+  });
   if (raw === undefined) {
     return undefined;
   }
+  if (raw !== null && typeof raw === "object" && "schemaVersion" in raw
+    && typeof raw.schemaVersion === "number" && raw.schemaVersion > CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
 
   const parsed = storeManifestSchema.safeParse(raw);
   if (parsed.success) {
+    if (parsed.data.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
     return parsed.data;
   }
-
-  return migrateLegacyManifest(raw).manifest;
+  try { return migrateLegacyManifest(raw).manifest; }
+  catch { throw new LedgerReadError("ledger_corruption"); }
 }
 
 export async function writeStoreManifest(
@@ -81,7 +89,9 @@ export async function writeStoreManifest(
   manifest: StoreManifest,
 ): Promise<void> {
   const paths = await ensureStateLedgerDirectories(rootDir);
-  await writeJsonAtomic(paths.manifestPath, manifest);
+  const parsed = storeManifestSchema.parse(manifest);
+  if (parsed.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
+  await writeJsonAtomic(paths.manifestPath, parsed);
 }
 
 export async function migrateStoreManifest(
@@ -89,7 +99,10 @@ export async function migrateStoreManifest(
 ): Promise<MigrationResult> {
   const timestamp = nowIsoString();
   const paths = await ensureStateLedgerDirectories(rootDir);
-  const raw = await readJsonFile<unknown>(paths.manifestPath);
+  const raw = await readJsonFile<unknown>(paths.manifestPath).catch((error: unknown) => {
+    if (error instanceof SyntaxError) throw new LedgerReadError("ledger_corruption");
+    throw error;
+  });
 
   if (raw === undefined) {
     const manifest = createEmptyManifest(timestamp);
@@ -105,7 +118,10 @@ export async function migrateStoreManifest(
   }
 
   const current = storeManifestSchema.safeParse(raw);
+  if (raw !== null && typeof raw === "object" && "schemaVersion" in raw
+    && typeof raw.schemaVersion === "number" && raw.schemaVersion > CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
   if (current.success) {
+    if (current.data.schemaVersion !== CURRENT_STATE_LEDGER_SCHEMA_VERSION) throw new LedgerReadError("unsupported_schema");
     return {
       created: false,
       migrated: false,
@@ -116,7 +132,9 @@ export async function migrateStoreManifest(
     };
   }
 
-  const migrated = migrateLegacyManifest(raw);
+  let migrated: MigrationResult;
+  try { migrated = migrateLegacyManifest(raw); }
+  catch { throw new LedgerReadError("ledger_corruption"); }
   await writeJsonAtomic(paths.manifestPath, migrated.manifest);
   return migrated;
 }

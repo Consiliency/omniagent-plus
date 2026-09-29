@@ -1,0 +1,99 @@
+{
+  "schema": "data-review-reconciliation.v1",
+  "source_sha": "9e7f25eb342bc81438759e7926bd757d8588c118",
+  "delta_base": "ef11d4109fa4026153cc8a4e72097532f39fb8c2",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "d294dbc86aacf792f6f5f14ebaf67213c987c398f6e7ae57c727fca63aee33a7"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "4492a0e4468d1dc730e2d4d108d170eeb023b31f7670d19ba3d5927843bac355"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "a62638ec105a735bd754761be4cb8385d29c19956116b6ea7758dc2b27890a51"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "6a29fdc3f2c0e9bc280129e4422f7da010bfba92bb754b3457b045d4bc9fbe56"
+      }
+    ]
+  },
+  "manual_gemini": {
+    "model": "Gemini 3.1 Pro (High)",
+    "status": "OK",
+    "usable": true,
+    "verdict": "AGREE",
+    "review_sha256": "18b07da9554bd63208a596ccea68a9a00fa002d2da04b296eab042383e0c5bf1",
+    "adapter": "manual tool-enabled subscription CLI"
+  },
+  "manual_opus": {
+    "model": "claude-opus-5-5",
+    "status": "OK",
+    "usable": true,
+    "verdict": "AGREE",
+    "review_sha256": "7a5debec2fecdbb542ae07f8c8bf778fda20a83df2fd6f884cc6659304bd7951",
+    "adapter": "manual subscription TUI, tools enabled"
+  },
+  "unusable_attempts": [
+    {
+      "leg": "gemini",
+      "attempt": "gemini",
+      "usable": false,
+      "reason": "empty review after headless read_file permission denial"
+    },
+    {
+      "leg": "gemini",
+      "attempt": "gemini-retry1",
+      "usable": false,
+      "reason": "empty review after headless read_file permission denial"
+    },
+    {
+      "leg": "opus",
+      "attempt": "opus",
+      "usable": false,
+      "reason": "claude_tui_stalled; partial prose has no verdict"
+    }
+  ],
+  "independent": {
+    "reviewer": "data_independent_design",
+    "verdict": "PARTIALLY AGREE",
+    "method": "Exact-source schema and redaction probes; actual offline Supabase SDK lazy serialization reproduced alias disclosure. Separate numeric-policy adjudication agrees with the repair design, not phase acceptance."
+  },
+  "findings": [
+    "Async input validation becomes stale while awaiting locks, manifest or inbox reads; RPC serialization retains caller aliases",
+    "Exported ledger schemas lose concrete Zod effects/array APIs",
+    "Compaction allows unsupported private schema versions",
+    "Array scanners call inert caller-owned some/forEach shadows",
+    "Nonfinite numbers, explicit undefined array entries and JSON.rawJSON values serialize differently from validated metadata"
+  ],
+  "resolution": "Next candidate rechecks append/local input after awaited work, validates full inbox immediately before serialization, detaches RPC payloads, subclasses concrete schema constructors, rejects unsupported compacted versions, uses trusted array traversal, and enforces retained JSON fidelity. New pending-operation and byte-preservation regressions cover the repairs; renewed exact-head review required.",
+  "suggestions_disposition": {
+    "audit_known_fields": "Document existing placeholder projection before schema/text validation, including known scalar fields; production composition remains INTEG-owned.",
+    "depth_boundary": "Skip array length in descriptor depth accounting; add depth64 empty-array compatibility control.",
+    "shared_graph_cost": "Document bounded-depth traversal and residual cost for shared-reference in-process graphs; no universal latency claim.",
+    "record_factory": "Guard before spreading raw input; zero-invocation regression.",
+    "callback_edits": "Trusted selection callbacks may edit records within enforced safety/version/sequence/ID/capacity invariants; no immutable-selector policy added.",
+    "revoked_proxies": "Classify proxies before Array.isArray and project as safe placeholders."
+  },
+  "decision": "not_accepted"
+}

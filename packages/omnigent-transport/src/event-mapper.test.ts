@@ -46,6 +46,20 @@ function fixtureToRawEvents(
 }
 
 describe("event mapper", () => {
+  it("preserves ordinary home-path and code tool traffic", () => {
+    const argumentsValue = { cwd: "/home/synthetic/project", source: "password: string" };
+    const output = "const token = await getToken();\n/home/synthetic/project/file.ts";
+    const base = { occurredAt: "2026-06-30T00:00:00.000Z", sessionId: "session-1", turnId: "turn-1", type: "response.output_item.done" as const };
+    const events = mapOmnigentEventSequence("session-1", [
+      { ...base, id: "call-item", item: { type: "function_call", call_id: "call-1", name: "read", arguments: argumentsValue } },
+      { ...base, id: "result-item", item: { type: "function_call_output", call_id: "call-1", output } },
+    ]);
+    expect(events).toEqual([
+      expect.objectContaining({ type: "runtime.tool.call", payload: { toolCall: expect.objectContaining({ argumentsRedacted: argumentsValue }) } }),
+      expect.objectContaining({ type: "runtime.tool.result", payload: { toolCallId: "call-1", outputRedacted: output } }),
+    ]);
+  });
+
   it("normalizes duplicate terminal markers down to one completed event", () => {
     const runtimeEvents = mapOmnigentEventSequence(
       "session-1",

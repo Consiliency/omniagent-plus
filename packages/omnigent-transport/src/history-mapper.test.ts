@@ -50,6 +50,20 @@ function historyFromFixture(fixtureName: string): OmnigentHistoryItem[] {
 }
 
 describe("history mapper", () => {
+  it("preserves ordinary home-path and code tool history", () => {
+    const argumentsValue = { cwd: "/home/synthetic/project", source: "password: string" };
+    const output = "const token = await getToken();\n/home/synthetic/project/file.ts";
+    const base = { created_at: 1_780_272_000, response_id: "response-tool", status: "completed" };
+    const mapped = mapOmnigentConversationHistory("session-history", [
+      { ...base, id: "call-item", type: "function_call", call_id: "call-1", name: "read", arguments: argumentsValue },
+      { ...base, id: "result-item", type: "function_call_output", call_id: "call-1", output },
+    ]);
+    expect(mapped.runtimeEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "runtime.tool.call", payload: { toolCall: expect.objectContaining({ argumentsRedacted: argumentsValue }) } }),
+      expect.objectContaining({ type: "runtime.tool.result", payload: { toolCallId: "call-1", outputRedacted: output } }),
+    ]));
+  });
+
   it("maps history items into replayable runtime events", () => {
     const mapped = mapOmnigentHistory(
       "session-history",

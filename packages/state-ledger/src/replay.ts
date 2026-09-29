@@ -1,7 +1,4 @@
-import { readFile } from "node:fs/promises";
-
 import {
-  stateLedgerRecordSchema,
   type AgentSession,
   type RouteDecision,
   type RuntimeApprovalRequest,
@@ -16,7 +13,8 @@ import {
 } from "@consiliency/runtime-provider";
 
 import type { AuditLedger } from "./audit-ledger.js";
-import { getStateLedgerPaths, isMissingFileError, nowIsoString } from "./schema.js";
+import { nowIsoString } from "./schema.js";
+import { completeSnapshotRecords, readLedgerSnapshot } from "./ledger-snapshot.js";
 
 export interface SessionReplay {
   readonly session?: AgentSession;
@@ -58,7 +56,7 @@ function latestEventByKey(
 ): Map<string, RuntimeEvent> {
   const latest = new Map<string, RuntimeEvent>();
 
-  for (const event of events.slice().sort((left, right) => left.sequence - right.sequence)) {
+  for (const event of events) {
     latest.set(keyFor(event), event);
   }
 
@@ -66,46 +64,7 @@ function latestEventByKey(
 }
 
 async function readStateLedgerRecords(rootDir: string): Promise<StateLedgerEntry[]> {
-  const paths = getStateLedgerPaths(rootDir);
-
-  try {
-    const raw = await readFile(paths.ledgerPath, "utf8");
-    if (raw.length === 0) {
-      return [];
-    }
-
-    const endedWithNewline = raw.endsWith("\n");
-    const lines = raw.split("\n");
-    if (endedWithNewline && lines.at(-1) === "") {
-      lines.pop();
-    }
-
-    const records: StateLedgerEntry[] = [];
-    for (let index = 0; index < lines.length; index += 1) {
-      const line = lines[index];
-      if (line === undefined || line.trim().length === 0) {
-        continue;
-      }
-
-      try {
-        records.push(
-          stateLedgerRecordSchema.parse(JSON.parse(line)) as StateLedgerEntry,
-        );
-      } catch (error) {
-        if (index === lines.length - 1) {
-          break;
-        }
-        throw error;
-      }
-    }
-
-    return records;
-  } catch (error) {
-    if (isMissingFileError(error)) {
-      return [];
-    }
-    throw error;
-  }
+  return completeSnapshotRecords(await readLedgerSnapshot(rootDir));
 }
 
 function sessionRootId(
@@ -188,7 +147,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
     ),
     (record) => {
       const turn = record.payload as TurnHandle;
-      return `${turn.sessionId}:${turn.turnId}`;
+      return JSON.stringify([turn.sessionId, turn.turnId]);
     },
   );
   const routeDecisionRecords = sortedRecords.filter(
@@ -206,7 +165,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
       (record): record is Extract<StateLedgerEntry, { kind: "approval_response" }> =>
         record.kind === "approval_response",
     ),
-    (record) => (record.payload as RuntimeApprovalResponse).approvalRequestId,
+    (record) => JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalResponse).approvalRequestId]),
   );
   const cooldownRecords = latestByKey(
     sortedRecords.filter(
@@ -246,7 +205,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   );
   const runtimeEventsByTurn = latestEventByKey(
     runtimeEvents.filter((event) => event.turnId !== undefined),
-    (event) => `${event.sessionId}:${event.turnId}`,
+    (event) => JSON.stringify([event.sessionId, event.turnId]),
   );
   const eventCountBySession = new Map<string, number>();
   for (const event of runtimeEvents) {
@@ -267,7 +226,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   }
   const approvalResponsesById = new Map(
     approvalResponseRecords.map((record) => [
-      (record.payload as RuntimeApprovalResponse).approvalRequestId,
+      JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalResponse).approvalRequestId]),
       record.payload as RuntimeApprovalResponse,
     ]),
   );
@@ -275,10 +234,10 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   const pendingApprovalCountBySession = new Map<string, number>();
   for (const record of approvalRequestRecords) {
     const request = record.payload as RuntimeApprovalRequest;
-    if (approvalResponsesById.has(request.approvalRequestId)) {
+    if (approvalResponsesById.has(JSON.stringify([request.sessionId, request.turnId, request.approvalRequestId]))) {
       continue;
     }
-    pendingApprovalByTurn.set(`${request.sessionId}:${request.turnId}`, request);
+    pendingApprovalByTurn.set(JSON.stringify([request.sessionId, request.turnId]), request);
     pendingApprovalCountBySession.set(
       request.sessionId,
       (pendingApprovalCountBySession.get(request.sessionId) ?? 0) + 1,
@@ -359,7 +318,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
     .map((record) => record.payload as TurnHandle)
     .filter((turn) => !terminalTurnStates.has(turn.state))
     .map((turn) => {
-      const lastEvent = runtimeEventsByTurn.get(`${turn.sessionId}:${turn.turnId}`);
+      const lastEvent = runtimeEventsByTurn.get(JSON.stringify([turn.sessionId, turn.turnId]));
       return {
         sessionId: turn.sessionId,
         turnId: turn.turnId,
@@ -370,7 +329,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
         lastEventType: lastEvent?.type,
         lastEventAt: lastEvent?.occurredAt,
         pendingApprovalRequestId: pendingApprovalByTurn.get(
-          `${turn.sessionId}:${turn.turnId}`,
+          JSON.stringify([turn.sessionId, turn.turnId]),
         )?.approvalRequestId,
       };
     })
@@ -408,7 +367,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   const approvals = approvalRequestRecords
     .map((record) => {
       const request = record.payload as RuntimeApprovalRequest;
-      const response = approvalResponsesById.get(request.approvalRequestId);
+      const response = approvalResponsesById.get(JSON.stringify([request.sessionId, request.turnId, request.approvalRequestId]));
       return {
         approvalRequestId: request.approvalRequestId,
         toolCallId: request.toolCallId,
@@ -454,6 +413,7 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
       acquiredAt: record.payload.acquiredAt,
       renewedAt: record.payload.renewedAt,
       expiresAt: record.payload.expiresAt,
+      release: record.payload.release,
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
   const handoffs = sessions
@@ -535,59 +495,42 @@ function buildUiControlSnapshot(records: StateLedgerEntry[]): UiControlSnapshot 
   });
 }
 
-export async function replaySessionHistory(
-  ledger: AuditLedger,
-  sessionId: string,
-): Promise<SessionHistory> {
-  const events = (await ledger.listRecords({
-    kind: "runtime_event",
-    sessionId,
-  }))
-    .map((record) => (record.payload as RuntimeEvent))
-    .sort((left, right) => left.sequence - right.sequence);
-
+function historyFromRecords(records: StateLedgerEntry[], sessionId: string): SessionHistory {
+  const events = records.filter((record) => record.kind === "runtime_event" && record.sessionId === sessionId)
+    .map((record) => record.payload as RuntimeEvent);
   return {
-    sessionId,
-    events,
-    nextCursor: events.length === 0 ? undefined : events.at(-1)!.sequence + 1,
+    sessionId, events,
+    nextCursor: events.length === 0 ? undefined : events.reduce((maximum, event) => Math.max(maximum, event.sequence), 0) + 1,
   };
 }
 
-export async function replayRouteDecisions(
-  ledger: AuditLedger,
-  taskId?: string,
-): Promise<RouteDecision[]> {
-  return (await ledger.listRecords({
-    kind: "route_decision",
-    taskId,
-  }))
-    .map((record) => record.payload as RouteDecision)
-    .sort((left, right) => left.taskId.localeCompare(right.taskId));
+export async function replaySessionHistory(ledger: AuditLedger, sessionId: string): Promise<SessionHistory> {
+  return historyFromRecords(await ledger.listRecords(), sessionId);
 }
 
-export async function replaySession(
-  ledger: AuditLedger,
-  sessionId: string,
-): Promise<SessionReplay> {
-  const records = await ledger.listSessionRecords(sessionId);
+export async function replayRouteDecisions(ledger: AuditLedger, taskId?: string): Promise<RouteDecision[]> {
+  return (await ledger.listRecords({ kind: "route_decision", taskId })).map((record) => record.payload as RouteDecision);
+}
 
+export async function replaySession(ledger: AuditLedger, sessionId: string): Promise<SessionReplay> {
+  const allRecords = await ledger.listRecords();
+  const records = allRecords.filter((record) => record.sessionId === sessionId);
+  const taskIds = new Set(records.flatMap((record) => record.taskId ? [record.taskId] : []));
   return {
-    session: records.find((record) => record.kind === "session")
-      ?.payload as AgentSession | undefined,
-    turns: records
-      .filter((record) => record.kind === "turn")
+    session: records.filter((record) => record.kind === "session").at(-1)?.payload as AgentSession | undefined,
+    turns: latestByKey(records.filter((record) => record.kind === "turn"), (record) => JSON.stringify([record.sessionId, record.turnId]))
       .map((record) => record.payload as TurnHandle),
-    history: await replaySessionHistory(ledger, sessionId),
-    routeDecisions: await replayRouteDecisions(ledger),
-    approvalRequests: records
-      .filter((record) => record.kind === "approval_request")
+    history: historyFromRecords(records, sessionId),
+    routeDecisions: allRecords.filter((record) => record.kind === "route_decision"
+      && (record.sessionId === sessionId || (record.sessionId === undefined && record.taskId !== undefined && taskIds.has(record.taskId))))
+      .map((record) => record.payload as RouteDecision),
+    approvalRequests: latestByKey(records.filter((record) => record.kind === "approval_request"),
+      (record) => JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalRequest).approvalRequestId]))
       .map((record) => record.payload as RuntimeApprovalRequest),
-    approvalResponses: records
-      .filter((record) => record.kind === "approval_response")
+    approvalResponses: latestByKey(records.filter((record) => record.kind === "approval_response"),
+      (record) => JSON.stringify([record.sessionId, record.turnId, (record.payload as RuntimeApprovalResponse).approvalRequestId]))
       .map((record) => record.payload as RuntimeApprovalResponse),
-    evidenceRefs: records
-      .filter((record) => record.kind === "evidence_ref")
-      .map((record) => record.payload as RuntimeEvidenceRef),
+    evidenceRefs: records.filter((record) => record.kind === "evidence_ref").map((record) => record.payload as RuntimeEvidenceRef),
   };
 }
 

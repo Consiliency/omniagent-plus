@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import {
   coordinationMessageSchema,
+  assertMetadataSafe,
   toContractTimestamp,
   type CoordinationMessage,
   type CoordinationMessageType,
@@ -116,7 +117,9 @@ export class LocalCoordinationChannel implements CoordinationChannel {
   }
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
+    assertMetadataSafe(message, { inertOnly: true });
     return withFilesystemLock(this.lockPath, async () => {
+      assertMetadataSafe(message, { inertOnly: true });
       const built = buildMessage(message);
       const state = await this.readState(built.created_at);
       state.messages.push(built);
@@ -130,7 +133,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
 
   async list(query: CoordinationMessageQuery = {}): Promise<readonly CoordinationMessage[]> {
     const state = await this.readState(nowIsoString());
-    return state.messages
+    return state.messages.map((message) => coordinationMessageSchema.parse(message))
       .filter((message) => query.type === undefined || message.type === query.type)
       .filter((message) => scopeMatches(message, query.scope))
       .sort((left, right) => left.created_at.localeCompare(right.created_at));
@@ -151,6 +154,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
     state: LocalCoordinationInboxState,
     now: string,
   ): Promise<void> {
+    assertMetadataSafe(state);
     await writeJsonAtomic(this.inboxPath, {
       ...state,
       updatedAt: now,

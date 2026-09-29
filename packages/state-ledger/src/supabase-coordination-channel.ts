@@ -6,7 +6,7 @@ import type {
   CoordinationMessageQuery,
   CoordinationMessageReceipt,
 } from "./coordination-channel.js";
-import type { CoordinationMessage } from "@consiliency/runtime-provider";
+import { assertMetadataSafe, projectMetadataExport, coordinationMessageSchema, type CoordinationMessage } from "@consiliency/runtime-provider";
 
 type RpcResult<T> = {
   readonly data: T | null;
@@ -40,10 +40,11 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
   }
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
+    assertMetadataSafe(message);
     return rpcOrThrow<CoordinationMessageReceipt>(
       this.client,
       "coordination_send_message",
-      { message },
+      { message: projectMetadataExport(message, { inertOnly: true }) },
     );
   }
 
@@ -53,7 +54,7 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
       "coordination_list_messages",
       { query },
     );
-    return response.messages;
+    return response.messages.map((message) => coordinationMessageSchema.parse(message));
   }
 }
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { opaqueExportPath, projectMetadataExport, metadataSchemaCheck } from "@consiliency/runtime-provider";
 
 import { cliErrorSchema, type CliErrorPayload } from "./errors.js";
 import {
@@ -10,7 +11,7 @@ import {
 const cliEnvelopeBaseSchema = z.object({
   schema: z.literal("omniagent_cli_envelope.v0.1"),
   command: z.string().min(1),
-  stateRoot: z.string().min(1),
+  stateRoot: z.string().min(1).transform(opaqueExportPath),
 });
 
 export const cliSuccessEnvelopeSchema = cliEnvelopeBaseSchema.extend({
@@ -26,7 +27,7 @@ export const cliErrorEnvelopeSchema = cliEnvelopeBaseSchema.extend({
 export const cliEnvelopeSchema = z.union([
   cliSuccessEnvelopeSchema,
   cliErrorEnvelopeSchema,
-]);
+]).superRefine(metadataSchemaCheck);
 
 export type CliEnvelope = z.infer<typeof cliEnvelopeSchema>;
 
@@ -35,13 +36,13 @@ export function createSuccessEnvelope(
   stateRoot: string,
   result: CliCommandResult,
 ): CliEnvelope {
-  return cliSuccessEnvelopeSchema.parse({
+  return cliSuccessEnvelopeSchema.parse(projectMetadataExport({
     schema: "omniagent_cli_envelope.v0.1",
     ok: true,
     command,
     stateRoot,
     result,
-  });
+  }));
 }
 
 export function createErrorEnvelope(
@@ -49,13 +50,13 @@ export function createErrorEnvelope(
   stateRoot: string,
   error: CliErrorPayload,
 ): CliEnvelope {
-  return cliErrorEnvelopeSchema.parse({
+  return cliErrorEnvelopeSchema.parse(projectMetadataExport({
     schema: "omniagent_cli_envelope.v0.1",
     ok: false,
     command,
     stateRoot,
     error,
-  });
+  }));
 }
 
 function sortKeys(record: Record<string, unknown>): string[] {
@@ -133,6 +134,7 @@ function renderValue(value: unknown, indent: number): string[] {
 }
 
 export function renderEnvelopeText(envelope: CliEnvelope): string {
+  envelope = cliEnvelopeSchema.parse(projectMetadataExport(envelope));
   const body = envelope.ok ? envelope.result : envelope.error;
   const bodyLabel = envelope.ok ? "Result" : "Error";
 
@@ -149,6 +151,7 @@ export function serializeEnvelope(
   envelope: CliEnvelope,
   json: boolean,
 ): string {
+  envelope = cliEnvelopeSchema.parse(projectMetadataExport(envelope));
   return json
     ? `${JSON.stringify(envelope, null, 2)}\n`
     : `${renderEnvelopeText(envelope)}\n`;

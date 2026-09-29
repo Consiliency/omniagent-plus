@@ -9,6 +9,8 @@ import {
   sanitizeMetadataText,
   sanitizeWorkspacePath,
   type RedactedText,
+  metadataSchemaCheck,
+  opaqueExportPath,
 } from "./redaction.js";
 import { worktreeLeaseRefSchema, type WorktreeLeaseRef } from "./worktree.js";
 
@@ -349,6 +351,29 @@ export const handoffPacketSchema = z.object({
       instructions: z.string().min(1).optional(),
     })
     .optional(),
+}).transform((packet, context) => {
+  try {
+    const workspace = packet.workspace === undefined ? undefined : {
+      ...packet.workspace,
+      repoRoot: packet.workspace.repoRoot === undefined ? undefined : opaqueExportPath(sanitizeWorkspacePath(packet.workspace.repoRoot, "workspace root")),
+      worktreePath: packet.workspace.worktreePath === undefined ? undefined : opaqueExportPath(sanitizeWorkspacePath(packet.workspace.worktreePath, "worktree path")),
+    };
+    const lease = packet.evidence.worktreeLease;
+    const projected = { ...packet, workspace, evidence: { ...packet.evidence,
+      worktreeLease: lease === undefined ? undefined : { ...lease,
+        path: lease.path === undefined ? undefined : opaqueExportPath(sanitizeWorkspacePath(lease.path, "lease path")) },
+    } };
+    metadataSchemaCheck(projected, context);
+    sanitizeMetadataText(packet.objective, "objective", 400);
+    if (packet.nextRecommendedAction !== undefined) sanitizeMetadataText(packet.nextRecommendedAction, "next action", 400);
+    for (const path of [...(packet.evidence.changedFiles ?? []), ...(packet.evidence.inspectedFiles ?? []),
+      ...(packet.evidence.diffSummary?.changedPaths ?? []), ...(packet.evidence.diffs ?? []).map((item) => item.path),
+      ...(packet.evidence.logs ?? []).map((item) => item.path)]) sanitizeMetadataPath(path);
+    return projected;
+  } catch (error) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: error instanceof Error ? error.message : "Invalid handoff metadata." });
+    return z.NEVER;
+  }
 });
 
 function normalizeStringList(

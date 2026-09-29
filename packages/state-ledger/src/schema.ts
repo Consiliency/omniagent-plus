@@ -1,7 +1,10 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
+import { access, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
 import { z } from "zod";
+import type { StateLedgerEntry } from "@consiliency/runtime-provider";
 
 export const CURRENT_STATE_LEDGER_SCHEMA_VERSION = 1;
 export const DEFAULT_MAX_PAYLOAD_BYTES = 16 * 1024;
@@ -24,12 +27,12 @@ export interface StateLedgerPaths {
 
 export const storeManifestSchema = z.object({
   schema: z.literal("state_ledger_store_manifest.v0.1"),
-  schemaVersion: z.number().int().positive(),
-  recordCount: z.number().int().nonnegative(),
-  lastSequence: z.number().int().nonnegative(),
+  schemaVersion: z.number().int().safe().positive(),
+  recordCount: z.number().int().safe().nonnegative(),
+  lastSequence: z.number().int().safe().nonnegative(),
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
-  recoveredTailTruncations: z.number().int().nonnegative(),
+  recoveredTailTruncations: z.number().int().safe().nonnegative(),
 });
 export type StoreManifest = z.infer<typeof storeManifestSchema>;
 
@@ -68,6 +71,25 @@ export function payloadByteLength(value: unknown): number {
   return Buffer.byteLength(JSON.stringify(value), "utf8");
 }
 
+export function normalizeLedgerScope(record: StateLedgerEntry): StateLedgerEntry {
+  let sessionId: string | undefined;
+  let turnId: string | undefined;
+  let taskId: string | undefined;
+  switch (record.kind) {
+    case "session": sessionId = record.payload.id; break;
+    case "turn":
+    case "approval_request":
+    case "runtime_event": sessionId = record.payload.sessionId; turnId = record.payload.turnId; break;
+    case "worktree_lease": sessionId = record.payload.holder.sessionId; turnId = record.payload.holder.turnId; break;
+    case "limit_classification": sessionId = record.payload.sessionId; break;
+    case "route_decision": taskId = record.payload.taskId; break;
+  }
+  for (const [envelope, payload] of [[record.sessionId, sessionId], [record.turnId, turnId], [record.taskId, taskId]]) {
+    if (envelope !== undefined && payload !== undefined && envelope !== payload) throw new Error("Ledger envelope scope conflicts with payload scope.");
+  }
+  return { ...record, sessionId: record.sessionId ?? sessionId, turnId: record.turnId ?? turnId, taskId: record.taskId ?? taskId };
+}
+
 export function assertBoundedPayload(
   value: unknown,
   maxBytes = DEFAULT_MAX_PAYLOAD_BYTES,
@@ -82,7 +104,20 @@ export function assertBoundedPayload(
 }
 
 export async function ensureParentDirectory(path: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
+  const directory = resolve(dirname(path));
+  await mkdir(directory, { recursive: true });
+  let current = directory;
+  while (true) {
+    try { await access(current, constants.W_OK); }
+    catch (error) {
+      if (error instanceof Error && "code" in error && (error.code === "EACCES" || error.code === "EROFS")) break;
+      throw error;
+    }
+    await syncDirectory(current);
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
 }
 
 export async function ensureStateLedgerDirectories(
@@ -90,10 +125,10 @@ export async function ensureStateLedgerDirectories(
 ): Promise<StateLedgerPaths> {
   const paths = getStateLedgerPaths(rootDir);
   await Promise.all([
-    mkdir(paths.rootDir, { recursive: true }),
-    mkdir(paths.indexesDir, { recursive: true }),
-    mkdir(paths.locksDir, { recursive: true }),
-    mkdir(paths.coordinationDir, { recursive: true }),
+    ensureParentDirectory(join(paths.rootDir, ".entry")),
+    ensureParentDirectory(join(paths.indexesDir, ".entry")),
+    ensureParentDirectory(join(paths.locksDir, ".entry")),
+    ensureParentDirectory(join(paths.coordinationDir, ".entry")),
   ]);
   return paths;
 }
@@ -116,10 +151,26 @@ export async function writeJsonAtomic(
   path: string,
   value: unknown,
 ): Promise<void> {
+  await writeFileAtomic(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+export async function syncDirectory(path: string): Promise<void> {
+  const handle = await open(path, "r");
+  try { await handle.sync(); } finally { await handle.close(); }
+}
+
+export async function writeFileAtomic(path: string, value: string): Promise<void> {
   await ensureParentDirectory(path);
-  const tempPath = `${path}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  await rename(tempPath, path);
+  const tempPath = `${path}.${randomUUID()}.tmp`;
+  const handle = await open(tempPath, "wx", 0o600);
+  try {
+    try { await handle.writeFile(value, "utf8"); await handle.sync(); }
+    finally { await handle.close(); }
+    await rename(tempPath, path);
+    await syncDirectory(dirname(path));
+  } finally {
+    await unlink(tempPath).catch((error: unknown) => { if (!isMissingFileError(error)) throw error; });
+  }
 }
 
 export function isMissingFileError(error: unknown): boolean {

@@ -1,0 +1,63 @@
+{
+  "schema": "data-review-reconciliation.v1",
+  "source_sha": "6693c9e44f4dcf02fc76415eac362a3884a7d0ce",
+  "delta_base": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "bb81c62730525b08a1971171b09973656fb46c971cbd7ed6f8995ca5d85e9af4"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "8241c36f3f042a96be3967181c23dc5a73c723faf9f0b8c19da32bb1e985cbbd"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "a6fa2ae58cd7f49fb315c4b7d4c741a6c2c78aaaee0e53cc98df146af5a04fde"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "df0b97a2b4d8525068876cca74aff66b9c3b38903c63e0248f498b7e6ef9e746"
+      }
+    ]
+  },
+  "manual_gemini": {
+    "model": "Gemini 3.1 Pro (High)",
+    "status": "OK",
+    "verdict": "AGREE",
+    "review_sha256": "9af62b467457f97cace684d7a7d849f7b16ea74e04ad913ffa75f4580bd5107a"
+  },
+  "independent": {
+    "reviewer": "data_independent_design",
+    "verdict": "AGREE",
+    "method": "Exact committed source inspection, scope probes and source-binding verification; not a waiver of later panel/Opus findings."
+  },
+  "manual_opus": {
+    "status": "not_run_on_this_delta",
+    "standing_verdict": "PARTIALLY AGREE",
+    "reviewed_sha": "f86f5bf08cf9cfb6e01aa16bcea4d7452b58adbe",
+    "record": "plans/evidence/v2/reviews/DATA-implementation-f86f5bf.json"
+  },
+  "findings": [
+    "Normalized valid constructor/__proto__/toString session/task IDs collide with inherited index dictionary properties"
+  ],
+  "resolution": "Next candidate uses prototype-free index dictionaries with generic append, reopen, compaction and persisted-index regression controls, alongside the completed Opus B1/B2 repairs.",
+  "decision": "not_accepted"
+}

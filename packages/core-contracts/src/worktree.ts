@@ -1,4 +1,17 @@
 import { z } from "zod";
+import { metadataSchemaCheck, sanitizeMetadataText } from "./redaction.js";
+
+export interface WorktreeLeaseRelease {
+  readonly cause: "holder_release" | "reconciliation" | "recovery";
+  readonly actor: string;
+  readonly releasedAt: string;
+}
+
+export const worktreeLeaseReleaseSchema = z.object({
+  cause: z.enum(["holder_release", "reconciliation", "recovery"]),
+  actor: z.string().min(1).refine((value) => Buffer.byteLength(value, "utf8") <= 280, "Release actor exceeds metadata limit."),
+  releasedAt: z.string().datetime({ offset: true }),
+}).superRefine(metadataSchemaCheck);
 
 export const worktreeLeaseModes = [
   "exclusive_write",
@@ -43,6 +56,7 @@ export interface WorktreeLease {
   readonly renewedAt: string;
   readonly expiresAt: string;
   readonly dirtyState: "clean" | "dirty" | "unknown";
+  readonly release?: WorktreeLeaseRelease;
 }
 
 export const worktreeLeaseRequestSchema = z.object({
@@ -81,4 +95,17 @@ export const worktreeLeaseSchema = z.object({
   renewedAt: z.string().datetime({ offset: true }),
   expiresAt: z.string().datetime({ offset: true }),
   dirtyState: z.enum(["clean", "dirty", "unknown"]),
+  release: worktreeLeaseReleaseSchema.optional(),
+}).superRefine((lease, context) => {
+  if (lease.release !== undefined && (lease.expiresAt !== lease.release.releasedAt
+    || lease.renewedAt !== lease.release.releasedAt || Date.parse(lease.release.releasedAt) < Date.parse(lease.acquiredAt))) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Released lease timestamps must agree with provenance." });
+  }
 });
+
+export function createWorktreeLeaseRelease(lease: WorktreeLease, release: WorktreeLeaseRelease): WorktreeLease {
+  return worktreeLeaseSchema.parse({ ...lease,
+    renewedAt: release.releasedAt, expiresAt: release.releasedAt,
+    release: { ...release, actor: sanitizeMetadataText(release.actor, "release actor") },
+  });
+}

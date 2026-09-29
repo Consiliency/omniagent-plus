@@ -53,7 +53,7 @@
           "redaction": "content_redacted",
           "reason": "command_output_excerpt",
           "content": "Quoted evidence only: BOOTCORE verification completed cleanly.",
-          "byteLength": 60,
+          "byteLength": 62,
           "truncated": false
         }
       }
@@ -86,7 +86,7 @@
           "redaction": "content_redacted",
           "reason": "prior_agent_summary_excerpt",
           "content": "Quoted evidence only: logical close stays provider-owned.",
-          "byteLength": 56,
+          "byteLength": 57,
           "truncated": false
         }
       }

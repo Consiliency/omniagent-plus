@@ -1,0 +1,205 @@
+{
+  "allowed": [
+    "Sketchbook indexing is ordinary metadata.",
+    "Token bucket limits are documented.",
+    "{\"choices\":[\"first\",\"second\"]}",
+    "{\"messages\":[\"safe notes\"]}",
+    {
+      "nested": {
+        "notes": [
+          "safe lookalike",
+          "src/index.ts"
+        ]
+      }
+    },
+    "JWT verification is documented; no token value here.",
+    "docs/npmrc-example.md",
+    "Service token rotation policy is ordinary metadata.",
+    {
+      "password": {
+        "schema": "redacted_config_value.v0.1",
+        "value": "[redacted]",
+        "reason": "synthetic_fixture"
+      }
+    },
+    "NPM_PUBLISH_DRY_RUN=1",
+    "npm_config_registry",
+    "npm_package_version",
+    {
+      "maxTokens": 100,
+      "tokenCount": 2,
+      "autoRefreshToken": false,
+      "fencingToken": "synthetic-fence"
+    }
+  ],
+  "rejected": [
+    "password: synthetic-only-value",
+    "api_key: synthetic-only-value",
+    {
+      "nested": {
+        "notes": [
+          "Bearer synthetic-token-123456"
+        ]
+      }
+    },
+    {
+      "nested": {
+        "password": "synthetic-private-value"
+      }
+    },
+    {
+      "environment": {
+        "PATH": "/bin"
+      }
+    },
+    "-----BEGIN PRIVATE KEY-----",
+    "https://synthetic:synthetic-pass@example.invalid/path",
+    "{\"token\":\"synthetic-private-value\"}",
+    {
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "synthetic provider payload"
+          }
+        }
+      ]
+    },
+    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aGV0aWMifQ.c3ludGhldGljU2lnbmF0dXJl",
+    "OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY=synthetic-only-value",
+    "set MY_SERVICE_TOKEN=synthetic-only-value before running",
+    "set ANTHROPIC_API_KEY=synthetic-only-value before running",
+    "client_secret=synthetic-only-value",
+    "secret_key=synthetic-only-value",
+    "passwd=synthetic-only-value",
+    "X-Api-Key: synthetic-only-value",
+    "Cookie: session=synthetic-only-value",
+    "AKIAAAAAAAAAAAAAAAAA",
+    "AIzaSyntheticOnlyKeyValue1234567890",
+    "glpat-syntheticOnlyValue123456",
+    "npm_syntheticOnlyValue123456",
+    {
+      "nested": {
+        "client_secret": "synthetic-only-value"
+      }
+    },
+    {
+      "nested": {
+        "SERVICE_ROLE_KEY": "synthetic-only-value"
+      }
+    },
+    {
+      "aws_secret_access_key": "synthetic-only-private-value"
+    },
+    {
+      "password": [
+        "synthetic-private-value"
+      ]
+    },
+    {
+      "password": {
+        "value": "synthetic-private-value"
+      }
+    },
+    {
+      "token": 123
+    },
+    {
+      "X-Api-Key": "synthetic-private-value"
+    },
+    {
+      "nested": {
+        "path": "state/.recovery/marker.tail"
+      }
+    },
+    "Read .recovery/marker.tail",
+    "{\"ref\":\".recovery/marker.tail\"}",
+    {
+      "password": {
+        "schema": "redacted_config_value.v0.1",
+        "value": "[redacted]",
+        "reason": "safe",
+        "extra": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "X-Auth-Token": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "Private-Token": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "Proxy-Authorization": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "Set-Cookie": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "client-secret": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "accessToken": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "refreshToken": "synthetic-private-value"
+      }
+    },
+    {
+      "headers": {
+        "privateKey": "synthetic-private-value"
+      }
+    },
+    {
+      "googleApiKey": "synthetic-private-value"
+    },
+    {
+      "awsSecretAccessKey": "synthetic-private-value"
+    },
+    {
+      "secretAccessKey": "synthetic-private-value"
+    },
+    {
+      "credentials": {
+        "value": "synthetic-private-value"
+      }
+    },
+    {
+      "state/.recovery/marker.tail": "saved"
+    },
+    "{\"\\u002erecovery/marker.tail\":\"artifact\"}",
+    "\"state/\\u002erecovery/marker.tail\""
+  ],
+  "rejectedExportPaths": [
+    "/home/synthetic/.config/tool",
+    "../outside.txt",
+    "a/../outside.txt",
+    "C:\\Users\\synthetic\\tool",
+    ".recovery/private.tail",
+    "state/.recovery/marker.tail",
+    ".npmrc",
+    ".netrc",
+    ".git-credentials",
+    ".kube/config",
+    "id_ecdsa",
+    ".docker/config.json",
+    "keystore.jks",
+    "cert.pfx"
+  ],
+  "allowedEvidencePaths": [
+    "src/index.ts",
+    "path:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ]
+}

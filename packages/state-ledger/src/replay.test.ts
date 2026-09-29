@@ -5,11 +5,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { buildHandoffPacket } from "@consiliency/runtime-provider";
+import { buildHandoffPacket, createWorktreeLeaseRelease, projectMetadataExport } from "@consiliency/runtime-provider";
 
 import { AuditLedger } from "./audit-ledger.js";
 import {
   replayRouteDecisions,
+  replaySession,
   replaySessionHistory,
   replayUiControlSnapshot,
   replayUiControlSnapshotFromStateRoot,
@@ -294,6 +295,57 @@ async function seedUiLedger(rootDir: string): Promise<AuditLedger> {
 }
 
 describe("replay", () => {
+  it("keeps the latest release authoritative with recovery attribution", async () => {
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-release-replay-")) });
+    const lease = { id: "lease", fencingToken: "fence", repoId: "repo", path: "/home/synthetic/worktree", branchName: "feature",
+      mode: "exclusive_write" as const, holder: { processId: 1, host: "test" }, acquiredAt: "2026-06-30T00:00:00Z",
+      renewedAt: "2026-06-30T00:00:00Z", expiresAt: "2026-06-30T02:00:00Z", dirtyState: "clean" as const };
+    await ledger.appendWorktreeLease(lease);
+    const release = createWorktreeLeaseRelease(lease, { cause: "recovery", actor: "test-operator", releasedAt: "2026-06-30T01:00:00Z" });
+    await ledger.appendWorktreeLease(release);
+    const snapshot = await replayUiControlSnapshot(ledger);
+    expect(snapshot.worktreeLeases).toHaveLength(1);
+    expect(snapshot.worktreeLeases[0]?.expiresAt).toBe(release.expiresAt);
+    expect(snapshot.worktreeLeases[0]?.release?.cause).toBe("recovery");
+    expect(JSON.stringify(snapshot)).not.toContain("/home/synthetic");
+  });
+  it("selects latest scoped states from one snapshot in ledger order", async () => {
+    const ledger = await AuditLedger.open({ rootDir: await mkdtemp(join(tmpdir(), "data-scoped-replay-")) });
+    const session = { id: "scoped", runtime: "omnigent" as const, targetHarness: "codex" as const,
+      title: "old", state: "idle" as const, createdAt: "2026-06-30T00:00:00Z", updatedAt: "2026-06-30T00:00:00Z" };
+    await ledger.appendSession(session);
+    await ledger.appendSession({ ...session, title: "latest", state: "closed" });
+    const turn = { sessionId: session.id, turnId: "turn", idempotencyKey: "turn", state: "running" as const,
+      createdAt: session.createdAt, updatedAt: session.updatedAt };
+    await ledger.appendTurn(turn);
+    await ledger.appendTurn({ ...turn, state: "completed" });
+    for (const [index, sequence] of [10, 1].entries()) {
+      await ledger.appendRuntimeEvent({ schema: "runtime_event.v0.1", eventId: `event-${index}`,
+        sequence, sessionId: session.id, turnId: `turn-${index}`, occurredAt: `2026-06-30T00:00:0${index}Z`,
+        type: "runtime.turn.started", payload: { message: `message-${index}`, state: "running" },
+        redaction: "metadata_only", terminal: false });
+    }
+    const decision = { schema: "route_decision.v0.1" as const, taskId: "z-scoped", selectedProvider: "openai" as const,
+      selectedHarness: "codex" as const, fallbackUsed: false, capabilityFit: 1, providerHealth: 1,
+      currentCapacity: 1, contextPortability: "high" as const, routeReason: "capability_fit" as const, silentDowngrade: false as const };
+    await ledger.store.appendRecord({ kind: "route_decision", sessionId: session.id, taskId: decision.taskId, payload: decision });
+    await ledger.store.appendRecord({ kind: "route_decision", sessionId: "foreign-session", taskId: decision.taskId,
+      payload: { ...decision, selectedProvider: "anthropic", selectedHarness: "claude" } });
+    await ledger.appendRouteDecision({ ...decision, taskId: "a-other" });
+    let snapshots = 0;
+    const list = ledger.listRecords.bind(ledger);
+    ledger.listRecords = async (...args) => { snapshots += 1; return list(...args); };
+    const result = await replaySession(ledger, session.id);
+    expect(snapshots).toBe(1);
+    expect(result.session?.title).toBe("latest");
+    expect(result.turns.map((item) => item.state)).toEqual(["completed"]);
+    expect(result.history.events.map((event) => event.eventId)).toEqual(["event-0", "event-1"]);
+    expect(result.routeDecisions.map((route) => route.taskId)).toEqual(["z-scoped"]);
+    expect(result.routeDecisions[0]?.selectedProvider).toBe("openai");
+    expect((await replayRouteDecisions(ledger)).map((route) => route.taskId)).toEqual(["z-scoped", "z-scoped", "a-other"]);
+    expect((await replayUiControlSnapshot(ledger)).sessions[0]?.lastEventType).toBe("runtime.turn.started");
+    expect((await replayUiControlSnapshot(ledger)).sessions[0]?.lastEventAt).toBe("2026-06-30T00:00:01Z");
+  });
   it("replays route decisions and runtime history without live Omnigent", async () => {
     const ledger = await AuditLedger.open({
       rootDir: await mkdtemp(join(tmpdir(), "state-ledger-replay-")),
@@ -372,7 +424,7 @@ describe("replay", () => {
     const fixture = readFixture<Record<string, unknown>>("control-snapshot.json");
 
     expect(snapshot).toEqual(readOnlySnapshot);
-    expect(snapshot).toMatchObject(fixture);
+    expect(snapshot).toMatchObject(projectMetadataExport(fixture) as object);
     expect(snapshot.handoffs[0]?.packetId).toBe("packet-1");
     expect(snapshot.activeTurns[0]?.pendingApprovalRequestId).toBe("approval-1");
   });
@@ -391,7 +443,7 @@ describe("replay", () => {
       createdAt: "2026-06-30T00:00:00.000Z",
       updatedAt: "2026-06-30T00:00:00.000Z",
     });
-    await ledger.appendEvidenceRef(
+    await expect(ledger.appendEvidenceRef(
       {
         kind: "log",
         label: "unsafe evidence",
@@ -400,8 +452,6 @@ describe("replay", () => {
       {
         sessionId: "session-secret",
       },
-    );
-
-    await expect(replayUiControlSnapshot(ledger)).rejects.toThrow(/environment dump/);
+    )).rejects.toThrow(/environment dump/);
   });
 });

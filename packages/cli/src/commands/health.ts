@@ -1,4 +1,4 @@
-import { getStateLedgerPaths, readJsonFile } from "@omniagent-plus/state-ledger";
+import { getStateLedgerPaths, readStoreManifest } from "@omniagent-plus/state-ledger";
 
 import type { ParsedCliRequest } from "../args.js";
 import { healthResultSchema, type CliContext } from "../types.js";
@@ -8,7 +8,7 @@ export async function runHealthCommand(
   context: CliContext,
 ) {
   const paths = getStateLedgerPaths(request.stateRoot);
-  const manifest = await readJsonFile(paths.manifestPath);
+  const manifest = await readStoreManifest(request.stateRoot);
 
   return healthResultSchema.parse({
     schema: "cli.health.result.v0.1",
