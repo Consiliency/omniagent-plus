@@ -1,0 +1,66 @@
+{
+  "schema": "guard-custody-plan-panel.v1",
+  "reviewed_at": "2026-09-29T05:11:14Z",
+  "candidate_head": "ac7633c8f0831d2bbfe45cdbc12cf27584f42da5",
+  "working_tree_candidate": false,
+  "prior_accepted_plan_sha256": "b84275af012ff0294fcd36a8ebdd9e3bc814ce442afc01d811ef32c879fe0b05",
+  "input_sha256": {
+    "plans/phase-plan-v2-GUARD.md": "7d298b9e0860d1435d101d1aaf744fb36da83543c16d6a7b35828f1c6026bcea",
+    "tests/helpers/guard-process.ts": "d7f67d4d1b27c05ca8095094d71b01c5184df69e915fb00852e991a6fe9e79a4",
+    "plans/evidence/v2/reviews/GUARD-immediate-orphan-probe.json": "6849e778cd9ef03340f69ead3db62e6bbf06667ef6c50b585ad1c6468823ecd8"
+  },
+  "scope": "Process Custody Amendment only; new SL-0 ownership is tests/helpers/guard-supervisor.py, with existing owned callers, workflows, tests and SL-1 command docs. Product runtime, migrations, package versions and release dispatch remain outside scope.",
+  "platform_decision": "approved_linux_only_guard_verification_runtime_portability_unchanged",
+  "reviewers": [
+    {
+      "seat": "opus",
+      "route": "manual_tool_enabled_claude_tui",
+      "model": "claude-opus-5-5",
+      "verdict": "AGREE",
+      "scope": "plan_only",
+      "p0_p2_open": 0
+    },
+    {
+      "seat": "gemini",
+      "route": "manual_tool_enabled_antigravity_tui",
+      "model": "gemini-3.1-pro-high",
+      "verdict": "AGREE",
+      "scope": "plan_only",
+      "p0_p2_open": 0
+    },
+    {
+      "seat": "sol",
+      "route": "chatgpt_login_codex_cli_read_only",
+      "model": "gpt-6-sol",
+      "verdict": "AGREE",
+      "scope": "plan_only",
+      "p0_p2_open": 0
+    },
+    {
+      "seat": "astra",
+      "route": "native_read_only_agent",
+      "model": "gpt-6-astra",
+      "verdict": "AGREE",
+      "scope": "plan_only",
+      "p0_p2_open": 0
+    }
+  ],
+  "reconciled_findings": [
+    "Reset payload signal state and fix foreground-group routing before exec.",
+    "Bind each admission and terminal receipt to a command and static adversarial control; reject unbalanced journals.",
+    "Preserve explicit caller environment maps while keeping scrubbed defaults.",
+    "Allow bounded natural exit of adopted build-tool children; block untagged signaled rescue.",
+    "Represent unreaped adopted children as unresolved and fail custody proof without an unbounded wait."
+  ],
+  "plan_amendment_accepted": true,
+  "new_ownership_approved_for_implementation": true,
+  "implementation_accepted": false,
+  "merge_approved": false,
+  "open_gates": [
+    "supervisor_implementation_and_adversarial_controls",
+    "local_full_verification_and_hosted_ci_rehearsal",
+    "fresh_exact_head_production_code_panel",
+    "main_protection_requires_guard_required",
+    "post_merge_main_verification"
+  ]
+}
