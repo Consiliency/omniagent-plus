@@ -1,0 +1,121 @@
+{
+  "schema": "coord-plan-review-approval.v1",
+  "source_sha": "9430610d83c58f4891f1a7a06e5805941931d181",
+  "base_sha": "e72b136136954cce6feb82bf5d3f0cc50e688a4a",
+  "approved_plan_sha256": "810a63da7b61236ae6ad8f294fdf3b59d19edec7ffea0be1aac6d0ac2795f6bb",
+  "roadmap_sha256": "ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "dd65c3254f989aabd1462386f24017f49e9177724f7b492d9e8229be4b590eb5"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "d918e24e918f970b493c6dcbf93fe3fe3a06167f0678e9dd7a472ca3fff253f4"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "63f516cc7b39e554ef7495ecba57582511bcdb563f9c70430bf4ff39b27e3487"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "6258ce1ce966bd710400c955a10d69c8927b8a00ec6ee24aa2add121d69455c7"
+      }
+    ]
+  },
+  "manual_opus": {
+    "model": "claude-opus-5-5",
+    "adapter": "manual subscription TUI, tools enabled",
+    "status": "OK",
+    "usable": true,
+    "exit_code": 0,
+    "detail": "claude_tui_file_output",
+    "verdict": "AGREE",
+    "review_sha256": "f9f7f2ce737a63f7948d25bf8d5314c069028789c0c13f4af7e5811bf6ea609a"
+  },
+  "manual_gemini": {
+    "model": "Gemini 3.1 Pro (High)",
+    "adapter": "manual subscription CLI, tools enabled",
+    "exit_code": 0,
+    "verdict": "AGREE",
+    "review_sha256": "cf0f1d4acb3303df40cd9f66ed3c55090ba0ca4cbbd9aabb9579ced3acb993cf"
+  },
+  "independent": {
+    "verdict": "AGREE",
+    "review_sha256": "81aca0ce20785d2789a248af7a4258b365f94a85f7abde456452d154d08ba8f0"
+  },
+  "decision": "accepted_plan_only",
+  "implementation_started": false,
+  "human_required": false,
+  "scope": "Approval binds exact plan bytes and governing roadmap. Production implementation, IF gates, EC acceptance and merge admission remain unfulfilled. This receipt does not claim review of its own future commit.",
+  "verification": {
+    "planner_diagnostics": [],
+    "lane_ir_diagnostics": [],
+    "word_count": 2859,
+    "owned_path_count": 103,
+    "serial_order": [
+      "SL-0",
+      "SL-2",
+      "SL-3",
+      "SL-1",
+      "SL-4",
+      "SL-5"
+    ],
+    "hosted_source_checks": [
+      {
+        "conclusion": "success",
+        "databaseId": 36777481578,
+        "headSha": "9430610d83c58f4891f1a7a06e5805941931d181",
+        "name": "ci",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 36777481439,
+        "headSha": "9430610d83c58f4891f1a7a06e5805941931d181",
+        "name": "publish",
+        "status": "completed"
+      }
+    ],
+    "actual_publication": "skipped",
+    "check_scope": "Plan-only baseline checks/rehearsal, not COORD implementation acceptance."
+  },
+  "dissent_history": [
+    "plans/evidence/v2/reviews/COORD-plan-1bdab15.json",
+    "plans/evidence/v2/reviews/COORD-plan-00133dd.json",
+    "plans/evidence/v2/reviews/COORD-plan-8778b19.json",
+    "plans/evidence/v2/reviews/COORD-plan-e72b136.json"
+  ],
+  "implementation_review_controls": [
+    "Unchanged default DATA retention corpus plus pure atomic selection; genuine active-session heartbeat reclamation and bounded completed-session churn.",
+    "Reclamation proposals may conservatively exceed committed subset; pure synchronous callback, fresh reference checks and durable recovery before registry/watermark publication.",
+    "Freeze one tie-safe continuation total order and test equal timestamps, head mismatch, restart before watermark publication and older independently referenced metadata.",
+    "Cursor pagination order is a distinct contract from sequential-continuation revision order; validate both without assuming they share keys.",
+    "Keep protected-capacity and progress-marker failures truthful; per-lease quarantine and actual exited-child/path proof.",
+    "COORD lease selection overrides DATA scoped-history keeps for worktree rows; retained-session references mean entity references. Test heartbeats with an open holder session/running turn and long-lived open-session lease churn.",
+    "Before invoking synchronous compactRecords, durably journal candidate IDs/intended watermarks; callback prunes only journaled still-eligible candidates. Publish eviction/watermark together only for IDs with no surviving lease row.",
+    "Quarantine covers repo+branch collisions across modes and canonical path; pending acquisitions occupy that domain.",
+    "Apply the tie-safe continuation order to live candidate selection as well as reclamation; ambiguous tied clean/dirty evidence must not grant unsafe reuse.",
+    "Name durable COORD-managed root marker; verify legacy denial preserves map/ledger bytes, standalone compatibility and both first-use orders.",
+    "Document fail-closed sequential continuation after aged tombstone reclamation and retainHistory contention/heartbeat implications."
+  ],
+  "next_skill": "codex-execute-phase",
+  "next_command": "codex-execute-phase plans/phase-plan-v2-COORD.md"
+}

@@ -1,0 +1,115 @@
+{
+  "schema": "coord-plan-review-reconciliation.v1",
+  "source_sha": "1bdab15d520cceae5ed9f96695142f4bdf8f3236",
+  "base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c",
+  "amended_plan_sha256": "c26ef9735a6e984bbb24d659aa70efb446502571c15f425edb9e007dc0f5281c",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "aa2478d9aef7f02ffc3f6c9a7b5f0786d97853b8530b940c38912ec9c3fc802d"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "72cf07bc0d346a6c284cfc102127f35341f548268d19bcd769a030aca89a2b11"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "f29a4f7caf0048a1d8944ce13a813addb073feae3af1cd922398d777a026c8e4"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "PARTIALLY AGREE",
+        "review_sha256": "37f69e4e09b4b5289a8b50664e97f962712a5a59fcc75a1e235187033edd1fee"
+      }
+    ]
+  },
+  "independent": {
+    "verdict": "PARTIALLY AGREE",
+    "review_sha256": "45c897c2746be4a1a88dc12af2ea930063d86b8b7f3a3b86e58e59a00abe1e02",
+    "followup": "Design follow-up accepts journal/retention/root/runner repairs; identifies hard conflict hidden by mixed pagination. Final amendment has not been re-reviewed."
+  },
+  "manual_gemini": {
+    "model": "Gemini 3.1 Pro (High)",
+    "verdict": "AGREE",
+    "review_sha256": "0a853c1ff8e574c9445f0c7ae9ad10c97729bec96113b41e5582d1d1979e7676",
+    "scope": "Original source_sha only, no amendment approval carried."
+  },
+  "manual_opus": {
+    "model": "claude-opus-5-5",
+    "adapter": "manual subscription TUI, tools enabled",
+    "status": "QUOTA",
+    "usable": false,
+    "verdict": null,
+    "partial_review_sha256": "0d012d86a22613f65a4e66905559645b397f44455bc2d33947239439fc7affdb",
+    "adapter_detail": "claude_tui_stalled",
+    "observed_cause": "CLI reported weekly subscription limit during review; no final verdict.",
+    "reported_reset": "2026-10-03T21:00:00-04:00",
+    "auth_metadata": {
+      "loggedIn": true,
+      "authMethod": "claude.ai",
+      "apiProvider": "firstParty"
+    }
+  },
+  "findings": [
+    {
+      "id": "SQL-ADMISSION",
+      "resolution": "Rename SQL suite to coordination.integration.db.test.ts; own runner/orchestration tests and require COORD cases in focused/full receipts.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "JOURNAL-COMPLETION",
+      "resolution": "Pending intent remains until ledger and both projections are durable, cleared last; test every crash boundary.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "PENDING-RETENTION",
+      "resolution": "Supported manager retention takes coordination lock and recovers intent before DATA retention; direct compaction of shared COORD ledger unsupported.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "TRUSTED-ROOT",
+      "resolution": "Manager-configured acquisition root provenance; no target-derived or cleanup-established root; legacy deletion denied.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "PREFERRED-TUPLE",
+      "resolution": "Conjunctive provider/harness/identity preference; inconsistent or unavailable tuple rejected or truthfully reported fallback.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "BACKEND-CAUSE",
+      "resolution": "Own lease-arbiter source/test and private categorical cause propagation through CLI without public schema changes.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "BOUNDED-QUERY",
+      "resolution": "Freeze limits, bytewise timestamp/ID cursors and capacity; expose CLI pagination; filter hard conflicts before pagination with greater-than100-soft-leases regression.",
+      "status": "amended_plan_requires_fresh_review"
+    }
+  ],
+  "decision": "not_accepted",
+  "implementation_started": false,
+  "merge_authorized_only_after": "Passing exact-candidate agent-harness panel, separate independent review, required manual reviews and hosted checks.",
+  "blocker": {
+    "human_required": true,
+    "class": "account_or_billing_setup",
+    "summary": "Required Opus subscription quota exhausted; alternate review seat needs owner decision.",
+    "pending_owner_question": "Temporary separate Sol seat versus retain Opus and wait for reset."
+  }
+}
