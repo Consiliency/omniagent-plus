@@ -1496,7 +1496,7 @@
       "owner_skill": "codex-plan-phase",
       "phase_alias": "COORD",
       "reflection_ref": null,
-      "review_status": "pending_round4_material_plan_amendment_review",
+      "review_status": "pending_round5_material_plan_amendment_review",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "v2",
@@ -1507,7 +1507,7 @@
       "status": "committed",
       "task_summary": "COORD phase plan; review pending, implementation not started.",
       "type": "phase",
-      "updated_at": "2026-09-30T20:51:40.909042+00:00"
+      "updated_at": "2026-09-30T21:08:14.667428+00:00"
     },
     {
       "acceptance_criteria_count": 4,
