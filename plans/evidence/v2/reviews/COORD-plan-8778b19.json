@@ -1,0 +1,104 @@
+{
+  "schema": "coord-plan-review-reconciliation.v1",
+  "source_sha": "8778b194334144fc5e352919dd7f1b6966d9e4c9",
+  "base_sha": "00133dd52d3ba2ae4f43c737c21576306cd2ff79",
+  "amended_plan_sha256": "94c520bc4e433c41cbc0d9c611e10cb6a8ea576ac73c67fefe3a835e73ba225c",
+  "agent_harness": {
+    "seats": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "ccd3220808e5fa39955862bc664fa099d450b0f43c72248e9e9e47fab63e410f"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "095e12094c2433967cd5dd204956d581d84ca6cc84382364dfdf0452b5ab3610"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "cd90c66cb1fa568b8e4578a47900f53379964604b80edb87a63e68f9680cdf2b"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "verdict": "AGREE",
+        "review_sha256": "85a1d7bfbb3ffc4bdea92fad1a63239df13ac416ecc05dccf26b45de2b277d87"
+      }
+    ]
+  },
+  "independent": {
+    "verdict": "AGREE",
+    "review_sha256": "5f795b23f4c535765658c1ea52a2ea801ae70e5ecb80626fdbdcfb34d3a9ed67"
+  },
+  "manual_gemini": {
+    "verdict": "AGREE",
+    "review_sha256": "e0c96ebcdce2db57e023cebb74aca8dc78d92297b3153f2ebfcd70f88687d55c"
+  },
+  "manual_opus": {
+    "model": "claude-opus-5-5",
+    "adapter": "manual subscription TUI, tools enabled",
+    "status": "OK",
+    "usable": true,
+    "exit_code": 0,
+    "detail": "claude_tui_file_output",
+    "verdict": "PARTIALLY AGREE",
+    "review_sha256": "c1ecaf101f8c398a6ae561f68c3090536a500f1d33babaa263c384bdebb9fe8c",
+    "failed_attempt": {
+      "usable": false,
+      "exit_code": 1,
+      "detail": "claude_tui_stalled",
+      "receipt_sha256": "57b32085e0fc4d5f66dc5a2914a1de91c02d3ea504cff504182a7f16dbf55719"
+    },
+    "retry": "Same required subscription/model; no alternate billing/account/provider."
+  },
+  "findings": [
+    {
+      "id": "B1-LEASE-HISTORY-CAPACITY",
+      "resolution": "Two-pass COORD-aware compaction preserves latest ownership/acquisition/fencing and pending/ancestor proofs but reclaims superseded heartbeats. Protected-record retention seed allows safe compaction before blocked replay. Coupled tombstone/history reclamation is recoverable. Add capacity-to-retention-to-success controls.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "B2-DELETED-RELEASE-REFUSAL",
+      "resolution": "Stage durable removal intent before Git; mark removal_done and retain intent after release failure; report actual deletion with release incomplete. Unstage only before external effects; inspect crash-uncertain paths without inferring deletion or removing replacements.",
+      "status": "amended_plan_requires_fresh_review"
+    },
+    {
+      "id": "S1-S6",
+      "resolution": "Store-authoritative inbox clock and legacy future normalization; full SQL helper/table privilege inventory; millisecond worktree cursor domain; no-root metadata reconciliation; state-ledger barrel/retention ownership and expanded SL-2 verification; truthful contention retry/deadline contract.",
+      "status": "amended_plan_requires_fresh_review"
+    }
+  ],
+  "decision": "not_accepted",
+  "implementation_started": false,
+  "human_required": false,
+  "next_action": "Fresh exact-candidate harness/manual/independent review of material amendment.",
+  "hosted_original_source_checks": [
+    {
+      "run_id": 36769772213,
+      "head_sha": "8778b194334144fc5e352919dd7f1b6966d9e4c9",
+      "conclusion": "success",
+      "workflow": "ci"
+    },
+    {
+      "run_id": 36769772211,
+      "head_sha": "8778b194334144fc5e352919dd7f1b6966d9e4c9",
+      "conclusion": "success",
+      "workflow": "publish",
+      "actual_publication": "skipped"
+    }
+  ],
+  "check_scope": "Plan-only baseline checks; no COORD implementation acceptance."
+}
