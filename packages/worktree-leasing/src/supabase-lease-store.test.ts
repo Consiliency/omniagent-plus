@@ -1,6 +1,6 @@
 import { spawnOwned as spawn, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 import { readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -10,8 +10,9 @@ import {
   LocalLeaseStore,
   leaseScopesOverlap,
   normalizeLeaseScope,
+  createLeaseFromAcquireRequest,
 } from "./lease-store.js";
-import { SupabaseLeaseStore, type SupabaseLeaseRpcClient } from "./supabase-lease-store.js";
+import { SupabaseLeaseStore, createSupabaseLeaseStore, createSupabaseLeaseStoreFromEnv, type SupabaseLeaseRpcClient } from "./supabase-lease-store.js";
 
 const holderA = "display:100:session-a";
 const holderB = "claw:200:session-b";
@@ -115,6 +116,42 @@ describe("lease store scope overlap", () => {
 });
 
 describe("local lease store conformance", () => {
+  it("walks tied leases, filters hard mode before pagination, and reads without creating a lock", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "lease-store-page-"));
+    const store = new LocalLeaseStore({ rootDir });
+    await mkdir(join(rootDir, "coordination"));
+    const leases = Object.fromEntries(Array.from({ length: 103 }, (_, index) => {
+      const lease = createLeaseFromAcquireRequest({ ...request(holderA, ["packages"], index === 102 ? "hard" : "soft"), leaseId: index === 102 ? "lease:999" : "lease:" + String(101 - index).padStart(3, "0") });
+      return [lease.lease_id, lease];
+    }));
+    const path = join(rootDir, "coordination", "consiliency-leases.json");
+    await writeFile(path, JSON.stringify({ schema: "consiliency.local_lease_store.v0.1", updatedAt: request(holderA, []).now, leases, events: [] }));
+    const before = await readFile(path);
+    const query = { now: request(holderA, []).now, limit: 1 };
+    const a = (await store.query(query)).leases[0]!;
+    const b = (await store.query({ ...query, cursor: { timestamp: a.acquired_at, id: a.lease_id } })).leases[0]!;
+    const c = (await store.query({ ...query, cursor: { timestamp: b.acquired_at, id: b.lease_id } })).leases[0]!;
+    expect([a.lease_id, b.lease_id, c.lease_id]).toEqual(["lease:000", "lease:001", "lease:002"]);
+    expect((await store.query({ ...query, mode: "hard" })).leases[0]?.mode).toBe("hard");
+    const firstPage = (await store.query({ now: query.now })).leases;
+    expect(firstPage).toHaveLength(100);
+    expect(firstPage.every((lease) => lease.mode === "soft")).toBe(true);
+    expect(await readFile(path)).toEqual(before);
+    await expect(readFile(join(rootDir, "locks", "coordination.lock"))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(store.query({ limit: 0 })).rejects.toThrow();
+  });
+  it("supports prototype-named IDs and refuses corrupt state without overwriting it", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "lease-store-prototype-"));
+    const store = new LocalLeaseStore({ rootDir });
+    const acquired = await store.acquire({ ...request(holderA, ["packages"]), leaseId: "constructor" });
+    expect(acquired.granted).toBe(true);
+    const path = join(rootDir, "coordination", "consiliency-leases.json");
+    const bytes = JSON.stringify({ schema: "consiliency.local_lease_store.v0.1", leases: {}, events: 7 });
+    await writeFile(path, bytes);
+    await expect(store.query()).rejects.toThrow();
+    await expect(store.acquire(request(holderB, ["other"]))).rejects.toThrow();
+    expect(await readFile(path, "utf8")).toBe(bytes);
+  });
   it("rejects overlapping hard acquires but permits non-overlap and soft intent", async () => {
     const store = new LocalLeaseStore({
       rootDir: await mkdtemp(join(tmpdir(), "lease-store-")),
@@ -217,6 +254,42 @@ describe("local lease store conformance", () => {
 });
 
 describe("Supabase lease store RPC mapping", () => {
+  it("uses the installed SDK with an offline endpoint and validates its actual wire/results", async () => {
+    const wires: Array<{ path: string; body: unknown }> = [];
+    const expected = createLeaseFromAcquireRequest({ ...request(holderA, ["packages"]), leaseId: "lease:sdk" });
+    const store = createSupabaseLeaseStore({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async (input, init) => {
+      wires.push({ path: String(input), body: JSON.parse(String(init?.body)) });
+      const fn = String(input).split("/").at(-1);
+      const data = fn === "coordination_acquire_lease" ? { granted: true, lease: expected }
+        : fn === "coordination_renew_lease" ? { renewed: true, lease: expected }
+        : fn === "coordination_release_lease" ? { released: true }
+        : fn === "coordination_expire_leases" ? { expired: 2 } : { leases: [expected] };
+      return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } });
+    } });
+    expect((await store.acquire({ ...request(holderA, ["packages/"]), leaseId: expected.lease_id })).lease).toEqual(expected);
+    expect((await store.renew(expected.lease_id, holderA, { ttlSeconds: 60 })).renewed).toBe(true);
+    expect((await store.release(expected.lease_id, holderA)).released).toBe(true);
+    expect((await store.query({ mode: "hard", limit: 1, cursor: { timestamp: expected.acquired_at, id: "lease:a" } })).leases).toHaveLength(1);
+    expect(await store.expire()).toBe(2);
+    expect(wires[0]?.path).toContain("/rest/v1/rpc/coordination_acquire_lease");
+    expect(wires[0]?.body).toMatchObject({ request: { leaseId: "lease:sdk", scope: { selector: ["packages"] } } });
+    expect(wires[3]?.body).toMatchObject({ request: { mode: "hard", limit: 1, cursor: { timestamp: expected.acquired_at, id: "lease:a" } } });
+  });
+  it.each(["authentication", "permission", "timeout", "transport", "malformed-response"])("bounds the real SDK %s failure", async (cause) => {
+    const store = createSupabaseLeaseStore({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async () => {
+      if (cause === "timeout") throw new DOMException("synthetic-private-detail", "AbortError");
+      if (cause === "transport") throw new TypeError("synthetic-private-detail");
+      const data = cause === "malformed-response" ? { granted: true, lease: {} } : { code: cause === "authentication" ? "PGRST301" : "42501", message: "synthetic-private-detail" };
+      return new Response(JSON.stringify(data), { status: cause === "malformed-response" ? 200 : cause === "authentication" ? 401 : 403, headers: { "content-type": "application/json" } });
+    } });
+    const result = await store.acquire(request(holderA, ["packages"]));
+    expect(result).toMatchObject({ granted: false, failure: "backend-unavailable", cause });
+    expect(JSON.stringify(result)).not.toContain("synthetic-private-detail");
+  });
+  it("treats blank configuration as unavailable and invalid URLs as bounded validation failures", () => {
+    expect(createSupabaseLeaseStoreFromEnv({ OMNIAGENT_COORDINATION_SUPABASE_URL: " ", OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY: " " })).toBeUndefined();
+    expect(() => createSupabaseLeaseStore({ url: "bad synthetic url", serviceRoleKey: "synthetic-test-key" })).toThrow("Coordination backend validation.");
+  });
   it("uses RPC acquire so hard-mode atomicity lives in the database transaction", async () => {
     const calls: string[] = [];
     const client: SupabaseLeaseRpcClient = {

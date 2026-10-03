@@ -118,7 +118,8 @@ it.each([...STAGES, "success"])("real gate stops after failing stage %s", async 
 function result() {
   const ids = JSON.parse(readFileSync("tests/guard/required-cases.json", "utf8")) as { setup: string[]; integration: string[] };
   return { testResults: [
-    ...(["setup", "integration"] as const).map((partition) => ({ name: `tests/guard/fixture.${partition}.db.test.ts`, assertionResults: ids[partition].map((id) => ({ title: id, fullName: id, status: "passed" })) })),
+    ...(["setup", "integration"] as const).map((partition) => ({ name: `tests/guard/fixture.${partition}.db.test.ts`, assertionResults: ids[partition].filter((id) => id.startsWith("GUARD-")).map((id) => ({ title: id, fullName: id, status: "passed" })) })),
+    { name: "tests/guard/coordination.integration.db.test.ts", assertionResults: ids.integration.filter((id) => id.startsWith("COORD-")).map((id) => ({ title: id, fullName: id, status: "passed" })) },
     { name: "packages/omnigent-transport/src/live-omnigent-smoke.test.ts", assertionResults: [{ title: LIVE_CASE, fullName: LIVE_CASE, status: "pending" }] },
   ] };
 }
@@ -142,7 +143,7 @@ it("fails the real gate when root DB collection is suppressed", async () => {
   finally { rmSync(root, { recursive: true, force: true }); }
 });
 it("requires exact command IDs and the exact full-root skip set", () => {
-  expect(checkResults(result(), "verify")).toEqual({ passed: 11, skipped: 1 });
+  expect(checkResults(result(), "verify")).toEqual({ passed: 19, skipped: 1 });
   for (const mutation of ["drop", "rename", "skip", "todo"]) {
     const report = result();
     const test = report.testResults[0]!.assertionResults[0]!;
@@ -152,8 +153,18 @@ it("requires exact command IDs and the exact full-root skip set", () => {
     expect(() => checkResults(report, "verify")).toThrow();
   }
   const focused = result();
-  focused.testResults = focused.testResults.slice(1, 2);
-  expect(checkResults(focused, "test:integration")).toEqual({ passed: 2, skipped: 0 });
+  focused.testResults = focused.testResults.filter((suite) => suite.name.endsWith(".integration.db.test.ts"));
+  expect(checkResults(focused, "test:integration")).toEqual({ passed: 10, skipped: 0 });
+});
+it.each(["missing", "renamed", "skipped", "failed", "wrong-source"])("refuses the mandatory COORD case when %s", (mutation) => {
+  const report = result();
+  const suite = report.testResults.find((suite) => suite.name.endsWith("coordination.integration.db.test.ts"))!;
+  if (mutation === "missing") suite.assertionResults.shift();
+  else if (mutation === "renamed") suite.assertionResults[0]!.title = "changed";
+  else if (mutation === "skipped") suite.assertionResults[0]!.status = "pending";
+  else if (mutation === "failed") suite.assertionResults[0]!.status = "failed";
+  else suite.name = "tests/guard/fixture.integration.db.test.ts";
+  expect(() => checkResults(report, "verify")).toThrow();
 });
 it("rejects dirty source before stages and changed source before the next stage", async () => {
   const root = mkdtempSync(join(tmpdir(), "guard-source-gate-"));

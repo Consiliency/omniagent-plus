@@ -28,7 +28,8 @@ export function checkResults(report, command, root = process.cwd()) {
   const full = command === "verify" || command === "test";
   if (full ? skipped.length !== 1 || skipped[0].fullName !== LIVE_CASE || !skipped[0].file.endsWith("packages/omnigent-transport/src/live-omnigent-smoke.test.ts") : skipped.length !== 0) throw new Error("Unexpected skipped/todo cases");
   for (const partition of manifest.commands[command]) for (const id of manifest[partition]) {
-    const matches = cases.filter((test) => test.title === id && test.file.endsWith(`.${partition}.db.test.ts`) && test.status === "passed");
+    const requiredSource = manifest.sources?.[id] ?? `tests/guard/fixture.${partition}.db.test.ts`;
+    const matches = cases.filter((test) => test.title === id && test.file.endsWith(requiredSource) && test.status === "passed");
     if (matches.length !== 1) throw new Error(`Required case missing/renamed/skipped: ${id}`);
   }
   return { passed: cases.filter((test) => test.status === "passed").length, skipped: skipped.length };
@@ -61,7 +62,7 @@ export async function runSuite(command, fixture, runDir, run = runProcess) {
   const reportPath = resolve(runDir, "tests.json");
   const args = ["run", "--config", "vitest.config.ts", "--reporter=default", "--reporter=json", `--outputFile.json=${reportPath}`];
   if (command === "test:guard") args.push("tests/guard");
-  if (command === "test:integration") args.push("--project=guard-db", "tests/guard/fixture.integration.db.test.ts");
+  if (command === "test:integration") args.push("--project=guard-db", ".integration.db.test.ts");
   const timeout = suiteOperationTimeout();
   const vitest = fileURLToPath(new URL("../node_modules/vitest/vitest.mjs", import.meta.url));
   const launcher = `import {spawn} from 'node:child_process';

@@ -1,8 +1,40 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SupabaseCoordinationChannel } from "./supabase-coordination-channel.js";
+import { SupabaseCoordinationChannel, createSupabaseCoordinationChannel, createSupabaseCoordinationChannelFromEnv } from "./supabase-coordination-channel.js";
 
 describe("Supabase coordination content boundary", () => {
+  it("maps detached bodies and cursor pages through the installed SDK's offline fetch endpoint", async () => {
+    const wires: Array<{ path: string; body: unknown }> = [];
+    const scope = { granularity: "repo" as const, selector: ["repo"] };
+    const message = { schema: "consiliency.coordination_message.v1", message_id: "msg:a", type: "done", sender: "operator", scope, created_at: "2026-10-03T00:00:00Z" };
+    const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async (input, init) => {
+      wires.push({ path: String(input), body: JSON.parse(String(init?.body)) });
+      const data = String(input).endsWith("coordination_send_message") ? { messageId: message.message_id, createdAt: message.created_at } : { messages: [message] };
+      return new Response(JSON.stringify(data), { status: 200, headers: { "content-type": "application/json" } });
+    } });
+    const body = { nested: { safe: "original" } };
+    const pending = channel.send({ type: "done", sender: "operator", scope, body });
+    body.nested.safe = "changed";
+    expect(await pending).toMatchObject({ messageId: "msg:a" });
+    expect((wires[0]?.body as { message: { body: unknown } }).message.body).toEqual({ nested: { safe: "original" } });
+    expect(await channel.list({ limit: 1, cursor: { timestamp: message.created_at, id: "msg:0" } })).toEqual([message]);
+    expect(wires[1]?.path).toContain("/rest/v1/rpc/coordination_list_messages");
+    expect(wires[1]?.body).toMatchObject({ query: { limit: 1, cursor: { timestamp: message.created_at, id: "msg:0" } } });
+  });
+  it.each(["authentication", "permission", "timeout", "transport", "malformed-response"])("bounds real SDK channel %s failures without retaining response details", async (cause) => {
+    const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async () => {
+      if (cause === "timeout") throw new DOMException("synthetic-private-detail", "AbortError");
+      if (cause === "transport") throw new TypeError("synthetic-private-detail");
+      return new Response(JSON.stringify(cause === "malformed-response" ? { messageId: 7 } : { code: cause === "authentication" ? "PGRST301" : "42501", message: "synthetic-private-detail" }),
+        { status: cause === "malformed-response" ? 200 : cause === "authentication" ? 401 : 403, headers: { "content-type": "application/json" } });
+    } });
+    await expect(channel.send({ type: "done", sender: "operator", scope: { granularity: "repo", selector: ["repo"] } })).rejects.toMatchObject({ failureCause: cause, message: "Coordination backend " + cause + "." });
+  });
+  it("rejects malformed list envelopes and treats blank configuration as unavailable", async () => {
+    const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async () => new Response(JSON.stringify({ messages: 7 }), { status: 200, headers: { "content-type": "application/json" } }) });
+    await expect(channel.list()).rejects.toMatchObject({ failureCause: "malformed-response" });
+    expect(createSupabaseCoordinationChannelFromEnv({ OMNIAGENT_COORDINATION_SUPABASE_URL: " ", OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY: " " })).toBeUndefined();
+  });
   it("checks the corpus before sending RPC content and validates returned bodies", async () => {
     const corpus = JSON.parse(readFileSync(new URL("../../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
     let calls = 0;

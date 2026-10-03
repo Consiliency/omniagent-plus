@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -17,6 +17,63 @@ const scope = {
 };
 
 describe("coordination channel", () => {
+  it("uses its injected clock and walks same-second messages in bytewise ID order", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-inbox-page-"));
+    const now = new Date("2026-10-03T00:00:00Z");
+    const channel = new LocalCoordinationChannel({ rootDir, clock: () => now });
+    const receipt = await channel.send({ type: "done", sender: "operator", scope, now: "2099-01-01T00:00:00Z" });
+    expect(receipt.createdAt).toBe(now.toISOString().replace(".000Z", "Z"));
+    const path = join(rootDir, "coordination", "coordination-inbox.json");
+    await writeFile(path, JSON.stringify({ schema: "consiliency.local_coordination_inbox.v0.1", updatedAt: receipt.createdAt,
+      messages: ["é", "z", "a"].map((id) => ({ schema: "consiliency.coordination_message.v1", message_id: id, type: "done", sender: "operator", scope,
+        created_at: id === "a" ? "2026-10-03T00:00:00.999Z" : "2026-10-03T00:00:00.001Z" })),
+    }));
+    const before = await readFile(path);
+    const first = (await channel.list({ limit: 1 }))[0]!;
+    const second = (await channel.list({ limit: 1, cursor: { timestamp: first.created_at, id: first.message_id } }))[0]!;
+    const third = (await channel.list({ limit: 1, cursor: { timestamp: second.created_at, id: second.message_id } }))[0]!;
+    expect([first.message_id, second.message_id, third.message_id]).toEqual(["a", "z", "é"]);
+    expect(await readFile(path)).toEqual(before);
+    await expect(channel.list({ limit: 501 })).rejects.toThrow();
+  });
+
+  it("preserves full retained inboxes, prunes expiry before capacity, and serializes the 9999 boundary", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-inbox-capacity-"));
+    let now = new Date("2026-10-03T00:00:00Z");
+    const channel = new LocalCoordinationChannel({ rootDir, clock: () => now });
+    await mkdir(join(rootDir, "coordination"));
+    const path = join(rootDir, "coordination", "coordination-inbox.json");
+    await writeFile(path, JSON.stringify({ schema: "consiliency.local_coordination_inbox.v0.1", updatedAt: now.toISOString(),
+      messages: Array.from({ length: 9999 }, (_, n) => ({ schema: "consiliency.coordination_message.v1", message_id: "message-" + n,
+        type: "done", sender: "operator", scope, created_at: now.toISOString() })),
+    }));
+    const send = () => channel.send({ type: "done", sender: "operator", scope });
+    const boundary = await Promise.allSettled([send(), send()]);
+    expect(boundary.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(boundary.filter((result) => result.status === "rejected")).toHaveLength(1);
+    const full = await readFile(path);
+    await expect(send()).rejects.toMatchObject({ failureCause: "capacity" });
+    expect(await readFile(path)).toEqual(full);
+    expect(await channel.list()).toHaveLength(100);
+    now = new Date("2026-10-11T00:00:00Z");
+    expect(await channel.list()).toEqual([]);
+    expect(await readFile(path)).toEqual(full);
+    await send();
+    expect(await channel.list()).toHaveLength(1);
+    expect(JSON.parse(await readFile(path, "utf8")).messages).toHaveLength(1);
+  }, 30_000);
+
+  it.each(["wrong-version", "malformed"])("preserves %s inbox bytes and refuses reads and writes", async (kind) => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-inbox-corruption-"));
+    await mkdir(join(rootDir, "coordination"));
+    const path = join(rootDir, "coordination", "coordination-inbox.json");
+    const bytes = JSON.stringify({ schema: kind === "wrong-version" ? "consiliency.local_coordination_inbox.v99" : "consiliency.local_coordination_inbox.v0.1", messages: 7 });
+    await writeFile(path, bytes);
+    const channel = new LocalCoordinationChannel({ rootDir });
+    await expect(channel.list()).rejects.toThrow();
+    await expect(channel.send({ type: "done", sender: "operator", scope })).rejects.toThrow();
+    expect(await readFile(path, "utf8")).toBe(bytes);
+  });
   it("rechecks local fields after lock acquisition and nested aliases after inbox reads", async () => {
     const local = new LocalCoordinationChannel({ rootDir: await mkdtemp(join(tmpdir(), "data-coordination-pending-")) });
     await local.send({ type: "done", sender: "original", scope });
