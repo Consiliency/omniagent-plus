@@ -13,6 +13,7 @@ export interface ClassifierInput {
   readonly stderrText?: string;
   readonly stdoutText?: string;
   readonly headers?: Record<string, string | number>;
+  readonly now?: string;
 }
 
 export type FixtureCategory =

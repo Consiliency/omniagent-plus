@@ -131,6 +131,9 @@ export interface RetryGuardrailInput {
   readonly classification?: LimitClassification;
   readonly repeatedFailures: number;
   readonly maxRepeatedFailures?: number;
+  readonly idempotencySafe?: boolean;
+  readonly mutation?: boolean;
+  readonly now?: string;
 }
 
 export type RetryGuardrailAction =
