@@ -31,7 +31,7 @@
       "requiredScope": [
         "caller-supplied",
         "no maintained counter",
-        "no backoff"
+        "bounded backoff"
       ]
     },
     {
@@ -171,7 +171,7 @@
         "packages/rate-limit-catalog/src/retry-guardrails.test.ts"
       ],
       "requiredScope": [
-        "no exponential backoff",
+        "bounded exponential backoff",
         "Retry-After"
       ]
     },

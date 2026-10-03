@@ -1,5 +1,20 @@
 # Durable State
 
+## COORD behavior
+
+COORD physical ownership is governed by a validated private registry with stable
+pending-transition and reclamation journals. Supported shared-root retention is
+WorktreeLeaseManager.retainHistory; direct DATA retention on such roots is
+unsupported. It retains DATA roots and active/pending/unknown/genuinely referenced
+ownership evidence in one locked snapshot. Expired live or uncertain physical
+holders remain owners. See [worktree leasing](worktree-leasing.md).
+
+Local inbox reads validate existing entries once. Sends recheck new input after
+asynchronous waits, validate retained metadata and detach it before serialization;
+publication operates on validated detached values. Query never initializes,
+takes a writer lock, repairs or prunes. Inbox expiry/history limits are described
+in [coordination backend](coordination-backend.md).
+
 `@omniagent-plus/state-ledger` is the early durable-state backend for
 `agent-runtime-provider-omnigent`. It uses an append-only JSONL ledger with
 sidecar indexes because the source spec allowlists that design for the first

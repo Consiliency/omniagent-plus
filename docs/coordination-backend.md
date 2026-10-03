@@ -1,5 +1,39 @@
 # Coordination Backend
 
+## COORD behavior
+
+COORD keeps contract0.6.3 pinned. The forward PostgreSQL migration uses server time
+after advisory lock acquisition for mutations; compatibility caller clocks are
+ignored. Query expiry uses server statement time without mutation. Holder checks
+and event/projection writes are transactional. RLS stays enabled; only
+service_role executes coordination RPCs. Tests use admitted disposable SQL.
+
+Lease and inbox lists default100, maximum500, positive whole limits. Cursor is
+after-(returned timestamp,ID), ascending whole-second UTC plus UTF-8 bytewise
+IDs (SQL C collation), including existing fractional rows. Scope/type/mode filters
+precede pagination. Read-only hard-route admission queries overlapping hard
+leases with limit1; an earlier soft page cannot hide conflict. Pages read current
+state, not pinned snapshots. CLI --cursor accepts JSON timestamp/id strings.
+
+Inbox entries expire after7days. Local creation/expiry uses an injected clock,
+never message.now; SQL uses server time. Writes normalize legacy future times
+and prune expiry under the same lock before enforcing10000 retained entries.
+Reads filter expiry without pruning. Overflow preserves unexpired entries.
+These are retained advisory histories, not indefinitely append-only inboxes.
+Failed yield delivery leaves hard refusal intact with private sent=false/cause.
+No acknowledgement, transfer or ownership derives from delivery.
+
+Local live leases and event history are bounded at10000. SQL caps unprotected
+released/event history at10000, preserving active acquisition/current proof.
+Protected overflow refuses mutation. Bounded causes are authentication,
+permission, timeout, transport, validation, malformed-response, unavailable and
+capacity. Missing/blank config is unavailable; invalid URL is validation.
+Real SDK/offline-fetch tests prove mapping only; SQL tests prove SQL only.
+Neither establishes hosted Supabase acceptance or authorizes production migration.
+
+Default route-task is read-only. --record with valid preferences may acquire
+leases/request yield and persist actual arbitration; it never launches a provider.
+
 CS-2.2 adds the off-device control-plane lease layer for multi-agent
 coordination. The layer lives in `omniagent-plus`; it does not modify
 Consiliency canon, governed-pipeline, Portal projection code, or harness

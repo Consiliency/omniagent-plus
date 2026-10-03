@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -12,6 +12,7 @@ import {
   WorktreeLeaseManager,
 } from "@omniagent-plus/worktree-leasing";
 import { AuditLedger } from "@omniagent-plus/state-ledger";
+import { LocalLeaseStore } from "@omniagent-plus/worktree-leasing";
 
 import { COMMAND_REGISTRY } from "./command-registry.js";
 import { executeCli } from "./runtime.js";
@@ -51,6 +52,31 @@ function readFixture<T>(): T {
 }
 
 describe("route-task", () => {
+  it("rejects bad preferences in record mode before initializing state or acquiring coordination", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "cli-route-invalid-"));
+    for (const preference of [["--preferred-provider", "unknown"], ["--preferred-harness", "unknown"], ["--preferred-identity-profile-id", "unknown"], ["--preferred-provider", "google", "--preferred-identity-profile-id", "profile-openai-prod-cooldown"]]) {
+      const stateRoot = join(rootDir, "absent");
+      const result = await executeCli(["route-task", "--task-id", "t", ...preference, "--record", "--coordination-scope", "repo:omniagent-plus", "--coordination-holder", "operator", "--state-root", stateRoot, "--profiles-dir", profilesDir, "--json"], COMMAND_REGISTRY);
+      expect(result.exitCode).toBe(2);
+      await expect(access(stateRoot)).rejects.toThrow();
+    }
+  });
+  it("does not write default routing state and detects hard conflict beyond a mixed first page", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "cli-route-readonly-"));
+    const absent = join(rootDir, "absent");
+    const dry = await executeCli(["route-task", "--task-id", "t", "--profiles-dir", profilesDir, "--state-root", absent, "--json"], COMMAND_REGISTRY);
+    expect(dry.exitCode).toBe(0);
+    await expect(access(absent)).rejects.toThrow();
+    const stateRoot = join(rootDir, "fleet");
+    const store = new LocalLeaseStore({ rootDir: stateRoot });
+    const scope = { granularity: "path-set" as const, selector: ["packages/cli"] };
+    for (let n = 0; n < 101; n += 1) await store.acquire({ leaseId: "soft-" + n, holder: "a", ttlSeconds: 3600, mode: "soft", scope, phase: "COORD" });
+    await store.acquire({ leaseId: "zz-hard", holder: "a", ttlSeconds: 3600, mode: "hard", scope, phase: "COORD" });
+    const blocked = await executeCli(["route-task", "--task-id", "t", "--profiles-dir", profilesDir, "--state-root", stateRoot, "--coordination-scope", "path-set:packages/cli", "--coordination-holder", "b", "--json"], COMMAND_REGISTRY);
+    expect(blocked.exitCode).toBe(7);
+    expect(blocked.stderr).toContain("zz-hard");
+    expect((await store.query({ mode: "hard" })).leases).toHaveLength(1);
+  }, 30_000);
   it("records high-portability fallback route decisions without provider launch", async () => {
     const fixture = readFixture<{
       recordMode: string;

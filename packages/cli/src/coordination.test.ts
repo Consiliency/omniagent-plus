@@ -6,8 +6,43 @@ import { describe, expect, it } from "vitest";
 
 import { COMMAND_REGISTRY } from "./command-registry.js";
 import { executeCli } from "./runtime.js";
+import { LocalCoordinationChannel } from "@omniagent-plus/state-ledger";
+import { LocalLeaseStore } from "@omniagent-plus/worktree-leasing";
 
 describe("coordination commands", () => {
+  it("forwards list cursors for three same-second messages and leases", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "cli-coord-page-"));
+    const store = new LocalLeaseStore({ rootDir: stateRoot });
+    const channel = new LocalCoordinationChannel({ rootDir: stateRoot });
+    const scope = { granularity: "path-set" as const, selector: ["packages/cli"] };
+    for (const id of ["c", "b", "a"]) {
+      await store.acquire({ leaseId: id, holder: "a", mode: "soft", ttlSeconds: 3600, scope, phase: "COORD" });
+      await channel.send({ type: "done", sender: "a", scope });
+    }
+    for (const action of ["leases", "inbox"]) {
+      let cursor: { timestamp: string; id: string } | undefined;
+      const visited: string[] = [];
+      for (let n = 0; n < 3; n += 1) {
+        const result = await executeCli(["coordination", action, "list", "--state-root", stateRoot, "--limit", "1", ...(cursor ? ["--cursor", JSON.stringify(cursor)] : []), "--json"], COMMAND_REGISTRY);
+        expect(result.exitCode).toBe(0);
+        const payload = JSON.parse(result.stdout).result;
+        expect(payload.count).toBe(1);
+        const row = (payload.leases ?? payload.messages)[0];
+        const id = row.lease_id ?? row.message_id;
+        visited.push(id);
+        cursor = { timestamp: row.acquired_at ?? row.created_at, id };
+      }
+      expect(new Set(visited).size).toBe(3);
+    }
+  });
+  it("reports missing and invalid backend configuration with bounded causes", async () => {
+    for (const hostEnv of [{}, { OMNIAGENT_COORDINATION_SUPABASE_URL: "invalid", OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY: "synthetic-private" }]) {
+      const result = await executeCli(["coordination", "leases", "list", "--backend", "supabase", "--json"], COMMAND_REGISTRY, { hostEnv });
+      expect(result.exitCode).toBe(7);
+      expect(result.stderr).toMatch(/unavailable|validation/);
+      expect(result.stderr).not.toContain("synthetic-private");
+    }
+  });
   it("acquires and lists local coordination leases", async () => {
     const stateRoot = await mkdtemp(join(tmpdir(), "cli-coordination-"));
     const acquired = await executeCli(

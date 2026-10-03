@@ -16,6 +16,8 @@ import {
   AuditLedger,
   createSupabaseCoordinationChannelFromEnv,
   LocalCoordinationChannel,
+  coordinationFailureCause,
+  type BackendFailureCause,
 } from "@omniagent-plus/state-ledger";
 import {
   createSupabaseLeaseStoreFromEnv,
@@ -25,7 +27,7 @@ import {
 
 import { createCliError } from "../errors.js";
 import type { ParsedCliRequest } from "../args.js";
-import { routeTaskResultSchema } from "../types.js";
+import { routeTaskResultSchema, type CliContext } from "../types.js";
 import { parseCoordinationScope } from "./coordination.js";
 
 function latestBySequence<T>(
@@ -69,7 +71,7 @@ async function readWorktreeLease(
   return stored.lease;
 }
 
-async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { command: "route-task" }>) {
+async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { command: "route-task" }>, context?: CliContext) {
   if (request.coordinationScope === undefined) {
     return undefined;
   }
@@ -78,14 +80,20 @@ async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { c
   }
   const scope = parseCoordinationScope(request.coordinationScope);
 
-  const store =
+  let store;
+  let channel;
+  try {
+  store =
     request.coordinationBackend === "local"
       ? new LocalLeaseStore({ rootDir: request.stateRoot })
-      : createSupabaseLeaseStoreFromEnv();
-  const channel =
+      : createSupabaseLeaseStoreFromEnv(context?.hostEnv);
+  channel =
     request.coordinationBackend === "local"
       ? new LocalCoordinationChannel({ rootDir: request.stateRoot })
-      : createSupabaseCoordinationChannelFromEnv();
+      : createSupabaseCoordinationChannelFromEnv(context?.hostEnv);
+  } catch (error) {
+    return { status: "coordination_unavailable" as const, mode: request.coordinationMode, holder: request.coordinationHolder, scope, cause: coordinationFailureCause(error) };
+  }
 
   if (store === undefined) {
     return {
@@ -93,12 +101,13 @@ async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { c
       mode: request.coordinationMode,
       holder: request.coordinationHolder,
       scope,
+      cause: "unavailable" as BackendFailureCause,
     };
   }
 
   if (!request.record) {
     try {
-      const snapshot = await store.query({ scope });
+      const snapshot = await store.query({ scope, mode: request.coordinationMode === "hard" ? "hard" : undefined, limit: 1 });
       const conflict = request.coordinationMode === "hard"
         ? snapshot.leases.find((lease) => lease.mode === "hard")
         : undefined;
@@ -117,12 +126,13 @@ async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { c
         holder: request.coordinationHolder,
         scope,
       };
-    } catch {
+    } catch (error) {
       return {
         status: "coordination_unavailable" as const,
         mode: request.coordinationMode,
         holder: request.coordinationHolder,
         scope,
+        cause: coordinationFailureCause(error),
       };
     }
   }
@@ -139,11 +149,12 @@ async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { c
     phase: "CS-2.2",
     sendYieldRequest: request.coordinationRequestYield,
   });
-  return decision.routeDecision;
+  return { ...decision.routeDecision, cause: decision.cause, notification: decision.notification };
 }
 
 export async function runRouteTaskCommand(
   request: ParsedCliRequest,
+  context?: CliContext,
 ) {
   if (request.command !== "route-task") {
     throw new Error("route-task command dispatch received an unexpected request.");
@@ -156,7 +167,7 @@ export async function runRouteTaskCommand(
 
   const ledger = await AuditLedger.open({
     rootDir: request.stateRoot,
-    readOnly: !request.record,
+    readOnly: true,
   });
   const statusRecords = await ledger.listRecordsByKind("identity_profile_status");
   const cooldownRecords = await ledger.listRecordsByKind("provider_cooldown");
@@ -202,7 +213,6 @@ export async function runRouteTaskCommand(
     request.stateRoot,
     request.worktreeLeaseId,
   );
-  const leaseArbitration = await arbitrateCoordinationLease(request);
   const identityPool = buildIdentityPool({
     profiles: profiles.map((entry) => entry.profile),
     statuses: latestStatuses,
@@ -210,7 +220,7 @@ export async function runRouteTaskCommand(
     activeTurns: buildActiveTurnSnapshot(latestStatuses),
     classificationByProvider,
   });
-  const planned = planRoute({
+  const plannerInput = {
     taskId: request.taskId,
     identityPool,
     latestClassification,
@@ -227,8 +237,13 @@ export async function runRouteTaskCommand(
     },
     manualConfirmationProvided: request.manualConfirmationProvided,
     worktreeLease,
-    leaseArbitration,
-  });
+  };
+  try { planRoute(plannerInput); } catch (error) {
+    if (error instanceof TypeError && /preferred route target/.test(error.message)) throw createCliError("argument_error", "Unknown or contradictory preferred route target.");
+    throw error;
+  }
+  const leaseArbitration = await arbitrateCoordinationLease(request, context);
+  const planned = planRoute({ ...plannerInput, leaseArbitration });
   let routeDecision = planned.decision;
   let persistedRecord:
     | {
@@ -239,9 +254,10 @@ export async function runRouteTaskCommand(
   let recordMode: "dry_run" | "recorded" = "dry_run";
 
   if (request.record) {
-    routeDecision = await persistRouteDecision(ledger, routeDecision);
+    const writableLedger = await AuditLedger.open({ rootDir: request.stateRoot });
+    routeDecision = await persistRouteDecision(writableLedger, routeDecision);
     recordMode = "recorded";
-    const latestRouteRecord = (await ledger.listTaskRecords(request.taskId))
+    const latestRouteRecord = (await writableLedger.listTaskRecords(request.taskId))
       .filter((record) => record.kind === "route_decision")
       .sort((left, right) => left.sequence - right.sequence)
       .at(-1);
@@ -274,6 +290,8 @@ export async function runRouteTaskCommand(
     portability: planned.portability,
     routeDecision,
     persistedRecord,
+    coordinationCause: leaseArbitration && "cause" in leaseArbitration ? leaseArbitration.cause : undefined,
+    coordinationNotification: leaseArbitration && "notification" in leaseArbitration ? leaseArbitration.notification : undefined,
   });
 
   if (routeDecision.launchGate?.action !== "allowed") {

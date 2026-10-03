@@ -22,6 +22,20 @@ function readFixture<T>(name: string): T {
 const profilesDir = new URL("../../../fixtures/identity/profiles", import.meta.url).pathname;
 
 describe("identity commands", () => {
+  it("uses only injected allowlisted environment presence and persists no values", async () => {
+    const stateRoot = await mkdtemp(join(tmpdir(), "cli-env-presence-"));
+    const argv = ["identities", "preflight", "--profile-id", "profile-codex-dev", "--profiles-dir", profilesDir, "--state-root", stateRoot, "--json"];
+    const hostEnv = { OPENAI_ORG: "synthetic-private-org", UNLISTED_SETTING: "synthetic-private-unlisted" };
+    const result = await executeCli(argv, COMMAND_REGISTRY, { hostEnv });
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout).result.environment.launchEnvKeys).toEqual(["OPENAI_ORG"]);
+    expect(result.stdout).not.toContain("synthetic-private");
+    expect(result.stdout).not.toContain("UNLISTED_SETTING");
+    const store = await IdentityProfileStatusStore.open({ rootDir: stateRoot });
+    expect(JSON.stringify(await store.listByProfileId("profile-codex-dev"))).not.toContain("synthetic-private");
+    const noInjection = await executeCli(argv, COMMAND_REGISTRY);
+    expect(JSON.parse(noInjection.stdout).result.environment.launchEnvKeys).toEqual([]);
+  });
   it("lists metadata_only identity profiles", async () => {
     const fixture = readFixture<{
       count: number;

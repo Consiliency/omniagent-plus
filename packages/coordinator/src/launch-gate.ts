@@ -1,5 +1,7 @@
 import {
   createRuntimeFailure,
+  providerFamilyIds,
+  harnessIds,
   type AgentSession,
   type CreateSessionRequest,
   type RouteDecision,
@@ -112,6 +114,8 @@ export async function sendTurnWithRouteDecision(
   assertLaunchDecision(input.decision);
   const session = await input.provider.getSessionInfo(input.request.sessionId);
   if (session.id !== input.request.sessionId
+    || !harnessIds.includes(session.targetHarness)
+    || session.targetProvider === undefined || !providerFamilyIds.includes(session.targetProvider)
     || session.targetHarness !== input.decision.selectedHarness
     || session.targetProvider !== input.decision.selectedProvider
     || session.identityProfileId !== input.decision.selectedIdentityProfileId) {

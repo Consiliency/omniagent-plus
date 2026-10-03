@@ -1,5 +1,48 @@
 # Worktree Leasing
 
+## COORD behavior
+
+COORD uses an authoritative validated private registry. Mutations durably stage
+a stable record ID, append it once, publish registry/map projections retaining
+intent, then clear intent last. Recovery completes projections without duplicate
+IDs. Ambiguous outcomes quarantine their lease/path/key. Inspection reports
+incomplete mutation/reclamation without initialization, locks or repair.
+Malformed/wrong-version files refuse unchanged; identifiers have no prototype
+collisions. Elapsed TTL never steals a live or uncertain physical owner.
+
+DATA SQLite arbitration retains its canonical inode permanently. Holder
+sidecars are diagnostics only; do not delete locks. Legacy CoordinationStore
+physical acquisition is denied on COORD-managed shared roots; standalone
+compatibility remains. Default writer wait is2seconds; Git children have30second
+deadlines and wait for exit. Retry contention and budget heartbeat TTL for
+operation time; expiry is uncertainty, never takeover authority.
+
+Deletion requires independently configured managedRoot before acquisition,
+persisted root/path identity, holder/fence proof, actual Git registration,
+recorded repo, containment and no symlink component below the root. CLI
+--managed-root cannot establish legacy provenance. Under the mutation lock,
+cleanup rechecks actual host/liveness/dirty/branch/path immediately before
+non-force Git removal; there is no recursive rm fallback. ENOENT proof may
+reconcile legacy metadata with reconciled=true/deleted=false. Removal followed
+by release refusal reports deleted=true/releaseIncomplete and keeps durable
+intent. Ambiguous pre-marker recovery does not infer acknowledged deletion.
+
+Shared-ledger retention uses WorktreeLeaseManager.retainHistory(policy, now):
+one DATA writer snapshot preserves active/pending/unknown/genuine references,
+then journals coupled released-history/tombstone reclamation. Watermarks prevent
+older clean metadata resurfacing after newer dirty proof is pruned. Protected
+capacity exhaustion stays incomplete. Direct DATA retention on a COORD shared
+ledger is unsupported; INTEG owns scheduling/operator wiring.
+
+```ts
+const manager = await WorktreeLeaseManager.open({ rootDir: stateRoot, managedRoot });
+await manager.retainHistory({ maxAgeMs: 7 * 24 * 60 * 60 * 1000 }, new Date());
+```
+
+Worktree lists default100/max500 and use canonical UTC millisecond acquiredAt/ID
+cursors with bytewise ties. Diff numstat includes staged and unstaged tracked
+changes; untracked names count as files, not measured line totals.
+
 `@omniagent-plus/worktree-leasing` satisfies `IF-0-WORKTREE-7`.
 
 ## Lease Model

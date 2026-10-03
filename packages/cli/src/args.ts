@@ -2,7 +2,8 @@ import { existsSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { parseArgs } from "node:util";
 
-import { sanitizeWorkspacePath } from "@consiliency/runtime-provider";
+import { harnessIds, providerFamilyIds, sanitizeWorkspacePath } from "@consiliency/runtime-provider";
+import { validateCoordinationPage, type CoordinationPage } from "@omniagent-plus/state-ledger";
 
 import { createCliError } from "./errors.js";
 import type { CliCommandKey } from "./types.js";
@@ -50,7 +51,7 @@ export interface ParsedIdentitiesPreflightRequest extends ParsedCliBase {
   readonly blockedReason?: string;
 }
 
-export interface ParsedWorktreesListRequest extends ParsedCliBase {
+export interface ParsedWorktreesListRequest extends ParsedCliBase, CoordinationPage {
   readonly command: "worktrees list";
 }
 
@@ -59,9 +60,15 @@ export interface ParsedWorktreesCleanupRequest extends ParsedCliBase {
   readonly leaseId: string;
   readonly currentHost?: string;
   readonly allowReadOnlyCleanup: boolean;
+  readonly managedRoot?: string;
+  readonly holderProcessId: number;
+  readonly holderHost: string;
+  readonly holderSessionId?: string;
+  readonly holderTurnId?: string;
+  readonly fencingToken: string;
 }
 
-export interface ParsedCoordinationLeasesListRequest extends ParsedCliBase {
+export interface ParsedCoordinationLeasesListRequest extends ParsedCliBase, CoordinationPage {
   readonly command: "coordination leases list";
   readonly backend: CoordinationBackend;
   readonly scope?: string;
@@ -104,7 +111,7 @@ export interface ParsedCoordinationInboxSendRequest extends ParsedCliBase {
   readonly handoffPacketId?: string;
 }
 
-export interface ParsedCoordinationInboxListRequest extends ParsedCliBase {
+export interface ParsedCoordinationInboxListRequest extends ParsedCliBase, CoordinationPage {
   readonly command: "coordination inbox list";
   readonly backend: CoordinationBackend;
   readonly scope?: string;
@@ -199,11 +206,25 @@ function parseInteger(
   if (value === undefined) {
     return undefined;
   }
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed < minimum) {
+  const parsed = /^\d+$/.test(value) ? Number(value) : NaN;
+  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
     throw createCliError("argument_error", `${label} must be an integer >= ${minimum}.`);
   }
   return parsed;
+}
+
+function parsePage(values: Record<string, string | boolean | string[] | undefined>, milliseconds = false): CoordinationPage {
+  try {
+    const limit = parseInteger(values.limit as string | undefined, "limit", { minimum: 1 });
+    const cursor = values.cursor === undefined ? undefined : JSON.parse(values.cursor as string);
+    const page = validateCoordinationPage({ limit, cursor });
+    return milliseconds && cursor ? { ...page, cursor: { timestamp: new Date(cursor.timestamp).toISOString(), id: cursor.id } } : page;
+  } catch { throw createCliError("argument_error", "limit must be 1..500 and cursor must contain a valid timestamp and id."); }
+}
+
+function parseTarget(value: string | undefined, allowed: readonly string[], label: string): string | undefined {
+  if (value !== undefined && !allowed.includes(value)) throw createCliError("argument_error", `Unknown ${label}.`);
+  return value;
 }
 
 function parseCoordinationBackend(value: string | undefined): CoordinationBackend {
@@ -528,9 +549,9 @@ export function parseCliArgs(
   ) {
     if (second === "list") {
       const base = buildBase("worktrees list", cwd, globals);
-      const parsed = parseCommandArgs(rest, {});
+      const parsed = parseCommandArgs(rest, { limit: { type: "string" }, cursor: { type: "string" } });
       assertNoPositionals(parsed.positionals, "worktrees list");
-      return base;
+      return { ...base, ...parsePage(parsed.values, true) };
     }
 
     const base = buildBase("worktrees cleanup", cwd, globals);
@@ -538,7 +559,14 @@ export function parseCliArgs(
       "lease-id": { type: "string" },
       "current-host": { type: "string" },
       "allow-read-only-cleanup": { type: "boolean" },
+      "managed-root": { type: "string" },
+      "holder-process-id": { type: "string" },
+      "holder-host": { type: "string" },
+      "holder-session-id": { type: "string" },
+      "holder-turn-id": { type: "string" },
+      "fencing-token": { type: "string" },
     });
+    if (!parsed.values["holder-process-id"] || !parsed.values["holder-host"] || !parsed.values["fencing-token"]) throw createCliError("argument_error", "Cleanup requires independent holder-process-id, holder-host and fencing-token.");
     return {
       ...base,
       leaseId: pickRequiredIdentifier(
@@ -549,6 +577,12 @@ export function parseCliArgs(
       currentHost: parsed.values["current-host"] as string | undefined,
       allowReadOnlyCleanup:
         parsed.values["allow-read-only-cleanup"] === true,
+      managedRoot: parsed.values["managed-root"] === undefined ? undefined : sanitizePath(parsed.values["managed-root"] as string, "managed root"),
+      holderProcessId: parseInteger(parsed.values["holder-process-id"] as string, "holder-process-id", { minimum: 1 })!,
+      holderHost: parsed.values["holder-host"] as string,
+      holderSessionId: parsed.values["holder-session-id"] as string | undefined,
+      holderTurnId: parsed.values["holder-turn-id"] as string | undefined,
+      fencingToken: parsed.values["fencing-token"] as string,
     };
   }
 
@@ -559,10 +593,13 @@ export function parseCliArgs(
       const parsed = parseCommandArgs(actionRest, {
         backend: { type: "string" },
         scope: { type: "string" },
+        limit: { type: "string" },
+        cursor: { type: "string" },
       });
       assertNoPositionals(parsed.positionals, "coordination leases list");
       return {
         ...base,
+        ...parsePage(parsed.values),
         backend: parseCoordinationBackend(parsed.values.backend as string | undefined),
         scope: parsed.values.scope as string | undefined,
       };
@@ -675,10 +712,13 @@ export function parseCliArgs(
         backend: { type: "string" },
         type: { type: "string" },
         scope: { type: "string" },
+        limit: { type: "string" },
+        cursor: { type: "string" },
       });
       assertNoPositionals(parsed.positionals, "coordination inbox list");
       return {
         ...base,
+        ...parsePage(parsed.values),
         backend: parseCoordinationBackend(parsed.values.backend as string | undefined),
         type:
           parsed.values.type === undefined
@@ -708,8 +748,8 @@ export function parseCliArgs(
     assertNoPositionals(parsed.positionals, "classify-limit");
     return {
       ...base,
-      provider: parsed.values.provider as string | undefined,
-      harness: parsed.values.harness as string | undefined,
+      provider: parseTarget(parsed.values.provider as string | undefined, [...providerFamilyIds, "openai-api", "anthropic-api", "google-api", "generic-openai-compatible", "minimax", "zai", "generic"], "provider"),
+      harness: parseTarget(parsed.values.harness as string | undefined, harnessIds, "harness"),
       statusCode: parseInteger(
         parsed.values["status-code"] as string | undefined,
         "status-code",
@@ -768,9 +808,9 @@ export function parseCliArgs(
       ...base,
       taskId,
       preferredProvider:
-        parsed.values["preferred-provider"] as string | undefined,
+        parseTarget(parsed.values["preferred-provider"] as string | undefined, providerFamilyIds, "preferred provider"),
       preferredHarness:
-        parsed.values["preferred-harness"] as string | undefined,
+        parseTarget(parsed.values["preferred-harness"] as string | undefined, harnessIds, "preferred harness"),
       preferredIdentityProfileId:
         parsed.values["preferred-identity-profile-id"] as string | undefined,
       classificationTaskId:

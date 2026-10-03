@@ -130,6 +130,7 @@ function scopeMatches(
 
 function buildMessage(input: CoordinationMessageInput, now: string): CoordinationMessage {
   assertMetadataSafe(input, { inertOnly: true });
+  assertMetadataSafe(input);
   input = JSON.parse(JSON.stringify(input)) as CoordinationMessageInput;
   const createdAt = toContractTimestamp(now);
   return coordinationMessageSchema.parse({

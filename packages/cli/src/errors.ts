@@ -4,6 +4,7 @@ import {
   type RuntimeFailure,
 } from "@consiliency/runtime-provider";
 import { ZodError, z } from "zod";
+import { CoordinationBackendError } from "@omniagent-plus/state-ledger";
 
 export const cliErrorCategories = [
   "argument_error",
@@ -137,6 +138,7 @@ export function normalizeCliError(error: unknown): CliErrorPayload {
   if (error instanceof CliError) {
     return error.payload;
   }
+  if (error instanceof CoordinationBackendError) return createCliError("route_block", "Coordination backend failed.", { cause: error.failureCause }).payload;
 
   if (error instanceof ZodError) {
     return createCliError("validation_failure", "Validation failed.", {

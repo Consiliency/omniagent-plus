@@ -33,6 +33,7 @@ import {
   coordinationLeasesListResultSchema,
   coordinationLeasesReleaseResultSchema,
   coordinationLeasesRenewResultSchema,
+  type CliContext,
 } from "../types.js";
 
 export function parseCoordinationScope(value: string): ConsiliencyLeaseScope {
@@ -56,16 +57,18 @@ function summarizeLease(lease: ConsiliencyLease) {
 function leaseStore(
   backend: CoordinationBackend,
   stateRoot: string,
+  hostEnv?: Readonly<Record<string, string | undefined>>,
 ): LeaseStore {
   if (backend === "local") {
     return new LocalLeaseStore({ rootDir: stateRoot });
   }
-  const store = createSupabaseLeaseStoreFromEnv();
+  const store = createSupabaseLeaseStoreFromEnv(hostEnv);
   if (store === undefined) {
     throw createCliError(
       "route_block",
       "Supabase coordination backend is unavailable.",
       {
+        cause: "unavailable",
         missingEnv: [
           "OMNIAGENT_COORDINATION_SUPABASE_URL",
           "OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY",
@@ -79,16 +82,18 @@ function leaseStore(
 function channel(
   backend: CoordinationBackend,
   stateRoot: string,
+  hostEnv?: Readonly<Record<string, string | undefined>>,
 ): CoordinationChannel {
   if (backend === "local") {
     return new LocalCoordinationChannel({ rootDir: stateRoot });
   }
-  const supabaseChannel = createSupabaseCoordinationChannelFromEnv();
+  const supabaseChannel = createSupabaseCoordinationChannelFromEnv(hostEnv);
   if (supabaseChannel === undefined) {
     throw createCliError(
       "route_block",
       "Supabase coordination backend is unavailable.",
       {
+        cause: "unavailable",
         missingEnv: [
           "OMNIAGENT_COORDINATION_SUPABASE_URL",
           "OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY",
@@ -99,10 +104,12 @@ function channel(
   return supabaseChannel;
 }
 
-async function runLeasesList(request: ParsedCoordinationLeasesListRequest) {
-  const store = leaseStore(request.backend, request.stateRoot);
+async function runLeasesList(request: ParsedCoordinationLeasesListRequest, context?: CliContext) {
+  const store = leaseStore(request.backend, request.stateRoot, context?.hostEnv);
   const snapshot = await store.query({
     scope: request.scope === undefined ? undefined : parseCoordinationScope(request.scope),
+    limit: request.limit,
+    cursor: request.cursor,
   });
   return coordinationLeasesListResultSchema.parse({
     schema: "cli.coordination.leases.list.result.v0.1",
@@ -112,8 +119,8 @@ async function runLeasesList(request: ParsedCoordinationLeasesListRequest) {
   });
 }
 
-async function runLeasesAcquire(request: ParsedCoordinationLeasesAcquireRequest) {
-  const store = leaseStore(request.backend, request.stateRoot);
+async function runLeasesAcquire(request: ParsedCoordinationLeasesAcquireRequest, context?: CliContext) {
+  const store = leaseStore(request.backend, request.stateRoot, context?.hostEnv);
   const result = await store.acquire({
     leaseId: request.leaseId,
     holder: request.holder,
@@ -129,6 +136,7 @@ async function runLeasesAcquire(request: ParsedCoordinationLeasesAcquireRequest)
     lease: result.lease === undefined ? undefined : summarizeLease(result.lease),
     conflict: result.conflict === undefined ? undefined : summarizeLease(result.conflict),
     failure: result.failure,
+    cause: result.cause,
   });
   if (!result.granted && request.mode === "hard") {
     throw createCliError("route_block", `Lease acquire blocked: ${result.failure ?? "conflict"}.`, {
@@ -138,8 +146,8 @@ async function runLeasesAcquire(request: ParsedCoordinationLeasesAcquireRequest)
   return payload;
 }
 
-async function runLeasesRenew(request: ParsedCoordinationLeasesRenewRequest) {
-  const store = leaseStore(request.backend, request.stateRoot);
+async function runLeasesRenew(request: ParsedCoordinationLeasesRenewRequest, context?: CliContext) {
+  const store = leaseStore(request.backend, request.stateRoot, context?.hostEnv);
   const result = await store.renew(request.leaseId, request.holder, {
     ttlSeconds: request.ttlSeconds,
   });
@@ -149,22 +157,24 @@ async function runLeasesRenew(request: ParsedCoordinationLeasesRenewRequest) {
     renewed: result.renewed,
     lease: result.lease === undefined ? undefined : summarizeLease(result.lease),
     failure: result.failure,
+    cause: result.cause,
   });
 }
 
-async function runLeasesRelease(request: ParsedCoordinationLeasesReleaseRequest) {
-  const store = leaseStore(request.backend, request.stateRoot);
+async function runLeasesRelease(request: ParsedCoordinationLeasesReleaseRequest, context?: CliContext) {
+  const store = leaseStore(request.backend, request.stateRoot, context?.hostEnv);
   const result = await store.release(request.leaseId, request.holder);
   return coordinationLeasesReleaseResultSchema.parse({
     schema: "cli.coordination.leases.release.result.v0.1",
     backend: request.backend,
     released: result.released,
     failure: result.failure,
+    cause: result.cause,
   });
 }
 
-async function runInboxSend(request: ParsedCoordinationInboxSendRequest) {
-  const inbox = channel(request.backend, request.stateRoot);
+async function runInboxSend(request: ParsedCoordinationInboxSendRequest, context?: CliContext) {
+  const inbox = channel(request.backend, request.stateRoot, context?.hostEnv);
   const receipt = await inbox.send({
     type: request.type,
     sender: request.sender,
@@ -180,11 +190,13 @@ async function runInboxSend(request: ParsedCoordinationInboxSendRequest) {
   });
 }
 
-async function runInboxList(request: ParsedCoordinationInboxListRequest) {
-  const inbox = channel(request.backend, request.stateRoot);
+async function runInboxList(request: ParsedCoordinationInboxListRequest, context?: CliContext) {
+  const inbox = channel(request.backend, request.stateRoot, context?.hostEnv);
   const messages = await inbox.list({
     scope: request.scope === undefined ? undefined : parseCoordinationScope(request.scope),
     type: request.type,
+    limit: request.limit,
+    cursor: request.cursor,
   });
   return coordinationInboxListResultSchema.parse({
     schema: "cli.coordination.inbox.list.result.v0.1",
@@ -194,20 +206,20 @@ async function runInboxList(request: ParsedCoordinationInboxListRequest) {
   });
 }
 
-export async function runCoordinationCommand(request: ParsedCliRequest) {
+export async function runCoordinationCommand(request: ParsedCliRequest, context?: CliContext) {
   switch (request.command) {
     case "coordination leases list":
-      return runLeasesList(request);
+      return runLeasesList(request, context);
     case "coordination leases acquire":
-      return runLeasesAcquire(request);
+      return runLeasesAcquire(request, context);
     case "coordination leases renew":
-      return runLeasesRenew(request);
+      return runLeasesRenew(request, context);
     case "coordination leases release":
-      return runLeasesRelease(request);
+      return runLeasesRelease(request, context);
     case "coordination inbox send":
-      return runInboxSend(request);
+      return runInboxSend(request, context);
     case "coordination inbox list":
-      return runInboxList(request);
+      return runInboxList(request, context);
     default:
       throw createCliError("internal_failure", "coordination command dispatch received an unexpected request.");
   }

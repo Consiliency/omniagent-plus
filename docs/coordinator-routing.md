@@ -1,5 +1,33 @@
 # Coordinator Routing
 
+## COORD behavior
+
+COORD evaluates every cooldown source at one injected clock (default current
+time). Valid expired resets release fixed-window, monthly and unknown-limit
+cooldowns; missing/invalid resets and auth/billing/policy blocks remain blocked.
+Stale reset-bound classifications no longer pause an available identity.
+
+Preferred provider, harness and identity form one conjunctive target. Unknown or
+contradictory preferences reject before effects. Substitution follows existing
+portability/account-switch policy with explicit fallback and reason. sendTurn
+matches the established session ID/provider/harness/identity before persistence
+and sending; lookup failure refuses. Matching sends remain persisted before launch.
+
+Retries respect failure.retryable, classification budgets and supplied idempotency
+posture. Mutation retries require idempotencySafe=true. Counters are nonnegative
+safe integers. Complete integer or HTTP-date Retry-After values are relative to
+injected now and capped at300seconds; invalid/overflow values are ignored.
+Missing valid delay evidence uses bounded deterministic exponential backoff.
+The caller owns counters/timers; there is no automatic retry loop. Confidence is
+heuristic, not calibrated accuracy. Publication uses anchored known rate headers
+and DATA-safe excerpts before truncation.
+
+incrementActiveTurns stays increment-only; decrementActiveTurns settles explicit
+counts. ActiveTurnAccounting is a task-lifetime owner: begin requires a new turn
+identity and settle decrements once across repeated terminal signals. INTEG owns
+scheduling and lifecycle persistence. Replay uses only preceding matching
+provider/harness/identity classifications; task scope does not imply session scope.
+
 `IF-0-COORDINATOR-9` freezes a durable coordinator boundary that plans and
 replays route decisions before any provider launch.
 

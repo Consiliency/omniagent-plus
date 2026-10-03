@@ -2,8 +2,6 @@ import { hostname } from "node:os";
 
 import {
   cleanupLeasedWorktree,
-  inspectWorktreeDirtyState,
-  readGitBranch,
   WorktreeLeaseManager,
   type CleanupResult,
 } from "@omniagent-plus/worktree-leasing";
@@ -12,6 +10,7 @@ import { createCliError } from "../errors.js";
 import type {
   ParsedCliRequest,
   ParsedWorktreesCleanupRequest,
+  ParsedWorktreesListRequest,
 } from "../args.js";
 import {
   worktreesCleanupResultSchema,
@@ -36,36 +35,18 @@ function summarizeLease(lease: Awaited<ReturnType<WorktreeLeaseManager["listActi
   };
 }
 
-async function runWorktreesList(request: ParsedCliRequest) {
+async function runWorktreesList(request: ParsedWorktreesListRequest) {
   const manager = await WorktreeLeaseManager.open({
     rootDir: request.stateRoot,
+    readOnly: true,
   });
-  const leases = await manager.listActiveLeases();
+  const leases = await manager.listActiveLeases({ limit: request.limit, cursor: request.cursor });
 
   return worktreesListResultSchema.parse({
     schema: "cli.worktrees.list.result.v0.1",
     count: leases.length,
-    leases: leases
-      .slice()
-      .sort((left, right) => left.id.localeCompare(right.id))
-      .map(summarizeLease),
+    leases: leases.map(summarizeLease),
   });
-}
-
-async function readBranchMatch(
-  repoRoot: string | undefined,
-  worktreePath: string,
-  branchName: string,
-): Promise<boolean | undefined> {
-  if (repoRoot === undefined) {
-    return undefined;
-  }
-
-  try {
-    return (await readGitBranch(worktreePath)) === branchName;
-  } catch {
-    return undefined;
-  }
 }
 
 function cleanupPayload(
@@ -78,6 +59,8 @@ function cleanupPayload(
     deleted: result.deleted,
     reason: result.reason,
     metadataOnlyEvidence: result.metadataOnlyEvidence,
+    reconciled: result.reconciled,
+    releaseIncomplete: result.releaseIncomplete,
   });
 }
 
@@ -86,6 +69,7 @@ async function runWorktreesCleanup(
 ) {
   const manager = await WorktreeLeaseManager.open({
     rootDir: request.stateRoot,
+    managedRoot: request.managedRoot,
   });
   const stored = await manager.getStoredLeaseRecord(request.leaseId);
 
@@ -95,23 +79,17 @@ async function runWorktreesCleanup(
     });
   }
 
-  const dirtyState = await inspectWorktreeDirtyState(stored.lease.path);
   const result = await cleanupLeasedWorktree(manager, stored.lease, {
-    activeFencingToken: stored.lease.fencingToken,
+    activeFencingToken: request.fencingToken,
+    holder: { processId: request.holderProcessId, host: request.holderHost, sessionId: request.holderSessionId, turnId: request.holderTurnId },
     currentHost: request.currentHost ?? hostname(),
-    dirtyState,
-    branchMatches: await readBranchMatch(
-      stored.repoRoot,
-      stored.lease.path,
-      stored.lease.branchName,
-    ),
     repoRoot: stored.repoRoot,
     worktreePath: stored.lease.path,
     allowReadOnlyCleanup: request.allowReadOnlyCleanup,
   });
   const payload = cleanupPayload(request.leaseId, result);
 
-  if (!result.deleted) {
+  if ((!result.deleted && !result.reconciled) || result.releaseIncomplete) {
     throw createCliError("cleanup_block", `Worktree cleanup blocked: ${result.reason}.`, {
       result: payload,
     });

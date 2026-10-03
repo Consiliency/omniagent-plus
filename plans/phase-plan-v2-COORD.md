@@ -108,6 +108,7 @@ Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniage
   - test: unknown flags reject, known flags pass; invalid enum/integer causes zero effects; default route no new state; record effects explicit; cleanup independent root/holder/fence absent/mismatch/success/reconciliation and legacy provenance-free deletion denial, no-root reconciliation and deleted/release-incomplete reporting; preflight injected environment values never appear; backend cause categories survive safely.
   - impl: resolved CLI contracts; preserve phase/result schemas and actual effect descriptions.
   - verify: `pnpm exec vitest run packages/cli/src`.
+  - **Execution ownership amendment (2026-10-03)**: `packages/cli/src/classify-limit.test.ts` is also owned for updating its existing redaction assertion to the earlier safe catalog-publication boundary. No CLI classifier implementation or public contract change is added. The production panel must review this narrow test-maintenance amendment before merge; historical plan approval remains tied to its original digest.
 
 ### SL-5 — Verification and acceptance reducer
 

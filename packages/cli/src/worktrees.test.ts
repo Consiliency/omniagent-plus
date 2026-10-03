@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rename } from "node:fs/promises";
 import { hostname, tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -44,6 +44,9 @@ async function createLease(
 ): Promise<{
   readonly stateRoot: string;
   readonly leaseId: string;
+  readonly managedRoot: string;
+  readonly fencingToken: string;
+  readonly path: string;
 }> {
   const rootDir = await mkdtemp(join(tmpdir(), "cli-worktrees-"));
   const repoRoot = await createRepo(rootDir);
@@ -63,6 +66,7 @@ async function createLease(
   const stateRoot = join(rootDir, "ledger");
   const manager = await WorktreeLeaseManager.open({
     rootDir: stateRoot,
+    managedRoot: dirname(worktree.path),
   });
   const lease = await manager.acquireLease(
     {
@@ -88,6 +92,9 @@ async function createLease(
   return {
     stateRoot,
     leaseId: lease.lease!.id,
+    managedRoot: dirname(worktree.path),
+    fencingToken: lease.lease!.fencingToken,
+    path: worktree.path,
   };
 }
 
@@ -101,6 +108,17 @@ function readFixture<T>(name: string): T {
 }
 
 describe("worktree commands", () => {
+  it("requires independent cleanup ownership and preserves a replacement path", async () => {
+    const lease = await createLease(2147483647, hostname());
+    const missing = await executeCli(["worktrees", "cleanup", "--lease-id", lease.leaseId, "--state-root", lease.stateRoot, "--json"], COMMAND_REGISTRY);
+    expect(missing.exitCode).toBe(2);
+    await rename(lease.path, lease.path + "-original");
+    await mkdir(lease.path);
+    await writeFile(join(lease.path, "sentinel"), "preserve");
+    const result = await executeCli(["worktrees", "cleanup", "--lease-id", lease.leaseId, "--state-root", lease.stateRoot, "--managed-root", lease.managedRoot, "--holder-process-id", "2147483647", "--holder-host", hostname(), "--fencing-token", lease.fencingToken, "--json"], COMMAND_REGISTRY);
+    expect(result.exitCode).toBe(6);
+    expect(await readFile(join(lease.path, "sentinel"), "utf8")).toBe("preserve");
+  });
   it("lists active worktree leases from durable state", async () => {
     const fixture = readFixture<{
       count: number;
@@ -141,7 +159,7 @@ describe("worktree commands", () => {
       deleted: boolean;
       reason: string;
     }>("cleanup.json");
-    const stale = await createLease(999999, hostname());
+    const stale = await createLease(2147483647, hostname());
     const cleaned = await executeCli(
       [
         "worktrees",
@@ -150,6 +168,10 @@ describe("worktree commands", () => {
         stale.leaseId,
         "--state-root",
         stale.stateRoot,
+        "--managed-root", stale.managedRoot,
+        "--holder-process-id", "2147483647",
+        "--holder-host", hostname(),
+        "--fencing-token", stale.fencingToken,
         "--json",
       ],
       COMMAND_REGISTRY,
@@ -174,6 +196,10 @@ describe("worktree commands", () => {
         blocked.leaseId,
         "--state-root",
         blocked.stateRoot,
+        "--managed-root", blocked.managedRoot,
+        "--holder-process-id", String(process.pid),
+        "--holder-host", "display",
+        "--fencing-token", blocked.fencingToken,
         "--json",
       ],
       COMMAND_REGISTRY,
