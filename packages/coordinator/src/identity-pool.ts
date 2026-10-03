@@ -7,7 +7,7 @@ import type {
 
 import { createEmptyActiveTurnSnapshot } from "./active-turns.js";
 import { evaluateAdaptiveConcurrency } from "./adaptive-concurrency.js";
-import { evaluateCooldownState } from "./cooldowns.js";
+import { evaluateCooldownState, resetBoundCooldownExpired } from "./cooldowns.js";
 import type {
   BuildIdentityPoolInput,
   IdentityPoolMember,
@@ -48,13 +48,14 @@ function buildCandidate(
     status,
     providerCooldown,
     classification,
+    now: input.now,
   });
   const providerHealth = input.providerHealth?.[profile.provider] ?? 1;
   const concurrency = evaluateAdaptiveConcurrency({
     baseTarget: profile.maxActiveTurns,
     maxActiveTurns: profile.maxActiveTurns,
     activeTurns,
-    classification,
+    classification: classification !== undefined && resetBoundCooldownExpired(classification.type, classification.resetAt, Date.parse(input.now!)) ? undefined : classification,
     providerHealth,
   });
   const reasons: string[] = [];
@@ -96,6 +97,8 @@ function buildCandidate(
 export function buildIdentityPool(
   input: BuildIdentityPoolInput,
 ): IdentityPoolSnapshot {
+  input = { ...input, now: input.now ?? new Date().toISOString() };
+  if (!Number.isFinite(Date.parse(input.now!))) throw new TypeError("Invalid identity pool clock");
   const statuses = mapStatuses(input.statuses ?? []);
   const providerCooldowns = mapProviderCooldowns(input.providerCooldowns ?? []);
   const candidates = input.profiles

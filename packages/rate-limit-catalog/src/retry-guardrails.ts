@@ -41,12 +41,18 @@ export function applyRetryGuardrails(
   input: RetryGuardrailInput,
 ): RetryGuardrailDecision {
   const { classification, repeatedAttempts } = input;
+  for (const count of [repeatedAttempts, input.maxRepeatedAttempts ?? 0]) {
+    if (!Number.isSafeInteger(count) || count < 0) throw new TypeError("Retry counts must be nonnegative safe integers");
+  }
+  const suppliedDelay = classification.retryAfterSeconds;
+  const delay = suppliedDelay !== undefined && Number.isFinite(suppliedDelay) && suppliedDelay >= 0
+    ? Math.min(300, suppliedDelay) : Math.min(300, 2 ** Math.min(9, repeatedAttempts));
 
   if (hardStopTypes.has(classification.type)) {
     return {
       allowRetry: false,
       classification,
-      nextDelaySeconds: classification.retryAfterSeconds,
+      nextDelaySeconds: delay,
       reason:
         classification.resetAt || classification.retryAfterSeconds !== undefined
           ? "wait_for_reset"
@@ -58,15 +64,13 @@ export function applyRetryGuardrails(
     return {
       allowRetry: false,
       classification,
-      nextDelaySeconds: classification.retryAfterSeconds,
+      nextDelaySeconds: delay,
       reason: "classification_blocks_retry",
     };
   }
 
   const maxRepeatedAttempts =
-    input.maxRepeatedAttempts ??
-    retryBudgetByType[classification.type] ??
-    0;
+    Math.min(input.maxRepeatedAttempts ?? Infinity, retryBudgetByType[classification.type] ?? 0);
 
   if (repeatedAttempts >= maxRepeatedAttempts) {
     return {
@@ -80,7 +84,7 @@ export function applyRetryGuardrails(
           routeNewWorkElsewhere: true,
         },
       ),
-      nextDelaySeconds: classification.retryAfterSeconds,
+      nextDelaySeconds: delay,
       reason: "retry_storm_guardrail",
     };
   }
@@ -88,7 +92,7 @@ export function applyRetryGuardrails(
   return {
     allowRetry: true,
     classification,
-    nextDelaySeconds: classification.retryAfterSeconds,
+    nextDelaySeconds: delay,
     reason: "retry_allowed",
   };
 }

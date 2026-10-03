@@ -84,7 +84,6 @@ function assertCreateSessionLabels(
 
   if (
     request.identityProfileId !== undefined
-    && decision.selectedIdentityProfileId !== undefined
     && decision.selectedIdentityProfileId !== request.identityProfileId
   ) {
     throw createRuntimeFailure({
@@ -111,6 +110,13 @@ export async function sendTurnWithRouteDecision(
   input: LaunchGateInput<SendTurnRequest>,
 ): Promise<TurnHandle> {
   assertLaunchDecision(input.decision);
+  const session = await input.provider.getSessionInfo(input.request.sessionId);
+  if (session.id !== input.request.sessionId
+    || session.targetHarness !== input.decision.selectedHarness
+    || session.targetProvider !== input.decision.selectedProvider
+    || session.identityProfileId !== input.decision.selectedIdentityProfileId) {
+    throw createRuntimeFailure({ actor: "policy", category: "state_conflict", message: "Established session does not match the route target", retryable: false, scope: "turn" });
+  }
   await persistRouteDecision(input.routeStore, input.decision);
   return input.provider.sendTurn(input.request);
 }

@@ -17,21 +17,16 @@ function buildPortability(input: RoutePlannerInput): PortabilityScore {
 }
 
 function findPreferredCandidate(input: RoutePlannerInput): IdentityPoolMember | undefined {
-  if (input.preferredIdentityProfileId) {
-    return input.identityPool.candidates.find(
-      (candidate) => candidate.profile.id === input.preferredIdentityProfileId,
-    );
-  }
-
   return input.identityPool.candidates.find((candidate) => {
+    if (input.preferredIdentityProfileId !== undefined && candidate.profile.id !== input.preferredIdentityProfileId) return false;
     if (
-      input.preferredProvider
+      input.preferredProvider !== undefined
       && candidate.profile.provider !== input.preferredProvider
     ) {
       return false;
     }
     if (
-      input.preferredHarness
+      input.preferredHarness !== undefined
       && candidate.profile.harness !== input.preferredHarness
     ) {
       return false;
@@ -329,7 +324,8 @@ export function planRoute(input: RoutePlannerInput): PlannedRoute {
   }
 
   const portability = buildPortability(input);
-  const preferredCandidate = findPreferredCandidate(input) ?? firstCandidate;
+  const preferredCandidate = findPreferredCandidate(input);
+  if (preferredCandidate === undefined) throw new TypeError("Unknown or contradictory preferred route target");
   const fallbackCandidate = pickFallbackCandidate(
     input,
     preferredCandidate,

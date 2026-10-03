@@ -129,6 +129,8 @@ function scopeMatches(
 }
 
 function buildMessage(input: CoordinationMessageInput, now: string): CoordinationMessage {
+  assertMetadataSafe(input, { inertOnly: true });
+  input = JSON.parse(JSON.stringify(input)) as CoordinationMessageInput;
   const createdAt = toContractTimestamp(now);
   return coordinationMessageSchema.parse({
     schema: "consiliency.coordination_message.v1",
@@ -180,7 +182,7 @@ export class LocalCoordinationChannel implements CoordinationChannel {
     const page = validateCoordinationPage(query);
     const now = toContractTimestamp(this.clock());
     const state = await this.readState(now);
-    return state.messages.map((message) => ({ ...coordinationMessageSchema.parse(message), created_at: toContractTimestamp(message.created_at) }))
+    return state.messages.map((message) => ({ ...message, created_at: toContractTimestamp(message.created_at) }))
       .filter((message) => Date.parse(message.created_at) > Date.parse(now) - INBOX_TTL_MS)
       .filter((message) => query.type === undefined || message.type === query.type)
       .filter((message) => scopeMatches(message, query.scope))
@@ -197,7 +199,6 @@ export class LocalCoordinationChannel implements CoordinationChannel {
     state: LocalCoordinationInboxState,
     now: string,
   ): Promise<void> {
-    assertMetadataSafe(state);
     await writeJsonAtomic(this.inboxPath, {
       ...state,
       updatedAt: now,

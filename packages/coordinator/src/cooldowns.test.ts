@@ -42,6 +42,7 @@ describe("cooldown policy", () => {
 
   it("merges provider and identity cooldown state without allowing same-provider hopping", () => {
     const cooldownState = evaluateCooldownState({
+      now: "2026-06-30T09:01:00.000Z",
       profile: {
         id: "profile-openai-primary",
         provider: "openai",
@@ -105,5 +106,21 @@ describe("cooldown policy", () => {
       "manual_confirmation_required",
     );
     expect(cooldownState.resetAt).toBe("2026-07-01T09:00:00.000Z");
+  });
+});
+
+describe("cooldown expiry", () => {
+  const profile = { id: "p", provider: "openai" as const, harness: "codex" as const, authMode: "local_subscription" as const, isolation: "isolated_home" as const, maxOpenSessions: 2, maxActiveTurns: 2 };
+  it("expires each reset-bound source independently and retains permanent or unknown resets", () => {
+    const expired = { active: true, reason: "fixed_window_usage_cap", resetAt: "2026-01-01T00:00:00Z" };
+    const now = "2026-02-01T00:00:00Z";
+    expect(evaluateCooldownState({ profile: { ...profile, identityCooldown: expired }, now }).blocked).toBe(false);
+    for (const identityCooldown of [ { ...expired, resetAt: "bad" }, { ...expired, resetAt: undefined }, { ...expired, reason: "auth_or_billing_problem" }, { ...expired, reason: "abuse_or_policy_block" } ]) {
+      const state = evaluateCooldownState({ profile: { ...profile, identityCooldown, providerFamilyCooldown: expired }, now });
+      expect(state.blocked).toBe(true);
+      expect(state.identityBlocked).toBe(true);
+      expect(state.providerFamilyBlocked).toBe(false);
+      expect(state.reason).toBe(identityCooldown.reason);
+    }
   });
 });

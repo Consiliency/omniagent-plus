@@ -4,9 +4,26 @@ import {
   buildActiveTurnSnapshot,
   createEmptyActiveTurnSnapshot,
   incrementActiveTurns,
+  decrementActiveTurns,
+  ActiveTurnAccounting,
 } from "./index.js";
 
 describe("active turn accounting", () => {
+  it("settles each turn once across completion, cancellation, failure and retry notifications", () => {
+    const accounting = new ActiveTurnAccounting();
+    const options = { profileId: "constructor", provider: "openai" as const, sessionId: "__proto__" };
+    accounting.begin("turn-1", options);
+    accounting.begin("turn-2", options);
+    for (const _terminal of ["complete", "cancel", "failure", "retry"]) accounting.settle("turn-1");
+    expect(accounting.snapshot.totalActiveTurns).toBe(1);
+    expect(accounting.snapshot.bySessionId.__proto__).toBe(1);
+    accounting.settle("turn-2");
+    expect(accounting.snapshot.totalActiveTurns).toBe(0);
+    expect(() => accounting.begin("turn-1", options)).toThrow();
+    expect(() => accounting.settle("unknown")).toThrow();
+    expect(() => decrementActiveTurns(accounting.snapshot, options)).toThrow();
+    for (const delta of [-1, 0.5, NaN, Infinity]) expect(() => incrementActiveTurns(accounting.snapshot, { ...options, delta })).toThrow();
+  });
   it("aggregates active turns per profile and provider", () => {
     const snapshot = buildActiveTurnSnapshot([
       {

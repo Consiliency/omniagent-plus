@@ -1,4 +1,4 @@
-import { routeDecisionSchema, type LimitClassification, type RouteDecision } from "@consiliency/runtime-provider";
+import { limitClassificationSchema, routeDecisionSchema, type LimitClassification, type RouteDecision } from "@consiliency/runtime-provider";
 
 import type { RouteReplayEntry, RouteStoreReader } from "./types.js";
 
@@ -53,17 +53,17 @@ export async function replayTaskRouting(
   taskId: string,
 ): Promise<RouteReplayEntry[]> {
   const records = await routeStore.listTaskRecords(taskId);
-  const decisions = records
-    .filter((record) => record.kind === "route_decision")
-    .map((record) => routeDecisionSchema.parse(record.payload));
-  const latestClassification = records
-    .filter(
-      (record): record is { kind: "limit_classification"; payload: LimitClassification } =>
-        record.kind === "limit_classification",
-    )
-    .at(-1)?.payload;
-
-  return decisions.map((decision) => ({
+  const classifications: LimitClassification[] = [];
+  const result: RouteReplayEntry[] = [];
+  for (const record of records) {
+    if (record.kind === "limit_classification") classifications.push(limitClassificationSchema.parse(record.payload));
+    if (record.kind !== "route_decision") continue;
+    const decision = routeDecisionSchema.parse(record.payload);
+    if (decision.taskId !== taskId) throw new TypeError("Route replay task mismatch");
+    const provider = decision.preferredTarget?.provider ?? decision.preferredProvider ?? decision.selectedProvider;
+    const harness = decision.preferredTarget?.harness ?? decision.preferredHarness ?? decision.selectedHarness;
+    const latestClassification = [...classifications].reverse().find((classification) => classification.provider === provider && classification.harness === harness);
+    result.push({
     taskId: decision.taskId,
     selectedProvider: decision.selectedProvider,
     selectedHarness: decision.selectedHarness,
@@ -75,5 +75,7 @@ export async function replayTaskRouting(
     cooldownState: decision.cooldownState,
     evidenceRefs: decision.evidenceRefs ?? [],
     explanation: explainRouteDecision(decision, latestClassification),
-  }));
+    });
+  }
+  return result;
 }

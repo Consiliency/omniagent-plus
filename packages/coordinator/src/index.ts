@@ -1,4 +1,4 @@
-export { buildActiveTurnSnapshot, createEmptyActiveTurnSnapshot, incrementActiveTurns } from "./active-turns.js";
+export { ActiveTurnAccounting, buildActiveTurnSnapshot, createEmptyActiveTurnSnapshot, decrementActiveTurns, incrementActiveTurns } from "./active-turns.js";
 export { evaluateAdaptiveConcurrency } from "./adaptive-concurrency.js";
 export { deriveProviderFamilyCooldown, evaluateCooldownState } from "./cooldowns.js";
 export { evaluateFailurePolicy } from "./failure-policy.js";

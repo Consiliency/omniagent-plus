@@ -26,6 +26,19 @@ function readRoutingFixture(): RoutingFixture {
 }
 
 describe("route planner", () => {
+  it("rejects unknown and contradictory preferred tuples instead of substituting an override", () => {
+    const identityPool = buildIdentityPool(readRoutingFixture().poolInput);
+    expect(() => planRoute({ taskId: "t", identityPool, preferredIdentityProfileId: "missing" })).toThrow(/preferred/);
+    expect(() => planRoute({ taskId: "t", identityPool, preferredIdentityProfileId: "profile-google-primary", preferredProvider: "openai" })).toThrow(/preferred/);
+    expect(() => planRoute({ taskId: "t", identityPool, preferredHarness: "claude-code" })).toThrow(/preferred/);
+  });
+  it("allows expired reset-bound preferences despite stale adaptive classifications", () => {
+    const fixture = readRoutingFixture();
+    const identityPool = buildIdentityPool({ ...fixture.poolInput, now: "2027-01-01T00:00:00Z" });
+    const planned = planRoute({ taskId: "t", identityPool, preferredIdentityProfileId: fixture.preferred.identityProfileId, preferredProvider: "openai", preferredHarness: "codex" });
+    expect(planned.decision.launchGate?.action).toBe("allowed");
+    expect(planned.decision.fallbackUsed).toBe(false);
+  });
   it("routes high-portability work to another provider family when policy allows", () => {
     const fixture = readRoutingFixture();
     const identityPool = buildIdentityPool(fixture.poolInput);

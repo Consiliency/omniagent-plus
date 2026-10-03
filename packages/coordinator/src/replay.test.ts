@@ -31,6 +31,22 @@ function readReplayFixture(): ReplayFixture {
 }
 
 describe("route replay", () => {
+  it("uses only preceding matching classifications and rejects malformed history", async () => {
+    const fixture = readReplayFixture();
+    const records = [
+      { kind: "route_decision", payload: fixture.decision },
+      { kind: "limit_classification", payload: fixture.classification },
+      { kind: "route_decision", payload: fixture.decision },
+      { kind: "limit_classification", payload: { ...fixture.classification, provider: "anthropic", type: "unknown_limit" } },
+      { kind: "route_decision", payload: fixture.decision },
+    ];
+    const reader = { listTaskRecords: async () => records };
+    const replay = await replayTaskRouting(reader, fixture.decision.taskId);
+    expect(replay[0]?.explanation).not.toContain("limit evidence");
+    expect(replay[1]?.explanation).toContain("limit evidence fixed_window_usage_cap");
+    expect(replay[2]?.explanation).not.toContain("unknown_limit");
+    await expect(replayTaskRouting({ listTaskRecords: async () => [{ kind: "limit_classification", payload: {} }] }, fixture.decision.taskId)).rejects.toThrow();
+  });
   it("replays a task with provider, cooldown, portability, and evidence rationale", async () => {
     const fixture = readReplayFixture();
     const ledger = await AuditLedger.open({

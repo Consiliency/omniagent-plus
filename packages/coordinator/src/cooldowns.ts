@@ -51,23 +51,19 @@ export function evaluateCooldownState(options: {
   readonly status?: IdentityProfileStatus;
   readonly providerCooldown?: ProviderFamilyCooldown;
   readonly classification?: LimitClassification;
+  readonly now?: string;
 }): CooldownEvaluation {
-  const providerFamilyBlocked =
-    options.providerCooldown?.active === true
-    || options.profile.providerFamilyCooldown?.active === true;
-  const identityBlocked =
-    options.status?.cooldown?.active === true
-    || options.profile.identityCooldown?.active === true;
-  const reason =
-    options.status?.cooldown?.reason
-    ?? options.providerCooldown?.reason
-    ?? options.profile.identityCooldown?.reason
-    ?? options.profile.providerFamilyCooldown?.reason;
-  const resetAt =
-    options.status?.cooldown?.resetAt
-    ?? options.providerCooldown?.resetAt
-    ?? options.profile.identityCooldown?.resetAt
-    ?? options.profile.providerFamilyCooldown?.resetAt;
+  const now = Date.parse(options.now ?? new Date().toISOString());
+  if (!Number.isFinite(now)) throw new TypeError("Invalid cooldown clock");
+  const active = (source: { active: boolean; reason?: string; resetAt?: string } | undefined) =>
+    source?.active === true && !resetBoundCooldownExpired(source.reason, source.resetAt, now);
+  const providerSources = [options.providerCooldown, options.profile.providerFamilyCooldown].filter(active);
+  const identitySources = [options.status?.cooldown, options.profile.identityCooldown].filter(active);
+  const providerFamilyBlocked = providerSources.length > 0;
+  const identityBlocked = identitySources.length > 0;
+  const sources = [...identitySources, ...providerSources];
+  const reason = sources.find((source) => source?.reason !== undefined)?.reason;
+  const resetAt = sources.find((source) => source?.resetAt !== undefined)?.resetAt;
 
   return {
     blocked: providerFamilyBlocked || identityBlocked,
@@ -78,4 +74,10 @@ export function evaluateCooldownState(options: {
     sameProviderAccountSwitch:
       options.classification?.routingAction.sameProviderAccountSwitch ?? "forbidden",
   };
+}
+
+export function resetBoundCooldownExpired(reason: string | undefined, resetAt: string | undefined, now: number): boolean {
+  if (reason !== "fixed_window_usage_cap" && reason !== "monthly_spend_or_quota_cap" && reason !== "unknown_limit") return false;
+  const reset = Date.parse(resetAt ?? "");
+  return Number.isFinite(reset) && reset <= now;
 }

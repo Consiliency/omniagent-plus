@@ -20,6 +20,10 @@ function clamp(value: number, min: number, max: number): number {
 export function evaluateAdaptiveConcurrency(
   input: AdaptiveConcurrencyInput,
 ): AdaptiveConcurrencyDecision {
+  for (const count of [input.maxActiveTurns, input.baseTarget, input.activeTurns]) {
+    if (!Number.isSafeInteger(count) || count < 0) throw new TypeError("Concurrency counts must be nonnegative safe integers");
+  }
+  if (input.providerHealth !== undefined && (!Number.isFinite(input.providerHealth) || input.providerHealth < 0 || input.providerHealth > 1)) throw new TypeError("Provider health must be between zero and one");
   const maxActiveTurns = Math.max(0, Math.trunc(input.maxActiveTurns));
   const baseTarget = clamp(Math.trunc(input.baseTarget), 0, maxActiveTurns);
   const activeTurns = clamp(Math.trunc(input.activeTurns), 0, maxActiveTurns);

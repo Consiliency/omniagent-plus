@@ -3,6 +3,7 @@ import type {
   LimitScope,
   LimitType,
 } from "@consiliency/runtime-provider";
+import { projectMetadataExport } from "@consiliency/runtime-provider";
 
 import { createRoutingActionForLimitType } from "./routing-action.js";
 import type { ClassifierInput } from "./types.js";
@@ -28,7 +29,7 @@ export interface ClassificationMatch {
   readonly notes?: string[];
 }
 
-const safeHeaderPattern = /(retry-after|ratelimit|rate-limit|reset)/i;
+const safeHeaderPattern = /^(?:retry-after|(?:x-)?ratelimit-(?:limit|remaining|reset)(?:-(?:requests|tokens))?|x-rate-limit-(?:limit|remaining|reset)|anthropic-ratelimit-(?:requests|tokens)-(?:limit|remaining|reset))$/i;
 
 const policyPatterns = [
   /\bpolicy\b/i,
@@ -196,7 +197,8 @@ function truncateText(value: string | undefined, maxLength = 160): string | unde
     return undefined;
   }
 
-  const collapsed = value.replace(/\s+/g, " ").trim();
+  const projected = projectMetadataExport(value);
+  const collapsed = (typeof projected === "string" ? projected : "[redacted]").replace(/\s+/g, " ").trim();
   if (collapsed.length === 0) {
     return undefined;
   }
@@ -212,9 +214,14 @@ export function getSignalText(input: ClassifierInput): string {
     .join("\n");
 }
 
-function parseRetryAfterValue(value: string): number | undefined {
-  const seconds = Number.parseInt(value, 10);
-  return Number.isNaN(seconds) ? undefined : seconds;
+function parseRetryAfterValue(value: string, now: number): number | undefined {
+  if (/^\d+$/.test(value)) {
+    const seconds = Number(value);
+    return Number.isFinite(seconds) ? Math.min(300, seconds) : undefined;
+  }
+  if (!/^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)) return undefined;
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? Math.min(300, Math.max(0, Math.ceil((at - now) / 1000))) : undefined;
 }
 
 function parseRetryAfterFromText(text: string): number | undefined {
@@ -222,21 +229,14 @@ function parseRetryAfterFromText(text: string): number | undefined {
     /(?:retry|try again)\s+(?:after|in)\s+(\d+)\s*(?:seconds?|secs?|s)\b/i,
   );
 
-  return match?.[1] ? Number.parseInt(match[1], 10) : undefined;
+  return match?.[1] ? parseRetryAfterValue(match[1], 0) : undefined;
 }
 
 function parseResetValue(value: string): string | undefined {
   if (/^\d+$/.test(value)) {
     const numeric = Number.parseInt(value, 10);
-    if (numeric > 1_000_000_000_000) {
-      return new Date(numeric).toISOString();
-    }
-
-    if (numeric > 1_000_000_000) {
-      return new Date(numeric * 1000).toISOString();
-    }
-
-    return undefined;
+    const at = numeric > 1_000_000_000_000 ? numeric : numeric > 1_000_000_000 ? numeric * 1000 : NaN;
+    return Number.isFinite(new Date(at).getTime()) ? new Date(at).toISOString() : undefined;
   }
 
   const parsed = Date.parse(value);
@@ -323,6 +323,8 @@ function createMatch(
 }
 
 export function sanitizeSignal(input: ClassifierInput): NormalizedSignal {
+  const now = Date.parse(input.now ?? new Date().toISOString());
+  if (!Number.isFinite(now)) throw new TypeError("Invalid classifier clock");
   const headers = normalizeHeaders(input.headers);
   const combinedText = getSignalText(input)
     .replace(/\s+/g, " ")
@@ -331,13 +333,13 @@ export function sanitizeSignal(input: ClassifierInput): NormalizedSignal {
 
   const retryAfterSeconds =
     headers["retry-after"] !== undefined
-      ? parseRetryAfterValue(headers["retry-after"])
+      ? parseRetryAfterValue(headers["retry-after"], now)
       : parseRetryAfterFromText(combinedText);
 
   let resetAt = parseResetFromText(combinedText);
   if (!resetAt) {
     for (const [key, value] of Object.entries(headers)) {
-      if (!safeHeaderPattern.test(key)) {
+      if (!safeHeaderPattern.test(key) || !key.includes("reset")) {
         continue;
       }
 
@@ -524,7 +526,7 @@ export function buildClassification(
   match: ClassificationMatch,
 ): LimitClassification {
   const headers = Object.fromEntries(
-    Object.entries(signal.headers).filter(([key]) => safeHeaderPattern.test(key)),
+    Object.entries(signal.headers).filter(([key]) => safeHeaderPattern.test(key)).map(([key, value]) => [key, String(projectMetadataExport(value))]),
   );
 
   return {

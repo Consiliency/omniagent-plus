@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type {
   AgentRuntimeProvider,
@@ -87,6 +87,8 @@ class RecordingProvider implements AgentRuntimeProvider {
       runtime: "omnigent",
       targetHarness: "codex",
       title: "recording provider",
+      targetProvider: "openai",
+      identityProfileId: "profile-openai-primary",
       state: "idle",
       createdAt: "2026-06-30T00:00:00.000Z",
       updatedAt: "2026-06-30T00:00:00.000Z",
@@ -139,6 +141,20 @@ function createRouteDecision() {
 }
 
 describe("launch gate", () => {
+  it("rejects unknown, missing and mismatched established session labels before persistence or sending", async () => {
+    const provider = new RecordingProvider([]);
+    const matching = await provider.getSessionInfo("session-1");
+    const appendRouteDecision = vi.fn();
+    const request = { sessionId: "session-1", idempotencyKey: "turn", message: "continue" };
+    for (const session of [{ ...matching, id: "other" }, { ...matching, targetProvider: "google" as const }, { ...matching, targetProvider: undefined }, { ...matching, targetHarness: "claude-code" as const }, { ...matching, identityProfileId: "other" }]) {
+      vi.spyOn(provider, "getSessionInfo").mockResolvedValue(session);
+      await expect(sendTurnWithRouteDecision({ provider, routeStore: { appendRouteDecision }, decision: createRouteDecision(), request })).rejects.toMatchObject({ category: "state_conflict" });
+    }
+    vi.spyOn(provider, "getSessionInfo").mockRejectedValue(new Error("unknown session"));
+    await expect(sendTurnWithRouteDecision({ provider, routeStore: { appendRouteDecision }, decision: createRouteDecision(), request })).rejects.toThrow("unknown session");
+    expect(appendRouteDecision).not.toHaveBeenCalled();
+    expect(provider.sendTurnCalls).toBe(0);
+  });
   it("appends the route decision before backend launch", async () => {
     const sequence: string[] = [];
     const provider = new RecordingProvider(sequence);
