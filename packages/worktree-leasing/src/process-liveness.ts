@@ -46,7 +46,7 @@ export function checkProcessLiveness(options: {
     }
 
     return {
-      state: "missing",
+      state: errno === "ESRCH" ? "missing" : "unknown",
       processId: options.processId,
       holderHost: options.holderHost,
       currentHost,

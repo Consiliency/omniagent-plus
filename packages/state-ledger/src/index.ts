@@ -36,6 +36,7 @@ export {
 } from "./replay.js";
 export {
   applyRetentionPolicy,
+  selectRetentionSequences,
   type RetentionPolicy,
   type RetentionResult,
 } from "./retention.js";

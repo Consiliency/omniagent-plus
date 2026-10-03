@@ -12,6 +12,7 @@ import {
   evaluateStaleLeaseRecovery,
   resolveMountedWorkspacePlacement,
   WorktreeLeaseManager,
+  getCurrentHostIdentity,
 } from "./index.js";
 
 interface HardeningFixture {
@@ -134,6 +135,7 @@ async function createLease(branchName: string) {
   });
   const manager = await WorktreeLeaseManager.open({
     rootDir: join(rootDir, "ledger"),
+    managedRoot: placement.root,
   });
   const leaseResult = await manager.acquireLease(
     {
@@ -147,8 +149,8 @@ async function createLease(branchName: string) {
     },
     {
       holder: {
-        processId: 4242,
-        host: "display",
+        processId: 2147483647,
+        host: getCurrentHostIdentity(),
       },
       leasePath: worktree.path,
       dirtyState: "clean",
@@ -202,7 +204,8 @@ describe("hardening recovery", () => {
       leaseContext.lease,
       {
         activeFencingToken: leaseContext.lease.fencingToken,
-        currentHost: "display",
+        holder: leaseContext.lease.holder,
+        currentHost: getCurrentHostIdentity(),
         processLiveness: {
           state: "missing",
           processId: leaseContext.lease.holder.processId,
