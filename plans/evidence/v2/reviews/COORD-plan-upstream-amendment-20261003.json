@@ -4,7 +4,7 @@
   "scope": "Plan-only upstream amendment; implementation not started. Historical approval remains bound solely to its unchanged historical bytes.",
   "prior_approval": "plans/evidence/v2/reviews/COORD-plan-9430610.json",
   "upstream_recheck": "plans/evidence/v2/reviews/COORD-upstream-20261003.json",
-  "amended_plan_sha256": "c85bf260a2ca9331a4561d147ace13c4f1ba72aeb85e08a0cecdbcbec2799554",
+  "amended_plan_sha256": "5ad4de8f972b31c2fea4f634b036e194891406658df61a16aa5b978f6aaa6fa9",
   "roadmap_sha256": "ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74",
   "decision": "pending_fresh_plan_review",
   "implementation_started": false,
@@ -16,7 +16,10 @@
     "installation": "isolated frozen uv environment; shared tooling unchanged",
     "pointer_brief_parameter": true,
     "on_seat_preflight_parameter": true,
-    "explicit_phase_audit": "verified in current console entrypoint source; --help is not a help parser"
+    "explicit_phase_audit": "verified in current console entrypoint source; --help is not a help parser",
+    "environment_lock_sha256": "72a639bd9924a7d9d42f0c2994e0ca28b16f1d968bf7bdb779da62f2adc5d46a",
+    "audit_entrypoint": "/home/viperjuice/workspace/coord-reviews/harness-upstream-20261003/phase-loop-runtime/.venv/bin/phase-loop-closeout-audit",
+    "python_entrypoint": "/home/viperjuice/workspace/coord-reviews/harness-upstream-20261003/phase-loop-runtime/.venv/bin/python"
   },
   "planned_producer_declaration": {
     "schema": "phase-loop.generated-outputs.v1",
@@ -38,13 +41,28 @@
   "verification": {
     "planner_diagnostics": [],
     "lane_ir_diagnostics": [],
-    "word_count": 2966,
+    "word_count": 3077,
     "owned_path_count": 104,
-    "unrelated_manifest_entries_preserved": 31
+    "unrelated_manifest_entries_preserved": 31,
+    "plan_budget_exception": "3077 words: preserve all ratified verification/credential/artifact-binding invariants while adding upstream provenance and review controls; no extra product scope."
   },
   "deferred_changes": {
     "WIRE": "Reconcile omniagent-plus#30 with tagged stable Omnigent v0.16 probes before adoption; main retains v0.12 authority.",
     "PREP": "Recheck compatible SDK/tool patches; no forced COORD package upgrades.",
     "INTEG": "Reassess governed-pipeline registry/reader changes at integration."
+  },
+  "reconciliation": {
+    "review_source": "2e7cb3bc0118dc8aecd390dcce29893d3bfd5836",
+    "review_record": "plans/evidence/v2/reviews/COORD-plan-upstream-2e7cb3b.json",
+    "blocking_repairs": [
+      "Restore approved current-head hosted gate, source-bound rehearsal, post-merge main CI, readiness/packed/source-bound hostile-positive controls, exact runner/source/artifact receipts, local-failure classification, conditional zod addition and no credential switching.",
+      "Null detailed-only COORD manifest fields; retain descriptive status in extension fields. Explicitly null historical current-approval/quota keys and preserve prior-labelled values."
+    ],
+    "additional_controls": [
+      "Machine-readable Verification bullets include exact pnpm build producer argv and explicit COORD audit.",
+      "Wrong-phase/stale/output falsifiers run in disposable clones; final audit reruns after metadata commits with external final-head receipt.",
+      "INTEG handoff promoted into plan; runtime lock and entrypoint identity recorded."
+    ],
+    "review_composition": "Amendment retains prior Astra/Sol lenses for comparable plan review, not a renewed global Grok substitution or claim of Grok availability. Production board seats must be explicitly named and availability-qualified under then-current owner direction; four grounded harness seats, separate independent review and required manual Opus/Gemini must all pass."
   }
 }

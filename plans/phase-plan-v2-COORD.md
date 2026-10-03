@@ -11,6 +11,8 @@ automation:
 
 ## Context
 
+Plan-budget exception: preserved ratified verification/credential/artifact-binding constraints plus additive upstream provenance and review controls require this modest overage; no product scope is added.
+
 Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniagent-plus#23 and omniagent-plus#24. Preserve the external contract0.6.3 and DATA schemas. Local Git leases, fleet soft/hard leases and inbox notifications remain distinct. All execution is serial in one isolated worktree; no worker fanout is authorized.
 
 ## Resolved contracts
@@ -55,8 +57,8 @@ Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniage
 - **Interfaces consumed**: DATA core/ledger APIs, published contract0.6.3.
 - **Parallel-safe**: no
 - **Tasks**:
-  - test: preserve interface literals; verify bounded producer paths match build configs.
-  - impl: additive types/exports; optional direct zod; commit build producer declaration before observed production: argv pnpm build, only three published packages' dist trees, no incremental state today.
+  - test: audit existing interface/phase verification tests and preserve v1 literals; verify bounded producer paths match build configs.
+  - impl: additive types/exports; add direct zod dependency only if registry validation needs it; commit build producer declaration before observed production: argv pnpm build, only three published packages' dist trees, no incremental state today.
   - verify: `pnpm typecheck` after all implementation lanes complete.
 
 ### SL-1 — Routing and rate policy
@@ -115,15 +117,19 @@ Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniage
 - **Interfaces consumed**: all producer lanes, roadmap EC IDs, preserved DATA evidence.
 - **Parallel-safe**: no
 - **Tasks**:
-  - test: full/packed gates; external audit controls reject wrong-phase/stale-head/changed/symlink/undeclared outputs and accept current producer evidence.
+  - test: full gate, readiness/packed consumers and source-bound hostile/positive controls; external audit controls in disposable clones reject wrong-phase/stale-head/changed/symlink/undeclared outputs and accept current producer evidence.
   - impl: metadata-only receipts, docs with cursor/root examples, inbox expiry/capacity and shared-root retention cross-reference in durable-state.md, findings/dispositions and manifest lifecycle; preserve dissent and future-SHA honesty.
-  - verify: `pnpm verify`; hosted full/rehearsal, post-merge CI; `phase-loop-closeout-audit --repo . --record-outputs --phase COORD`.
+  - verify: `pnpm verify`; current-head hosted full gate plus source-bound rehearsal; post-merge main CI; `phase-loop-closeout-audit --repo . --record-outputs --phase COORD`.
 
 ## Verification
 
-Frozen install, `pnpm build`, targeted suites, lint/typecheck, `pnpm verify`. SQL failure never becomes a full-gate pass; retain hosted/source/custody receipts. Qualify an isolated current harness first: runtime identity, pointer_brief/on_seat_preflight and explicit-phase audit capability; global tooling stays untouched. For by-reference boards pass pointer_brief=True/--pointer-brief, retain prelaunch notices/source_grounded and count only grounded passing seats; preserve ungrounded dissent. Four harness seats plus separate independent review must pass; manual tool-enabled subscription Opus5.5 TUI and Gemini read exact source by reference. Keep Astra/Sol lenses for this amendment; no silent model/account fallback. Use current provider-turn diagnostics; partial output/give-up is no verdict. Review amended plan before implementation and exact production candidate before merge. Commit producer declaration before recording; outputs bind current HEAD/COORD/digests, rerun producers after commit changes. Run phase-bound audit above; it supplements GUARD custody/full verification. Review, reconcile, rerun under owner authorization. Optional branch protection; no live/private inputs, production migration or publication.
+- `pnpm build`
+- `pnpm verify`
+- `phase-loop-closeout-audit --repo . --record-outputs --phase COORD`
 
-Upstream handoff: keep contract0.6.3, Omnigent v0.12 authority and frozen dependencies. WIRE reconciles open omniagent-plus#30 with stable v0.16 tagged probes/fixtures: error metadata/undelivered uncertainty, no automatic resend; sign-in/admin surfaces confer no authority. PREP evaluates compatible SDK/tool updates. Recheck registries there; no v0.16 adoption or dependency upgrade here.
+Frozen install, build, targeted suites, lint/typecheck and full pnpm verify. Runner parses the command bullets above; explicit audit observes declared producers. No local SQL failure becomes a full-gate pass. Canonical hosted topology remains admissible; retain exact runner/source/artifact receipts and classify local failures. Qualify an isolated current harness first: runtime identity, pointer_brief/on_seat_preflight and explicit-phase audit capability; global tooling stays untouched. For by-reference boards pass pointer_brief=True/--pointer-brief, retain prelaunch notices/source_grounded and count only grounded passing seats; preserve ungrounded dissent. Four grounded harness seats, separate independent review and manual tool-enabled subscription Opus5.5 TUI/Gemini must pass, reading exact source by reference. Keep Astra/Sol lenses for this amendment; no silent model/account fallback. Use current provider-turn diagnostics; partial output/give-up is no verdict. Review this plan before implementation and review the exact production candidate before acceptance. Required reviews also precede merge. Commit producer declaration before recording; outputs bind current HEAD/COORD/digests, rerun producers after commit changes. After metadata commits rerun producers/audit and retain final-HEAD external receipts; the audit supplements GUARD custody/full verification. Review, reconcile, rerun under owner authorization. Branch protection remains optional. No credential switching, live user data, production DB migration or registry publication in COORD.
+
+Upstream handoff: keep contract0.6.3, Omnigent v0.12 authority and frozen dependencies. WIRE reconciles open omniagent-plus#30 with stable v0.16 tagged probes/fixtures: error metadata/undelivered uncertainty, no automatic resend; sign-in/admin surfaces confer no authority. PREP evaluates compatible SDK/tool updates. Recheck registries there; INTEG reassesses governed-pipeline changes. No v0.16 adoption or dependency upgrade here.
 
 ## Acceptance Criteria
 
