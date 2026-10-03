@@ -1498,7 +1498,7 @@
       "phase_alias": "COORD",
       "plan_review_source_sha": "9430610d83c58f4891f1a7a06e5805941931d181",
       "reflection_ref": null,
-      "review_status": "approved_plan_only_execution_ready",
+      "review_status": "upstream_amendment_pending_review",
       "roadmap_ref": {
         "file": "specs/phase-plans-v2.md",
         "slug": "v2",
@@ -1507,9 +1507,12 @@
       },
       "slug": "v2-coord",
       "status": "committed",
-      "task_summary": "COORD plan approved by exact-plan harness, manual Opus/Gemini and separate independent reviews; implementation not started.",
+      "task_summary": "COORD upstream plan amendment pending fresh harness, manual Opus/Gemini and independent reviews; implementation not started.",
       "type": "phase",
-      "updated_at": "2026-09-30T21:23:10.233052+00:00"
+      "updated_at": "2026-10-03T20:50:58.581415+00:00",
+      "amended_plan_sha256": "c85bf260a2ca9331a4561d147ace13c4f1ba72aeb85e08a0cecdbcbec2799554",
+      "prior_approved_plan_sha256": "810a63da7b61236ae6ad8f294fdf3b59d19edec7ffea0be1aac6d0ac2795f6bb",
+      "prior_plan_review_source_sha": "9430610d83c58f4891f1a7a06e5805941931d181"
     },
     {
       "acceptance_criteria_count": 4,

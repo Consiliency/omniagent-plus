@@ -50,13 +50,13 @@ Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniage
 ### SL-0 — Shared private interfaces
 
 - **Scope**: Freeze private additive interfaces and exports before dependent edits.
-- **Owned files**: `packages/coordinator/src/types.ts`, `packages/coordinator/src/index.ts`, `packages/rate-limit-catalog/src/types.ts`, `packages/worktree-leasing/src/types.ts`, `packages/worktree-leasing/src/index.ts`, `packages/state-ledger/src/index.ts`, `packages/worktree-leasing/package.json`, `pnpm-lock.yaml`
+- **Owned files**: `packages/coordinator/src/types.ts`, `packages/coordinator/src/index.ts`, `packages/rate-limit-catalog/src/types.ts`, `packages/worktree-leasing/src/types.ts`, `packages/worktree-leasing/src/index.ts`, `packages/state-ledger/src/index.ts`, `packages/worktree-leasing/package.json`, `pnpm-lock.yaml`, `.phase-loop-generated-outputs.json`
 - **Interfaces provided**: COORD gates4a/b/c; accounting, cleanup holder/configured acquisition-root provenance/reconciled result and pending transition types.
 - **Interfaces consumed**: DATA core/ledger APIs, published contract0.6.3.
 - **Parallel-safe**: no
 - **Tasks**:
-  - test: audit existing interface/phase verification tests and preserve v1 literals.
-  - impl: additive types/exports; add direct zod dependency only if registry validation needs it.
+  - test: preserve interface literals; verify bounded producer paths match build configs.
+  - impl: additive types/exports; optional direct zod; commit build producer declaration before observed production: argv pnpm build, only three published packages' dist trees, no incremental state today.
   - verify: `pnpm typecheck` after all implementation lanes complete.
 
 ### SL-1 — Routing and rate policy
@@ -115,13 +115,15 @@ Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniage
 - **Interfaces consumed**: all producer lanes, roadmap EC IDs, preserved DATA evidence.
 - **Parallel-safe**: no
 - **Tasks**:
-  - test: full gate, readiness/packed consumers and source-bound hostile/positive controls.
+  - test: full/packed gates; external audit controls reject wrong-phase/stale-head/changed/symlink/undeclared outputs and accept current producer evidence.
   - impl: metadata-only receipts, docs with cursor/root examples, inbox expiry/capacity and shared-root retention cross-reference in durable-state.md, findings/dispositions and manifest lifecycle; preserve dissent and future-SHA honesty.
-  - verify: `pnpm verify`; current-head hosted full gate plus source-bound rehearsal; post-merge main CI; ignored-output audit.
+  - verify: `pnpm verify`; hosted full/rehearsal, post-merge CI; `phase-loop-closeout-audit --repo . --record-outputs --phase COORD`.
 
 ## Verification
 
-Frozen install, build, targeted suites, lint/typecheck and full pnpm verify. No local SQL failure becomes a full-gate pass. Canonical hosted topology remains admissible; retain exact runner/source/artifact receipts and classify local failures. Four-seat agent-harness panel and separate independent review must pass before merge; Opus5.5 subscription TUI and tool-enabled Gemini run manually by reference. Sol replaces Grok until October2; preserve original dissent, reconcile and rerun until mergeable under owner direction. Review this plan before implementation and review the exact production candidate before acceptance. Branch protection remains optional. No credential switching, live user data, production DB migration or registry publication in COORD.
+Frozen install, `pnpm build`, targeted suites, lint/typecheck, `pnpm verify`. SQL failure never becomes a full-gate pass; retain hosted/source/custody receipts. Qualify an isolated current harness first: runtime identity, pointer_brief/on_seat_preflight and explicit-phase audit capability; global tooling stays untouched. For by-reference boards pass pointer_brief=True/--pointer-brief, retain prelaunch notices/source_grounded and count only grounded passing seats; preserve ungrounded dissent. Four harness seats plus separate independent review must pass; manual tool-enabled subscription Opus5.5 TUI and Gemini read exact source by reference. Keep Astra/Sol lenses for this amendment; no silent model/account fallback. Use current provider-turn diagnostics; partial output/give-up is no verdict. Review amended plan before implementation and exact production candidate before merge. Commit producer declaration before recording; outputs bind current HEAD/COORD/digests, rerun producers after commit changes. Run phase-bound audit above; it supplements GUARD custody/full verification. Review, reconcile, rerun under owner authorization. Optional branch protection; no live/private inputs, production migration or publication.
+
+Upstream handoff: keep contract0.6.3, Omnigent v0.12 authority and frozen dependencies. WIRE reconciles open omniagent-plus#30 with stable v0.16 tagged probes/fixtures: error metadata/undelivered uncertainty, no automatic resend; sign-in/admin surfaces confer no authority. PREP evaluates compatible SDK/tool updates. Recheck registries there; no v0.16 adoption or dependency upgrade here.
 
 ## Acceptance Criteria
 

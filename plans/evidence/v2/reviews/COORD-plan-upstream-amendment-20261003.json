@@ -1,0 +1,50 @@
+{
+  "schema": "coord-plan-upstream-amendment.v1",
+  "date": "2026-10-03",
+  "scope": "Plan-only upstream amendment; implementation not started. Historical approval remains bound solely to its unchanged historical bytes.",
+  "prior_approval": "plans/evidence/v2/reviews/COORD-plan-9430610.json",
+  "upstream_recheck": "plans/evidence/v2/reviews/COORD-upstream-20261003.json",
+  "amended_plan_sha256": "c85bf260a2ca9331a4561d147ace13c4f1ba72aeb85e08a0cecdbcbec2799554",
+  "roadmap_sha256": "ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74",
+  "decision": "pending_fresh_plan_review",
+  "implementation_started": false,
+  "human_required": false,
+  "runtime_qualification": {
+    "repository": "Consiliency/agent-harness",
+    "source_sha": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+    "runtime_version": "0.7.21",
+    "installation": "isolated frozen uv environment; shared tooling unchanged",
+    "pointer_brief_parameter": true,
+    "on_seat_preflight_parameter": true,
+    "explicit_phase_audit": "verified in current console entrypoint source; --help is not a help parser"
+  },
+  "planned_producer_declaration": {
+    "schema": "phase-loop.generated-outputs.v1",
+    "producers": [
+      {
+        "name": "build",
+        "command": [
+          "pnpm",
+          "build"
+        ],
+        "outputs": [
+          "packages/core-contracts/dist/**",
+          "packages/governed-pipeline-adapter/dist/**",
+          "packages/omnigent-transport/dist/**"
+        ]
+      }
+    ]
+  },
+  "verification": {
+    "planner_diagnostics": [],
+    "lane_ir_diagnostics": [],
+    "word_count": 2966,
+    "owned_path_count": 104,
+    "unrelated_manifest_entries_preserved": 31
+  },
+  "deferred_changes": {
+    "WIRE": "Reconcile omniagent-plus#30 with tagged stable Omnigent v0.16 probes before adoption; main retains v0.12 authority.",
+    "PREP": "Recheck compatible SDK/tool patches; no forced COORD package upgrades.",
+    "INTEG": "Reassess governed-pipeline registry/reader changes at integration."
+  }
+}
