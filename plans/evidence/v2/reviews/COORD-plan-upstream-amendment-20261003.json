@@ -6,7 +6,7 @@
   "upstream_recheck": "plans/evidence/v2/reviews/COORD-upstream-20261003.json",
   "amended_plan_sha256": "5ad4de8f972b31c2fea4f634b036e194891406658df61a16aa5b978f6aaa6fa9",
   "roadmap_sha256": "ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74",
-  "decision": "pending_fresh_plan_review",
+  "decision": "accepted_plan_only",
   "implementation_started": false,
   "human_required": false,
   "runtime_qualification": {
@@ -64,5 +64,7 @@
       "INTEG handoff promoted into plan; runtime lock and entrypoint identity recorded."
     ],
     "review_composition": "Amendment retains prior Astra/Sol lenses for comparable plan review, not a renewed global Grok substitution or claim of Grok availability. Production board seats must be explicitly named and availability-qualified under then-current owner direction; four grounded harness seats, separate independent review and required manual Opus/Gemini must all pass."
-  }
+  },
+  "approval_record": "plans/evidence/v2/reviews/COORD-plan-upstream-a52c1c9.json",
+  "review_source_sha": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9"
 }

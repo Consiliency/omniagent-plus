@@ -1,0 +1,177 @@
+{
+  "schema": "coord-plan-upstream-panel.v1",
+  "recorded_at": "2026-10-03T21:24:40.774578+00:00",
+  "source_sha": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+  "delta_base": "2e7cb3bc0118dc8aecd390dcce29893d3bfd5836",
+  "agent_harness": {
+    "source_sha": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+    "runtime_version": "0.7.21",
+    "pointer_brief": true,
+    "preflight": {
+      "notices": [],
+      "pointer_brief": true,
+      "schema": "seat_preflight.v1"
+    },
+    "legs": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": [],
+        "verdict": "AGREE",
+        "review_sha256": "231fcd83748242df3bb5940e11219b729e6d42c94f8704725b8a7991bc0d9605",
+        "review": "No blocking findings in `a52c1c9f8ce641acfd1df21600019528f2a7a3f9`, reviewed against `2e7cb3bc0118dc8aecd390dcce29893d3bfd5836`.\n\n- **Prior dissent addressed.** The [plan](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-rlp5qk2o/review/reviewed-tree/plans/phase-plan-v2-COORD.md:120) restores current-head hosted verification, source-bound rehearsal, post-merge main CI, readiness/packed hostile-positive controls, exact artifact receipts, local-failure classification, conditional zod, and no credential switching.\n- **Integrity checks passed.** Recomputed plan/roadmap hashes match the receipts. The plan contains 3,077 words with an explicit safety-preserving exception, 104 disjoint owned paths, unchanged frozen contracts and EC identifiers, and unchecked acceptance criteria.\n- **Manifest honesty restored.** The [COORD row](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-rlp5qk2o/review/reviewed-tree/plans/manifest.json:1475) nulls detailed-only and current approval/quota fields, preserves labelled historical values, and keeps fresh approval pending. All 31 unrelated entries remain unchanged; this is not blanket manifest validation.\n- **Producer scope matches source.** `pnpm build` emits exactly the three declared public `dist` trees; private packages use `noEmit`, with no incremental outputs configured. Declaration-before-production, HEAD/COORD/digest binding, disposable negative controls, and final audit after metadata commits remain required alongside GUARD verification.\n- **Review and upstream boundaries hold.** All seven passing reviews are explicitly mandatory. Grounding notices, partial-output rejection, WIRE\u2019s tagged-v0.16 reconciliation, PREP rechecks, and INTEG reassessment remain explicit without changing v0.12 authority or dependency pins.\n\nRead-only verification passed: all 15 DATA source bindings, all seven preserved review-text digests, structural checks, `git diff --check`, and extracted-function probes covering source identity and mandatory-test failure controls. Historical hosted results remain tied to their recorded source commits.\n\nExternal harness qualification\u2014including current-runtime admission\u2014and hosted results were assessed from committed evidence, not independently reproduced: harness source was absent and public retrieval failed at DNS resolution. No files changed, dependencies installed, or builds run. This verdict covers the planning candidate; implementation acceptance remains pending.\n\nAGREE"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": [],
+        "verdict": "AGREE",
+        "review_sha256": "514c2c937b3d7d187ad5270296c618e6ba7bee2627c1ee8fdff33fc97384c79c",
+        "review": "# COORD upstream plan approval review\n\nNo blockers found.\n\n- Exact HEAD is `a52c1c9f8ce641acfd1df21600019528f2a7a3f9`. The amendment delta changes only four planning/evidence files; `git diff --check` passes and the checkout is clean.\n- The amended [COORD plan](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-341je4oy/review/reviewed-tree/plans/phase-plan-v2-COORD.md:14) hashes to the recorded `5ad4de8f\u2026`, contains 3,077 words, and documents a narrow safety-preserving budget exception. The roadmap hash remains `ceb90300\u2026`; all COORD IF/EC boxes remain unchecked. I counted 104 owned paths with no duplicates across lanes.\n- Historical approval remains correctly bound to the unchanged `9430610` plan hash `810a63da\u2026`. Compared with that approved plan, the resolved product contracts are unchanged; additions are limited to producer provenance, runtime/review qualification, verification controls, and downstream handoffs.\n- SL-0 owns `.phase-loop-generated-outputs.json` and requires its declaration before observed production. Root `pnpm build` runs every workspace build, but only the three declared public packages emit `dist/**`; the seven private packages use `noEmit`, the fixture copy stays inside omnigent-transport\u2019s `dist`, and no incremental build state is configured.\n- [SL-5 and Verification](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-341je4oy/review/reviewed-tree/plans/phase-plan-v2-COORD.md:112) restore every dissent-identified invariant: current-head hosted full gate, source-bound rehearsal, post-merge main CI, readiness/packed hostile-positive controls, exact runner/source/artifact receipts, local-failure classification, conditional direct zod, and no credential switching. Wrong-phase, stale-head, changed, symlink, and undeclared-output controls run in disposable clones; production and audit rerun after metadata commits with final-HEAD evidence. The audit explicitly supplements GUARD rather than replacing it.\n- The current 0.7.21 runtime\u2019s `valid_phase_entries` function admits exactly one `v2-coord` target row. In the [manifest](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-341je4oy/review/reviewed-tree/plans/manifest.json:1476), detailed-only and current approval/quota fields are null; historical values are preserved under clearly prior-labelled extension fields. All 31 unrelated entries are unchanged. This is target-row admission, not a blanket validity claim for the manifest.\n- The preserved dissent record is internally intact: all seven embedded review-text hashes match. Its four harness seats are actual source-grounded passes with recorded preflight notices; Opus and the independent reviewer correctly remain partial dissent against `2e7cb3b`. The amended plan honestly requires fresh passing results from four grounded harness seats, separate independent review, and manual tool-enabled subscription Opus 5.5 and Gemini reviews before acceptance.\n- WIRE retains open `omniagent-plus#30` reconciliation against tagged v0.16 probes, including error/undelivered uncertainty, no automatic resend, and no authority from sign-in/admin surfaces. Omnigent v0.12 and contract `0.6.3` remain authoritative; dependency updates stay with PREP and governed-pipeline reassessment with INTEG.\n- All 15 DATA source-binding hashes match the reviewed tree. Recorded hosted CI, package rehearsal, artifact manifest, and seven passing reviews bind the same DATA implementation source. No COORD implementation receipt exists yet, which is correct for this planning candidate.\n\nNo builds, installs, credentials, private-network access, or outward actions were performed. A runtime status probe created its normal untracked `.phase-loop/` state directory; it was removed, leaving the clone clean.\n\nSuggestions: none.\n\nAGREE"
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": [],
+        "verdict": "AGREE",
+        "review_sha256": "4e96320467989401fcb0ebda89b39cd464081e6e1e343aaedf96e7160bde8448",
+        "review": "No blocking findings for `a52c1c9f8ce641acfd1df21600019528f2a7a3f9`, reviewed against `2e7cb3b`.\n\n- The prior dissent\u2019s verification regressions are repaired: current-head hosted verification, source-bound rehearsal, post-merge main CI, readiness/packed controls, exact artifact receipts, local-failure classification, conditional Zod, and no credential switching are restored. [Plan](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-5s890cwe/review/reviewed-tree/plans/phase-plan-v2-COORD.md:120)\n- The COORD manifest\u2019s offending detailed-only fields and current approval/quota fields are null; labelled historical values remain. All 31 unrelated entries are unchanged. [Manifest](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-5s890cwe/review/reviewed-tree/plans/manifest.json:1475)\n- Recomputed plan and roadmap hashes match their receipts. The plan contains 3,077 words with an explicit safety-preserving exception, 104 disjoint owned paths, unchanged frozen contracts/gates/ECs, and unchecked acceptance.\n- Build configurations confirm exactly three emitting `dist` trees, including transport fixtures; private packages use `noEmit`, with no incremental state configured. Declaration-before-production, current HEAD/COORD/digest binding, hostile controls, and final audit after metadata commits are required.\n- All seven passing reviews are explicit requirements. Recorded harness grounding/preflight metadata and all seven embedded review digests are internally consistent; prior dissent remains preserved and fresh approval remains pending.\n- WIRE, PREP, and INTEG handoffs preserve existing authority, contract pins, and scope. All 15 DATA source-binding hashes still match; historical hosted results remain bound to their historical sources.\n\nExternal runtime qualification/admission and hosted runs were assessed from committed evidence, not independently rerun. No installs, builds, product tests, or file changes were made. `git diff --check` passed and the checkout remains clean. This verdict covers the planning candidate only.\n\nAGREE"
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": [],
+        "verdict": "AGREE",
+        "review_sha256": "0c68f1487a3649a62f35a1503e20be998594355dfc44f9495627136773258361",
+        "review": "## Review report\n\nNo blocking findings.\n\n- Exact HEAD is `a52c1c9f8ce641acfd1df21600019528f2a7a3f9`. The amendment changes only four plan/evidence files; no product source, dependency, migration, or publication files changed.\n- The current plan hash is `5ad4de8f\u2026aaa6fa9` and its 3,077-word count matches the [amendment receipt](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-_s4g99yj/review/reviewed-tree/plans/evidence/v2/reviews/COORD-plan-upstream-amendment-20261003.json:7). The documented safety-preserving exception is clear. The roadmap remains `ceb90300\u2026ae74`; all four IF gates and five ECs are unchanged and unchecked. All 104 owned paths are disjoint.\n- Historical approval remains correctly bound to the prior `810a63da\u2026f6bb` plan bytes in [COORD-plan-9430610.json](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-_s4g99yj/review/reviewed-tree/plans/evidence/v2/reviews/COORD-plan-9430610.json:3).\n- The manifest repair is honest: detailed-only and current approval/quota fields are null, historical values are explicitly labelled, and pending phase status resides in extension fields at [plans/manifest.json](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-_s4g99yj/review/reviewed-tree/plans/manifest.json:1476). The repaired COORD row meets the cited phase-admission conditions. The other 31 entries compare unchanged, and no blanket manifest-validity claim is made.\n- SL-0 owns `.phase-loop-generated-outputs.json`; the declaration uses exact argv `pnpm build` and exactly three `dist/**` paths. This matches the root [build script](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-_s4g99yj/review/reviewed-tree/package.json:10), the three emitting TypeScript configurations, and the transport fixture copy. All seven private packages use `noEmit`; no incremental state or tracked symlink was found.\n- The final plan restores every dissent-raised invariant: readiness/packed and hostile-positive controls, current-head hosted gate, source-bound rehearsal, post-merge main CI, exact runner/source/artifact receipts, local-failure classification, conditional direct Zod, and no credential switching. It also requires disposable-clone negative audits and a final post-metadata current-head audit receipt at [phase-plan-v2-COORD.md](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-_s4g99yj/review/reviewed-tree/plans/phase-plan-v2-COORD.md:120).\n- Runtime identity, lock digest, entrypoints, `pointer_brief`, `on_seat_preflight`, and explicit-phase audit qualification are recorded at [COORD-plan-upstream-amendment-20261003.json](/mnt/workspace/users/viperjuice/panel-tmp/pl-panel-_s4g99yj/review/reviewed-tree/plans/evidence/v2/reviews/COORD-plan-upstream-amendment-20261003.json:12). The plan requires all seven reviews to pass: four grounded harness seats, one independent review, and separate tool-enabled Opus 5.5 and Gemini reviews. Partial output and provider give-up cannot count.\n- The WIRE/PREP/INTEG handoff preserves Omnigent v0.12 and contract `0.6.3`, assigns tagged v0.16 uncertainty/no-resend/admin-authority work to WIRE, compatible patch review to PREP, and governed-pipeline reassessment to INTEG.\n- JSON parsing, embedded review hashes, `git diff --check`, structural checks, and recorded hosted/source bindings passed. DATA\u2019s 15 recorded source-binding hashes match the current tree. These historical checks were not treated as COORD implementation acceptance. The worktree remained clean; no build, install, credential access, or product test was performed.\n\nAGREE"
+      }
+    ]
+  },
+  "manual_opus": {
+    "head": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+    "model": "claude-opus-5-5",
+    "exit_code": 0,
+    "detail": "claude_tui_file_output",
+    "verdict_written": true,
+    "verdict": "AGREE",
+    "review_sha256": "c36f5bc0c5f95532cccebc359d05f379c5540a18d7b4e8ae47d84fc86e65af7c",
+    "review": "COORD upstream plan-amendment final reconciliation review: Claude Opus 5.5 (manual subscription TUI, tools enabled, read-only)\nSource a52c1c9f8ce641acfd1df21600019528f2a7a3f9; delta 2e7cb3bc..HEAD (also 9430610..HEAD); harness 4a62fc1657cacb32175aaf8790c4f107c6e4007b.\nI made no edits, installs, builds, credential reads or outward actions. I imported the harness code read-only to run the manifest, declaration, lane-IR and intake checks.\n\nBLOCKERS\nNone.\n\nVERIFIED INDEPENDENTLY\n1. Delta and provenance.\n   - 2e7cb3b..HEAD touches only the plan, the manifest, the amendment receipt and the new 2e7cb3b panel record. 9430610..HEAD touches no source, lockfile or workflow.\n   - Historical receipts are unchanged (9200284..HEAD, 298dec2..HEAD).\n   - Plan sha256 5ad4de8f... matches receipt :7 and the manifest. Roadmap ceb90300... is unchanged.\n   - The 9430610 plan hashes to 810a63da..., so the historical approval binds only those bytes. 2e7cb3b hashes to c85bf260....\n   - wc -w gives 2859/2966/3077, matching the receipts. git diff --check is clean.\n2. Ratified clauses restored (checked by diffing against 9430610):\n   - SL-0 :60-61: the existing-test audit, the v1 literals and the conditional direct zod dependency.\n   - SL-5 :120: the full gate, readiness/packed consumers and source-bound hostile/positive controls.\n   - SL-5 :122: the current-head hosted full gate plus source-bound rehearsal, and post-merge main CI.\n   - :130, verbatim: no local SQL failure becomes a pass; canonical hosted topology; exact runner/source/artifact receipts; local-failure classification; plan review before implementation; exact production candidate reviewed before acceptance; optional branch protection; no credential switching, live user data, production DB migration or registry publication.\n   - The only replaced clause is the expired \"Sol replaces Grok until October2\". Everything else is additive. Resolved contracts, IF gates, EC IDs and the spec closeout are unchanged, and all boxes remain unchecked.\n3. Budget. 3077 words, with an explicit justification at :14 and receipt :47. This fits the skill rule (3000-word budget, justification required above it) and the GUARD precedent (phase-plan-v2-GUARD.md:766-768). No product scope is added.\n4. Ownership.\n   - 104 unique paths with no cross-lane duplicates. The only change since approval is SL-0 (:55) taking .phase-loop-generated-outputs.json.\n   - No lane owns tsconfig files or the other package manifests, so build outputs cannot drift.\n   - The current-bytes harness lane-IR and planner checks are both empty.\n5. Producer declaration vs build configs.\n   - Root build is `pnpm -r build`. The seven private packages compile with noEmit:true. The three public packages (verify-publish-artifacts.mjs:8-12) emit ./dist via tsconfig.build.json, and copy-omnigent-fixtures.mjs writes only omnigent-transport/dist/fixtures.\n   - No incremental, composite or tsBuildInfo setting. No tracked symlinks. No declaration exists yet, which is correct before execution.\n   - The planned declaration (receipt :24-40) passes the 4a62fc1 parse_declaration (closed v1 schema). Coverage is exactly the three dist trees. packages/coordinator/dist/* and root dist/* fall outside it, so the undeclared control blocks them.\n6. Audit semantics at 4a62fc1 (generated_outputs.py):\n   - The declaration is read from HEAD (:214-235).\n   - --record-outputs refuses to run without an explicit phase (:695-696).\n   - It moves existing outputs aside before an observed rebuild (:650-673), so existing outputs are never laundered.\n   - Records bind head, phase, declaration digest and content digest (:456-526).\n   - Verification rejects a stale head, the wrong phase, unrecorded files, symlinks and changed digests (:748-766).\n   - The record and displaced outputs live under .phase-loop/, which GUARD checkoutInputs excludes (verify-publish-artifacts.mjs:23).\n   - Plan :120 requires disposable clones; this matters because a wrong-phase record would overwrite the single record file. Plan :130 requires a final-HEAD rerun with external receipts. The audit supplements GUARD custody and full verification; pnpm verify is unchanged.\n7. Machine-readable bullets. :126-128 parse (discovery.py:743-777) into three commands: pnpm build, pnpm verify, and the explicit COORD audit. The first exactly matches the producer argv. Intake findings are empty when the qualified venv bin is on PATH.\n8. Runtime and reviews.\n   - The harness checkout is clean at 4a62fc1: v0.7.21, editable install, uv.lock sha256 72a639bd... matching receipt :20.\n   - pointer_brief, on_seat_preflight, the unreadable-brief notice and the source_grounded filter are all present in the harness source.\n   - The 2e7cb3b record keeps the preflight notices and per-leg source_grounded flags. It preserves both PARTIALLY AGREE dissents in full and records reconciliation_required.\n   - Plan :130 makes all seven reviews mandatory and says partial output or give-up is not a verdict.\n9. Manifest.\n   - :1476 and :1510 (detailed-only fields) are null. :1477, :1496 and :1499 (current approval/quota keys) are null. :1514-1518 hold the prior-labelled values and the extension status fields.\n   - Under 4a62fc1 plan_manifest, the manifest is structurally valid and v2-coord is admitted.\n   - 15 unrelated historical rows remain invalid. The 31 unrelated rows are byte-identical and in the same order as at 9430610, 9200284, 298dec2 and 2e7cb3b.\n   - The receipts make no claim that the whole manifest is valid.\n10. Upstream handoff (:132).\n   - Pins are unchanged: contract 0.6.3, supabase-js 2.110.1, zod 3.25.76. The v0.12 fixtures remain.\n   - WIRE reconciles the open omniagent-plus#30 with tagged stable v0.16: error metadata and undelivered uncertainty, no automatic resend, and sign-in/admin surfaces confer no authority.\n   - PREP rechecks registries; INTEG reassesses governed-pipeline. No adoption, upgrade, migration or publication happens here. This matches recheck :81-87 and :251-255.\n\nSUGGESTIONS (non-blocking)\nS1. On this host the bare `phase-loop-closeout-audit` resolves to ~/.local/bin, the uv-tool runtime 0.7.19. Its main() (closeout_classifier.py:325-345 in that install) silently ignores --record-outputs and --phase.\n   - The normal sequence fails closed: dist shows up as unknown_ignored, and the positive control fails.\n   - A tree with no dist would exit 0 with no record at all.\n   - Repair: put the qualified venv bin first on PATH, or invoke the recorded entrypoint. Make the final-HEAD receipt record: resolved path, harness SHA/version/lock digest, record.json sha256/head/phase/declaration digest, and exit code.\nS2. Plan :130 names Astra/Sol only \"for this amendment\". The rule for the production board (explicitly named, availability-qualified seats under then-current owner direction) exists only in receipt :66. Copy it into the plan (roadmap :449-451), and record owner direction for keeping Sol after the October 2 window.\nS3. Cite COORD-upstream-20261003.json at :132 so WIRE inherits the full wire_actions: cause/remediation/sign-in content is untrusted and possibly sensitive, and v0.16 breaking changes confer no lease or approval capability.\nS4. The harness binds records to HEAD without checking that the worktree is clean. Run the final --record-outputs on a clean tree right after a passing pnpm verify at the same HEAD, and keep the git status output in the receipt.\n\nAGREE\n",
+    "adapter": "manual first-party subscription TUI; Read/Grep/Glob/Bash enabled; exact model, no fallback",
+    "raw_review_sha256": "8bd9fa1c6b957f6e0ad3a4ab7f86df5bf0110aa39912513079947f298e02430c",
+    "review_text_transform": "Repository-qualified issue references only; raw review digest retained, findings and verdict unchanged."
+  },
+  "manual_gemini": {
+    "head": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+    "model": "Gemini 3.1 Pro (High)",
+    "exit_code": 0,
+    "review_chars": 3485,
+    "verdict": "AGREE",
+    "review_sha256": "edba45279232c58903efae1d4f2fc5c5bb497ff549e2ece5c820cc6dc138a48d",
+    "review": "I have completed the read-only review based on your constraints. Here is the review text:\n\n# COORD Upstream Plan Amendment Review\n\nI have completed a read-only review of the COORD upstream plan amendment at exact source `a52c1c9f8ce641acfd1df21600019528f2a7a3f9`, inspecting the delta `2e7cb3bc0118dc8aecd390dcce29893d3bfd5836..HEAD`.\n\nNo blockers found. The amendment properly addresses previous dissent and executes the required repairs.\n\n- **Scope and constraints**: The change is plan-only; implementation has not started (`implementation_started: false`). Historical COORD-plan-9430610.json approval remains appropriately bound to its prior unchanged bytes. The 3077-word plan budget exception correctly notes the necessity of preserving ratified verification/credential/artifact-binding constraints while adding upstream controls, without adding new product scope.\n- **Manifest honesty**: The `plans/manifest.json` properly nullifies detailed-only fields (`task_summary`, `plan_review_source_sha`, `opus_quota_status`, `approved_plan_sha256`, `acceptance_criteria_count`) in the target `v2-coord` block, successfully addressing the independent reviewer's blocker. It maintains the descriptive phase status in extensions (`phase_summary`, `plan_acceptance_criteria_count`, `prior_opus_quota_status`) and perfectly preserves all 31 unrelated historical entries.\n- **Producer declaration**: SL-0 correctly owns `.phase-loop-generated-outputs.json`. The declared producer argv `pnpm build` exactly matches the build config realities for the three public paths: `packages/core-contracts/dist/**`, `packages/governed-pipeline-adapter/dist/**`, and `packages/omnigent-transport/dist/**`. Other packages properly use `noEmit: true` and no incremental state exists. The plan mandates committing the declaration before observed production and uses negative controls for wrong phase/stale head/changed/symlink/undeclared artifacts.\n- **Verification & Qualification**: Restorations of dropped clauses are confirmed: the plan once again explicitly demands current-head hosted full gate plus source-bound rehearsal, post-merge main CI, readiness/packed/integrated hostile-positive controls, exact runner/source/artifact receipts, local failure classification, conditional direct zod, and no credential switching. Machine-readable verification accurately specifies `pnpm build`, `pnpm verify` and the `phase-loop-closeout-audit` command. The audit supplements GUARD custody/full verification. Runtime qualification ensures pointer grounding, `on_seat_preflight`, explicit-phase audit checks, retained grounding notices, and demands exactly seven passing reviews: four harness seats, independent review, Opus5.5 TUI, and Gemini.\n- **Handoffs (WIRE, PREP, INTEG)**: The handoff properly keeps v0.12 authority and `contract@0.6.3` pins unchanged. WIRE correctly defers to reconciling open `omniagent-plus#30` with `v0.16` tagged probes/fixtures (handling error metadata, uncertainty, zero automatic resend, and correctly ignoring admin/sign-in as authority). PREP handles compatible patches, and INTEG reassesses the governed-pipeline changes. No dependency upgrades, product migration, or publication are injected.\n- **Independence & Security**: The review was strictly read-only. No source edits, builds, installs, database migrations, or outward interactions were performed. Missing implementation receipts and pending reviews are appropriate for this pre-implementation planning phase.\n\nAGREE\n",
+    "adapter": "manual subscription agy; tools enabled, source read by reference",
+    "tool_grounding": {
+      "actual_tool_source_reads": [
+        "`file:///mnt/workspace/users/viperjuice/coord-reviews/plan-upstream-clone-a52c1c9/plans/manifest.json`",
+        "`file:///mnt/workspace/users/viperjuice/coord-reviews/plan-upstream-clone-a52c1c9/plans/manifest.json`",
+        "`file:///mnt/workspace/users/viperjuice/coord-reviews/plan-upstream-clone-a52c1c9/specs/phase-plans-v2.md`",
+        "`file:///mnt/workspace/users/viperjuice/coord-reviews/plan-upstream-clone-a52c1c9/plans/evidence/v2/reviews/COORD-plan-upstream-amendment-20261003.json`",
+        "`file:///mnt/workspace/users/viperjuice/coord-reviews/plan-upstream-clone-a52c1c9/plans/evidence/v2/reviews/COORD-upstream-20261003.json`",
+        "`file:///mnt/workspace/users/viperjuice/coord-reviews/plan-upstream-clone-a52c1c9/plans/evidence/v2/reviews/COORD-plan-upstream-2e7cb3b.json`"
+      ],
+      "tool_error_count": 0,
+      "pty_errors": 0,
+      "errors": [],
+      "successful_tool_plan_markers": {
+        "phase_loop_plan_version: 1": false,
+        "Plan-budget exception:": true,
+        "current-head hosted full gate": true,
+        "No credential switching": true,
+        "5ad4de8f972b31c2fea4f634b036e194891406658df61a16aa5b978f6aaa6fa9": true
+      },
+      "command_nonzero_count": 1
+    }
+  },
+  "independent": {
+    "source_sha": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+    "reviewer": "/root/data_independent_design",
+    "verdict": "AGREE",
+    "transcription": "faithful condensed review; full reviewer message in conversation",
+    "timestamp": "2026-10-03T21:14:11.317971+00:00",
+    "review_sha256": "377f2915ad723f4abe3e1ec92c99c04ffaf6dc4bc283f39b86fbc4f17e6c3524",
+    "review": "Reviewed exact a52c1c9f8ce641acfd1df21600019528f2a7a3f9 against 2e7cb3bc0118dc8aecd390dcce29893d3bfd5836. No blocking findings remain.\n\n- Manifest admission repaired: plans/manifest.json:1476 and :1510 null the detailed-only fields, satisfying current harness phase-entry rules. Descriptive metadata and historical approval remain explicitly labelled. All 31 unrelated entries are unchanged.\n- Verification safeguards restored: plans/phase-plan-v2-COORD.md:120 restores readiness/packed consumers, source-bound hostile/positive controls, current-head hosted verification, rehearsal and post-merge main CI. Line130 restores exact receipt binding, local-failure classification and no credential switching; zod addition is conditional again.\n- Upstream controls remain sound: command bullets match the harness parser. Disposable negative controls and final-HEAD external audit receipts avoid stale provenance. Four grounded harness seats, separate independent review and manual tool-enabled subscription Opus/Gemini must pass.\n- Scope and evidence remain honest: approved resolved contracts, lane dependencies and EC-COORD-1..5 unchanged. WIRE/PREP/INTEG retain deferred ownership. Prior dissent preserved, stored review-text digests match. Fresh approval pending; implementation and acceptance gates incomplete.\n\nPlan hash matches 5ad4de8f972b31c2fea4f634b036e194891406658df61a16aa5b978f6aaa6fa9; roadmap hash unchanged. Independently confirmed 3077 words and 104 distinct owned paths. Documented budget exception preserves ratified safeguards without adding product scope. Harness environment-lock digest also matches.\nSuggestions: none. Read-only; no builds, tests, installs or mutations.\n\nAGREE\n"
+  },
+  "decision": "accepted_plan_only",
+  "implementation_started": false,
+  "human_required": false,
+  "scope": "Binds reviewed source and exact plan bytes only; no review of a future metadata commit, no COORD implementation acceptance.",
+  "approved_plan_sha256": "5ad4de8f972b31c2fea4f634b036e194891406658df61a16aa5b978f6aaa6fa9",
+  "roadmap_sha256": "ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74",
+  "verification": {
+    "planner_findings": [],
+    "lane_ir_findings": [],
+    "verification_command_findings": [],
+    "verification_commands": [
+      [
+        "pnpm",
+        "build"
+      ],
+      [
+        "pnpm",
+        "verify"
+      ],
+      [
+        "phase-loop-closeout-audit",
+        "--repo",
+        ".",
+        "--record-outputs",
+        "--phase",
+        "COORD"
+      ]
+    ],
+    "coord_manifest_admitted": true,
+    "unrelated_entries_preserved": 31,
+    "word_count": 3077,
+    "owned_paths": 104,
+    "source_sha": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+    "amended_plan_sha256": "5ad4de8f972b31c2fea4f634b036e194891406658df61a16aa5b978f6aaa6fa9"
+  },
+  "prior_dissent_record": "plans/evidence/v2/reviews/COORD-plan-upstream-2e7cb3b.json",
+  "upstream_recheck": "plans/evidence/v2/reviews/COORD-upstream-20261003.json",
+  "hosted_source_checks": [
+    {
+      "conclusion": "success",
+      "databaseId": 37154243382,
+      "headSha": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+      "name": "ci",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 37154243390,
+      "headSha": "a52c1c9f8ce641acfd1df21600019528f2a7a3f9",
+      "name": "publish",
+      "status": "completed"
+    }
+  ],
+  "actual_publication": "skipped",
+  "execution_started": false,
+  "execution_notes": [
+    "Put the qualified isolated runtime bin first on PATH or use the recorded audit entrypoint; stale installed runtime cannot qualify audit evidence. Retain resolved path, harness source/version/lock, generated record digest and audited HEAD/COORD/declaration identity plus exit status.",
+    "Production review seats must be explicitly named and availability-qualified under then-current owner direction; preserve four grounded harness seats plus separate independent and manual required subscription Opus/Gemini. This amendment retained prior lenses for comparative review, not a global quota/substitution extension.",
+    "WIRE reads the full COORD-upstream-20261003.json wire_actions; error/sign-in/cause/remediation content is untrusted and potentially sensitive, and upstream changes confer no lease or approval capability.",
+    "Run final producers/audit on a clean tree after passing pnpm verify at the same HEAD; retain status and external current-head receipt after metadata commits."
+  ],
+  "suggestion_disposition": "Non-blocking operational suggestions carried to execution handoff; approved plan bytes unchanged."
+}
