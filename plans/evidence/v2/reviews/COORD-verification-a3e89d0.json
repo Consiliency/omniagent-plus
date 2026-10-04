@@ -2,12 +2,12 @@
   "schema": "coord-acceptance-candidate.v1",
   "phase": "COORD",
   "status": "verified_implementation_pending_production_review",
-  "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+  "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
   "base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/32",
   "source_binding": {
     ".phase-loop-generated-outputs.json": "2b521a10c51f04bf1ef5f0ee3d8bf018389a752289132b00d467dfaf4d0d53d6",
-    "docs/coordination-backend.md": "da39d9d591b03c65d5bcbc1c95eaa8e4e7b15e04d66683f30567a28c7e32640d",
+    "docs/coordination-backend.md": "c7ea2dbaf7e7d2426022c339c48673737c060b2ac180dcfe59e04e51ed79751a",
     "docs/coordinator-routing.md": "33a3532a11fcbfc240ae3c8bc98da4e50dc60446b71357d1fa05d77f82441cde",
     "docs/durable-state.md": "8c48b83f343ce81e92f6f915fde7686fa73d0376c934fad5135f0e3aafeeadda",
     "docs/hardening-readiness.md": "3f568b4fa07dbabeae40bfe053712ff0b65d442660b98427efb102affb45ecda",
@@ -42,8 +42,8 @@
     "packages/coordinator/src/index.ts": "4c154e378ff00d4f2fdca5c7e274e9ae678cd70c826ccff90222132be3fe7789",
     "packages/coordinator/src/launch-gate.test.ts": "ef179351d6accf546e18f40bc111870362043f6c77d9129126ad649373e5386c",
     "packages/coordinator/src/launch-gate.ts": "9b6ed0969aded7ab109bfc7f91ff33b37ec5c8bbc0bd1b9fe492a6169a48cdef",
-    "packages/coordinator/src/lease-arbiter.test.ts": "33e6300cf290fef77da2eb2e93cc16f96b81368f762c24645619fb3d8528a542",
-    "packages/coordinator/src/lease-arbiter.ts": "8c93cccbdcb237cf6a0eda732126b508bdf6374fd1169ddbdf629895600b787e",
+    "packages/coordinator/src/lease-arbiter.test.ts": "074b4f83550fa7d46f592eba84168127fe16c55fa4d91df81965dd19d1b2b5ec",
+    "packages/coordinator/src/lease-arbiter.ts": "d1823364e80c0ace414b03b3f2f9a454737d4247f958f26eb3282c102c2fc637",
     "packages/coordinator/src/replay.test.ts": "4dc174b283c0cc1008e53273d8b79e62f806dac53b33615ffd5f9c41fed742e8",
     "packages/coordinator/src/replay.ts": "1c64068cb8520e113977df299285629e42037e45b13e65bb175353b6ee10e966",
     "packages/coordinator/src/retry-guardrails.test.ts": "0efe1bfbf130973827ee5d8f6a465f42e15f61358742740b1bf215fffe47ffbb",
@@ -57,14 +57,14 @@
     "packages/rate-limit-catalog/src/retry-guardrails.ts": "8a6d907c0aba9e9f6a5f75881bbfe5249d5e699a2b347db750cf6b2c48d2ae55",
     "packages/rate-limit-catalog/src/rules.ts": "b5b56a2dae89840815b7ac80b3a2bed04f210e417f51b74beae2b32f09d5d0ad",
     "packages/rate-limit-catalog/src/types.ts": "e6446f30e9f4c23db83aa0fbf6e5ee0c7a55abcab85d6cfe00507e4431e2e393",
-    "packages/state-ledger/src/coordination-channel.test.ts": "60bc6b152979c8fccb05a9bc1aad62bd42a0f43b34fc02a31e9dd60e57cd32f7",
-    "packages/state-ledger/src/coordination-channel.ts": "61fdeeb9faaf9cc3e65544f18c73179cc4dee99bc15871ac9fa30dfa09e72891",
+    "packages/state-ledger/src/coordination-channel.test.ts": "1ff9bab5e120589542878ae25dd7a8d5177769cbd814b543bdabdbfcb51b8f66",
+    "packages/state-ledger/src/coordination-channel.ts": "e4e32df500bb2a099d79430fafa07615131f1398ac2dcf2b1a05d897fbb30130",
     "packages/state-ledger/src/coordination.test.ts": "78660cfb0662e2ffd4ad01b2da22d92a20ae71e39c23677d7c9238800ce5a85c",
     "packages/state-ledger/src/coordination.ts": "d10d593126646d5afc9892adf9bca634694a8376fe7dcaeb1e78c8f93bf439dd",
     "packages/state-ledger/src/index.ts": "242f3bd8853da33b52884ffcf6aa2a4f75fedbd42103832345d90f068434c7db",
     "packages/state-ledger/src/retention.ts": "9297809f95352d5fb117d54d3acb1cec59aa3a5610cbe58908a08f8bef61345c",
-    "packages/state-ledger/src/supabase-coordination-channel.test.ts": "e01382d6c0d200e90a2bce925ff3644269a0bc15c93635fd2c59d8e7a14ca755",
-    "packages/state-ledger/src/supabase-coordination-channel.ts": "73b048283035e80a42e47a6dcc7ce67278368530861ef08a2f6f33b2024a0658",
+    "packages/state-ledger/src/supabase-coordination-channel.test.ts": "8bb611691ba6da4d595f28ba60652f6c3de874c4cda3bb558e0185b967a468a0",
+    "packages/state-ledger/src/supabase-coordination-channel.ts": "a1094ec5d953a05612b29be18ec24e0a3edf681607a35114a6c687694f937e5e",
     "packages/worktree-leasing/package.json": "1110c43ec6de39959de3ba800c46f0c8a42cf82d465c66efefe7d4fd262b92d2",
     "packages/worktree-leasing/src/cleanup.test.ts": "e40881d44c10ec6f943c62b432bd87b3b96c0524428bc3fdbf30731373c5f70d",
     "packages/worktree-leasing/src/cleanup.ts": "4931640d0b5255903a96c87d2f65e6bba116a792559f52dfa8ed5c42d16f491d",
@@ -74,20 +74,20 @@
     "packages/worktree-leasing/src/index.ts": "bba82825ec80c4b20b1c4077283afa47dbace0fb0c38eb7f0464f9056dac9f0a",
     "packages/worktree-leasing/src/lease-manager.test.ts": "e9066e98e32b3213ba4ac852a7a6d01257f30ac34c8bc00f0a3a1c6e627f9cef",
     "packages/worktree-leasing/src/lease-manager.ts": "4e49ec06457bd431b219acd641dc38bb921a6da6ceea14c2b089aee14640ec23",
-    "packages/worktree-leasing/src/lease-store.ts": "51b050b74a50814bef9aaed759c858b81be783ee196e9a14aa8bcf7b310d96d4",
+    "packages/worktree-leasing/src/lease-store.ts": "438a5f128eb6304016c4163edd977198599480aee7b9ed0cc9b3616ede693399",
     "packages/worktree-leasing/src/locks.test.ts": "d3c2c4bae198677ac59a3578773082f371b28a8489c9d227d60ef459af920037",
     "packages/worktree-leasing/src/locks.ts": "de57ec3ca985c380b377c4166bbe1e9aac4c8687a68d74610dc2b5c6039bbb00",
     "packages/worktree-leasing/src/process-liveness.test.ts": "1395a3c82707c063113e418d841cd174d1fc63a55f37242881a13902d3b3e0b4",
     "packages/worktree-leasing/src/process-liveness.ts": "552289b087b3aa32c1f7da0f9e5b03962d77bce521b37190f0793cfa36c91d65",
     "packages/worktree-leasing/src/stale-recovery.ts": "b7ca2f7c875a6b6b25ecbe20d0212e9904e6bab0bdacdd73cc38a55d76cbfbb6",
-    "packages/worktree-leasing/src/supabase-lease-store.test.ts": "b194bccce0b849335f79d4deaaf26bdd0261589c0a477c1b1b3997f2e9501eae",
+    "packages/worktree-leasing/src/supabase-lease-store.test.ts": "960b79b6a904007b3c8e48d8f08aecb20ef297d2218294559a4477934dd313fb",
     "packages/worktree-leasing/src/supabase-lease-store.ts": "6df9b4c21aa44b11f5311b745b546f2c5ca16bf6021dc7e764583988b60d0e5d",
     "packages/worktree-leasing/src/types.ts": "a2700ee443cb885b9c42b49e6c05d054b6c7d758f3f574d928e40b6926f9fa04",
     "plans/phase-plan-v2-COORD.md": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
     "pnpm-lock.yaml": "454113a71b84bd161dbf34d92b9f4a28f2388c4cf4492b0513a5c4243bbd835b",
     "scripts/verify.mjs": "3f99f60bdd13bba1bb032ae39da03aa453a54410ee02b0ad22a79b10d662aa63",
-    "supabase/migrations/20260930000000_coordination_server_time.sql": "d9f56285c63c16fe20f0738dd4d1eb0582d82c4171eb3abb3b7207d0a0dc611a",
-    "tests/guard/coordination.integration.db.test.ts": "579a5dbadda0e0d2236d383da4dc493c700b29dfbcfa358e84cd6b3279930dfb",
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "29d6840f9814b450f64e41ad53d7e9fe54fededcbcfab19713b1772838a0736b",
+    "tests/guard/coordination.integration.db.test.ts": "743b1a1803b7db01a5838d7884c009c84f370dabe6ed7c52bd124cfc0e294397",
     "tests/guard/orchestration.test.ts": "0c5d006504b687a8b37b56f02a1a2238cce4f60f2ad903b4b4ee2e43f391c223",
     "tests/guard/required-cases.json": "f6ce534a9142584fc3670408768c310a69fbc0a0015097d267596c40e7ddae0e"
   },
@@ -99,36 +99,36 @@
     "lint": "passed",
     "root_tests": {
       "command": "pnpm test",
-      "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
-      "passed": 722,
+      "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
+      "passed": 718,
       "skipped": 1,
       "failed": 0,
       "skip": "Explicitly gated live Omnigent smoke is not enabled. Database project is separately admitted by the canonical hosted full gate."
     },
     "logs": [
       {
-        "path": "/tmp/coord-root-b7e012d.log",
-        "sha256": "10141f5a09cfe8b83ecbf327fac187a9cd21be0af76f6c29aa88a58f36fa4ccf"
+        "path": "/tmp/coord-root-a3e89d0.log",
+        "sha256": "48eee726720d9680ba59cb17c246200c8aedc587a2928c7e223c2d8a8a239e0d"
       },
       {
-        "path": "/tmp/coord-install-b7e012d.log",
-        "sha256": "8c36f05cba60a2d5f50c13dd5200ab679d530515edcc4349c33aec25a14e51ff"
+        "path": "/tmp/coord-install-a3e89d0.log",
+        "sha256": "db4dad643b85b77f9bca4d7621fb25ec1f39d42562fd58dcc7dad3bb5c5d4fb8"
       },
       {
-        "path": "/tmp/coord-r3-typecheck-final.log",
-        "sha256": "7be55c12f75445da569638d623980b614ece5930e0c0e2bc1af7fddb07a2cb24"
+        "path": "/tmp/coord-r2-typecheck-final.log",
+        "sha256": "aecbffd16647264f2a82618ae29e4e4bff4e5852d19d3138e4795df280654c4c"
       },
       {
-        "path": "/tmp/coord-r3-lint-final.log",
+        "path": "/tmp/coord-r2-lint-final.log",
         "sha256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8"
       },
       {
-        "path": "/tmp/coord-r3-build-final.log",
-        "sha256": "f9f31586ae8235d0dfd246d432328560dce425d5288f915b2798cc1998568235"
+        "path": "/tmp/coord-r2-build.log",
+        "sha256": "9fcfd5d4a6a3559858f45803cd9f4252534f9c0639277ef586f65dd629f4fea6"
       },
       {
-        "path": "/tmp/coord-audit-b7e012d.log",
-        "sha256": "acd7b8f1c79e11f0e1c45a689d1cbc97f9b18679d0465a62896430cdc0cbf4c8"
+        "path": "/tmp/coord-audit-a3e89d0.log",
+        "sha256": "88d7d9f78a42b2547b9795f119aad467a7936a0370e52da65f2faa4fae43235c"
       }
     ],
     "local_full_sql": {
@@ -153,84 +153,84 @@
   },
   "hosted_verification": [
     {
-      "run_id": 37169435609,
-      "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+      "run_id": 37167596718,
+      "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
       "status": "completed",
       "conclusion": "success",
-      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435609",
+      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596718",
       "jobs": [
         {
-          "databaseId": 111339191046,
+          "databaseId": 111333710057,
           "name": "verify / verify",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435609/job/111339191046"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596718/job/111333710057"
         },
         {
-          "databaseId": 111339721805,
+          "databaseId": 111334453693,
           "name": "guard-required",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435609/job/111339721805"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596718/job/111334453693"
         }
       ]
     },
     {
-      "run_id": 37169435594,
-      "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+      "run_id": 37167596780,
+      "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
       "status": "completed",
       "conclusion": "success",
-      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435594",
+      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596780",
       "jobs": [
         {
-          "databaseId": 111339191209,
+          "databaseId": 111333710353,
           "name": "verify / verify",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435594/job/111339191209"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596780/job/111333710353"
         },
         {
-          "databaseId": 111339878405,
+          "databaseId": 111334460424,
           "name": "rehearsal",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435594/job/111339878405"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596780/job/111334460424"
         },
         {
-          "databaseId": 111339879131,
+          "databaseId": 111334461193,
           "name": "publish-npm",
           "status": "completed",
           "conclusion": "skipped",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37169435594/job/111339879131"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37167596780/job/111334461193"
         }
       ]
     }
   ],
   "hosted_runner_summaries": {
     "full_verify": {
-      "passed": 743,
+      "passed": 739,
       "skipped": 1
     },
     "focused_integration": {
       "passed": 10,
       "skipped": 0
     },
-    "ci_log_sha256": "2ba566a051ed48df39da29351e3b7c1aabf3e692ba7e4d3da7a1cfda7d47e98d"
+    "ci_log_sha256": "067a9a5378143c8a9db813688b37449f59a8eb8f3394eaddb59a05ea8217190c"
   },
   "hosted_sql": {
     "status": "passed",
     "mandatory_coord_case_count": 8,
     "topology": "approved canonical hosted github-service",
-    "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+    "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
     "proof_boundary": "Admitted PostgreSQL function/role/transaction/skew/concurrency/rollback/query/capacity controls. No hosted Supabase production acceptance claimed."
   },
   "packed_rehearsal": {
     "status": "passed",
-    "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
-    "manifest_sha256": "c6fac150c428ab98a1f78b3eea68040516676353eddb027b78e9c21e47130e90",
+    "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
+    "manifest_sha256": "4af684c0ae507823af68dae6b7d882e456916122c456102282bb2439bbea2e91",
     "manifest": {
       "schema": "guard-artifacts.v1",
-      "source_sha": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+      "source_sha": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
       "lockfile_sha256": "454113a71b84bd161dbf34d92b9f4a28f2388c4cf4492b0513a5c4243bbd835b",
       "package_manifest_sha256": {
         "@consiliency/runtime-provider": "7ab54854fb04d8a6b920a7f7517db0be8ffe404f478c4494555a9ba8adb913e5",
@@ -238,9 +238,9 @@
         "@consiliency/omnigent-transport": "709f567bc638c5905e7bdee306b1a74a6502e19a7b330592144dfbcfd6a0d117"
       },
       "identity": {
-        "tested_source_sha": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
-        "github_sha": "d92e8f18b7c2e531880893949a3ce36bef8e9d5d",
-        "pr_head_sha": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+        "tested_source_sha": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
+        "github_sha": "932c2b372fbd8ee806c0c1c9a9ffce52beb955fd",
+        "pr_head_sha": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
         "pr_base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c"
       },
       "packages": [
@@ -269,7 +269,7 @@
   "audit": {
     "positive": {
       "status": "passed",
-      "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+      "source_head": "a3e89d0bd77707e9530ec8370fc0f633ddc55d10",
       "phase": "COORD",
       "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
       "producer_record": ".phase-loop/generated-outputs/record.json"
@@ -343,10 +343,9 @@
     "status": "pending",
     "historical_dissent": [
       "plans/evidence/v2/reviews/COORD-CR-3e50b88.json",
-      "plans/evidence/v2/reviews/COORD-CR-1039f64.json",
-      "plans/evidence/v2/reviews/COORD-CR-7761093.json"
+      "plans/evidence/v2/reviews/COORD-CR-1039f64.json"
     ],
-    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-7761093.json",
+    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-1039f64.json",
     "required": [
       "four source-grounded agent-harness Astra/Sol seats",
       "separate independent",
@@ -406,9 +405,9 @@
   "publication": "not_performed",
   "branch_protection": "optional by solo-owner decision",
   "future_sha_honesty": "This records actual checked source. Its recording commit and later acceptance metadata commits are not retroactively claimed as tested or reviewed; required final-HEAD hosted checks, audit and post-merge main CI remain gates.",
-  "recorded_at": "2026-10-04T02:04:40.709463+00:00",
+  "recorded_at": "2026-10-04T01:24:07.136942+00:00",
   "historical_verification": [
-    "plans/evidence/v2/reviews/COORD-verification-a3e89d0.json"
+    "plans/evidence/v2/reviews/COORD-verification-9ae3790.json"
   ],
   "prior_current_head_failure": {
     "source_head": "1039f64c7d36b781b57d7b47a9a58f1e407f5588",

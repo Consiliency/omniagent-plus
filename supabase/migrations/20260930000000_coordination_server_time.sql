@@ -336,6 +336,18 @@ declare
   message_id text := 'msg:' || gen_random_uuid()::text;
   payload jsonb;
   field_name text;
+  metadata_nodes jsonb[] := array[message];
+  metadata_depths integer[] := array[0];
+  metadata_keys boolean[] := array[false];
+  metadata_index integer := 1;
+  metadata_value jsonb;
+  metadata_text text;
+  metadata_depth integer;
+  metadata_is_key boolean;
+  metadata_item record;
+  normalized_key text;
+  placeholder boolean;
+  encoded_value jsonb;
 begin
   if jsonb_typeof(message) is distinct from 'object'
     or jsonb_typeof(message->'type') is distinct from 'string' or message->>'type' not in ('request-yield','announce-intent','handoff','done')
@@ -359,6 +371,75 @@ begin
   if message ? 'body' and jsonb_typeof(message->'body') is distinct from 'object' then
     raise exception 'Invalid coordination body' using errcode='22023';
   end if;
+  while metadata_index <= cardinality(metadata_nodes) loop
+    metadata_value := metadata_nodes[metadata_index];
+    metadata_depth := metadata_depths[metadata_index];
+    metadata_is_key := metadata_keys[metadata_index];
+    metadata_index := metadata_index + 1;
+    if metadata_depth > 64 then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
+    if jsonb_typeof(metadata_value)='string' then
+      metadata_text := metadata_value #>> '{}';
+      if metadata_text ~* $metadata$(?<![a-z0-9_])bearer\s+[a-z0-9._~+/=-]{8,}|(?<![a-z0-9_])(?:(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|AIza)[a-z0-9._-]{8,}|npm_[a-z0-9]{8,})(?![a-z0-9_])|(?<![a-z0-9_])(?:[a-z][a-z0-9_]*_)?(?:password|passwd|token|credential|authorization|api_key|access_key|client_secret|secret_key|service_role_key|secret)\s*(?:=|:)\s*\S+|(?<![a-z0-9_])OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY)\s*=\s*\S+|(?<![a-z0-9_])eyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}(?![a-z0-9_])|(?<![a-z0-9_])(?:authorization|x-api-key|cookie)\s*:\s*\S+|(?<![a-z0-9_])[a-z][a-z0-9+.-]*://[^/\s@]+:[^/\s@]+@|(?:/(?:home|Users)/[^/\s]+|[A-Z]:[\\/]Users[\\/][^\\/\s]+)|(?:^|[^a-z0-9_.-])[.]recovery(?:[\\/]|$|[^a-z0-9_.-])$metadata$
+        or metadata_text ~ $metadata$-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|(?<![a-zA-Z0-9_])AKIA[0-9A-Z]{16}(?![a-zA-Z0-9_])$metadata$
+        or (not metadata_is_key and metadata_text ~ $metadata$(^|\n)(?:HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|AZURE_OPENAI_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=$metadata$) then
+        raise exception 'Invalid coordination metadata' using errcode='22023';
+      end if;
+      if not metadata_is_key and left(ltrim(metadata_text,E' \t\n\r'),1) in ('"','{','[') then
+        begin encoded_value := metadata_text::jsonb;
+        exception when invalid_text_representation then encoded_value := null;
+          when numeric_value_out_of_range then raise exception 'Invalid coordination metadata' using errcode='22023'; end;
+        if jsonb_typeof(encoded_value) in ('string','object','array') then
+          metadata_nodes := array_append(metadata_nodes,encoded_value);
+          metadata_depths := array_append(metadata_depths,metadata_depth+1);
+          metadata_keys := array_append(metadata_keys,false);
+        end if;
+      end if;
+    elsif jsonb_typeof(metadata_value)='number' and abs((metadata_value #>> '{}')::numeric)>=1 then
+      begin perform (metadata_value #>> '{}')::double precision;
+      exception when numeric_value_out_of_range then raise exception 'Invalid coordination metadata' using errcode='22023'; end;
+    elsif jsonb_typeof(metadata_value)='array' then
+      for metadata_item in select value from jsonb_array_elements(metadata_value) loop
+        metadata_nodes := array_append(metadata_nodes,metadata_item.value);
+        metadata_depths := array_append(metadata_depths,metadata_depth+1);
+        metadata_keys := array_append(metadata_keys,false);
+      end loop;
+    elsif jsonb_typeof(metadata_value)='object' then
+      if jsonb_typeof(metadata_value->'anthropic_version')='string' or jsonb_typeof(metadata_value->'providerPayload')='object'
+        or exists (select 1 from jsonb_array_elements(case when jsonb_typeof(metadata_value->'choices')='array' then metadata_value->'choices' else '[]'::jsonb end) as item(value)
+          where jsonb_typeof(value)='object' and (value ? 'message' or value ? 'delta'))
+        or exists (select 1 from jsonb_array_elements(case when jsonb_typeof(metadata_value->'messages')='array' then metadata_value->'messages' else '[]'::jsonb end) as item(value)
+          where jsonb_typeof(value)='object' and value ? 'role')
+        or exists (select 1 from jsonb_array_elements(case when jsonb_typeof(metadata_value->'candidates')='array' then metadata_value->'candidates' else '[]'::jsonb end) as item(value)
+          where jsonb_typeof(value)='object' and value ? 'content') then
+        raise exception 'Invalid coordination metadata' using errcode='22023';
+      end if;
+      for metadata_item in select key,value from jsonb_each(metadata_value) loop
+        normalized_key := lower(regexp_replace(metadata_item.key,'[^a-zA-Z0-9]','','g'));
+        placeholder := false;
+        if jsonb_typeof(metadata_item.value)='object' then
+          placeholder := coalesce(metadata_item.value->>'schema'='redacted_config_value.v0.1' and metadata_item.value->>'value'='[redacted]'
+            and jsonb_typeof(metadata_item.value->'reason')='string' and length(metadata_item.value->>'reason')>0
+            and metadata_item.value-array['schema','value','reason','updatedAt']='{}'::jsonb
+            and (not metadata_item.value ? 'updatedAt' or (jsonb_typeof(metadata_item.value->'updatedAt')='string'
+              and metadata_item.value->>'updatedAt' ~ $timestamp$^((\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-((0[13578]|1[02])-(0[1-9]|[12]\d|3[01])|(0[469]|11)-(0[1-9]|[12]\d|30)|(02)-(0[1-9]|1\d|2[0-8])))T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|([+-]\d{2}:?\d{2}))($)$timestamp$)),false);
+          if metadata_item.key in ('env','environment') and metadata_item.value<>'{}'::jsonb and not placeholder
+            and not exists (select 1 from jsonb_each(metadata_item.value) as item(key,value) where jsonb_typeof(value)<>'string') then
+            raise exception 'Invalid coordination metadata' using errcode='22023';
+          end if;
+        end if;
+        if normalized_key<>'fencingtoken' and not (normalized_key='autorefreshtoken' and jsonb_typeof(metadata_item.value)='boolean')
+          and (normalized_key ~ '^(tokens|passwords|secrets|cookies|apikeys)$'
+            or normalized_key ~ '(password|passwd|token|credentials?|authorization|authheader|apikey|accesskey|secret|secretkey|privatekey|servicerolekey|cookie)$')
+          and not placeholder then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
+        metadata_nodes := array_append(metadata_nodes,to_jsonb(metadata_item.key));
+        metadata_depths := array_append(metadata_depths,metadata_depth);
+        metadata_keys := array_append(metadata_keys,true);
+        metadata_nodes := array_append(metadata_nodes,metadata_item.value);
+        metadata_depths := array_append(metadata_depths,metadata_depth+1);
+        metadata_keys := array_append(metadata_keys,false);
+      end loop;
+    end if;
+  end loop;
   perform pg_advisory_xact_lock(hashtext('coordination_inbox:v1'));
   now_at := date_trunc('second',clock_timestamp());
   update public.coordination_inbox_messages as inbox set created_at=now_at,

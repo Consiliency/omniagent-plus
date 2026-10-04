@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { coordinationMessageSchema } from "../../packages/core-contracts/src/coordination-contract.js";
 import { describe, expect, it } from "vitest";
 import { admittedClient } from "../helpers/guard-postgres.js";
 import { sql } from "../../scripts/prepare-test-postgres.mjs";
@@ -143,10 +145,19 @@ describe.sequential("admitted COORD SQL", () => {
       values('${futureId}','done','operator','path-set',array['${prefix}'],${json({ schema: "consiliency.coordination_message.v1", message_id: futureId, type: "done", sender: "operator", scope, created_at: "2099-01-01T00:00:00Z" })},'2099-01-01T00:00:00Z')`);
     const snapshot = () => service("select md5(coalesce(jsonb_agg(to_jsonb(inbox) order by message_id),'[]'::jsonb)::text) from public.coordination_inbox_messages inbox", true);
     const beforeInvalid = await snapshot();
+    const corpus = JSON.parse(readFileSync(new URL("../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
+    const tooDeep = Array.from({ length: 63 }).reduce<unknown>((nested) => ({ nested }), "safe");
     for (const input of [null, { type: "done", sender: "", scope }, { type: "done", sender: null, scope }, { type: "invalid", sender: "operator", scope },
       ...[[], [""], [null], [7], ["/absolute"], ["../parent"], ["C:\\absolute"]].map((selector) => ({ type: "done", sender: "operator", scope: { ...scope, selector } })),
       ...["targetHolder", "leaseId", "handoffPacketId"].flatMap((key) => ["", null, 7].map((value) => ({ type: "done", sender: "operator", scope, [key]: value }))),
-      { type: "done", sender: "operator", scope, body: null }, { type: "done", sender: "operator", scope, body: [] }]) {
+      { type: "done", sender: "operator", scope, body: null }, { type: "done", sender: "operator", scope, body: [] },
+      ...corpus.rejected.map((nested) => ({ type: "done", sender: "operator", scope, body: { nested } })),
+      ...['{"count":1e400}', '{"count":1e400000}'].map((nested) => ({ type: "done", sender: "operator", scope, body: { nested } })),
+      ...["sender", "targetHolder", "leaseId", "handoffPacketId"].map((key) => ({ type: "done", sender: "operator", scope, [key]: "Bearer synthetic-token-123456" })),
+      { type: "done", sender: "operator", scope: { ...scope, selector: ["Bearer synthetic-token-123456"] } },
+      { type: "done", sender: "operator", scope, body: { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "safe", updatedAt: "2026-02-29T01:02:03Z" } } },
+      { type: "done", sender: "operator", scope, body: { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "" } } },
+      { type: "done", sender: "operator", scope, body: { nested: tooDeep } }]) {
       await expect(invoke("coordination_send_message", input)).rejects.toThrow();
       expect(await snapshot()).toBe(beforeInvalid);
     }
@@ -155,6 +166,18 @@ describe.sequential("admitted COORD SQL", () => {
       from public.coordination_inbox_messages where message_id='${futureId}'`, true));
     expect(normalized.column).toBe(normalized.payload);
     expect(Math.abs(Date.now() - Date.parse(normalized.column))).toBeLessThan(5000);
+    for (const nested of [...corpus.allowed,
+      { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "synthetic_fixture", updatedAt: "2024-02-29T01:02:03.123+02:00" } },
+      { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "synthetic_fixture", updatedAt: "2026-10-03T01:02Z" } },
+      Array.from({ length: 62 }).reduce<unknown>((nested) => ({ nested }), "safe")]) {
+      await invoke("coordination_send_message", { type: "done", sender: "operator", scope, body: { nested } });
+    }
+    const readable = (await invoke("coordination_list_messages", { scope })).messages as unknown[];
+    expect(readable).toHaveLength(corpus.allowed.length + 5);
+    for (const message of readable) expect(coordinationMessageSchema.safeParse(message).success).toBe(true);
+    const fixture = admittedClient();
+    await expect(sql(fixture, "begin; set local role service_role; select public.coordination_send_message(" + json({ type: "done", sender: "operator", scope, body: {} }).replace(/"body":\{\}/, '"body":{"count":1e400}') + "); commit;", "guard_client", fixture.clientPassword)).rejects.toThrow();
+    expect((await invoke("coordination_list_messages", { scope })).messages).toEqual(readable);
     await service("update public.coordination_inbox_messages set created_at=clock_timestamp()-interval '8 days'");
     await invoke("coordination_send_message", { type: "done", sender: "operator", scope, now: "2099-01-01T00:00:00Z" });
     await service(`insert into public.coordination_inbox_messages(message_id,message_type,sender,scope_kind,scope_selector,payload,created_at)

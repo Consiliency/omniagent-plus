@@ -9,7 +9,11 @@ and event/projection writes are transactional. RLS stays enabled; only
 service_role executes coordination RPCs. Tests use admitted disposable SQL.
 Local and SDK message inputs are validated and detached before effects; the SQL
 send RPC rejects invalid senders, scopes, IDs and bodies before locking, pruning
-or normalizing inbox state. Invalid input cannot poison a later valid inbox page.
+or normalizing inbox state. Its recursive JSON metadata checks cover retained
+strings, fields, encoded JSON and provider payloads, preserving redacted
+placeholders and the fencingToken/boolean autoRefreshToken exceptions. Shared
+content-policy corpus tests prove refusal without mutation and valid readable
+pages. Invalid input cannot poison a later valid inbox page.
 Default local lease clocks start after physical acquisition, so lock contention
 does not consume a newly granted lease's lifetime. Explicit injected clocks remain
 deterministic. Library arbitration validates before contacting the backend;
