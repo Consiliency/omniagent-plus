@@ -3,7 +3,7 @@ import { mkdtemp, stat, rename } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnOwned as spawn, runProcess, waitReady, cleanupChild } from "../../../tests/helpers/guard-process.js";
+import { spawnOwned as spawn, runProcess, waitReady, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -43,8 +43,8 @@ function writeChildScript(rootDir: string): string {
       async (metadata) => {
         if (process.env.LOCK_HOLD_OPEN === "1") {
           console.log(JSON.stringify({ acquired: true, metadata }));
-          await new Promise((resolve) => {
-            process.stdin.once("data", () => resolve(undefined));
+          await new Promise(() => {
+            process.stdin.once("data", () => process.exit(0));
           });
         }
         return metadata;
@@ -168,7 +168,8 @@ describe("locks", () => {
     expect(secondAttempt.acquired).toBe(false);
 
     const inode = (await stat(metadata!.lockPath)).ino;
-    await cleanupChild(holdingChild);
+    holdingChild.stdin.end("crash");
+    expect(await waitExit(holdingChild)).toBe(0);
     const afterCrash = await backend.tryExclusiveLock(resourceId, fixture.exclusiveWrite.holder, async () => undefined);
     expect(afterCrash.acquired).toBe(true);
     expect(afterCrash.metadata?.fencingToken).not.toBe(metadata!.fencingToken);
