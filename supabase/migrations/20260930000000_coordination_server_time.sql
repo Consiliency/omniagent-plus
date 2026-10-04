@@ -335,7 +335,30 @@ declare
   now_at timestamptz;
   message_id text := 'msg:' || gen_random_uuid()::text;
   payload jsonb;
+  field_name text;
 begin
+  if jsonb_typeof(message) is distinct from 'object'
+    or jsonb_typeof(message->'type') is distinct from 'string' or message->>'type' not in ('request-yield','announce-intent','handoff','done')
+    or jsonb_typeof(message->'sender') is distinct from 'string' or length(message->>'sender')=0
+    or jsonb_typeof(message->'scope') is distinct from 'object'
+    or jsonb_typeof(message #> '{scope,granularity}') is distinct from 'string' or message #>> '{scope,granularity}' not in ('repo','path-set','symbol')
+    or jsonb_typeof(message #> '{scope,selector}') is distinct from 'array' then
+    raise exception 'Invalid coordination message' using errcode='22023';
+  end if;
+  if jsonb_array_length(message #> '{scope,selector}')=0 or exists (
+    select 1 from jsonb_array_elements(message #> '{scope,selector}') as item(value)
+    where jsonb_typeof(value) is distinct from 'string' or length(value #>> '{}')=0
+      or left(value #>> '{}',1)='/' or value #>> '{}' ~ '(^|/)[.][.](/|$)'
+      or (left(value #>> '{}',2) ~ '^[A-Za-z]:$' and substring(value #>> '{}',3,1) in ('/',chr(92)))
+  ) then raise exception 'Invalid coordination scope' using errcode='22023'; end if;
+  foreach field_name in array array['targetHolder','leaseId','handoffPacketId'] loop
+    if message ? field_name and (jsonb_typeof(message->field_name) is distinct from 'string' or length(message->>field_name)=0) then
+      raise exception 'Invalid coordination identifier' using errcode='22023';
+    end if;
+  end loop;
+  if message ? 'body' and jsonb_typeof(message->'body') is distinct from 'object' then
+    raise exception 'Invalid coordination body' using errcode='22023';
+  end if;
   perform pg_advisory_xact_lock(hashtext('coordination_inbox:v1'));
   now_at := date_trunc('second',clock_timestamp());
   update public.coordination_inbox_messages as inbox set created_at=now_at,

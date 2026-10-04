@@ -141,6 +141,15 @@ describe.sequential("admitted COORD SQL", () => {
     const futureId = prefix + ":future";
     await service(`insert into public.coordination_inbox_messages(message_id,message_type,sender,scope_kind,scope_selector,payload,created_at)
       values('${futureId}','done','operator','path-set',array['${prefix}'],${json({ schema: "consiliency.coordination_message.v1", message_id: futureId, type: "done", sender: "operator", scope, created_at: "2099-01-01T00:00:00Z" })},'2099-01-01T00:00:00Z')`);
+    const snapshot = () => service("select md5(coalesce(jsonb_agg(to_jsonb(inbox) order by message_id),'[]'::jsonb)::text) from public.coordination_inbox_messages inbox", true);
+    const beforeInvalid = await snapshot();
+    for (const input of [null, { type: "done", sender: "", scope }, { type: "done", sender: null, scope }, { type: "invalid", sender: "operator", scope },
+      ...[[], [""], [null], [7], ["/absolute"], ["../parent"], ["C:\\absolute"]].map((selector) => ({ type: "done", sender: "operator", scope: { ...scope, selector } })),
+      ...["targetHolder", "leaseId", "handoffPacketId"].flatMap((key) => ["", null, 7].map((value) => ({ type: "done", sender: "operator", scope, [key]: value }))),
+      { type: "done", sender: "operator", scope, body: null }, { type: "done", sender: "operator", scope, body: [] }]) {
+      await expect(invoke("coordination_send_message", input)).rejects.toThrow();
+      expect(await snapshot()).toBe(beforeInvalid);
+    }
     await invoke("coordination_send_message", { type: "done", sender: "operator", scope });
     const normalized = JSON.parse(await service(`select json_build_object('column',to_char(created_at at time zone 'utc','YYYY-MM-DD"T"HH24:MI:SS"Z"'),'payload',payload->>'created_at')
       from public.coordination_inbox_messages where message_id='${futureId}'`, true));

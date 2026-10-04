@@ -7,6 +7,7 @@ import type {
   LeaseAcquireRequest,
   LeaseStore,
 } from "@omniagent-plus/worktree-leasing";
+import { createLeaseFromAcquireRequest } from "@omniagent-plus/worktree-leasing";
 import type { RouteDecisionLeaseArbitration } from "@consiliency/runtime-provider";
 
 export interface LeaseArbitrationRequest extends LeaseAcquireRequest {
@@ -39,6 +40,11 @@ export class LeaseArbiter {
   async arbitrate(
     request: LeaseArbitrationRequest,
   ): Promise<LeaseArbitrationDecision> {
+    const now = request.now;
+    const lease = createLeaseFromAcquireRequest({ ...request, now });
+    request = { leaseId: lease.lease_id, holder: lease.holder, ttlSeconds: lease.ttl_seconds,
+      mode: lease.mode, scope: lease.scope, phase: lease.phase, now,
+      taskId: request.taskId, sendYieldRequest: request.sendYieldRequest };
     let result;
     try { result = await this.store.acquire(request); }
     catch (error) { result = { granted: false as const, failure: "backend-unavailable" as const, cause: coordinationFailureCause(error) }; }

@@ -4,7 +4,8 @@ import { mkdtemp, mkdir, readFile, writeFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { withFilesystemLock } from "@omniagent-plus/state-ledger";
 
 import {
   LocalLeaseStore,
@@ -116,6 +117,28 @@ describe("lease store scope overlap", () => {
 });
 
 describe("local lease store conformance", () => {
+  it("starts a short default-clock lease after actual contended lock acquisition", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "lease-store-clock-wait-"));
+    const store = new LocalLeaseStore({ rootDir });
+    let release!: () => void;
+    let entered!: () => void;
+    const ready = new Promise<void>((resolve) => { entered = resolve; });
+    const held = withFilesystemLock(join(rootDir, "locks", "coordination.lock"), async () => { entered(); await new Promise<void>((resolve) => { release = resolve; }); });
+    await ready;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-04T00:00:10Z"));
+      const pending = store.acquire({ ...request(holderA, ["packages"]), now: undefined, ttlSeconds: 1 });
+      vi.setSystemTime(new Date("2026-10-04T00:00:11.500Z"));
+      release();
+      await held;
+      const result = await pending;
+      expect(result.granted).toBe(true);
+      expect(result.lease?.heartbeat_at).toBe("2026-10-04T00:00:11Z");
+      expect((await store.query()).leases).toHaveLength(1);
+      expect(await store.acquire({ ...request(holderB, ["packages"]), now: undefined })).toMatchObject({ granted: false, failure: "conflict" });
+    } finally { release(); await held; vi.useRealTimers(); }
+  });
   it("rejects invalid mutations before creating state or a physical lock", async () => {
     const rootDir = join(await mkdtemp(join(tmpdir(), "lease-store-invalid-")), "absent");
     const store = new LocalLeaseStore({ rootDir });

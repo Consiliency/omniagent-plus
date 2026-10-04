@@ -3,6 +3,7 @@ import { join } from "node:path";
 import {
   coordinationMessageSchema,
   assertMetadataSafe,
+  projectMetadataExport,
   toContractTimestamp,
   type CoordinationMessage,
   type CoordinationMessageType,
@@ -58,6 +59,14 @@ export interface CoordinationMessageInput {
   readonly body?: Record<string, unknown>;
   readonly now?: string;
 }
+
+const messageFields = coordinationMessageSchema.innerType().shape;
+export const coordinationMessageInputSchema = z.object({
+  type: messageFields.type, sender: messageFields.sender, scope: messageFields.scope,
+  targetHolder: messageFields.target_holder, leaseId: messageFields.lease_id,
+  handoffPacketId: messageFields.handoff_packet_id, body: messageFields.body,
+  now: z.string().optional(),
+});
 
 export interface CoordinationMessageReceipt {
   readonly messageId: string;
@@ -163,6 +172,8 @@ export class LocalCoordinationChannel implements CoordinationChannel {
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
     assertMetadataSafe(message, { inertOnly: true });
+    assertMetadataSafe(message);
+    message = coordinationMessageInputSchema.parse(projectMetadataExport(message, { inertOnly: true }));
     return withFilesystemLock(this.lockPath, async () => {
       assertMetadataSafe(message, { inertOnly: true });
       const now = toContractTimestamp(this.clock());

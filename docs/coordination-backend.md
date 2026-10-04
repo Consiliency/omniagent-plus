@@ -7,6 +7,13 @@ after advisory lock acquisition for mutations; compatibility caller clocks are
 ignored. Query expiry uses server statement time without mutation. Holder checks
 and event/projection writes are transactional. RLS stays enabled; only
 service_role executes coordination RPCs. Tests use admitted disposable SQL.
+Local and SDK message inputs are validated and detached before effects; the SQL
+send RPC rejects invalid senders, scopes, IDs and bodies before locking, pruning
+or normalizing inbox state. Invalid input cannot poison a later valid inbox page.
+Default local lease clocks start after physical acquisition, so lock contention
+does not consume a newly granted lease's lifetime. Explicit injected clocks remain
+deterministic. Library arbitration validates before contacting the backend;
+invalid soft requests never become launch permission.
 
 Lease and inbox lists default100, maximum500, positive whole limits. Cursor is
 after-(returned timestamp,ID), ascending whole-second UTC plus UTF-8 bytewise

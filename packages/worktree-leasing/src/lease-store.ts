@@ -190,9 +190,11 @@ export class LocalLeaseStore implements LeaseStore {
   }
 
   async acquire(request: LeaseAcquireRequest): Promise<LeaseAcquireResult> {
-    const now = toContractTimestamp(request.now ?? nowIsoString());
-    const lease = createLeaseFromAcquireRequest({ ...request, now });
+    const requestedNow = request.now;
+    const prepared = createLeaseFromAcquireRequest({ ...request, now: requestedNow });
     return this.withLeaseLock(async () => {
+      const now = toContractTimestamp(requestedNow ?? nowIsoString());
+      const lease = consiliencyLeaseSchema.parse({ ...prepared, acquired_at: now, heartbeat_at: now });
       const state = await this.readState(now);
       this.expireState(state, now);
       const existingLeaseId = state.leases[lease.lease_id];

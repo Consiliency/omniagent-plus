@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { LocalCoordinationChannel } from "./coordination-channel.js";
+import { LocalCoordinationChannel, type CoordinationMessageInput } from "./coordination-channel.js";
 import {
   SupabaseCoordinationChannel,
   type SupabaseCoordinationRpcClient,
@@ -17,6 +17,20 @@ const scope = {
 };
 
 describe("coordination channel", () => {
+  it("refuses malformed sends before local state creation and detaches valid scope before waiting", async () => {
+    const rootDir = join(await mkdtemp(join(tmpdir(), "coord-input-validation-")), "absent");
+    const channel = new LocalCoordinationChannel({ rootDir });
+    for (const patch of [{ sender: "" }, { scope: { ...scope, selector: [] } }, { leaseId: "" }, { targetHolder: "" }, { handoffPacketId: "" }, { body: null }, { type: "invalid" }]) {
+      await expect(channel.send({ type: "done", sender: "operator", scope, ...patch } as CoordinationMessageInput)).rejects.toThrow();
+      await expect(access(rootDir)).rejects.toMatchObject({ code: "ENOENT" });
+    }
+    const input = { type: "done" as const, sender: "operator", scope: { ...scope, selector: ["original"] }, body: { nested: "original" } };
+    const pending = channel.send(input);
+    input.scope.selector[0] = "changed";
+    input.body.nested = "changed";
+    await pending;
+    expect((await channel.list())[0]).toMatchObject({ scope: { selector: ["original"] }, body: { nested: "original" } });
+  });
   it("persists legacy future-clock normalization even when a full inbox refuses admission", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "coord-inbox-future-full-"));
     let now = new Date("2026-10-03T00:00:00Z");
@@ -92,14 +106,14 @@ describe("coordination channel", () => {
     await expect(channel.send({ type: "done", sender: "operator", scope })).rejects.toThrow();
     expect(await readFile(path, "utf8")).toBe(bytes);
   });
-  it("rechecks local fields after lock acquisition and nested aliases after inbox reads", async () => {
+  it("detaches local fields before lock acquisition and nested aliases before inbox reads", async () => {
     const local = new LocalCoordinationChannel({ rootDir: await mkdtemp(join(tmpdir(), "data-coordination-pending-")) });
     await local.send({ type: "done", sender: "original", scope });
     let invoked = 0;
     const input = { type: "done" as const, sender: "operator", scope };
     const pending = local.send(input);
     Object.defineProperty(input, "sender", { get() { invoked += 1; return "operator"; } });
-    await expect(pending).rejects.toThrow(/non json metadata/);
+    await pending;
     const nested = { safe: "original" };
     const internals = local as unknown as { readState: (now: string) => Promise<unknown> };
     const readState = internals.readState.bind(local);
@@ -108,10 +122,13 @@ describe("coordination channel", () => {
       Object.defineProperty(nested, "toJSON", { value() { invoked += 1; return { password: "synthetic-private-value" }; } });
       return state;
     });
-    await expect(local.send({ type: "done", sender: "operator", scope, body: { nested } })).rejects.toThrow(/non json metadata/);
+    const receipt = await local.send({ type: "done", sender: "operator", scope, body: { nested } });
     spy.mockRestore();
     expect(invoked).toBe(0);
-    expect((await local.list()).map((message) => message.sender)).toEqual(["original"]);
+    const messages = await local.list();
+    expect(messages.map((message) => message.sender).sort()).toEqual(["operator", "operator", "original"]);
+    expect(messages.find((message) => message.message_id === receipt.messageId)?.body).toEqual({ nested: { safe: "original" } });
+    expect(JSON.stringify(messages)).not.toContain("synthetic-private-value");
   });
 
   it("detaches RPC payloads before asynchronous serialization", async () => {

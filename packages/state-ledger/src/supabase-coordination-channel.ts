@@ -8,7 +8,7 @@ import type {
 } from "./coordination-channel.js";
 import { assertMetadataSafe, projectMetadataExport, coordinationMessageSchema, consiliencyLeaseScopeSchema, coordinationMessageTypes, type CoordinationMessage } from "@consiliency/runtime-provider";
 import { z } from "zod";
-import { CoordinationBackendError, coordinationFailureCause, validateCoordinationPage } from "./coordination-channel.js";
+import { CoordinationBackendError, coordinationFailureCause, validateCoordinationPage, coordinationMessageInputSchema } from "./coordination-channel.js";
 
 type RpcResult<T> = {
   readonly data: T | null;
@@ -49,10 +49,11 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
     assertMetadataSafe(message);
+    const parsed = coordinationMessageInputSchema.parse(projectMetadataExport(message, { inertOnly: true }));
     const response = await rpcOrThrow<CoordinationMessageReceipt | { failure: "capacity" }>(
       this.client,
       "coordination_send_message",
-      { message: projectMetadataExport(message, { inertOnly: true }) },
+      { message: parsed },
       (value) => z.union([z.object({ messageId: z.string().min(1), createdAt: z.string().datetime({ offset: true }) }),
         z.object({ failure: z.literal("capacity") }).strict()]).parse(value),
     );

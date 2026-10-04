@@ -1,8 +1,25 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SupabaseCoordinationChannel, createSupabaseCoordinationChannel, createSupabaseCoordinationChannelFromEnv } from "./supabase-coordination-channel.js";
+import type { CoordinationMessageInput } from "./coordination-channel.js";
 
 describe("Supabase coordination content boundary", () => {
+  it("rejects malformed messages before any installed-SDK fetch and preserves a following valid send", async () => {
+    let calls = 0;
+    const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async () => {
+      calls += 1;
+      return new Response(JSON.stringify({ messageId: "valid", createdAt: "2026-10-04T00:00:00Z" }), { headers: { "content-type": "application/json" } });
+    } });
+    const input = { type: "done" as const, sender: "operator", scope: { granularity: "repo" as const, selector: ["repo"] } };
+    for (const patch of [{ type: "unknown" }, { sender: "" }, { sender: null }, { scope: { ...input.scope, selector: [] } },
+      { scope: { ...input.scope, selector: ["../unsafe"] } }, { scope: { ...input.scope, selector: ["/absolute"] } },
+      { scope: { ...input.scope, selector: ["C:\\absolute"] } }, { targetHolder: "" }, { leaseId: "" }, { handoffPacketId: "" }, { body: null }]) {
+      await expect(channel.send({ ...input, ...patch } as CoordinationMessageInput)).rejects.toThrow();
+    }
+    expect(calls).toBe(0);
+    expect(await channel.send(input)).toMatchObject({ messageId: "valid" });
+    expect(calls).toBe(1);
+  });
   it("maps a committed capacity refusal through the installed SDK without leaking details", async () => {
     const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key",
       fetch: async () => new Response(JSON.stringify({ failure: "capacity" }), { headers: { "content-type": "application/json" } }) });
