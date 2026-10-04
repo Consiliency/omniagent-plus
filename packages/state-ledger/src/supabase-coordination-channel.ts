@@ -49,12 +49,15 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
     assertMetadataSafe(message);
-    return rpcOrThrow<CoordinationMessageReceipt>(
+    const response = await rpcOrThrow<CoordinationMessageReceipt | { failure: "capacity" }>(
       this.client,
       "coordination_send_message",
       { message: projectMetadataExport(message, { inertOnly: true }) },
-      (value) => z.object({ messageId: z.string().min(1), createdAt: z.string().datetime({ offset: true }) }).parse(value),
+      (value) => z.union([z.object({ messageId: z.string().min(1), createdAt: z.string().datetime({ offset: true }) }),
+        z.object({ failure: z.literal("capacity") }).strict()]).parse(value),
     );
+    if ("failure" in response) throw new CoordinationBackendError(response.failure);
+    return response;
   }
 
   async list(query: CoordinationMessageQuery = {}): Promise<readonly CoordinationMessage[]> {

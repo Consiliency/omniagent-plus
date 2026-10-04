@@ -77,5 +77,6 @@ describe("classify-limit", () => {
     expect(result.stdout).not.toContain("sk-secret-12345678");
     expect(parsed.result.persistedRecord?.recordId.length).toBeGreaterThan(0);
     expect(taskRecords.filter((record) => record.kind === "limit_classification")).toHaveLength(1);
+    expect(JSON.stringify(taskRecords)).not.toContain("sk-secret-12345678");
   });
 });

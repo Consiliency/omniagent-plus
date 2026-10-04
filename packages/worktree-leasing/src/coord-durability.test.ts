@@ -92,20 +92,23 @@ describe("COORD durable publication", () => {
     expect((await manager.inspectIncomplete()).pending).toEqual([]);
   });
 
-  it.each(["symlink", "missing-repository"])("quarantines a prepared removal with %s inspection uncertainty", async (kind) => {
+  it.each(["symlink", "missing-repository", "parent-file"])("quarantines a prepared removal with %s inspection uncertainty", async (kind) => {
     const rootDir = await mkdtemp(join(tmpdir(), "coord-removal-scoped-"));
     const repoRoot = join(rootDir, "repo");
     await mkdir(repoRoot);
     for (const args of [["init", "--initial-branch=main"], ["-c", "user.name=COORD test", "-c", "user.email=coord@example.invalid", "commit", "--allow-empty", "-m", "fixture"]]) {
       expect(spawnSync("git", args, { cwd: repoRoot }).status).toBe(0);
     }
-    const path = join(rootDir, "tree");
+    const parent = join(rootDir, "trees");
+    await mkdir(parent);
+    const path = join(parent, "tree");
     await ensureGitWorktree({ repoRoot, targetPath: path, branchName: request.branchName });
     const manager = await WorktreeLeaseManager.open({ rootDir: join(rootDir, "state"), managedRoot: rootDir });
     const lease = (await manager.acquireLease({ ...request, repoRoot }, { holder, leasePath: path, now })).lease!;
     await manager.withCleanup(lease, async (record, controls) => controls.stageRemoval(record.pathIdentity!, now));
     if (kind === "symlink") { await rename(path, path + "-original"); await symlink(path + "-original", path); }
-    else await rename(repoRoot, repoRoot + "-original");
+    else if (kind === "missing-repository") await rename(repoRoot, repoRoot + "-original");
+    else { await rename(parent, parent + "-original"); await writeFile(parent, "ambiguous parent"); }
     const unrelated = (await manager.acquireLease({ ...request, branchName: "unrelated" }, { holder, leasePath: join(rootDir, "other"), now })).lease!;
     expect(unrelated).toBeDefined();
     await manager.releaseLease(unrelated, { now });

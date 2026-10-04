@@ -199,16 +199,18 @@ function parseInteger(
   label: string,
   {
     minimum,
+    maximum,
   }: {
     readonly minimum: number;
+    readonly maximum?: number;
   },
 ): number | undefined {
   if (value === undefined) {
     return undefined;
   }
   const parsed = /^\d+$/.test(value) ? Number(value) : NaN;
-  if (!Number.isSafeInteger(parsed) || parsed < minimum) {
-    throw createCliError("argument_error", `${label} must be an integer >= ${minimum}.`);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || maximum !== undefined && parsed > maximum) {
+    throw createCliError("argument_error", `${label} must be an integer ${maximum === undefined ? ">= " + minimum : minimum + ".." + maximum}.`);
   }
   return parsed;
 }
@@ -628,7 +630,7 @@ export function parseCliArgs(
         ttlSeconds: parseInteger(
           parsed.values["ttl-seconds"] as string | undefined,
           "ttl-seconds",
-          { minimum: 1 },
+          { minimum: 1, maximum: 7200 },
         )!,
         phase: (parsed.values.phase as string | undefined) ?? "CS-2.2",
         leaseId: parsed.values["lease-id"] as string | undefined,
@@ -654,7 +656,7 @@ export function parseCliArgs(
         ttlSeconds: parseInteger(
           parsed.values["ttl-seconds"] as string | undefined,
           "ttl-seconds",
-          { minimum: 1 },
+          { minimum: 1, maximum: 7200 },
         ),
       };
     }
@@ -845,7 +847,7 @@ export function parseCliArgs(
         parseInteger(
           parsed.values["coordination-ttl-seconds"] as string | undefined,
           "coordination-ttl-seconds",
-          { minimum: 1 },
+          { minimum: 1, maximum: 7200 },
         ) ?? 300,
       coordinationRequestYield:
         parsed.values["coordination-request-yield"] === true,

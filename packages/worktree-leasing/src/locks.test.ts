@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, stat, rename } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnOwned as spawn, runProcess, waitReady, cleanupChild } from "../../../tests/helpers/guard-process.js";
 
 import { describe, expect, it } from "vitest";
@@ -64,6 +65,28 @@ function writeChildScript(rootDir: string): string {
 }
 
 describe("locks", () => {
+  it("publishes detached validated holder diagnostics despite hooks and mutation while waiting", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "worktree-lock-detached-"));
+    const backend = new FilesystemLockBackend({ rootDir });
+    const original = readFixture().exclusiveWrite.holder;
+    let unblock!: () => void;
+    let entered!: () => void;
+    const ready = new Promise<void>((resolve) => { entered = resolve; });
+    const held = backend.withExclusiveLock("detached", original, async () => {
+      entered();
+      await new Promise<void>((resolve) => { unblock = resolve; });
+    });
+    await ready;
+    let hooks = 0;
+    const holder = { ...original, toJSON() { hooks += 1; return { processId: 0 }; } };
+    const pending = backend.withExclusiveLock("detached", holder, async (metadata) => metadata);
+    holder.host = "mutated";
+    unblock();
+    await held;
+    expect((await pending).holder).toEqual(original);
+    expect((await backend.readLockMetadata("detached"))?.holder).toEqual(original);
+    expect(hooks).toBe(0);
+  });
   it("rejects replacement of its permanent inode while the callback is running", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "worktree-lock-replacement-"));
     const backend = new FilesystemLockBackend({ rootDir });
@@ -90,11 +113,10 @@ describe("locks", () => {
     const scriptPath = writeChildScript(rootDir);
     const resourceId = "worktree-lock";
     const holdingChild = spawn(
-      "pnpm",
-      ["exec", "vite-node", "--script", scriptPath],
+      process.execPath,
+      [fileURLToPath(new URL("../../../node_modules/vite-node/vite-node.mjs", import.meta.url)), "--script", scriptPath],
       {
         cwd: process.cwd(),
-        custodyControlId: "owner-death",
         env: {
           ...process.env,
           LOCK_ROOT: rootDir,

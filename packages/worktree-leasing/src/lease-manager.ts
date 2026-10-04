@@ -371,7 +371,7 @@ export class WorktreeLeaseManager {
           }
         } catch (error) {
           if (error instanceof WorktreeLeasingError && ["unsafe_path", "git_command_failed"].includes(error.code)
-            || error instanceof Error && "code" in error && ["EACCES", "EPERM"].includes(String(error.code))) continue;
+            || error instanceof Error && "code" in error && ["EACCES", "EPERM", "ENOTDIR", "ELOOP"].includes(String(error.code))) continue;
           throw error;
         }
         if (noEffect) { delete registry.pending![intent.record.lease.id]; await this.writeRegistry(registry); }

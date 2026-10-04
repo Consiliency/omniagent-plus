@@ -19,7 +19,7 @@ Inbox entries expire after7days. Local creation/expiry uses an injected clock,
 never message.now; SQL uses server time. Writes normalize legacy future times
 and prune expiry under the same lock before enforcing10000 retained entries.
 Reads filter expiry without pruning. Overflow preserves unexpired entries.
-Local legacy timestamp normalization is durable even when admission is refused,
+Local and SQL legacy timestamp normalization is durable even when admission is refused,
 so future-dated entries can subsequently expire; their IDs and bodies remain.
 These are retained advisory histories, not indefinitely append-only inboxes.
 Failed yield delivery leaves hard refusal intact with private sent=false/cause.
@@ -36,6 +36,8 @@ capacity. Missing/blank config is unavailable; invalid URL is validation.
 Real SDK/offline-fetch tests prove mapping only; SQL tests prove SQL only.
 Neither establishes hosted Supabase acceptance or authorizes production migration.
 
+TTL values are whole seconds from1through7200; invalid mutation inputs refuse
+before local lock/state creation or routing arbitration effects.
 Default route-task is read-only. --record with valid preferences may acquire
 leases/request yield and persist actual arbitration; it never launches a provider.
 

@@ -272,11 +272,11 @@ function buildDecision(
     preferredProvider: input.preferredProvider,
     preferredHarness: input.preferredHarness,
     preferredTarget:
-      input.preferredProvider || input.preferredHarness || input.preferredIdentityProfileId
+      preferredCandidate
         ? {
-            provider: input.preferredProvider,
-            harness: input.preferredHarness,
-            identityProfileId: input.preferredIdentityProfileId,
+            provider: preferredCandidate.profile.provider,
+            harness: preferredCandidate.profile.harness,
+            identityProfileId: preferredCandidate.profile.id,
           }
         : undefined,
     fallbackUsed,

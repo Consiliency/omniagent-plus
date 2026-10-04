@@ -52,6 +52,34 @@ function readFixture<T>(): T {
 }
 
 describe("route-task", () => {
+  it("rejects oversized coordination TTL before any CLI mutation creates state", async () => {
+    const stateRoot = join(await mkdtemp(join(tmpdir(), "cli-ttl-invalid-")), "absent");
+    for (const command of [
+      ["route-task", "--task-id", "t", "--record", "--coordination-scope", "repo:r", "--coordination-holder", "h", "--coordination-ttl-seconds", "7201"],
+      ["coordination", "leases", "acquire", "--holder", "h", "--scope", "repo:r", "--mode", "hard", "--ttl-seconds", "7201"],
+      ["coordination", "leases", "renew", "--lease-id", "l", "--holder", "h", "--ttl-seconds", "7201"],
+    ]) {
+      expect((await executeCli([...command, "--state-root", stateRoot, "--profiles-dir", profilesDir, "--json"], COMMAND_REGISTRY)).exitCode).toBe(2);
+      await expect(access(stateRoot)).rejects.toMatchObject({ code: "ENOENT" });
+    }
+  });
+  it.each([
+    ["429", "quota exceeded until reset", "project", "fixed_window_usage_cap"],
+    ["429", "monthly spend limit exceeded", "organization", "monthly_spend_or_quota_cap"],
+    ["401", "invalid api key", "identity_profile", "auth_or_billing_problem"],
+  ])("retains real recorded catalog stops for status %s (%s)", async (status, body, scope, type) => {
+    const rootDir = await mkdtemp(join(tmpdir(), "cli-route-catalog-"));
+    const profiles = join(rootDir, "profiles");
+    await mkdir(profiles);
+    await writeFile(join(profiles, "ready.json"), JSON.stringify({ id: "ready", provider: "openai", harness: "codex", authMode: "local_subscription", isolation: "host_env", maxOpenSessions: 2, maxActiveTurns: 2 }));
+    const stateRoot = join(rootDir, "state");
+    const classified = await executeCli(["classify-limit", "--provider", "openai", "--harness", "codex", "--status-code", status!, "--body-text", body!, "--task-id", "task", "--record", "--state-root", stateRoot, "--json"], COMMAND_REGISTRY);
+    expect(classified.exitCode).toBe(0);
+    expect(JSON.parse(classified.stdout).result.classification).toMatchObject({ type, scope });
+    const route = await executeCli(["route-task", "--task-id", "task", "--preferred-provider", "openai", "--state-root", stateRoot, "--profiles-dir", profiles, "--json"], COMMAND_REGISTRY);
+    expect(route.exitCode).toBe(7);
+    expect(route.stderr).toContain(type!);
+  });
   it("rejects unavailable preferences before record-mode coordination and state initialization", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "cli-route-unavailable-"));
     const stateRoot = join(rootDir, "absent");
@@ -75,7 +103,7 @@ describe("route-task", () => {
         requireManualReview: true, sameProviderAccountSwitch: "forbidden" as const },
     };
     await ledger.appendLimitClassification(classification, { taskId: "task" });
-    for (const patch of [{ identityProfileId: "missing" }, { harness: "claude-code" }, { sessionId: "another-session" }, { scope: "organization" as const }]) {
+    for (const patch of [{ identityProfileId: "missing" }, { harness: "claude-code" }, { sessionId: "another-session" }, { scope: "organization" as const, identityProfileId: "missing" }]) {
       await ledger.appendLimitClassification({ ...classification, ...patch }, { taskId: "task" });
     }
     await ledger.appendLimitClassification(classification, { taskId: "another-task" });

@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { SupabaseCoordinationChannel, createSupabaseCoordinationChannel, createSupabaseCoordinationChannelFromEnv } from "./supabase-coordination-channel.js";
 
 describe("Supabase coordination content boundary", () => {
+  it("maps a committed capacity refusal through the installed SDK without leaking details", async () => {
+    const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key",
+      fetch: async () => new Response(JSON.stringify({ failure: "capacity" }), { headers: { "content-type": "application/json" } }) });
+    await expect(channel.send({ type: "done", sender: "operator", scope: { granularity: "repo", selector: ["repo"] } })).rejects.toMatchObject({ failureCause: "capacity", message: "Coordination backend capacity." });
+  });
   it("detaches query scope before lazy SDK serialization and walks returned cursor pages", async () => {
     const scope = { granularity: "repo" as const, selector: ["repo"] };
     const messages = ["msg:c", "msg:b", "msg:a"].map((message_id) => ({ schema: "consiliency.coordination_message.v1", message_id,

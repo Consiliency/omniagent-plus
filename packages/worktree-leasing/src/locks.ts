@@ -81,15 +81,14 @@ export class FilesystemLockBackend {
     const now = options.now ?? nowIsoString();
     const ttlSeconds = options.ttlSeconds ?? 300;
     const lockPath = join(this.rootDir, buildLockFileName(resourceId));
-    const metadata: DurableLockMetadata = {
+    const metadata: DurableLockMetadata = metadataSchema.parse({
       resourceId,
       fencingToken: randomUUID(),
       holder,
       acquiredAt: now,
       expiresAt: buildExpiresAt(now, ttlSeconds),
       lockPath,
-    };
-    metadataSchema.parse(metadata);
+    });
     if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0) throw new WorktreeLeasingError("invalid_ttl", "Lock TTL must be a positive whole number.");
     let entered = false;
     try {

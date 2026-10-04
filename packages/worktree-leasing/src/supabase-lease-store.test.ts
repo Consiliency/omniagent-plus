@@ -1,6 +1,6 @@
 import { spawnOwned as spawn, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 import { readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -116,6 +116,18 @@ describe("lease store scope overlap", () => {
 });
 
 describe("local lease store conformance", () => {
+  it("rejects invalid mutations before creating state or a physical lock", async () => {
+    const rootDir = join(await mkdtemp(join(tmpdir(), "lease-store-invalid-")), "absent");
+    const store = new LocalLeaseStore({ rootDir });
+    for (const patch of [{ holder: "" }, { ttlSeconds: 7201 }, { ttlSeconds: 1.5 }, { now: "invalid" }]) {
+      await expect(store.acquire({ ...request(holderA, ["packages"]), ...patch })).rejects.toThrow();
+    }
+    await expect(store.renew("lease", holderA, { ttlSeconds: 7201 })).rejects.toThrow();
+    await expect(store.renew("lease", "")).rejects.toThrow();
+    await expect(store.release("lease", "")).rejects.toThrow();
+    await expect(access(rootDir)).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await store.acquire({ ...request(holderA, ["packages"]), ttlSeconds: 7200 })).granted).toBe(true);
+  });
   it("walks tied leases, filters hard mode before pagination, and reads without creating a lock", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "lease-store-page-"));
     const store = new LocalLeaseStore({ rootDir });

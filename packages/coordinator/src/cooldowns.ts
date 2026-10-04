@@ -87,8 +87,6 @@ export function effectiveRouteClassification(classification: LimitClassification
   if (!classification || classification.provider !== profile.provider || classification.harness !== profile.harness
     || classification.identityProfileId !== undefined && classification.identityProfileId !== profile.id
     || classification.sessionId !== undefined || classification.scope === "session"
-    || classification.scope === "identity_profile" && classification.identityProfileId === undefined
-    || ["model", "project", "organization"].includes(classification.scope)
     || now !== undefined && resetBoundCooldownExpired(classification.type, classification.resetAt, now)) return undefined;
   return classification;
 }

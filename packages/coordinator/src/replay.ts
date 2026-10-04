@@ -61,9 +61,12 @@ export async function replayTaskRouting(
     if (record.kind !== "route_decision") continue;
     const decision = routeDecisionSchema.parse(record.payload);
     if (decision.taskId !== taskId) throw new TypeError("Route replay task mismatch");
-    const provider = decision.preferredTarget?.provider ?? decision.preferredProvider ?? decision.selectedProvider;
-    const harness = decision.preferredTarget?.harness ?? decision.preferredHarness ?? decision.selectedHarness;
-    const identity = decision.preferredTarget?.identityProfileId ?? decision.selectedIdentityProfileId;
+    const preferred: RouteDecision["preferredTarget"] = decision.preferredTarget ?? (decision.preferredProvider || decision.preferredHarness
+      ? { provider: decision.preferredProvider, harness: decision.preferredHarness }
+      : undefined);
+    const provider = preferred?.provider ?? (preferred ? "" : decision.selectedProvider);
+    const harness = preferred?.harness ?? (preferred ? "" : decision.selectedHarness);
+    const identity = preferred?.identityProfileId ?? (preferred ? undefined : decision.selectedIdentityProfileId);
     const latestClassification = [...classifications].reverse().find((classification) => effectiveRouteClassification(classification, { provider, harness, id: identity ?? "" }) !== undefined);
     result.push({
     taskId: decision.taskId,

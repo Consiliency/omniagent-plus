@@ -22,6 +22,7 @@ import {
 } from "@omniagent-plus/state-ledger";
 import {
   createSupabaseLeaseStoreFromEnv,
+  createLeaseFromAcquireRequest,
   LocalLeaseStore,
   WorktreeLeaseManager,
 } from "@omniagent-plus/worktree-leasing";
@@ -80,6 +81,8 @@ async function arbitrateCoordinationLease(request: Extract<ParsedCliRequest, { c
     throw createCliError("argument_error", "coordination-holder is required when coordination-scope is provided.");
   }
   const scope = parseCoordinationScope(request.coordinationScope);
+  createLeaseFromAcquireRequest({ holder: request.coordinationHolder, ttlSeconds: request.coordinationTtlSeconds,
+    mode: request.coordinationMode, scope, phase: "CS-2.2" });
 
   let store;
   let channel;

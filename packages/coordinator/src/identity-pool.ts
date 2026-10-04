@@ -37,7 +37,7 @@ function buildCandidate(
   const status = statuses.get(profile.id);
   const activeTurnsSnapshot = input.activeTurns ?? createEmptyActiveTurnSnapshot();
   const activeTurns =
-    activeTurnsSnapshot.byProfileId[profile.id]
+    (Object.hasOwn(activeTurnsSnapshot.byProfileId, profile.id) ? activeTurnsSnapshot.byProfileId[profile.id] : undefined)
     ?? status?.activeTurns
     ?? 0;
   const activeSessions = status?.activeSessions ?? 0;

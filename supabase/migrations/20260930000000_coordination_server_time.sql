@@ -341,7 +341,7 @@ begin
   update public.coordination_inbox_messages as inbox set created_at=now_at,
     payload=jsonb_set(inbox.payload,'{created_at}',to_jsonb(to_char(now_at at time zone 'utc','YYYY-MM-DD"T"HH24:MI:SS"Z"'))) where inbox.created_at>now_at;
   delete from public.coordination_inbox_messages where created_at<=now_at-interval '7 days';
-  if (select count(*) from public.coordination_inbox_messages)>=10000 then raise exception 'Coordination inbox capacity exceeded' using errcode='P0001'; end if;
+  if (select count(*) from public.coordination_inbox_messages)>=10000 then return jsonb_build_object('failure','capacity'); end if;
   payload := jsonb_build_object(
     'schema', 'consiliency.coordination_message.v1',
     'message_id', message_id,
