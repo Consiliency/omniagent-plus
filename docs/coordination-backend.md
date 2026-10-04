@@ -17,6 +17,11 @@ pages. Invalid input cannot poison a later valid inbox page.
 SQL lexical checks preserve JavaScript whitespace, line and word boundaries.
 Encoded JSON is checked without dropping valid escaped text or silently skipping
 its metadata. Only absent envelope fields are omitted; nested body nulls remain.
+Temporary encoded-JSON inspection preserves distinct UTF-16 keys, surrogate pairs,
+invalid control-character boundaries and last-member semantics before checking
+surviving nonfinite numbers. Inspection markers use one per-call cryptographic
+namespace; their negligible collision probability is the same engineering
+assumption used for UUID message identities. Markers never enter retained bodies.
 Default local lease clocks start after physical acquisition, so lock contention
 does not consume a newly granted lease's lifetime. Explicit injected clocks remain
 deterministic. Library arbitration validates before contacting the backend;

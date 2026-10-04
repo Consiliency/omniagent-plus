@@ -351,6 +351,13 @@ declare
   encoded_text text;
   encoded_valid boolean;
   encoded_token text;
+  encoded_source text;
+  encoded_escape text;
+  encoded_string text;
+  number_finite boolean;
+  guard_namespace text := '';
+  guard_nonce text := replace(gen_random_uuid()::text,'-','');
+  guard_nonfinite text;
   number_digits text;
   number_significand text;
   number_exponent text;
@@ -358,6 +365,11 @@ declare
   metadata_space text := E'\u0009\u000a\u000d\u000c\u000b\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff';
   metadata_scan_text text;
 begin
+  for metadata_index in 1..length(guard_nonce) loop
+    guard_namespace := guard_namespace || chr(57600+strpos('0123456789abcdef',substring(guard_nonce,metadata_index,1))-1);
+  end loop;
+  metadata_index := 1;
+  guard_nonfinite := chr(3)||guard_namespace||chr(4);
   if jsonb_typeof(message) is distinct from 'object'
     or jsonb_typeof(message->'type') is distinct from 'string' or message->>'type' not in ('request-yield','announce-intent','handoff','done')
     or jsonb_typeof(message->'sender') is distinct from 'string' or length(message->>'sender')=0
@@ -388,6 +400,7 @@ begin
     if metadata_depth > 64 then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
     if jsonb_typeof(metadata_value)='string' then
       metadata_text := metadata_value #>> '{}';
+      if metadata_text=guard_nonfinite then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
       metadata_scan_text := translate(metadata_text,metadata_space,repeat(' ',length(metadata_space)));
       if metadata_scan_text collate "C" ~* $metadata$\ybearer\s+[a-z0-9._~+/=-]{8,}|\y(?:(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|AIza)[a-z0-9._-]{8,}|npm_[a-z0-9]{8,})\y|(?<![a-z0-9_])(?:[a-z][a-z0-9_]*_)?(?:password|passwd|token|credential|authorization|api_key|access_key|client_secret|secret_key|service_role_key|secret)\s*(?:=|:)\s*\S+|\yOMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY)\s*=\s*\S+|\yeyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\y|\y(?:authorization|x-api-key|cookie)\s*:\s*\S+|\y[a-z][a-z0-9+.-]*://[^/\s@]+:[^/\s@]+@|(?:/(?:home|Users)/[^/\s]+|[A-Z]:[\\/]Users[\\/][^\\/\s]+)|(?:^|[^a-z0-9_.-])[.]recovery(?:[\\/]|$|[^a-z0-9_.-])$metadata$
         or metadata_text collate "C" ~ $metadata$-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|\yAKIA[0-9A-Z]{16}\y$metadata$
@@ -400,7 +413,11 @@ begin
         exception when invalid_text_representation then encoded_valid := false; end;
         encoded_text := '';
         if encoded_valid then
-          for encoded_token in select matches[1] from regexp_matches(metadata_text,$json$("(?:[^"\\]|\\.)*"|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|[^"0-9-]+|.)$json$,'g') as item(matches) loop
+          encoded_source := metadata_text;
+          for encoded_escape in select matches[1] from regexp_matches(metadata_text,guard_namespace||E'([\ue800-\uefff])','g') as item(matches) loop
+            encoded_source := replace(encoded_source,guard_namespace||encoded_escape,chr(92)||'u'||to_hex(55296+ascii(encoded_escape)-59392));
+          end loop;
+          for encoded_token in select matches[1] from regexp_matches(encoded_source,$json$("(?:[^"\\]|\\.)*"|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|[^"0-9-]+|.)$json$,'g') as item(matches) loop
             if encoded_token collate "C" ~ '^-?[0-9]' then
               number_significand := split_part(lower(ltrim(encoded_token,'-')),'e',1);
               number_digits := replace(number_significand,'.','');
@@ -410,15 +427,25 @@ begin
                 else coalesce(nullif(number_exponent,'')::bigint,0) end
                 + case when strpos(number_significand,'.')>0 then strpos(number_significand,'.')-1 else length(number_significand) end
                 - coalesce(nullif(strpos(number_digits,substring(number_digits from '[1-9]')),0),length(number_digits)+1);
-              if number_digits ~ '[1-9]' and number_order>=308 then
-                if number_order>308 then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
+              number_finite := number_digits !~ '[1-9]' or number_order<=308;
+              if number_digits ~ '[1-9]' and number_order=308 then
                 begin perform encoded_token::double precision;
-                exception when numeric_value_out_of_range then raise exception 'Invalid coordination metadata' using errcode='22023'; end;
+                exception when numeric_value_out_of_range then number_finite := false; end;
               end if;
-              encoded_text := encoded_text || '0';
+              encoded_text := encoded_text || case when number_finite then '0' else to_jsonb(guard_nonfinite)::text end;
+            elsif left(encoded_token,1)='"' then
+              encoded_string := '';
+              for encoded_escape in select matches[1] from regexp_matches(encoded_token,$unicode$(\\u[dD][89aAbB][0-9a-fA-F]{2}\\u[dD][cCdDeEfF][0-9a-fA-F]{2}|\\u[dD][89aAbBcCdDeEfF][0-9a-fA-F]{2}|\\u0000|\\.|[^\\]+)$unicode$,'g') as item(matches) loop
+                if encoded_escape=chr(92)||'u0000' then
+                  encoded_string := encoded_string || chr(92)||'u0001'||guard_namespace||chr(92)||'u0002';
+                elsif length(encoded_escape)=6 and left(encoded_escape,2)=chr(92)||'u' and lower(substring(encoded_escape,3,1))='d' then
+                  encoded_string := encoded_string || guard_namespace||chr(59392+('x'||substring(encoded_escape,3,4))::bit(16)::integer-55296);
+                else encoded_string := encoded_string || encoded_escape; end if;
+              end loop;
+              encoded_text := encoded_text || encoded_string;
             else encoded_text := encoded_text || encoded_token; end if;
           end loop;
-          encoded_value := regexp_replace(encoded_text,$unicode$(?<!\\)((?:\\\\)*)\\u(?:0000|[dD][89a-fA-F][0-9a-fA-F]{2})$unicode$,$unicode$\1\\u0021$unicode$,'g')::jsonb;
+          encoded_value := encoded_text::jsonb;
         end if;
         if encoded_valid and jsonb_typeof(encoded_value) in ('string','object','array') then
           metadata_nodes := array_append(metadata_nodes,encoded_value);
