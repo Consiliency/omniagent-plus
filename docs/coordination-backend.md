@@ -14,6 +14,9 @@ strings, fields, encoded JSON and provider payloads, preserving redacted
 placeholders and the fencingToken/boolean autoRefreshToken exceptions. Shared
 content-policy corpus tests prove refusal without mutation and valid readable
 pages. Invalid input cannot poison a later valid inbox page.
+SQL lexical checks preserve JavaScript whitespace, line and word boundaries.
+Encoded JSON is checked without dropping valid escaped text or silently skipping
+its metadata. Only absent envelope fields are omitted; nested body nulls remain.
 Default local lease clocks start after physical acquisition, so lock contention
 does not consume a newly granted lease's lifetime. Explicit injected clocks remain
 deterministic. Library arbitration validates before contacting the backend;

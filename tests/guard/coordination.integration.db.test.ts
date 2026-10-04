@@ -152,7 +152,9 @@ describe.sequential("admitted COORD SQL", () => {
       ...["targetHolder", "leaseId", "handoffPacketId"].flatMap((key) => ["", null, 7].map((value) => ({ type: "done", sender: "operator", scope, [key]: value }))),
       { type: "done", sender: "operator", scope, body: null }, { type: "done", sender: "operator", scope, body: [] },
       ...corpus.rejected.map((nested) => ({ type: "done", sender: "operator", scope, body: { nested } })),
-      ...['{"count":1e400}', '{"count":1e400000}'].map((nested) => ({ type: "done", sender: "operator", scope, body: { nested } })),
+      ...['{"count":1e400}', '{"count":1e400000}', '{"password":"synthetic-value","note":"\\ud800"}', '{"pass\\u0000word":"synthetic-value"}', '{"pass\\ud800word":"synthetic-value"}'].map((nested) => ({ type: "done", sender: "operator", scope, body: { nested } })),
+      ...Array.from("\t\n\r\f\v\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff").map((space) => ({ type: "done", sender: "operator", scope, body: { nested: "Bearer" + space + "synthetic-token-123456" } })),
+      ...["\r", "\u2028", "\u2029"].map((separator) => ({ type: "done", sender: "operator", scope, body: { nested: "safe" + separator + "PATH=/bin" } })),
       ...["sender", "targetHolder", "leaseId", "handoffPacketId"].map((key) => ({ type: "done", sender: "operator", scope, [key]: "Bearer synthetic-token-123456" })),
       { type: "done", sender: "operator", scope: { ...scope, selector: ["Bearer synthetic-token-123456"] } },
       { type: "done", sender: "operator", scope, body: { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "safe", updatedAt: "2026-02-29T01:02:03Z" } } },
@@ -166,15 +168,19 @@ describe.sequential("admitted COORD SQL", () => {
       from public.coordination_inbox_messages where message_id='${futureId}'`, true));
     expect(normalized.column).toBe(normalized.payload);
     expect(Math.abs(Date.now() - Date.parse(normalized.column))).toBeLessThan(5000);
-    for (const nested of [...corpus.allowed,
+    const allowed = [...corpus.allowed, "sk-........", "sk-Kxxxxxxx", "password:\ufeff",
+      '{"note":"\\u0000"}', '{"note":"\\ud800"}', '{"note":"\\\\ud800"}', '{"count":1e-400000}', '{"count":0e400000}',
+      { env: { PATH: "/bin", note: null } },
       { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "synthetic_fixture", updatedAt: "2024-02-29T01:02:03.123+02:00" } },
       { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "synthetic_fixture", updatedAt: "2026-10-03T01:02Z" } },
-      Array.from({ length: 62 }).reduce<unknown>((nested) => ({ nested }), "safe")]) {
+      Array.from({ length: 62 }).reduce<unknown>((nested) => ({ nested }), "safe")];
+    for (const nested of allowed) {
       await invoke("coordination_send_message", { type: "done", sender: "operator", scope, body: { nested } });
     }
     const readable = (await invoke("coordination_list_messages", { scope })).messages as unknown[];
-    expect(readable).toHaveLength(corpus.allowed.length + 5);
+    expect(readable).toHaveLength(allowed.length + 2);
     for (const message of readable) expect(coordinationMessageSchema.safeParse(message).success).toBe(true);
+    expect(readable).toContainEqual(expect.objectContaining({ body: { nested: { env: { PATH: "/bin", note: null } } } }));
     const fixture = admittedClient();
     await expect(sql(fixture, "begin; set local role service_role; select public.coordination_send_message(" + json({ type: "done", sender: "operator", scope, body: {} }).replace(/"body":\{\}/, '"body":{"count":1e400}') + "); commit;", "guard_client", fixture.clientPassword)).rejects.toThrow();
     expect((await invoke("coordination_list_messages", { scope })).messages).toEqual(readable);

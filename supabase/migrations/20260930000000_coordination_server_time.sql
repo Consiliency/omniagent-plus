@@ -348,6 +348,15 @@ declare
   normalized_key text;
   placeholder boolean;
   encoded_value jsonb;
+  encoded_text text;
+  encoded_valid boolean;
+  encoded_token text;
+  number_digits text;
+  number_significand text;
+  number_exponent text;
+  number_order bigint;
+  metadata_space text := E'\u0009\u000a\u000d\u000c\u000b\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff';
+  metadata_scan_text text;
 begin
   if jsonb_typeof(message) is distinct from 'object'
     or jsonb_typeof(message->'type') is distinct from 'string' or message->>'type' not in ('request-yield','announce-intent','handoff','done')
@@ -379,16 +388,39 @@ begin
     if metadata_depth > 64 then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
     if jsonb_typeof(metadata_value)='string' then
       metadata_text := metadata_value #>> '{}';
-      if metadata_text ~* $metadata$(?<![a-z0-9_])bearer\s+[a-z0-9._~+/=-]{8,}|(?<![a-z0-9_])(?:(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|AIza)[a-z0-9._-]{8,}|npm_[a-z0-9]{8,})(?![a-z0-9_])|(?<![a-z0-9_])(?:[a-z][a-z0-9_]*_)?(?:password|passwd|token|credential|authorization|api_key|access_key|client_secret|secret_key|service_role_key|secret)\s*(?:=|:)\s*\S+|(?<![a-z0-9_])OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY)\s*=\s*\S+|(?<![a-z0-9_])eyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}(?![a-z0-9_])|(?<![a-z0-9_])(?:authorization|x-api-key|cookie)\s*:\s*\S+|(?<![a-z0-9_])[a-z][a-z0-9+.-]*://[^/\s@]+:[^/\s@]+@|(?:/(?:home|Users)/[^/\s]+|[A-Z]:[\\/]Users[\\/][^\\/\s]+)|(?:^|[^a-z0-9_.-])[.]recovery(?:[\\/]|$|[^a-z0-9_.-])$metadata$
-        or metadata_text ~ $metadata$-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|(?<![a-zA-Z0-9_])AKIA[0-9A-Z]{16}(?![a-zA-Z0-9_])$metadata$
-        or (not metadata_is_key and metadata_text ~ $metadata$(^|\n)(?:HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|AZURE_OPENAI_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=$metadata$) then
+      metadata_scan_text := translate(metadata_text,metadata_space,repeat(' ',length(metadata_space)));
+      if metadata_scan_text collate "C" ~* $metadata$\ybearer\s+[a-z0-9._~+/=-]{8,}|\y(?:(?:sk-|gh[pousr]_|xox[baprs]?-|glpat-|AIza)[a-z0-9._-]{8,}|npm_[a-z0-9]{8,})\y|(?<![a-z0-9_])(?:[a-z][a-z0-9_]*_)?(?:password|passwd|token|credential|authorization|api_key|access_key|client_secret|secret_key|service_role_key|secret)\s*(?:=|:)\s*\S+|\yOMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY)\s*=\s*\S+|\yeyJ[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\.[a-z0-9_-]{8,}\y|\y(?:authorization|x-api-key|cookie)\s*:\s*\S+|\y[a-z][a-z0-9+.-]*://[^/\s@]+:[^/\s@]+@|(?:/(?:home|Users)/[^/\s]+|[A-Z]:[\\/]Users[\\/][^\\/\s]+)|(?:^|[^a-z0-9_.-])[.]recovery(?:[\\/]|$|[^a-z0-9_.-])$metadata$
+        or metadata_text collate "C" ~ $metadata$-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|\yAKIA[0-9A-Z]{16}\y$metadata$
+        or (not metadata_is_key and metadata_text collate "C" ~ $metadata$(^|[\n\r\u2028\u2029])(?:HOME|PATH|PWD|OPENAI_API_KEY|ANTHROPIC_API_KEY|GOOGLE_API_KEY|AZURE_OPENAI_API_KEY|OMNIGENT_[A-Z0-9_]*(?:API_KEY|TOKEN|SECRET|CREDENTIAL|PASSWORD|KEY))=$metadata$) then
         raise exception 'Invalid coordination metadata' using errcode='22023';
       end if;
       if not metadata_is_key and left(ltrim(metadata_text,E' \t\n\r'),1) in ('"','{','[') then
-        begin encoded_value := metadata_text::jsonb;
-        exception when invalid_text_representation then encoded_value := null;
-          when numeric_value_out_of_range then raise exception 'Invalid coordination metadata' using errcode='22023'; end;
-        if jsonb_typeof(encoded_value) in ('string','object','array') then
+        encoded_valid := true;
+        begin perform metadata_text::json;
+        exception when invalid_text_representation then encoded_valid := false; end;
+        encoded_text := '';
+        if encoded_valid then
+          for encoded_token in select matches[1] from regexp_matches(metadata_text,$json$("(?:[^"\\]|\\.)*"|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|[^"0-9-]+|.)$json$,'g') as item(matches) loop
+            if encoded_token collate "C" ~ '^-?[0-9]' then
+              number_significand := split_part(lower(ltrim(encoded_token,'-')),'e',1);
+              number_digits := replace(number_significand,'.','');
+              number_exponent := split_part(lower(encoded_token),'e',2);
+              number_order := case when length(ltrim(number_exponent,'+-0'))>9
+                then case when left(number_exponent,1)='-' then -1000000000000 else 1000000000000 end
+                else coalesce(nullif(number_exponent,'')::bigint,0) end
+                + case when strpos(number_significand,'.')>0 then strpos(number_significand,'.')-1 else length(number_significand) end
+                - coalesce(nullif(strpos(number_digits,substring(number_digits from '[1-9]')),0),length(number_digits)+1);
+              if number_digits ~ '[1-9]' and number_order>=308 then
+                if number_order>308 then raise exception 'Invalid coordination metadata' using errcode='22023'; end if;
+                begin perform encoded_token::double precision;
+                exception when numeric_value_out_of_range then raise exception 'Invalid coordination metadata' using errcode='22023'; end;
+              end if;
+              encoded_text := encoded_text || '0';
+            else encoded_text := encoded_text || encoded_token; end if;
+          end loop;
+          encoded_value := regexp_replace(encoded_text,$unicode$(?<!\\)((?:\\\\)*)\\u(?:0000|[dD][89a-fA-F][0-9a-fA-F]{2})$unicode$,$unicode$\1\\u0021$unicode$,'g')::jsonb;
+        end if;
+        if encoded_valid and jsonb_typeof(encoded_value) in ('string','object','array') then
           metadata_nodes := array_append(metadata_nodes,encoded_value);
           metadata_depths := array_append(metadata_depths,metadata_depth+1);
           metadata_keys := array_append(metadata_keys,false);
@@ -414,14 +446,14 @@ begin
         raise exception 'Invalid coordination metadata' using errcode='22023';
       end if;
       for metadata_item in select key,value from jsonb_each(metadata_value) loop
-        normalized_key := lower(regexp_replace(metadata_item.key,'[^a-zA-Z0-9]','','g'));
+        normalized_key := lower(regexp_replace(metadata_item.key collate "C",'[^a-zA-Z0-9]','','g'));
         placeholder := false;
         if jsonb_typeof(metadata_item.value)='object' then
           placeholder := coalesce(metadata_item.value->>'schema'='redacted_config_value.v0.1' and metadata_item.value->>'value'='[redacted]'
             and jsonb_typeof(metadata_item.value->'reason')='string' and length(metadata_item.value->>'reason')>0
             and metadata_item.value-array['schema','value','reason','updatedAt']='{}'::jsonb
             and (not metadata_item.value ? 'updatedAt' or (jsonb_typeof(metadata_item.value->'updatedAt')='string'
-              and metadata_item.value->>'updatedAt' ~ $timestamp$^((\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-((0[13578]|1[02])-(0[1-9]|[12]\d|3[01])|(0[469]|11)-(0[1-9]|[12]\d|30)|(02)-(0[1-9]|1\d|2[0-8])))T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|([+-]\d{2}:?\d{2}))($)$timestamp$)),false);
+              and metadata_item.value->>'updatedAt' collate "C" ~ $timestamp$^((\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-((0[13578]|1[02])-(0[1-9]|[12]\d|3[01])|(0[469]|11)-(0[1-9]|[12]\d|30)|(02)-(0[1-9]|1\d|2[0-8])))T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|([+-]\d{2}:?\d{2}))($)$timestamp$)),false);
           if metadata_item.key in ('env','environment') and metadata_item.value<>'{}'::jsonb and not placeholder
             and not exists (select 1 from jsonb_each(metadata_item.value) as item(key,value) where jsonb_typeof(value)<>'string') then
             raise exception 'Invalid coordination metadata' using errcode='22023';
@@ -479,7 +511,7 @@ begin
     message->>'handoffPacketId',
     message #>> '{scope,granularity}',
     array(select jsonb_array_elements_text(message #> '{scope,selector}')),
-    jsonb_strip_nulls(payload),
+    payload-array(select key from jsonb_each(payload) as item(key,value) where value='null'::jsonb),
     now_at
   );
 
