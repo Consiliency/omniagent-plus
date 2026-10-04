@@ -1,0 +1,39 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "1fbdbf7b0ba42652c07d79c85136df4fd3e8e065",
+  "review_base": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-b7e012d.json",
+  "status": "pending_re_review",
+  "findings": [
+    {
+      "id": "sql-metadata-poison",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Direct SQL send validates the JSON-representable frozen DATA metadata policy before advisory locking, pruning or normalization. Recursive checks cover keys/strings, nested arrays/objects, encoded JSON, provider-shaped payloads, depth64 and values that would become nonfinite in the JS reader. Valid redacted placeholders, fencingToken, boolean autoRefreshToken and safe ordinary metadata remain admissible. The admitted SQL test uses the shared48 rejected/13 allowed corpus, preserves exact retained inbox digests including future timestamps, exercises timestamp/depth/numeric controls and parses the following complete valid page with the frozen message schema. No exported API, RPC signature, roles, fixture helpers or core contract changes.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts",
+        "docs/coordination-backend.md"
+      ]
+    }
+  ],
+  "optional_dispositions": [],
+  "source_binding": {
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "ead0e60dcf8c9ffa1c546f48ea17af0cb272bb5721676d5d1587e764cfa89148",
+    "tests/guard/coordination.integration.db.test.ts": "afce0cd13d8868ce61fe951a25e9d118fe42d9b5d3e70327243064e78a68f4c6",
+    "docs/coordination-backend.md": "b18fd076dfb3549a80e94a6ac157924d27ea286de0ab7fd70e27ad558fb11ef1"
+  },
+  "unavailable_review": {
+    "seat": "manual:claude-opus-5-5:max:TUI-tools",
+    "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+    "result": "claude_tui_stalled",
+    "cause": "Subscription session limit; provider reports reset10:30pm America/New_York. No source review produced.",
+    "disposition": "Retained UNAVAILABLE, never counted as approved. Fresh manual subscription TUI review remains required after reset; no substitution or account switching."
+  },
+  "verification_scope": "Owned internal disposable PostgreSQL metadata-policy preflight is narrow additional evidence, not a passing local full SQL gate. Canonical admitted hosted current-head/full/final checks remain mandatory.",
+  "binding": "Repair source and completed dissent are immutable. Recording commits and later gate evidence are never retroactively claimed as measured.",
+  "rule": "All R4 attempts finished before repair; six qualified reviews plus one unavailable attempt do not constitute approval. All seven fresh grounded reviews, canonical hosted full gate/rehearsal, final observed audit and postmerge CI must pass before merge."
+}
