@@ -1,0 +1,46 @@
+{
+  "schema": "wire-review-storage-attempts.v1",
+  "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+  "initial": "WIRE-plan-13042c1-initial-sandbox-failure.json",
+  "long_path_retry": {
+    "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+    "delta_base": "f33471de858d3be1fc01a50696abdcb4ab717a87",
+    "legs": [
+      {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "DEGRADED",
+        "detail": "unknown failure; CLI output: leg-logs/codex-a386c758866848af853fa1ae.log",
+        "usable": false,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "DEGRADED",
+        "detail": "unknown failure; CLI output: leg-logs/codex-b39b4d4b5aa24219b09f2dc6.log",
+        "usable": false,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "DEGRADED",
+        "detail": "unknown failure; CLI output: leg-logs/codex-90549f509b8c47da8510a0b6.log",
+        "usable": false,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "DEGRADED",
+        "detail": "unknown failure; CLI output: leg-logs/codex-cbd7e614adf147d1b7b5d8b4.log",
+        "usable": false,
+        "source_grounded": true,
+        "preflight_notices": []
+      }
+    ]
+  },
+  "long_path_failure": "AF_UNIX path too long in all four CLI logs; unavailable, not approval.",
+  "repair": "Reversible relocation of400 old owned inactive DATA test scratch dirs, preserved3617460 bytes; short private TMPDIR and PHASE_LOOP_SANDBOX_ROOT. Grounded four-seat retry completed, retained in WIRE-plan-13042c1.json.",
+  "cleanup_receipt": "External WIRE-old-DATA-test-scratch-20261004/relocation-receipt.json"
+}
