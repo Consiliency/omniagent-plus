@@ -1,13 +1,13 @@
 {
   "schema": "coord-acceptance-candidate.v1",
   "phase": "COORD",
-  "status": "accepted_implementation",
-  "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+  "status": "verified_implementation_pending_production_review",
+  "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
   "base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/32",
   "source_binding": {
     ".phase-loop-generated-outputs.json": "2b521a10c51f04bf1ef5f0ee3d8bf018389a752289132b00d467dfaf4d0d53d6",
-    "docs/coordination-backend.md": "e22bbf81f9fdd5cd685bc2ae1d1444661e387a6629202406461033c7cd1f56da",
+    "docs/coordination-backend.md": "0a8d23ec12348312f50f888948cabe92b0ba577c7001bd3f097de6821a3d4359",
     "docs/coordinator-routing.md": "33a3532a11fcbfc240ae3c8bc98da4e50dc60446b71357d1fa05d77f82441cde",
     "docs/durable-state.md": "8c48b83f343ce81e92f6f915fde7686fa73d0376c934fad5135f0e3aafeeadda",
     "docs/hardening-readiness.md": "3f568b4fa07dbabeae40bfe053712ff0b65d442660b98427efb102affb45ecda",
@@ -86,8 +86,8 @@
     "plans/phase-plan-v2-COORD.md": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
     "pnpm-lock.yaml": "454113a71b84bd161dbf34d92b9f4a28f2388c4cf4492b0513a5c4243bbd835b",
     "scripts/verify.mjs": "3f99f60bdd13bba1bb032ae39da03aa453a54410ee02b0ad22a79b10d662aa63",
-    "supabase/migrations/20260930000000_coordination_server_time.sql": "ab0bf74dcfa1168c5a72083097e7a42c63a5be3db22b14b935adb49881d31d98",
-    "tests/guard/coordination.integration.db.test.ts": "2bc6e8c4e0cf4978c4ccacf408c046b89474f1898ff937a4985f7a0052fd6a90",
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "f9e7cb681d5583941dc8230abaf5670d13ab32b4dbe700924a85b92ae98a5f56",
+    "tests/guard/coordination.integration.db.test.ts": "0139dc2ebe51c5b5562457f5e5b58a879408320a2f3d9d107a5304679b5d3d49",
     "tests/guard/orchestration.test.ts": "0c5d006504b687a8b37b56f02a1a2238cce4f60f2ad903b4b4ee2e43f391c223",
     "tests/guard/required-cases.json": "f6ce534a9142584fc3670408768c310a69fbc0a0015097d267596c40e7ddae0e"
   },
@@ -99,7 +99,7 @@
     "lint": "passed",
     "root_tests": {
       "command": "pnpm test",
-      "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
       "passed": 722,
       "skipped": 1,
       "failed": 0,
@@ -107,28 +107,28 @@
     },
     "logs": [
       {
-        "path": "/tmp/coord-root-b9b5d38.log",
+        "path": "/tmp/coord-root-7344398.log",
         "sha256": "10141f5a09cfe8b83ecbf327fac187a9cd21be0af76f6c29aa88a58f36fa4ccf"
       },
       {
-        "path": "/tmp/coord-install-b9b5d38.log",
-        "sha256": "f34ee7a9c8c1961de1d865c01fffd49602d12ceccf8774bb61e3dcbcc68cb34b"
+        "path": "/tmp/coord-install-7344398.log",
+        "sha256": "3498bede91b4909e3c66224914b29e2401d47937dc2735bcbd3b532c05adf054"
       },
       {
-        "path": "/tmp/coord-r7-typecheck-final.log",
-        "sha256": "3badd781a798aadeb54822352c860103f9162e3f7278ea1dcdf8684b09a26635"
+        "path": "/tmp/coord-r6-typecheck-final.log",
+        "sha256": "4f5cf1fa36c879b9c56754c3c198c15452467bddcd671538de1a4b734e732df0"
       },
       {
-        "path": "/tmp/coord-r7-lint-final.log",
+        "path": "/tmp/coord-r6-lint-final.log",
         "sha256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8"
       },
       {
-        "path": "/tmp/coord-r7-build-final.log",
-        "sha256": "9c84192193d694a484c5781f7d8d0e486468b936bbc895ac01686605d97e6ba3"
+        "path": "/tmp/coord-r6-build-final.log",
+        "sha256": "c2001a7098c07a282f63322b45f9300e72976163ae07607b3756b708bfc2186d"
       },
       {
-        "path": "/tmp/coord-audit-b9b5d38.log",
-        "sha256": "b7e7ecf51d7fdb8d7b679ee669fd5f46a5a32a5431cbd83e6ce903cb35b17e55"
+        "path": "/tmp/coord-audit-7344398.log",
+        "sha256": "04915ebfb8200b4a335b0c7dabd0cd57d290d2a5766ed5a6ad58d8f8dd19a307"
       }
     ],
     "local_full_sql": {
@@ -153,55 +153,55 @@
   },
   "hosted_verification": [
     {
-      "run_id": 37175911488,
-      "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+      "run_id": 37173749052,
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
       "status": "completed",
       "conclusion": "success",
-      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911488",
+      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749052",
       "jobs": [
         {
-          "databaseId": 111358352778,
+          "databaseId": 111351940538,
           "name": "verify / verify",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911488/job/111358352778"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749052/job/111351940538"
         },
         {
-          "databaseId": 111359190241,
+          "databaseId": 111352594144,
           "name": "guard-required",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911488/job/111359190241"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749052/job/111352594144"
         }
       ]
     },
     {
-      "run_id": 37175911503,
-      "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+      "run_id": 37173749053,
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
       "status": "completed",
       "conclusion": "success",
-      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911503",
+      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749053",
       "jobs": [
         {
-          "databaseId": 111358352966,
+          "databaseId": 111351940459,
           "name": "verify / verify",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911503/job/111358352966"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749053/job/111351940459"
         },
         {
-          "databaseId": 111359159520,
+          "databaseId": 111352722093,
           "name": "rehearsal",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911503/job/111359159520"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749053/job/111352722093"
         },
         {
-          "databaseId": 111359160432,
+          "databaseId": 111352722741,
           "name": "publish-npm",
           "status": "completed",
           "conclusion": "skipped",
-          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37175911503/job/111359160432"
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37173749053/job/111352722741"
         }
       ]
     }
@@ -215,22 +215,22 @@
       "passed": 10,
       "skipped": 0
     },
-    "ci_log_sha256": "15e6b29946990deffddf23a5bbee2263aec50e9085bcd350117395c6e0f14f8d"
+    "ci_log_sha256": "aacba41b10a74a60287572f4ded235d5a02b24956ba1758642a6f544b07051af"
   },
   "hosted_sql": {
     "status": "passed",
     "mandatory_coord_case_count": 8,
     "topology": "approved canonical hosted github-service",
-    "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+    "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
     "proof_boundary": "Admitted PostgreSQL function/role/transaction/skew/concurrency/rollback/query/capacity controls. No hosted Supabase production acceptance claimed."
   },
   "packed_rehearsal": {
     "status": "passed",
-    "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
-    "manifest_sha256": "ab7948e0abfaaf5cffe16ae9b1d924f661d4f7d4ed90953b65f3fffedd59bafe",
+    "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+    "manifest_sha256": "90131b75079f26bc06e5a5233353dfcaa0f9ea862fab116559022cd2acb458fc",
     "manifest": {
       "schema": "guard-artifacts.v1",
-      "source_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+      "source_sha": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
       "lockfile_sha256": "454113a71b84bd161dbf34d92b9f4a28f2388c4cf4492b0513a5c4243bbd835b",
       "package_manifest_sha256": {
         "@consiliency/runtime-provider": "7ab54854fb04d8a6b920a7f7517db0be8ffe404f478c4494555a9ba8adb913e5",
@@ -238,9 +238,9 @@
         "@consiliency/omnigent-transport": "709f567bc638c5905e7bdee306b1a74a6502e19a7b330592144dfbcfd6a0d117"
       },
       "identity": {
-        "tested_source_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
-        "github_sha": "5935f2d7dcc31c0fa5edbb79ac2759c41ab86296",
-        "pr_head_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+        "tested_source_sha": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+        "github_sha": "87b02dad1fcb7b6e75187e95e4fedbc4d287fec1",
+        "pr_head_sha": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
         "pr_base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c"
       },
       "packages": [
@@ -269,7 +269,7 @@
   "audit": {
     "positive": {
       "status": "passed",
-      "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
       "phase": "COORD",
       "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
       "producer_record": ".phase-loop/generated-outputs/record.json"
@@ -340,61 +340,44 @@
     "binding": "Historical hostile controls bind their actual disposable clone/source/runtime; current candidate positive audit reran producers. Final metadata HEAD requires another observed producer run and external current-head receipt."
   },
   "review": {
-    "status": "approved",
+    "status": "pending",
     "historical_dissent": [
       "plans/evidence/v2/reviews/COORD-CR-3e50b88.json",
       "plans/evidence/v2/reviews/COORD-CR-1039f64.json",
       "plans/evidence/v2/reviews/COORD-CR-7761093.json",
       "plans/evidence/v2/reviews/COORD-CR-b7e012d.json",
       "plans/evidence/v2/reviews/COORD-CR-26bbc75.json",
-      "plans/evidence/v2/reviews/COORD-CR-ed63de8.json",
-      "plans/evidence/v2/reviews/COORD-CR-7344398.json"
+      "plans/evidence/v2/reviews/COORD-CR-ed63de8.json"
     ],
-    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-b9b5d38.json",
+    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-ed63de8.json",
     "required": [
       "four source-grounded agent-harness Astra/Sol seats",
       "separate independent",
       "manual tools-enabled Opus5.5 subscription TUI",
       "manual tools-enabled Gemini"
     ],
-    "prescript": "Executed separately before each CR; actual open issues, earlier dissent and provisional source/EC dispositions.",
-    "record": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json",
-    "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
-    "passing_grounded_seats": 7,
-    "historical_dissent_preserved": true,
-    "reconciliation_status": "All R1 through R7 blockers and optional dispositions independently rechecked. No continuing issue waived.",
-    "repair_reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-7344398.json"
+    "prescript": "Executed separately before each CR; actual open issues, earlier dissent and provisional source/EC dispositions."
   },
   "criteria": [
     {
       "id": "EC-COORD-1",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-2",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-3",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-4",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-5",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     }
   ],
   "issue_inventory": [
@@ -426,9 +409,9 @@
   "publication": "not_performed",
   "branch_protection": "optional by solo-owner decision",
   "future_sha_honesty": "This records actual checked source. Its recording commit and later acceptance metadata commits are not retroactively claimed as tested or reviewed; required final-HEAD hosted checks, audit and post-merge main CI remain gates.",
-  "recorded_at": "2026-10-04T04:26:28.720812+00:00",
+  "recorded_at": "2026-10-04T03:26:07.792916+00:00",
   "historical_verification": [
-    "plans/evidence/v2/reviews/COORD-verification-7344398.json"
+    "plans/evidence/v2/reviews/COORD-verification-26bbc75.json"
   ],
   "prior_current_head_failure": {
     "source_head": "1039f64c7d36b781b57d7b47a9a58f1e407f5588",
@@ -453,23 +436,5 @@
       "sha256": "c57e23d46386d2109f3f759e190d38ae3cca292e88fce7b73e2b11f808603cb9",
       "source_file_sha256": "d3c2c4bae198677ac59a3578773082f371b28a8489c9d227d60ef459af920037"
     }
-  },
-  "production_review_source_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
-  "source_binding_basis": "Actual measured implementation source_head, including historical plan/roadmap bytes. Later acceptance checkbox marks and their roadmap hash are metadata, not retroactively reviewed source.",
-  "acceptance_control_binding": {
-    "plan_sha256": "79e5ccea7d356625df9e7583f36ed0efcc1e2c4ae3a2564ef4ca9d03c6a26026",
-    "roadmap_sha256": "6c7cd036c09839653dc85c58382d6bf8eac71860f9cf2d60f9d63b48d7b58f46",
-    "reviewed_plan_sha256": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
-    "change": "Only accepted IF/EC checkboxes and dependent roadmap digest; no new resolved contract or source code."
-  },
-  "merge_closeout": {
-    "status": "required_before_merge",
-    "final_head_gates": [
-      "canonical hosted full verification",
-      "source-bound rehearsal with publication skipped",
-      "observed producer audit"
-    ],
-    "postmerge_gate": "main CI",
-    "receipt_location": "Final source/merge/issue/worktree receipts retained externally and linked in omniagent-plus#32; no future SHA or merge is claimed here."
   }
 }

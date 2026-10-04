@@ -2,7 +2,7 @@
 phase_loop_plan_version: 1
 phase: COORD
 roadmap: specs/phase-plans-v2.md
-roadmap_sha256: ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74
+roadmap_sha256: 6c7cd036c09839653dc85c58382d6bf8eac71860f9cf2d60f9d63b48d7b58f46
 automation:
   suite_command: pnpm verify
 ---
@@ -33,10 +33,10 @@ Consumes accepted DATA in omniagent-plus#31 and IF-0-DATA-3a/b/c/d. Owns omniage
 
 ## Interface Freeze Gates
 
-- [ ] IF-0-COORD-4a — evaluateCooldownState/buildIdentityPool clock behavior, planRoute fallback, established-session admission and bounded evaluateRetryGuardrails/evaluateFailurePolicy.
-- [ ] IF-0-COORD-4b — explicit turn accounting and historical replay, shared-lock ownership, recoverable local lease transitions and safe cleanup/reconciliation.
-- [ ] IF-0-COORD-4c — server-clock fleet lease/RPC/query/inbox contracts and bounded backend causes; no authority from inbox.
-- [ ] IF-0-COORD-4d — CLI effects/options/injected preflight environment and metadata-only verification evidence.
+- [x] IF-0-COORD-4a — evaluateCooldownState/buildIdentityPool clock behavior, planRoute fallback, established-session admission and bounded evaluateRetryGuardrails/evaluateFailurePolicy.
+- [x] IF-0-COORD-4b — explicit turn accounting and historical replay, shared-lock ownership, recoverable local lease transitions and safe cleanup/reconciliation.
+- [x] IF-0-COORD-4c — server-clock fleet lease/RPC/query/inbox contracts and bounded backend causes; no authority from inbox.
+- [x] IF-0-COORD-4d — CLI effects/options/injected preflight environment and metadata-only verification evidence.
 
 ## Lane Index & Dependencies
 
@@ -134,11 +134,11 @@ Upstream handoff: keep contract0.6.3, Omnigent v0.12 authority and frozen depend
 
 ## Acceptance Criteria
 
-- [ ] EC-COORD-1 — proven by cooldowns/identity-pool/route-planner/launch-gate suites; falsified by expired block, false override or mismatched established-session send.
-- [ ] EC-COORD-2 — proven by classifier/retry/failure-policy/active-turns/replay suites; falsified by unsafe/unbounded delay, retry of hard/nonretryable failure, leaked metadata or duplicate decrement.
-- [ ] EC-COORD-3 — proven by real cleanup/locks/coord-durability/corruption suites; falsified by alternate/replaced/live/dirty deletion, ambiguous takeover or missing-path release without durable post-state.
-- [ ] EC-COORD-4 — proven by admitted coordination.integration.db.test.ts and real-SDK wrapper suites; falsified by caller-clock expiry, concurrent conflicting grant, wrong-holder mutation, unauthorized role access or event/projection divergence.
-- [ ] EC-COORD-5 — proven by CLI argv/effect/preflight suites and retained CoordinationStore inventory; falsified by invalid-argv side effect, implicit launch, hidden environment lookup or empty-on-corrupt state.
+- [x] EC-COORD-1 — proven by cooldowns/identity-pool/route-planner/launch-gate suites; falsified by expired block, false override or mismatched established-session send.
+- [x] EC-COORD-2 — proven by classifier/retry/failure-policy/active-turns/replay suites; falsified by unsafe/unbounded delay, retry of hard/nonretryable failure, leaked metadata or duplicate decrement.
+- [x] EC-COORD-3 — proven by real cleanup/locks/coord-durability/corruption suites; falsified by alternate/replaced/live/dirty deletion, ambiguous takeover or missing-path release without durable post-state.
+- [x] EC-COORD-4 — proven by admitted coordination.integration.db.test.ts and real-SDK wrapper suites; falsified by caller-clock expiry, concurrent conflicting grant, wrong-holder mutation, unauthorized role access or event/projection divergence.
+- [x] EC-COORD-5 — proven by CLI argv/effect/preflight suites and retained CoordinationStore inventory; falsified by invalid-argv side effect, implicit launch, hidden environment lookup or empty-on-corrupt state.
 
 ## Spec Closeout Plan
 

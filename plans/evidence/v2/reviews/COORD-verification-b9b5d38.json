@@ -1,7 +1,7 @@
 {
   "schema": "coord-acceptance-candidate.v1",
   "phase": "COORD",
-  "status": "accepted_implementation",
+  "status": "verified_implementation_pending_production_review",
   "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
   "base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/32",
@@ -340,7 +340,7 @@
     "binding": "Historical hostile controls bind their actual disposable clone/source/runtime; current candidate positive audit reran producers. Final metadata HEAD requires another observed producer run and external current-head receipt."
   },
   "review": {
-    "status": "approved",
+    "status": "pending",
     "historical_dissent": [
       "plans/evidence/v2/reviews/COORD-CR-3e50b88.json",
       "plans/evidence/v2/reviews/COORD-CR-1039f64.json",
@@ -350,51 +350,35 @@
       "plans/evidence/v2/reviews/COORD-CR-ed63de8.json",
       "plans/evidence/v2/reviews/COORD-CR-7344398.json"
     ],
-    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-b9b5d38.json",
+    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-7344398.json",
     "required": [
       "four source-grounded agent-harness Astra/Sol seats",
       "separate independent",
       "manual tools-enabled Opus5.5 subscription TUI",
       "manual tools-enabled Gemini"
     ],
-    "prescript": "Executed separately before each CR; actual open issues, earlier dissent and provisional source/EC dispositions.",
-    "record": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json",
-    "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
-    "passing_grounded_seats": 7,
-    "historical_dissent_preserved": true,
-    "reconciliation_status": "All R1 through R7 blockers and optional dispositions independently rechecked. No continuing issue waived.",
-    "repair_reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-7344398.json"
+    "prescript": "Executed separately before each CR; actual open issues, earlier dissent and provisional source/EC dispositions."
   },
   "criteria": [
     {
       "id": "EC-COORD-1",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-2",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-3",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-4",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     },
     {
       "id": "EC-COORD-5",
-      "status": "accepted",
-      "verification": "Canonical hosted full gate and regression evidence",
-      "review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json"
+      "status": "verified_pending_production_review"
     }
   ],
   "issue_inventory": [
@@ -426,7 +410,7 @@
   "publication": "not_performed",
   "branch_protection": "optional by solo-owner decision",
   "future_sha_honesty": "This records actual checked source. Its recording commit and later acceptance metadata commits are not retroactively claimed as tested or reviewed; required final-HEAD hosted checks, audit and post-merge main CI remain gates.",
-  "recorded_at": "2026-10-04T04:26:28.720812+00:00",
+  "recorded_at": "2026-10-04T04:11:13.795135+00:00",
   "historical_verification": [
     "plans/evidence/v2/reviews/COORD-verification-7344398.json"
   ],
@@ -453,23 +437,5 @@
       "sha256": "c57e23d46386d2109f3f759e190d38ae3cca292e88fce7b73e2b11f808603cb9",
       "source_file_sha256": "d3c2c4bae198677ac59a3578773082f371b28a8489c9d227d60ef459af920037"
     }
-  },
-  "production_review_source_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
-  "source_binding_basis": "Actual measured implementation source_head, including historical plan/roadmap bytes. Later acceptance checkbox marks and their roadmap hash are metadata, not retroactively reviewed source.",
-  "acceptance_control_binding": {
-    "plan_sha256": "79e5ccea7d356625df9e7583f36ed0efcc1e2c4ae3a2564ef4ca9d03c6a26026",
-    "roadmap_sha256": "6c7cd036c09839653dc85c58382d6bf8eac71860f9cf2d60f9d63b48d7b58f46",
-    "reviewed_plan_sha256": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
-    "change": "Only accepted IF/EC checkboxes and dependent roadmap digest; no new resolved contract or source code."
-  },
-  "merge_closeout": {
-    "status": "required_before_merge",
-    "final_head_gates": [
-      "canonical hosted full verification",
-      "source-bound rehearsal with publication skipped",
-      "observed producer audit"
-    ],
-    "postmerge_gate": "main CI",
-    "receipt_location": "Final source/merge/issue/worktree receipts retained externally and linked in omniagent-plus#32; no future SHA or merge is claimed here."
   }
 }
