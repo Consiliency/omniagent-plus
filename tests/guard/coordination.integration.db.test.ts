@@ -147,6 +147,8 @@ describe.sequential("admitted COORD SQL", () => {
     const beforeInvalid = await snapshot();
     const corpus = JSON.parse(readFileSync(new URL("../../fixtures/content-policy/corpus.json", import.meta.url), "utf8")) as { allowed: unknown[]; rejected: unknown[] };
     const tooDeep = Array.from({ length: 63 }).reduce<unknown>((nested) => ({ nested }), "safe");
+    const encodedDeep = "[".repeat(20_000) + "0" + "]".repeat(20_000);
+    const encodedBoundary = (layers: number) => '{"deep":' + encodedDeep + ',"deep":0,"kept":' + "[".repeat(layers) + "{}" + "]".repeat(layers) + "}";
     for (const input of [null, { type: "done", sender: "", scope }, { type: "done", sender: null, scope }, { type: "invalid", sender: "operator", scope },
       ...[[], [""], [null], [7], ["/absolute"], ["../parent"], ["C:\\absolute"]].map((selector) => ({ type: "done", sender: "operator", scope: { ...scope, selector } })),
       ...["targetHolder", "leaseId", "handoffPacketId"].flatMap((key) => ["", null, 7].map((value) => ({ type: "done", sender: "operator", scope, [key]: value }))),
@@ -163,7 +165,8 @@ describe.sequential("admitted COORD SQL", () => {
       { type: "done", sender: "operator", scope: { ...scope, selector: ["Bearer synthetic-token-123456"] } },
       { type: "done", sender: "operator", scope, body: { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "safe", updatedAt: "2026-02-29T01:02:03Z" } } },
       { type: "done", sender: "operator", scope, body: { password: { schema: "redacted_config_value.v0.1", value: "[redacted]", reason: "" } } },
-      { type: "done", sender: "operator", scope, body: { nested: tooDeep } }]) {
+      { type: "done", sender: "operator", scope, body: { nested: tooDeep } },
+      ...[encodedDeep, '{"x":0,"x":' + encodedDeep + '}', encodedBoundary(61)].map((nested) => ({ type: "done", sender: "operator", scope, body: { nested } }))]) {
       await expect(invoke("coordination_send_message", input)).rejects.toThrow();
       expect(await snapshot()).toBe(beforeInvalid);
     }
@@ -173,6 +176,9 @@ describe.sequential("admitted COORD SQL", () => {
     expect(normalized.column).toBe(normalized.payload);
     expect(Math.abs(Date.now() - Date.parse(normalized.column))).toBeLessThan(5000);
     const allowed = [...corpus.allowed, "sk-........", "sk-Kxxxxxxx", "password:\ufeff",
+      "[".repeat(20_000), "[".repeat(20_000) + "x" + "]".repeat(20_000),
+      "[".repeat(20_000) + "0," + "]".repeat(20_000), "[".repeat(20_000) + '"unterminated',
+      '{"x":' + encodedDeep + ',"x":0}', '{"x":' + encodedDeep + ',"\\u0078":0}', encodedBoundary(60),
       '{"note":"\\u0000"}', '{"note":"\\ud800"}', '{"note":"\\\\ud800"}', '{"count":1e-400000}', '{"count":0e400000}',
       '{"count":1e400,"count":0}', '{"c\\u006funt":1e400,"count":0}',
       JSON.stringify('{"password' + String.fromCharCode(0) + '":"synthetic-value"}'),

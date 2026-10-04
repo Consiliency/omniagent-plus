@@ -354,6 +354,11 @@ declare
   encoded_source text;
   encoded_escape text;
   encoded_string text;
+  encoded_states integer[];
+  encoded_level integer;
+  encoded_state integer;
+  encoded_skip integer;
+  encoded_folded text;
   number_finite boolean;
   guard_namespace text := '';
   guard_nonce text := replace(gen_random_uuid()::text,'-','');
@@ -409,11 +414,46 @@ begin
       end if;
       if not metadata_is_key and left(ltrim(metadata_text,E' \t\n\r'),1) in ('"','{','[') then
         encoded_valid := true;
+        encoded_source := metadata_text;
         begin perform metadata_text::json;
-        exception when invalid_text_representation then encoded_valid := false; end;
+        exception when invalid_text_representation then encoded_valid := false;
+          when program_limit_exceeded then
+            encoded_states := array[1];
+            encoded_level := 1;
+            encoded_skip := 0;
+            encoded_folded := '';
+            for encoded_token in select matches[1] from regexp_matches(metadata_text,$syntax$("(?:[^"\\\x00-\x1f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null|[ \t\n\r]+|.)$syntax$,'g') as item(matches) loop
+              if encoded_token ~ E'^[ \\t\\n\\r]+$' then continue; end if;
+              encoded_state := encoded_states[encoded_level];
+              if encoded_state in (6,7) and left(encoded_token,1)='"' and length(encoded_token)>1 then
+                encoded_states[encoded_level] := 8;
+              elsif encoded_state=8 and encoded_token=':' then
+                encoded_states[encoded_level] := 9;
+              elsif (encoded_state=5 and encoded_token=',') or (encoded_state=10 and encoded_token=',') then
+                encoded_states[encoded_level] := case when encoded_state=5 then 4 else 7 end;
+              elsif (encoded_state in (3,5) and encoded_token=']') or (encoded_state in (6,10) and encoded_token='}') then
+                encoded_level := encoded_level-1;
+                if encoded_skip>0 and encoded_level<encoded_skip then encoded_skip:=0; continue; end if;
+              elsif encoded_state in (1,3,4,9) and (
+                encoded_token in ('[','{','true','false','null') or (left(encoded_token,1)='"' and length(encoded_token)>1)
+                or encoded_token collate "C" ~ '^-?[0-9]') then
+                encoded_states[encoded_level] := case when encoded_state=1 then 2 when encoded_state=9 then 10 else 5 end;
+                if encoded_token in ('[','{') then
+                  if encoded_skip=0 and metadata_depth+encoded_level>64 then
+                    encoded_folded := encoded_folded || to_jsonb(guard_nonfinite)::text;
+                    encoded_skip := encoded_level+1;
+                  end if;
+                  encoded_level := encoded_level+1;
+                  encoded_states[encoded_level] := case when encoded_token='[' then 3 else 6 end;
+                end if;
+              else encoded_valid := false; exit; end if;
+              if encoded_skip=0 then encoded_folded := encoded_folded || encoded_token; end if;
+            end loop;
+            encoded_valid := encoded_valid and encoded_level=1 and encoded_states[1]=2;
+            encoded_source := encoded_folded;
+        end;
         encoded_text := '';
         if encoded_valid then
-          encoded_source := metadata_text;
           for encoded_escape in select matches[1] from regexp_matches(metadata_text,guard_namespace||E'([\ue800-\uefff])','g') as item(matches) loop
             encoded_source := replace(encoded_source,guard_namespace||encoded_escape,chr(92)||'u'||to_hex(55296+ascii(encoded_escape)-59392));
           end loop;

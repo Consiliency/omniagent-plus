@@ -22,6 +22,10 @@ invalid control-character boundaries and last-member semantics before checking
 surviving nonfinite numbers. Inspection markers use one per-call cryptographic
 namespace; their negligible collision probability is the same engineering
 assumption used for UUID message identities. Markers never enter retained bodies.
+If PostgreSQL's recursive JSON parser exhausts its stack, iterative syntax
+validation keeps malformed JSON as ordinary text and folds valid deep subtrees
+into inspection markers. Only surviving subtrees beyond the reader's depth limit
+are refused; a later duplicate member can still replace a deep value.
 Default local lease clocks start after physical acquisition, so lock contention
 does not consume a newly granted lease's lifetime. Explicit injected clocks remain
 deterministic. Library arbitration validates before contacting the backend;
