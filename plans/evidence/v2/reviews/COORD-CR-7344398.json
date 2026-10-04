@@ -1,0 +1,1241 @@
+{
+  "schema": "coord-production-review.v1",
+  "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+  "delta_base": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+  "phase": "COORD",
+  "plan_sha256": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
+  "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+  "prescript": {
+    "schema": "coord-cr-prescript.v1",
+    "head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+    "inventory_source": "read-only GitHub issue inventory plus committed roadmap/source/review records",
+    "open_issues": [
+      {
+        "issue": "omniagent-plus#27",
+        "title": "Audit HY-3/HY-4/ID-1: reconcile package distribution and retained evidence"
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "title": "Audit sections 3.1-3.4: connect provider lifecycle to durable operator replay"
+      },
+      {
+        "issue": "omniagent-plus#25",
+        "title": "Audit TR-1..TR-9: bound transport resources and preserve lifecycle contracts"
+      },
+      {
+        "issue": "omniagent-plus#24",
+        "title": "Audit SL-8/SL-11/WL-1..WL-7: harden lease clocks, cleanup ownership, and projections"
+      },
+      {
+        "issue": "omniagent-plus#23",
+        "title": "Audit CO-1..CO-8/CLI-1..CLI-4: correct routing, cooldowns, retries, and CLI effects"
+      },
+      {
+        "issue": "omniagent-plus#20",
+        "title": "Audit HY-1/HY-2/HY-5/HY-6: establish PR verification and distribution decisions"
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "title": "Track v2 audit remediation: dispositions, phase gates, and release acceptance"
+      }
+    ],
+    "continuing_items": [
+      {
+        "issue": "omniagent-plus#23",
+        "disposition": "COORD blocker if unresolved",
+        "criteria": [
+          "EC-COORD-1",
+          "EC-COORD-2",
+          "EC-COORD-5"
+        ],
+        "source": [
+          "packages/coordinator/src",
+          "packages/rate-limit-catalog/src",
+          "packages/cli/src"
+        ],
+        "reason": "Routing, retry, accounting, safe publication and CLI effects are implemented here; claims still require review/gate evidence."
+      },
+      {
+        "issue": "omniagent-plus#24",
+        "disposition": "COORD blocker if unresolved",
+        "criteria": [
+          "EC-COORD-3",
+          "EC-COORD-4",
+          "EC-COORD-5"
+        ],
+        "source": [
+          "packages/worktree-leasing/src",
+          "packages/state-ledger/src/coordination-channel.ts",
+          "supabase/migrations/20260930000000_coordination_server_time.sql",
+          "tests/guard/coordination.integration.db.test.ts"
+        ],
+        "reason": "Physical ownership, cleanup, durability/retention, fleet clocks/query/inbox and SQL proof are in scope."
+      },
+      {
+        "issue": "omniagent-plus#25",
+        "related_pr": "omniagent-plus#30",
+        "disposition": "carried WIRE unless COORD introduces regression",
+        "source": [
+          "specs/phase-plans-v2.md",
+          "plans/evidence/v2/reviews/COORD-upstream-20261003.json"
+        ],
+        "reason": "Omnigent v0.16 transport/error/undelivered changes and open v0.15 PR require downstream reconciliation. COORD keeps v0.12 authority and core0.6.3; no resend/account/admin authority."
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "disposition": "carried INTEG unless primitive is defective",
+        "source": [
+          "specs/phase-plans-v2.md",
+          "docs/coordinator-routing.md",
+          "docs/worktree-leasing.md"
+        ],
+        "reason": "Scheduling, attempt counters/timers, provider lifecycle persistence and runtime wiring are later; COORD must supply working bounded primitives and honest docs now."
+      },
+      {
+        "issue": "omniagent-plus#27",
+        "related_issue": "omniagent-plus#20",
+        "disposition": "carried PREP/human license choice",
+        "source": [
+          "specs/phase-plans-v2.md",
+          "docs/hardening-readiness.md"
+        ],
+        "reason": "Package distribution, retained ID-1 baseline, compatible dependency upgrades and license decision are outside COORD. Mandatory existing packed/rehearsal and regression proof still apply."
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "disposition": "tracker remains open",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "COORD is one phase; WIRE/INTEG/PREP/SHIP remain."
+      },
+      {
+        "finding_source": "plans/evidence/v2/reviews/COORD-plan-upstream-2e7cb3b.json",
+        "disposition": "resolved by approved a52c1c9 plan; independently recheck in production",
+        "source": [
+          "plans/evidence/v2/reviews/COORD-plan-upstream-a52c1c9.json",
+          "plans/evidence/v2/reviews/COORD-plan-upstream-amendment-20261003.json"
+        ],
+        "reason": "Restored full/current-head/hosted/rehearsal/postmerge controls, phase manifest admission, producer/grounding qualification; historical dissent preserved, no implementation waiver."
+      },
+      {
+        "finding_source": "local SQL readiness",
+        "disposition": "failed local verification; canonical hosted proof still required",
+        "source": [
+          "tests/guard/coordination.integration.db.test.ts",
+          ".github/workflows/verify.yml"
+        ],
+        "reason": "Owned disposable container server answers internally; mapped host connection closes before admission. No source fixture changes or credential switching, no local SQL passing claim."
+      }
+    ],
+    "prior_production_records": [
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-1039f64.json",
+        "source_head": "1039f64c7d36b781b57d7b47a9a58f1e407f5588",
+        "status": "changes_requested",
+        "seats": [
+          {
+            "seat": "codex:gpt-6-astra:max:correctness",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:adversarial",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-6-astra:max:red-team",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:claude-opus-5-5:max:TUI-tools",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:Gemini 3.1 Pro (High):tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "separate-independent:data_independent_design",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          }
+        ],
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-26bbc75.json",
+        "source_head": "26bbc75830204f6a80eb1359d6242ccb9dfbf295",
+        "status": "changes_requested",
+        "seats": [
+          {
+            "seat": "codex:gpt-6-astra:max:correctness",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:adversarial",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-6-astra:max:red-team",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:claude-opus-5-5:max:TUI-tools",
+            "verdict": "UNAVAILABLE",
+            "source_grounded": false
+          },
+          {
+            "seat": "manual:Gemini 3.1 Pro (High):tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "separate-independent:data_independent_design",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          }
+        ],
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-3e50b88.json",
+        "source_head": "3e50b88990477ff1a5e6b1a336c7c78b80e8b008",
+        "status": "changes_requested",
+        "seats": [
+          {
+            "seat": "codex:gpt-6-astra:max:correctness",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:adversarial",
+            "verdict": "DISAGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-6-astra:max:red-team",
+            "verdict": "DISAGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+            "verdict": "DISAGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:claude-opus-5-5:max:TUI-tools",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:Gemini 3.1 Pro (High):tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "separate-independent:data_independent_design",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          }
+        ],
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-7761093.json",
+        "source_head": "776109383f08b160d213533c435877aa57e87aeb",
+        "status": "changes_requested",
+        "seats": [
+          {
+            "seat": "codex:gpt-6-astra:max:correctness",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:adversarial",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-6-astra:max:red-team",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:claude-opus-5-5:max:TUI-tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:Gemini 3.1 Pro (High):tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "separate-independent:data_independent_design",
+            "verdict": "AGREE",
+            "source_grounded": true
+          }
+        ],
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-b7e012d.json",
+        "source_head": "b7e012d2bb13504b4a14386aba0c343d5b4923c8",
+        "status": "changes_requested",
+        "seats": [
+          {
+            "seat": "codex:gpt-6-astra:max:correctness",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:adversarial",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-6-astra:max:red-team",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:claude-opus-5-5:max:TUI-tools",
+            "verdict": "UNAVAILABLE",
+            "source_grounded": false
+          },
+          {
+            "seat": "manual:Gemini 3.1 Pro (High):tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "separate-independent:data_independent_design",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          }
+        ],
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-ed63de8.json",
+        "source_head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+        "status": "changes_requested",
+        "seats": [
+          {
+            "seat": "codex:gpt-6-astra:max:correctness",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:adversarial",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-6-astra:max:red-team",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "manual:claude-opus-5-5:max:TUI-tools",
+            "verdict": "UNAVAILABLE",
+            "source_grounded": false
+          },
+          {
+            "seat": "manual:Gemini 3.1 Pro (High):tools",
+            "verdict": "AGREE",
+            "source_grounded": true
+          },
+          {
+            "seat": "separate-independent:data_independent_design",
+            "verdict": "PARTIALLY AGREE",
+            "source_grounded": true
+          }
+        ],
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-reconciliation-1039f64.json",
+        "source_head": "867a4412dd48219cf98668cd65ec4fbb0abffe34",
+        "status": "pending_re_review",
+        "seats": [],
+        "findings": [
+          {
+            "id": "launch-detachment",
+            "criteria": [
+              "EC-COORD-1"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Schema-detach requests and decisions, capture provider/store before any lookup or persistence await, then dispatch the validated copy.",
+            "source": [
+              "packages/coordinator/src/launch-gate.ts",
+              "packages/coordinator/src/launch-gate.test.ts"
+            ]
+          },
+          {
+            "id": "ttl-before-effects",
+            "criteria": [
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "CLI route/acquire/renew cap TTL at7200; full route lease construction validates before arbitration. Local acquire/renew/release reject invalid input before physical lock or state creation.",
+            "source": [
+              "packages/cli/src/args.ts",
+              "packages/cli/src/args.test.ts",
+              "packages/cli/src/commands/route-task.ts",
+              "packages/cli/src/route-task.test.ts",
+              "packages/worktree-leasing/src/lease-store.ts",
+              "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+            ]
+          },
+          {
+            "id": "coherent-preferred-replay",
+            "criteria": [
+              "EC-COORD-2"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Persist the complete resolved original profile tuple for provider/harness/identity-only preferences. Historical partial targets never borrow selected fallback fields. Real catalog planner-to-replay checks prefer latest original evidence over older unattributed stops.",
+            "source": [
+              "packages/coordinator/src/route-planner.ts",
+              "packages/coordinator/src/replay.ts",
+              "packages/coordinator/src/replay.test.ts"
+            ]
+          },
+          {
+            "id": "sql-future-full-inbox",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "A tagged capacity refusal commits future timestamp normalization; installed SDK maps it to the bounded existing capacity error. Admitted SQL test combines10000 future rows, capacity refusal, body/ID preservation, durable normalized timestamps and later expiry/admission; concurrent9999 boundary admits exactly one.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "packages/state-ledger/src/supabase-coordination-channel.ts",
+              "packages/state-ledger/src/supabase-coordination-channel.test.ts"
+            ]
+          },
+          {
+            "id": "lock-holder-detachment",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Retain metadataSchema.parse output before waiting; mutable holder and toJSON hooks cannot corrupt diagnostic sidecars. Physical SQLite authority unchanged.",
+            "source": [
+              "packages/worktree-leasing/src/locks.ts",
+              "packages/worktree-leasing/src/locks.test.ts"
+            ]
+          },
+          {
+            "id": "custody-determinism",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Launch held-lock fixture using the actual Node vite-node entrypoint, avoiding a pnpm wrapper. Ordinary crash cleanup now has strict zero-rescue posture; independent GUARD owner-death positive controls remain unchanged. Earlier R1 assertion that tagging this fixture establishes deterministic rescue is superseded.",
+            "source": [
+              "packages/worktree-leasing/src/locks.test.ts",
+              "tests/guard/process.test.ts"
+            ]
+          },
+          {
+            "id": "catalog-scope-authority",
+            "criteria": [
+              "EC-COORD-1",
+              "EC-COORD-2"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Real project quota, organization spend, model token and unattributed identity stops remain conservative for matching provider/harness where narrower exclusion cannot be proved. Explicit identity must match; all session-bound evidence is excluded from new routes. Latest known expired classification releases authority without resurrecting older evidence. Source-grounded R2 dissent corrects R1 overbroad scope exclusion.",
+            "source": [
+              "packages/coordinator/src/cooldowns.ts",
+              "packages/coordinator/src/identity-pool.ts",
+              "packages/coordinator/src/route-planner.ts",
+              "packages/coordinator/src/replay.ts",
+              "packages/cli/src/route-task.test.ts",
+              "docs/coordinator-routing.md"
+            ]
+          }
+        ],
+        "optional_dispositions": [
+          {
+            "finding": "Opus S1",
+            "disposition": "promoted_to_blocker_and_fixed",
+            "reason": "SQL future full inbox is an EC violation; repaired transaction-preserving refusal."
+          },
+          {
+            "finding": "Opus S2",
+            "disposition": "fixed",
+            "reason": "ENOTDIR and ELOOP inspection uncertainty quarantine only the prepared key; parent-file regression permits unrelated mutations.",
+            "source": [
+              "packages/worktree-leasing/src/lease-manager.ts",
+              "packages/worktree-leasing/src/coord-durability.test.ts"
+            ]
+          },
+          {
+            "finding": "Opus S3",
+            "disposition": "fixed",
+            "reason": "Invalid local mutation inputs refuse before lock creation, aligned with SDK validation."
+          },
+          {
+            "finding": "Opus S4",
+            "disposition": "retained_defensive_predicate",
+            "reason": "Null cursor is already rejected by SQL validation; the unreachable predicate grants no authority. Removing it would only be optional cleanup."
+          },
+          {
+            "finding": "Opus S5",
+            "disposition": "documented",
+            "reason": "Retry-After docs explicitly name IMF-fixdate, with no new obsolete-date contract.",
+            "source": [
+              "docs/coordinator-routing.md"
+            ]
+          },
+          {
+            "finding": "Opus S6",
+            "disposition": "fixed",
+            "reason": "Persisted classification ledger itself is asserted free of the synthetic secret.",
+            "source": [
+              "packages/cli/src/classify-limit.test.ts"
+            ]
+          },
+          {
+            "finding": "Opus S7",
+            "disposition": "fixed",
+            "reason": "Own-property lookup ignores inherited active counts for a legal constructor profile.",
+            "source": [
+              "packages/coordinator/src/identity-pool.ts",
+              "packages/coordinator/src/identity-pool.test.ts"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-reconciliation-26bbc75.json",
+        "source_head": "9c7cae8a33156e02acd2a604eeeeb46539a0f314",
+        "status": "pending_re_review",
+        "seats": [],
+        "findings": [
+          {
+            "id": "body-null-preservation",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Omit only null optional envelope fields; preserve every nested body null. Admitted SQL compares mixed env/PATH/null body and parses the complete returned SDK page.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "id": "env-line-boundary",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Recognize CR, LF, U+2028 and U+2029 as JavaScript multiline starts, with case-sensitive ENV semantics and retained-inbox digest controls.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "id": "ascii-token-word-boundary",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Use ASCII C-collated word boundaries and case semantics, preserving punctuation-ending and Unicode-lookalike safe metadata.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "id": "javascript-whitespace-parity",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Translate exactly the JavaScript whitespace class for case-insensitive lexical safety patterns; keep original text for private-key/AWS and ENV patterns.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "id": "encoded-json-domain-parity",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Validate encoded JSON syntax with PostgreSQL json, tokenize and validate number finiteness separately, normalize numeric tokens and active NUL/surrogate escapes only in the temporary guard tree. Preserve escaped-backslash parity and original persisted strings. Recursively validate decoded keys and values rather than skipping valid JSON on jsonb representability errors.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          }
+        ],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-reconciliation-3e50b88.json",
+        "source_head": "29c8fe8baa44f7416e579d705efbc6f5b5e45a56",
+        "status": "pending_re_review",
+        "seats": [],
+        "findings": [
+          {
+            "id": "holder-null",
+            "criteria": [
+              "EC-COORD-4"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Nonempty holder validation and null-safe SQL equality precede expiry or mutation.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "packages/worktree-leasing/src/supabase-lease-store.ts"
+            ],
+            "tests": [
+              "tests/guard/coordination.integration.db.test.ts",
+              "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+            ]
+          },
+          {
+            "id": "cross-host-pid",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Self-holder absence proof requires actual host, PID and alive liveness together.",
+            "source": [
+              "packages/worktree-leasing/src/cleanup.ts"
+            ],
+            "tests": [
+              "packages/worktree-leasing/src/cleanup.test.ts"
+            ]
+          },
+          {
+            "id": "prepared-quarantine",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Classified path/Git uncertainty retains the pending key and permits unrelated mutations; shared persistence failures still propagate.",
+            "source": [
+              "packages/worktree-leasing/src/lease-manager.ts"
+            ],
+            "tests": [
+              "packages/worktree-leasing/src/coord-durability.test.ts"
+            ]
+          },
+          {
+            "id": "future-full-inbox",
+            "criteria": [
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Future-clock normalization is persisted under lock before capacity refusal, preserving retained messages for later expiry.",
+            "source": [
+              "packages/state-ledger/src/coordination-channel.ts"
+            ],
+            "tests": [
+              "packages/state-ledger/src/coordination-channel.test.ts",
+              "tests/guard/coordination.integration.db.test.ts"
+            ]
+          },
+          {
+            "id": "safe-count-dictionaries",
+            "criteria": [
+              "EC-COORD-2"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Null-prototype dictionaries survive mutations and all aggregate counts remain safe integers.",
+            "source": [
+              "packages/coordinator/src/active-turns.ts"
+            ],
+            "tests": [
+              "packages/coordinator/src/active-turns.test.ts",
+              "packages/coordinator/src/adaptive-concurrency.test.ts"
+            ]
+          },
+          {
+            "id": "request-detachment",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Requests are schema-detached before awaiting; authoritative registry and mutation publication serialize schema output only.",
+            "source": [
+              "packages/worktree-leasing/src/lease-manager.ts"
+            ],
+            "tests": [
+              "packages/worktree-leasing/src/coord-durability.test.ts"
+            ]
+          },
+          {
+            "id": "pending-ancestry",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Pending pre-append session/turn dependency IDs seed the existing DATA closure, including session ancestors.",
+            "source": [
+              "packages/worktree-leasing/src/lease-manager.ts"
+            ],
+            "tests": [
+              "packages/worktree-leasing/src/coord-durability.test.ts"
+            ]
+          },
+          {
+            "id": "classification-scope",
+            "criteria": [
+              "EC-COORD-1"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Provider/harness/identity/session/task and supported scope checks occur before any cooldown, adaptive, fallback, override or publication effect.",
+            "source": [
+              "packages/coordinator/src/cooldowns.ts",
+              "packages/coordinator/src/identity-pool.ts",
+              "packages/coordinator/src/route-planner.ts",
+              "packages/coordinator/src/replay.ts",
+              "packages/cli/src/commands/route-task.ts"
+            ],
+            "tests": [
+              "packages/cli/src/route-task.test.ts",
+              "packages/coordinator/src/replay.test.ts"
+            ]
+          },
+          {
+            "id": "expired-policy",
+            "criteria": [
+              "EC-COORD-1"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Latest applicable evidence wins; known expired classifications lose all live policy authority without resurrecting older classifications.",
+            "source": [
+              "packages/coordinator/src/cooldowns.ts",
+              "packages/coordinator/src/route-planner.ts",
+              "packages/cli/src/commands/route-task.ts"
+            ],
+            "tests": [
+              "packages/coordinator/src/route-planner.test.ts",
+              "packages/cli/src/route-task.test.ts"
+            ]
+          },
+          {
+            "id": "unavailable-preference",
+            "criteria": [
+              "EC-COORD-1"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "A refused preliminary route returns before state initialization, arbitration or record publication.",
+            "source": [
+              "packages/cli/src/commands/route-task.ts"
+            ],
+            "tests": [
+              "packages/cli/src/route-task.test.ts"
+            ]
+          },
+          {
+            "id": "cursor-keys",
+            "criteria": [
+              "EC-COORD-4"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "SQL cursor validation uses null-safe type checks on both required named keys; installed-SDK and local pages use returned timestamps/IDs.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql"
+            ],
+            "tests": [
+              "tests/guard/coordination.integration.db.test.ts",
+              "packages/worktree-leasing/src/lease-manager.test.ts",
+              "packages/worktree-leasing/src/supabase-lease-store.test.ts",
+              "packages/state-ledger/src/supabase-coordination-channel.test.ts"
+            ]
+          },
+          {
+            "id": "whole-retry-delay",
+            "criteria": [
+              "EC-COORD-2"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Only nonnegative safe integer delays establish wait authority; invalid evidence falls back to bounded integer exponential delay, and unsafe Retry-After is ignored.",
+            "source": [
+              "packages/rate-limit-catalog/src/retry-guardrails.ts",
+              "packages/rate-limit-catalog/src/rules.ts"
+            ],
+            "tests": [
+              "packages/rate-limit-catalog/src/retry-guardrails.test.ts",
+              "packages/rate-limit-catalog/src/classifier.test.ts"
+            ]
+          },
+          {
+            "id": "session-turn-owner",
+            "criteria": [
+              "EC-COORD-2"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Ownership and terminal settlement use the session/turn tuple, with independent duplicate settlement controls.",
+            "source": [
+              "packages/coordinator/src/active-turns.ts"
+            ],
+            "tests": [
+              "packages/coordinator/src/active-turns.test.ts"
+            ]
+          },
+          {
+            "id": "custody-control",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "The intentional lock-holder death test declares the existing owner-death control; strict rescue-count and quiescence validation remain unchanged.",
+            "source": [
+              "packages/worktree-leasing/src/locks.test.ts"
+            ],
+            "tests": [
+              "packages/worktree-leasing/src/locks.test.ts",
+              "tests/guard/process.test.ts"
+            ]
+          },
+          {
+            "id": "legacy-boundary",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Selected the explicitly offered documentation/compatibility option: no in-place adoption or new legacy renew/release/expiry takeover; operators stop/prove old holders and use a fresh root and disjoint paths. Existing acquisition/cooldown/inspection behavior remains, with map-key corruption checks.",
+            "source": [
+              "docs/worktree-leasing.md",
+              "packages/state-ledger/src/coordination.ts",
+              "packages/worktree-leasing/src/lease-manager.ts"
+            ],
+            "tests": [
+              "packages/state-ledger/src/coordination.test.ts",
+              "packages/cli/src/worktrees.test.ts"
+            ]
+          },
+          {
+            "id": "actual-release-cause",
+            "criteria": [
+              "EC-COORD-3"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Normal release, stale recovery and cleanup reconciliation retain actual DATA causes and actors; removal-before-marker crash is recovered using prepared durable intent.",
+            "source": [
+              "packages/worktree-leasing/src/lease-manager.ts",
+              "packages/worktree-leasing/src/stale-recovery.ts",
+              "docs/worktree-leasing.md"
+            ],
+            "tests": [
+              "packages/worktree-leasing/src/cleanup.test.ts",
+              "packages/worktree-leasing/src/coord-durability.test.ts",
+              "packages/cli/src/worktrees.test.ts"
+            ]
+          },
+          {
+            "id": "acceptance-evidence",
+            "criteria": [
+              "EC-COORD-5"
+            ],
+            "disposition": "required_before_closeout",
+            "reason": "Missing acceptance evidence is still a merge gate, never waived. Source-bound hosted full verification, rehearsal, current producer audit, exact candidate reviews and post-merge CI are required.",
+            "source": [
+              "plans/phase-plan-v2-COORD.md"
+            ],
+            "tests": []
+          }
+        ],
+        "optional_dispositions": [
+          {
+            "finding": "Opus S2/S4/S6/S9",
+            "disposition": "documented",
+            "reason": "Unknown cooldown reason aliases remain conservative; pre-path acquisition cannot delete; refused delays are recheck hints; protected history may exhaust before the live-lease bound.",
+            "source": [
+              "docs/coordinator-routing.md",
+              "docs/worktree-leasing.md",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "finding": "Opus S3",
+            "disposition": "retained_safe_existing_behavior",
+            "reason": "A failed final cleanup recheck retains a prepared intent and reports uncertainty. The next actual replay proves no effect before clearing; no deletion or takeover is granted by this report.",
+            "source": [
+              "packages/worktree-leasing/src/cleanup.ts",
+              "packages/worktree-leasing/src/lease-manager.ts"
+            ]
+          },
+          {
+            "finding": "Opus S5 obsolete HTTP dates",
+            "disposition": "not_contract_expansion",
+            "reason": "The documented IMF HTTP-date and complete integer forms are supported; obsolete RFC850/asctime formats are not newly claimed.",
+            "source": [
+              "packages/rate-limit-catalog/src/rules.ts",
+              "docs/coordinator-routing.md"
+            ]
+          },
+          {
+            "finding": "Opus S7 absent identity on both sides",
+            "disposition": "retained_contract_compatibility",
+            "reason": "Identity remains optional in the consumed public core schema. COORD rejects established-label mismatches without changing that frozen schema.",
+            "source": [
+              "packages/coordinator/src/launch-gate.ts",
+              "packages/core-contracts/src/types.ts"
+            ]
+          },
+          {
+            "finding": "Opus S1/S5 unsafe integer/S8/S10/S11/S12",
+            "disposition": "fixed",
+            "reason": "Identifier dictionaries, integer range, default host identity, legacy map keys, content validation failure categories and readiness wording are repaired.",
+            "source": [
+              "packages/coordinator/src/active-turns.ts",
+              "packages/rate-limit-catalog/src/rules.ts",
+              "packages/cli/src/commands/worktrees.ts",
+              "packages/state-ledger/src/coordination.ts",
+              "packages/state-ledger/src/coordination-channel.ts",
+              "docs/hardening-readiness.md"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-reconciliation-7761093.json",
+        "source_head": "9630711d0518a570e211e11c2335dc304c704067",
+        "status": "pending_re_review",
+        "seats": [],
+        "findings": [
+          {
+            "id": "local-acquire-clock",
+            "criteria": [
+              "EC-COORD-4"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Validate and detach the complete request before effects, then sample the default clock inside the acquired physical lock. Explicit request.now is captured and retained. Real lock contention with TTL1 now grants a live lease and refuses an immediate competing hard acquisition.",
+            "source": [
+              "packages/worktree-leasing/src/lease-store.ts",
+              "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+            ]
+          },
+          {
+            "id": "malformed-inbox-poison",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Local and installed-SDK send share input fields from the existing frozen coordination contract and detach metadata before effects. SQL directly validates sender/type/scope/optional IDs/body before locking, normalization and pruning. Malformed requests leave local state absent, make zero SDK fetches, and preserve admitted SQL inbox bytes including a future-dated row; valid following requests remain readable.",
+            "source": [
+              "packages/state-ledger/src/coordination-channel.ts",
+              "packages/state-ledger/src/coordination-channel.test.ts",
+              "packages/state-ledger/src/supabase-coordination-channel.ts",
+              "packages/state-ledger/src/supabase-coordination-channel.test.ts",
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts"
+            ]
+          }
+        ],
+        "optional_dispositions": [
+          {
+            "finding": "Opus R3 S1",
+            "disposition": "promoted_to_blocker_and_fixed",
+            "reason": "Astra correctness demonstrated a stale default acquisition clock. Sampling after physical acquisition restores lease lifetime."
+          },
+          {
+            "finding": "Opus R3 S2",
+            "disposition": "retained_coherent_resolved_original_tuple",
+            "reason": "Persisting the resolved original profile tuple provides original-target replay context even without explicit preference overrides. It does not grant identity or accounting authority; no regression demonstrated."
+          },
+          {
+            "finding": "Opus R3 S3",
+            "disposition": "retained_conservative_historical_evidence",
+            "reason": "Historical partial targets cannot establish original provider/harness/identity context. Refusing to borrow a selected fallback tuple prevents unsupported authority; new records retain complete original tuples."
+          },
+          {
+            "finding": "Opus R3 S4",
+            "disposition": "fixed",
+            "reason": "Library arbitration validates and detaches lease input before backend contact and before the availability catch. Invalid hard and soft requests cannot contact the backend or create launch permission.",
+            "source": [
+              "packages/coordinator/src/lease-arbiter.ts",
+              "packages/coordinator/src/lease-arbiter.test.ts"
+            ]
+          },
+          {
+            "finding": "Opus R3 S5",
+            "disposition": "fixed",
+            "reason": "Local inbox input is fully validated and detached before physical lock or state creation. Existing alias/getter/toJSON tests now prove captured values remain safe rather than relying on later mutable caller state.",
+            "source": [
+              "packages/state-ledger/src/coordination-channel.ts",
+              "packages/state-ledger/src/coordination-channel.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-reconciliation-b7e012d.json",
+        "source_head": "1fbdbf7b0ba42652c07d79c85136df4fd3e8e065",
+        "status": "pending_re_review",
+        "seats": [],
+        "findings": [
+          {
+            "id": "sql-metadata-poison",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Direct SQL send validates the JSON-representable frozen DATA metadata policy before advisory locking, pruning or normalization. Recursive checks cover keys/strings, nested arrays/objects, encoded JSON, provider-shaped payloads, depth64 and values that would become nonfinite in the JS reader. Valid redacted placeholders, fencingToken, boolean autoRefreshToken and safe ordinary metadata remain admissible. The admitted SQL test uses the shared48 rejected/13 allowed corpus, preserves exact retained inbox digests including future timestamps, exercises timestamp/depth/numeric controls and parses the following complete valid page with the frozen message schema. No exported API, RPC signature, roles, fixture helpers or core contract changes.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          }
+        ],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-CR-reconciliation-ed63de8.json",
+        "source_head": "cd6e65f9f70a22c2213d4e78e0ee4b2e2d6633ec",
+        "status": "pending_re_review",
+        "seats": [],
+        "findings": [
+          {
+            "id": "unicode-key-collision",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "A per-call cryptographic private-Unicode namespace preserves exact unsupported UTF16-unit identities in temporary inspection, while valid surrogate pairs stay native. Prior surrogate markers are restored only after deeper-layer JSON syntax admission, then pairs are reassessed before re-encoding. Null/surrogate keys no longer collapse into literal punctuation or each other. Original stored body unchanged. Collision probability follows the declared UUID identity engineering assumption, not a claim of mathematical injectivity. Tests include both null-collision orders, distinct-surrogate/provider-subtree collisions and paired-surrogate/UTF8 last-member aliases.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "id": "multilayer-null-compatibility",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "NUL temporary markers retain nonword/nonwhitespace control characters, keeping an unescaped later JSON layer invalid as in JavaScript. Tests accept twice-encoded actual NUL and escaped-backslash text and compare original bodies exactly.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          },
+          {
+            "id": "discarded-overflow-compatibility",
+            "criteria": [
+              "EC-COORD-4",
+              "EC-COORD-5"
+            ],
+            "disposition": "implemented_pending_independent_recheck",
+            "reason": "Nonfinite numeric tokens become a distinct temporary marker rather than immediate refusal. Only surviving markers are rejected after JSONB resolves effective duplicate keys; discarded overflow and escaped-key/pair aliases remain accepted, surviving overflow still rejects without mutation.",
+            "source": [
+              "supabase/migrations/20260930000000_coordination_server_time.sql",
+              "tests/guard/coordination.integration.db.test.ts",
+              "docs/coordination-backend.md"
+            ]
+          }
+        ],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/COORD-custody-reconciliation-72025db.json",
+        "source_head": "0e1b9a1558270b21f25be068f049aa1fab2d46cb",
+        "status": "implemented_pending_current_head_full_gate",
+        "seats": [],
+        "findings": [],
+        "optional_dispositions": []
+      }
+    ],
+    "rule": "Classifications are provisional. New or continuing invariant/contract/EC regressions block regardless of scope label. Read referenced sources; no blanket out-of-scope dismissal. No issue mutation performed."
+  },
+  "preflight": {
+    "notices": [],
+    "pointer_brief": true,
+    "schema": "seat_preflight.v1"
+  },
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "verdict": "AGREE",
+      "review": "No blocking source defects found in `73443985339ebe18ed78e4e457d3b2c0c8eb15fa`, reviewing `ed63de8..HEAD`.\n\n- The [SQL inspection logic](/mnt/workspace/users/viperjuice/tmp/pl-panel-t9a7plp1/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:410) preserves distinct unsupported UTF-16 keys, native surrogate pairs and escape parity. Control-bearing NUL markers preserve invalid later JSON boundaries. Nonfinite markers are rejected only after duplicate-member resolution, before inbox mutation. Persistence uses the original body.\n- The [admitted inbox test](/mnt/workspace/users/viperjuice/tmp/pl-panel-t9a7plp1/review/reviewed-tree/tests/guard/coordination.integration.db.test.ts:140) retains unchanged-inbox snapshots, complete-page validation with the actual `coordinationMessageSchema`, original-body equality and all eight mandatory SQL IDs. The 90-second case budget leaves custody and fixture policies unchanged.\n- Earlier null, whitespace, line-boundary and ASCII-boundary repairs remain intact. Frozen contracts, RPC signatures and privileges are unchanged in this delta.\n\nVerification: clean pinned tree, `git diff --check`, reconciliation source hashes and plan digest passed. An in-memory differential probe using the extracted frozen scanner and SQL regexes found no admission differences across **9,581 cases**. This models the inspection transformation; I did not execute PostgreSQL, Vitest or the full SDK suite. No installs, builds or source edits occurred.\n\nI approve the narrow [classify-limit redaction-only ownership amendment](/mnt/workspace/users/viperjuice/tmp/pl-panel-t9a7plp1/review/reviewed-tree/plans/phase-plan-v2-COORD.md:111): its assertions verify redaction and absence of the synthetic secret in output and persisted records.\n\nThe recorded 87-reject/29-allow probe remains narrow evidence. Both hosted runs at `ed63de8` remain failed despite their successful 743-pass/1-skip full-suite stages; the focused-case timeout explanation remains an inference. Current/final-HEAD hosted full and focused gates, publication-skipped rehearsal, observed producer audit, all seven fresh qualified source reviews and postmerge CI remain required. Local full SQL remains failed; the separate Opus diagnostic supplies no source-review approval. These pending gates are not additional source defects.\n\nAGREE",
+      "format_normalization": "Repository qualifiers added to bare issue references; original external text digest preserved.",
+      "review_sha256": "7639f03c0c4b33f10578b37b62e2e82fc639381f29a9cf6f43b426681a00e9b7"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "verdict": "AGREE",
+      "review": "## Review report\n\nReviewed exact HEAD `73443985339ebe18ed78e4e457d3b2c0c8eb15fa` and delta `ed63de8eaf0501804a7ca38cc5490349ec75a063..HEAD`. The tree was clean and `git diff --check` passed.\n\nNo blocking source defects found.\n\n- The per-call UUID-derived private-Unicode namespace keeps NUL and individual surrogate code units distinct. Valid surrogate pairs remain native; single-unit markers are restored only after the next JSON syntax check, allowing cross-layer high/low pairs to be reassessed without collapsing unrelated keys ([migration](/mnt/workspace/users/viperjuice/tmp/pl-panel-4ttll1p1/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:358), [restoration and tokenization](/mnt/workspace/users/viperjuice/tmp/pl-panel-4ttll1p1/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:410)).\n- Active NUL escapes become control-character-delimited inspection markers. Consequently the next raw JSON layer remains syntactically invalid, matching frozen `JSON.parse` behavior; escaped-backslash text remains ordinary valid text. Extracted Node probes confirmed both distinctions.\n- Overflow tokens become temporary strings, JSONB resolves effective duplicate members and escaped-key/paired-surrogate aliases, and only surviving overflow markers reject ([migration](/mnt/workspace/users/viperjuice/tmp/pl-panel-4ttll1p1/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:421)). Finite values remain inspection zeroes. Validation still completes before the advisory lock and inbox mutation boundary at line 502.\n- Provider payload, sensitive-field and normalized-key checks remain intact after decoding ([migration](/mnt/workspace/users/viperjuice/tmp/pl-panel-4ttll1p1/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:465)).\n- The admitted SQL case retains all eight mandatory IDs. It covers both collision/duplicate orders, key aliases, paired-surrogate aliases, twice-encoded NUL/backslash cases, unchanged-inbox snapshots, complete-page public-schema validation, exact original-body equality, and surviving-overflow immutability ([test](/mnt/workspace/users/viperjuice/tmp/pl-panel-4ttll1p1/review/reviewed-tree/tests/guard/coordination.integration.db.test.ts:140)). Its expanded timeout is narrowly limited to 90 seconds.\n- Reconciliation hashes match the current migration, test and documentation. The historical dissent, two failed hosted runs, `743/1` result, narrow `87`-reject/`29`-allow probe, and unavailable Opus review are preserved honestly ([reconciliation](/mnt/workspace/users/viperjuice/tmp/pl-panel-4ttll1p1/review/reviewed-tree/plans/evidence/v2/reviews/COORD-CR-reconciliation-ed63de8.json:742)).\n\nI approve the narrow `packages/cli/src/classify-limit.test.ts` redaction-only ownership amendment. It changes no implementation or public contract and strengthens secret-retention assertions.\n\nI did not execute PostgreSQL or the full suite; dependencies were absent, and the recorded narrow probe is not treated as a full SQL gate. Seven fresh grounded reviews, current/final-HEAD hosted verification, admitted SQL, source-bound publication-skipped rehearsal, observed producer audit, and postmerge CI remain mandatory. The historical local/full focused SQL failures remain failed. These pending gates are not source defects.\n\nOptional suggestions: none.\n\nAGREE",
+      "format_normalization": "Repository qualifiers added to bare issue references; original external text digest preserved.",
+      "review_sha256": "dfdfc90cad6427ccef9bb587a97e1d2d76c53af641faf59dfd127bfb0c9acace"
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "verdict": "AGREE",
+      "review": "Reviewed clean HEAD `73443985339ebe18ed78e4e457d3b2c0c8eb15fa`, delta `ed63de8..HEAD`. No blocking source defect found.\n\nThe three repairs are consistent with the frozen scanner:\n\n- Private Unicode markers preserve distinct NUL/surrogate keys and valid-pair aliases. Restoration follows the next syntax check, preserving escaped-backslash behavior.\n- NUL markers retain control characters, keeping invalid deeper JSON layers ordinary text.\n- Overflow markers reject only surviving values after duplicate-member resolution, before inbox mutation. Stored bodies still come from the original input. See [SQL inspection and persistence](/mnt/workspace/users/viperjuice/tmp/pl-panel-ke3k8q_0/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:395).\n\nThe [admitted integration case](/mnt/workspace/users/viperjuice/tmp/pl-panel-ke3k8q_0/review/reviewed-tree/tests/guard/coordination.integration.db.test.ts:140) retains unchanged-inbox checks, complete-page schema validation and original-body equality. All eight mandatory SQL IDs remain. The 90-second case budget changes no custody or fixture policy; whether it resolves the hosted failure remains unverified.\n\nI approve the narrow [classify-limit test ownership amendment](/mnt/workspace/users/viperjuice/tmp/pl-panel-ke3k8q_0/review/reviewed-tree/packages/cli/src/classify-limit.test.ts:76): it matches catalog-boundary redaction and checks both output and persisted records.\n\nVerification performed: source/history inspection, whitespace checks, reconciliation hashes, all 84 historical source bindings, and in-memory probes. The frozen scanner and modeled SQL transformation agreed across 5,083 cases; 216 numeric-token checks and exhaustive JavaScript-whitespace comparison also passed. These probes did **not** execute PostgreSQL, Vitest or the complete SDK schema suite. Frozen core files are unchanged.\n\nThe recorded 87-reject/29-allow PostgreSQL probe remains supporting evidence. Historical local SQL and both focused hosted failures remain failed. Current/final-HEAD hosted full and focused gates, publication-skipped rehearsal, observed producer audit, the complete seven-review set and postmerge CI remain required. The unavailable Opus attempt and separate diagnostic confer no approval. These pending requirements are not additional source defects.\n\nOptional suggestions: none.\n\nAGREE",
+      "format_normalization": "Repository qualifiers added to bare issue references; original external text digest preserved.",
+      "review_sha256": "6e767a109ce5c0fd33100a99dd4bb50a4f10868e0df1b4906f4cd0d0b8b6d89a"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "verdict": "AGREE",
+      "review": "## Review report\n\nReviewed immutable HEAD `73443985339ebe18ed78e4e457d3b2c0c8eb15fa` and delta `ed63de8eaf0501804a7ca38cc5490349ec75a063..HEAD`. The worktree was clean and `git diff --check` passed.\n\nNo blocking source defects found.\n\n- The per-call UUID-derived namespace preserves distinct NUL and unpaired-surrogate keys, while valid pairs remain native. Prior surrogate markers are restored only after the next syntax check, preventing key collisions from hiding sensitive fields or provider payloads ([SQL guard](/mnt/workspace/users/viperjuice/tmp/pl-panel-3p7w6k3_/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:358)).\n- The NUL marker retains control characters, so recursively decoded text containing an actual NUL remains invalid JSON as required by the frozen scanner. Escaped-backslash parity remains intact.\n- Overflow numbers become private temporary markers; JSONB resolves duplicate and escaped-key aliases first, and only surviving markers reject. Finite numbers remain numeric zero during inspection. Validation completes before the advisory lock or inbox mutation ([mutation boundary](/mnt/workspace/users/viperjuice/tmp/pl-panel-3p7w6k3_/review/reviewed-tree/supabase/migrations/20260930000000_coordination_server_time.sql:502)).\n- Focused extracted probes reproduced the frozen scanner\u2019s expected results for both duplicate orders, escaped aliases, NUL and distinct-surrogate keys, paired-surrogate/UTF-8 aliases, twice-encoded actual NUL, and escaped-backslash text.\n- The admitted test covers sensitive-field and provider-payload collisions, unchanged-inbox snapshots, surviving overflow, exact original-body equality, and complete-page parsing with the imported frozen `coordinationMessageSchema` ([integration case](/mnt/workspace/users/viperjuice/tmp/pl-panel-3p7w6k3_/review/reviewed-tree/tests/guard/coordination.integration.db.test.ts:140)). Its budget is now 90 seconds, while all eight mandatory SQL IDs remain registered unchanged ([required cases](/mnt/workspace/users/viperjuice/tmp/pl-panel-3p7w6k3_/review/reviewed-tree/tests/guard/required-cases.json:3)).\n- Earlier null, whitespace, line-boundary, word-boundary, placeholder, and envelope-omission repairs remain intact. Frozen core-contract files did not change.\n- Reconciliation hashes match the current migration, test, and documentation. The recorded PostgreSQL probe passed 87 rejection and 29 acceptance cases, including page validity and retained-body checks. It remains correctly classified as narrow evidence, not a full SQL gate ([reconciliation](/mnt/workspace/users/viperjuice/tmp/pl-panel-3p7w6k3_/review/reviewed-tree/plans/evidence/v2/reviews/COORD-CR-reconciliation-ed63de8.json:57)).\n- I approve the narrow `classify-limit.test.ts` redaction-only ownership amendment ([plan amendment](/mnt/workspace/users/viperjuice/tmp/pl-panel-3p7w6k3_/review/reviewed-tree/plans/phase-plan-v2-COORD.md:111)).\n\nThe prior hosted runs remain failed: each recorded 743 passed/1 skipped in the full suite, followed by focused SQL case 6 failure. Local full SQL likewise remains failed. Fresh seven-seat reviews, current/final-HEAD hosted full and focused gates, source-bound publication-skipped rehearsal, observed producer audit, and postmerge CI are still mandatory. The incomplete Opus attempt remains unavailable; its separate diagnostic is not approval. These pending gates do not constitute additional source defects.\n\nOptional suggestions: none.\n\nAGREE",
+      "format_normalization": "Repository qualifiers added to bare issue references; original external text digest preserved.",
+      "review_sha256": "c8471eacbcdb9146d5f49c2be9315e8019b90bcc350dfd6f9a68de4ae70fa535"
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": false,
+      "metadata": {
+        "head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+        "model": "claude-opus-5-5",
+        "exit_code": 124,
+        "detail": "timeout after 1800s",
+        "verdict_written": true,
+        "attempts": [
+          {
+            "exit_code": 124,
+            "detail": "timeout after 1800s",
+            "stall_threshold_s": 600,
+            "leg_backstop_s": 1800
+          }
+        ]
+      },
+      "verdict": "UNAVAILABLE",
+      "review": "I'm reviewing the SQL metadata scanner changes in the delta; next I'll compare them against the frozen `redaction.ts` and `coordinationMessageSchema`.\nI'm now reading the prior R6 reviewer findings to check each repair against what was reported.\nI've read the plan and the R6 findings. Next I'll check whether local Node and PostgreSQL binaries exist, so I can test the SQL against the frozen JS scanner without installing anything.\nThe disposable container now runs the exact CI PostgreSQL image, offline. Next I'll load the two committed migrations the same way the test helper does.\nFirst fuzz batch: 600 cases, 0 mismatches. I'll check the accept/reject balance so the fuzz isn't trivially all-reject, then run more seeds.\nI've loaded the previous `ed63de8` send function next to the current one; now I'm timing both on the same large inputs.\nA ~20 KB string of `[` characters, which the frozen JS scanner accepts as ordinary text, is rejected by SQL with `54001 stack depth limit exceeded`. Next I'll check whether this predates the delta.\nThe preserved hosted logs are local. I'll verify their digests against the reconciliation, then grep only the failure lines for the inbox case.\nNo per-test process scope exists, and the GUARD admission deadline is suite-level. I'll confirm the 90 s case budget doesn't collide with the hosted job-budget arithmetic in `orchestration.test.ts`.\nThe 30 s figure there is a job-start offset, not this case's budget; the 90 s case budget fits inside the suite timeout (\u2264900 s). Next is the `classify-limit.test.ts` ownership amendment.\nProvider, placeholder, env and token alias cases: 123, 0 mismatches. As a sensitivity check, I'll confirm the harness catches the three R6 defects when pointed at the previous `ed63de8` function.",
+      "review_sha256": "b51cce1dacbb243e5449caa4a262a69312d01cea691c1e836881a01ab9cdf24c",
+      "disposition": "Failed manual TUI attempt preserved with its actual diagnostic; never a passing review or permission to replace/drop the seat."
+    },
+    {
+      "seat": "manual:Gemini 3.1 Pro (High):tools",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": true,
+      "metadata": {
+        "head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+        "model": "Gemini 3.1 Pro (High)",
+        "exit_code": 0,
+        "review_chars": 3470
+      },
+      "verdict": "AGREE",
+      "review": "### Review of COORD R6 Reconciliation Source (ed63de8..HEAD)\n\nI have inspected the exact source modifications for the SQL metadata repairs and the `classify-limit.test.ts` test amendment. \n\n**1. Distinct NUL/unpaired-surrogate keys and namespace isolation:**\n- **Mechanism Check:** The cryptographic namespace (`guard_namespace`) is securely generated per-call using a 32-character UUID nonce mapped into the Unicode Private Use Area (`\\ue800-\\uefff`). \n- **Valid surrogate pairs:** The regex (`\\\\u[dD][89aAbB][0-9a-fA-F]{2}\\\\u[dD][cCdDeEfF][0-9a-fA-F]{2}`) matches explicit 12-character surrogate pairs first and processes them as unaltered text in the `else` branch, keeping them completely native. \n- **Escaped-backslash parity:** Parity is fully maintained because the `\\\\.` construct matches literal `\\\\` sequences prior to any surrogate matching, ensuring a user string like `\\\\u0000` is evaluated as an escaped backslash and preserved exactly, completely bypassing the namespace isolation replacement.\n- **Result:** Distinct unpaired keys and `\\u0000` markers safely evade the former destructive `!` collapse, maintaining deterministic UUID-isolated identity without masking unsafe subtrees.\n\n**2. Twice-encoded actual NUL retention:**\n- **Mechanism Check:** The previous regex NUL collapse has been replaced. `\\u0000` is now isolated using an unescaped control character wrapper: `chr(92)||'u0001'||guard_namespace||chr(92)||'u0002'`. \n- **Validation:** When `perform metadata_text::json` operates recursively on subsequent depths, the physical presence of these raw control characters guarantees an `invalid_text_representation` exception. This successfully forces `encoded_valid := false`, ceasing evaluation and gracefully preserving the string as ordinary unparsed text, perfectly aligning with the frozen scanner's requirement.\n\n**3. Effective-member resolution and duplicate keys:**\n- **Mechanism Check:** Nonfinite boundary tokens (`number_finite := false`) bypass instantaneous rejection. The string instead appends `to_jsonb(guard_nonfinite)::text` into the intermediate `encoded_text`. Finite values naturally default to `'0'`.\n- **Duplicate resolution:** During `encoded_text::jsonb` interpretation, the native Postgres object parsing merges duplicate keys (last-key-wins). If a nonfinite marker survives the object resolution, the `metadata_text = guard_nonfinite` comparison executes directly against the final `metadata_nodes` *prior* to inbox payload mutation, throwing an `errcode='22023'` block.\n- **Aliasing & Combinations:** Identical property representations\u2014whether reversed duplicate orders, native UTF-8 (`x\ud83d\ude00`), or nested literal high plus escaped low surrogates\u2014coalesce properly within the Postgres JSONB deserializer. A finite override natively purges the marker, skipping the exception trap correctly. \n\n**4. `classify-limit.test.ts` Ownership Amendment:**\n- **Approved.** The redaction maintenance replaces `toBeUndefined()` and warning-based assertions with a strict literal check for the `\"[redacted]\"` sentinel, targeting the proper upstream catalog publication boundary. The test stringently guarantees the simulated raw secret (`sk-secret-12345678`) does not inadvertently leak to standard out or persist into the disk-based `AuditLedger` payload.\n\n**Blockers:**\nNone found. No regressions against `redaction.ts` or `coordinationMessageSchema` were identified. Local SQL and JS boundary logic behave as strictly intended.\n\nAGREE\n",
+      "format_normalization": "Repository qualifiers added to bare issue references; original external text digest preserved.",
+      "review_sha256": "59907b78dc152d1c2a42b87d5c188bd1ba1ebf0a07bc242a94f4fa3ef165176e"
+    },
+    {
+      "seat": "separate-independent:data_independent_design",
+      "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "source_grounded": true,
+      "metadata": {
+        "source_head_verified": true,
+        "tests_run": false,
+        "transcription": "format-normalized final review, findings preserved"
+      },
+      "verdict": "AGREE",
+      "review": "Independent COORD R7 reconciliation review\n\nExact source reviewed: 73443985339ebe18ed78e4e457d3b2c0c8eb15fa in the clean immutable /home/viperjuice/workspace/coord-reviews/production-clone-round7. Delta base: ed63de8eaf0501804a7ca38cc5490349ec75a063. I read the exact source, complete R6 receipt/reconciliation, executed current-head prescript and continuing-issue inventory, approved plan/criteria, repair tests/docs and affected frozen contracts. Qualified previous full-phase conclusions carry only for unchanged bytes. This is separate independent native review, not a harness seat.\n\nBlockers\n\nNone found in this repair delta.\n\nReconciled findings\n\nThe R6 Unicode-key collision finding is repaired. supabase/migrations/20260930000000_coordination_server_time.sql:438 distinguishes valid high/low surrogate pairs from individual unsupported units. Individual units receive distinct private suffixes at442; valid pairs remain native, preserving their identity with equivalent UTF-8 keys. At417-418, prior surrogate markers are restored only after the next source passes syntax validation at412, and the tokenizer then reassesses pairing. This handles a literal high unit plus a later escaped low unit without losing last-member aliases. Inspection no longer merges NUL/surrogate keys with literal punctuation or different surrogate units under the declared namespace assumption.\n\nThe twice-encoded NUL compatibility finding is repaired at439-440. NUL receives a distinct marker containing raw nonword/nonwhitespace control characters. A later string that was invalid JSON because it contained a raw NUL remains invalid during inspection; it is not turned into an object with a newly sensitive key. Escaped-backslash handling is tokenized separately, and publication at541 keeps original nested bodies and strings.\n\nDiscarded-overflow compatibility is repaired at430-435 and403. Numeric tokens are classified without immediate refusal; an overflowing token becomes a temporary marker. JSONB resolves effective object members before queued surviving nodes are examined. Discarded numeric members and discarded ancestor containers therefore do not reject valid metadata, while surviving overflow still refuses before the inbox lock or any mutation. Finite numbers remain numbers in the inspection tree; their original textual values remain in retained encoded strings.\n\nThe written admitted SQL regression covers both NUL collision orders, distinct-surrogate/provider collisions, discarded/retained overflow, escaped-key aliases, both combined literal-high/escaped-low versus UTF-8 alias orders, twice-encoded NUL and escaped-backslash controls. It checks unchanged full inbox snapshots on refusal, complete-page parsing by the actual public schema and exact original allowed bodies. All eight mandatory COORD-DB IDs remain.\n\nIndependent probes and limits\n\nI ran twelve in-memory source-derived controls using the actual SQL tokenizer/escape patterns and frozen redaction functions. Their accept/reject classifications matched across NUL collision, distinct surrogates, discarded/retained overflow, escaped-key alias, paired/UTF-8 alias, both nested combined pair orders, twice-encoded NUL, literal backslashes, ancestor-discarded overflow and low-before-high surrogate safety. This was a focused JavaScript emulation of the inspection protocol; it did not execute PostgreSQL casts, PostgreSQL regexes, the installed SDK or the complete schema suite. No installs, builds, full tests, source changes, credentials/private payloads or outward actions were performed.\n\nThe recorded owned internal PostgreSQL probe passed87 rejection/29 acceptance controls with complete-page validity and preserved nulls. Its migration digest f9e7cb681d5583941dc8230abaf5670d13ab32b4dbe700924a85b92ae98a5f56 matches this candidate. It is explicitly a dirty-source precommit, narrow probe and does not constitute local full SQL or final-head acceptance evidence. I read and checked the receipt rather than claiming to have run it.\n\nScope and engineering assumptions\n\nThe per-call cryptographic private-Unicode namespace and negligible UUID-like collision assumption are explicit in docs/coordination-backend.md:20-24 and the reconciliation. This approval is under that stated engineering assumption, not a claim of mathematical injectivity against arbitrary preexisting marker data. No new public/core contract, RPC/function signature, privilege, fixture helper, child-custody control or dependency is introduced. Lexical whitespace/line/word handling, placeholder exceptions, depth bounds, RLS and lock order remain unchanged. The earlier local-clock, message-detachment, arbitration, ownership/cleanup and retention findings remain resolved where their source is unchanged.\n\nI approve the existing narrow classify-limit.test.ts redaction-only ownership amendment at plans/phase-plan-v2-COORD.md:111. It changes test coverage, not classifier behavior or public contracts. The seven open issues/eight continuing classifications are provisional; no invariant waiver was used.\n\nEvidence and acceptance boundary\n\nAll three reconciliation source bindings match their declared source cd6e65f9f70a22c2213d4e78e0ee4b2e2d6633ec and current files. All84 COORD.json bindings match their expressly historical measured source26bbc75. The approved plan digest matches; Git whitespace checks pass and the clone remains clean.\n\nBoth failed ed63de8 hosted attempts remain recorded, and their log digests match. The old full743/1 result is not a passing focused/final gate. Increasing only the expanded inbox case budget from30 to90seconds retains all mandatory cases and strict fixture/custody controls; its cumulative-admission timing diagnosis is correctly labelled an inference pending current hosted verification. This review does not elevate that inference to a demonstrated cause or passing gate.\n\nHistorical dissent and incomplete Opus attempts remain preserved as UNAVAILABLE. The corrected tools-only diagnostic is explicitly not a code approval. Seven fresh grounded source reviews, current/final hosted full verification and admitted SQL, source-bound rehearsal, observed producer audit, authorized merge and postmerge verification remain required. Pending honest external gates are not additional source defects. This AGREE verdict approves the reviewed repair source; it does not authorize bypassing those acceptance requirements or declare the phase merged.\n\nOptional findings\n\nNone required for this delta.\n\nAGREE\n",
+      "format_normalization": "Repository qualifiers added to bare issue references; original external text digest preserved.",
+      "review_sha256": "88f1c90dbea783daa934ffe3ba05e69f0019aa27ae109cfd916bd92289c37ca5"
+    }
+  ],
+  "status": "changes_requested",
+  "binding": "The record binds reviewed source and plan bytes. Its recording commit is later metadata and is not claimed as already reviewed.",
+  "publication": "not_performed"
+}

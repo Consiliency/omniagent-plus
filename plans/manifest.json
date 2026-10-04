@@ -1524,7 +1524,7 @@
       "amended_plan_sha256": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
       "prior_approved_plan_sha256": "810a63da7b61236ae6ad8f294fdf3b59d19edec7ffea0be1aac6d0ac2795f6bb",
       "prior_plan_review_source_sha": "9430610d83c58f4891f1a7a06e5805941931d181",
-      "phase_summary": "R4 COORD SQL metadata-policy repair and canonical hosted verification passed; fresh complete production panel, final-HEAD gates and authorized merge closeout remain.",
+      "phase_summary": "R6 COORD recursive metadata parity repair and canonical hosted verification passed; fresh complete production panel, final-HEAD gates and authorized merge closeout remain.",
       "plan_acceptance_criteria_count": 5,
       "prior_opus_quota_status": "retry_completed_required_model_no_substitution",
       "manual_opus_review_status": "passing_required_model_subscription_tui_no_substitution",

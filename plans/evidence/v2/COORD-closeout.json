@@ -5,10 +5,10 @@
   "acceptance_route": "manual_exact_head_pull_request",
   "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/32",
   "candidate_evidence": "plans/evidence/v2/COORD.json",
-  "implementation_source_sha": "26bbc75830204f6a80eb1359d6242ccb9dfbf295",
+  "implementation_source_sha": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
   "verification_status": "passed_at_implementation_head",
   "verification_artifact_path": "plans/evidence/v2/COORD.json",
-  "verification_summary": "Current source canonical hosted full gate and source-bound rehearsal passed, including repaired strict custody and full future-dated SQL inbox refusal. Actual publication skipped.",
+  "verification_summary": "Current source canonical hosted full gate and source-bound rehearsal passed, including strict custody, SQL metadata parity and nonmutating inbox refusal. Actual publication skipped.",
   "spec_delta": {
     "schema": "spec_delta_closeout.v1",
     "decision": "no_spec_delta",
@@ -64,5 +64,5 @@
     "Acceptance metadata and final-HEAD checks/audit",
     "Authorized merge, post-merge verification and issue/worktree closeout"
   ],
-  "recorded_at": "2026-10-04T02:28:28.782040+00:00"
+  "recorded_at": "2026-10-04T03:26:07.792916+00:00"
 }

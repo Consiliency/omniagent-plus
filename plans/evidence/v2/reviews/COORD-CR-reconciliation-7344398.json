@@ -1,0 +1,292 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "6f27fe3ec6ed567a41f064abb4883774f9576a9d",
+  "review_base": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-7344398.json",
+  "status": "pending_re_review",
+  "findings": [
+    {
+      "id": "deep-encoded-json-reader-compatibility",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Opus partial output identified PostgreSQL54001 on malformed deeply nested ordinary text. Independent local reproduction also demonstrated a safe deeply nested duplicate member overwritten by a later value. Existing reader accepts both, while surviving valid deep metadata must reject. Only after PostgreSQL program_limit_exceeded, an iterative JSON grammar validator validates the entire original input, including deep subtrees; malformed JSON stays ordinary text. Valid composites beyond effective depth64 become temporary existing error markers in bounded inspection input. Original lexical checks and bodies remain unchanged. Existing Unicode normalization and JSONB last-member resolution then discard overwritten deep branches; surviving depth violations reject before mutation. No unconditional acceptance/refusal of54001, stack setting changes, new public limits, functions, signatures, privileges or frozen-contract edits.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts",
+        "docs/coordination-backend.md"
+      ]
+    }
+  ],
+  "source_binding": {
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "ab0bf74dcfa1168c5a72083097e7a42c63a5be3db22b14b935adb49881d31d98",
+    "tests/guard/coordination.integration.db.test.ts": "2bc6e8c4e0cf4978c4ccacf408c046b89474f1898ff937a4985f7a0052fd6a90",
+    "docs/coordination-backend.md": "e22bbf81f9fdd5cd685bc2ae1d1444661e387a6629202406461033c7cd1f56da"
+  },
+  "probes": [
+    {
+      "path": "/home/viperjuice/workspace/coord-reviews/sql-stack-probe-f9e7cb6.json",
+      "sha256": "f7a3b72534feb73f2c5da8710fd3963bd8a33b51d18732c01e125ef9a472ad6c",
+      "record": {
+        "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+        "migration_sha256": "f9e7cb681d5583941dc8230abaf5670d13ab32b4dbe700924a85b92ae98a5f56",
+        "topology": "owned internal PostgreSQL17 narrow probe, no full SQL gate claim",
+        "rows": [
+          {
+            "case": "malformed-open",
+            "frozen_core_leaks": [],
+            "sql_accepted": false,
+            "sql_diagnostic": [
+              "ERROR:  54001: stack depth limit exceeded",
+              "HINT:  Increase the configuration parameter \"max_stack_depth\" (currently 2048kB), after ensuring the platform's stack depth limit is adequate."
+            ]
+          },
+          {
+            "case": "malformed-closed",
+            "frozen_core_leaks": [],
+            "sql_accepted": false,
+            "sql_diagnostic": [
+              "ERROR:  54001: stack depth limit exceeded",
+              "HINT:  Increase the configuration parameter \"max_stack_depth\" (currently 2048kB), after ensuring the platform's stack depth limit is adequate."
+            ]
+          },
+          {
+            "case": "valid-deep",
+            "frozen_core_leaks": [
+              {
+                "path": "$.body.nested[0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0]",
+                "reason": "metadata_depth_limit"
+              }
+            ],
+            "sql_accepted": false,
+            "sql_diagnostic": [
+              "ERROR:  54001: stack depth limit exceeded",
+              "HINT:  Increase the configuration parameter \"max_stack_depth\" (currently 2048kB), after ensuring the platform's stack depth limit is adequate."
+            ]
+          },
+          {
+            "case": "discarded-deep",
+            "frozen_core_leaks": [],
+            "sql_accepted": false,
+            "sql_diagnostic": [
+              "ERROR:  54001: stack depth limit exceeded",
+              "HINT:  Increase the configuration parameter \"max_stack_depth\" (currently 2048kB), after ensuring the platform's stack depth limit is adequate."
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "path": "/home/viperjuice/workspace/coord-reviews/sql-stack-probe-ab0bf74.json",
+      "sha256": "efd88a9a2d0711a44efbc5dd597a0a188bbf8879c1af9f85c61ae1e5b5efdcbc",
+      "record": {
+        "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+        "migration_sha256": "ab0bf74dcfa1168c5a72083097e7a42c63a5be3db22b14b935adb49881d31d98",
+        "topology": "owned internal PostgreSQL17 narrow probe, no full SQL gate claim",
+        "rows": [
+          {
+            "case": "malformed-open",
+            "frozen_core_leaks": [],
+            "sql_accepted": true,
+            "sql_diagnostic": []
+          },
+          {
+            "case": "malformed-closed",
+            "frozen_core_leaks": [],
+            "sql_accepted": true,
+            "sql_diagnostic": []
+          },
+          {
+            "case": "valid-deep",
+            "frozen_core_leaks": [
+              {
+                "path": "$.body.nested[0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0][0]",
+                "reason": "metadata_depth_limit"
+              }
+            ],
+            "sql_accepted": false,
+            "sql_diagnostic": [
+              "ERROR:  22023: Invalid coordination metadata",
+              "CONTEXT:  PL/pgSQL function coordination_send_message(jsonb) line 73 at RAISE"
+            ]
+          },
+          {
+            "case": "discarded-deep",
+            "frozen_core_leaks": [],
+            "sql_accepted": true,
+            "sql_diagnostic": []
+          }
+        ]
+      }
+    },
+    {
+      "path": "/home/viperjuice/workspace/coord-reviews/sql-stack-controls-ab0bf74-boundaries.json",
+      "sha256": "1864d66ca9f9bb1103eed20b9f386ab638f8a7b454c89bcafb00cca71525e002",
+      "record": {
+        "source_head": "6f27fe3ec6ed567a41f064abb4883774f9576a9d",
+        "source_dirty": true,
+        "migration_sha256": "ab0bf74dcfa1168c5a72083097e7a42c63a5be3db22b14b935adb49881d31d98",
+        "topology": "owned internal PostgreSQL17 narrow controls, not full SQL gate",
+        "rows": [
+          {
+            "case": "malformed-open",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "malformed-word",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "trailing-comma",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "bad-escape",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "raw-newline",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "unterminated",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "leading-zero",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "missing-colon",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "object-trailing-comma",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "root-trailing-token",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "mismatched-close",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "valid-array",
+            "frozen_core_safe": false,
+            "sql_accepted": false,
+            "passed": true
+          },
+          {
+            "case": "discarded-array",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "surviving-array",
+            "frozen_core_safe": false,
+            "sql_accepted": false,
+            "passed": true
+          },
+          {
+            "case": "aliased-discarded",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "whitespace-discarded",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "object-deep",
+            "frozen_core_safe": false,
+            "sql_accepted": false,
+            "passed": true
+          },
+          {
+            "case": "discarded-object",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "discarded-surrogate",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "discarded-overflow",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "retained-empty64",
+            "frozen_core_safe": true,
+            "sql_accepted": true,
+            "passed": true
+          },
+          {
+            "case": "retained-empty65",
+            "frozen_core_safe": false,
+            "sql_accepted": false,
+            "passed": true
+          }
+        ],
+        "status": "passed"
+      }
+    }
+  ],
+  "unavailable_review": {
+    "seat": "manual:claude-opus-5-5:max:TUI-tools",
+    "source_head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+    "result": {
+      "head": "73443985339ebe18ed78e4e457d3b2c0c8eb15fa",
+      "model": "claude-opus-5-5",
+      "exit_code": 124,
+      "detail": "timeout after 1800s",
+      "verdict_written": true,
+      "attempts": [
+        {
+          "exit_code": 124,
+          "detail": "timeout after 1800s",
+          "stall_threshold_s": 600,
+          "leg_backstop_s": 1800
+        }
+      ]
+    },
+    "disposition": "Active attempt hit1800s backstop, produced partial investigation without final verdict. Preserved as UNAVAILABLE, never approval. Its concrete partial concern was independently reproduced and repaired. Raw provider transcripts were not read."
+  },
+  "verification_scope": "22 narrow internal PostgreSQL17 controls pass; malformed grammar, valid deep arrays/objects, overwritten and surviving duplicates, escaped key aliases, unsupported surrogate/nonfinite values, whitespace, and retained empty-composite depth64/65 boundaries; all accepted original bodies unchanged, refusals preserve inbox. This supplements mandatory canonical hosted full/admitted SQL; local full SQL failure is not relabelled.",
+  "rule": "All R7 attempts finished before repair; six AGREE reviews and unavailable Opus retained. Seven fresh grounded reviews, final-HEAD gates and postmerge CI remain mandatory."
+}
