@@ -1,0 +1,825 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "cd6e65f9f70a22c2213d4e78e0ee4b2e2d6633ec",
+  "review_base": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-ed63de8.json",
+  "status": "pending_re_review",
+  "findings": [
+    {
+      "id": "unicode-key-collision",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "A per-call cryptographic private-Unicode namespace preserves exact unsupported UTF16-unit identities in temporary inspection, while valid surrogate pairs stay native. Prior surrogate markers are restored only after deeper-layer JSON syntax admission, then pairs are reassessed before re-encoding. Null/surrogate keys no longer collapse into literal punctuation or each other. Original stored body unchanged. Collision probability follows the declared UUID identity engineering assumption, not a claim of mathematical injectivity. Tests include both null-collision orders, distinct-surrogate/provider-subtree collisions and paired-surrogate/UTF8 last-member aliases.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts",
+        "docs/coordination-backend.md"
+      ]
+    },
+    {
+      "id": "multilayer-null-compatibility",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "NUL temporary markers retain nonword/nonwhitespace control characters, keeping an unescaped later JSON layer invalid as in JavaScript. Tests accept twice-encoded actual NUL and escaped-backslash text and compare original bodies exactly.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts",
+        "docs/coordination-backend.md"
+      ]
+    },
+    {
+      "id": "discarded-overflow-compatibility",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Nonfinite numeric tokens become a distinct temporary marker rather than immediate refusal. Only surviving markers are rejected after JSONB resolves effective duplicate keys; discarded overflow and escaped-key/pair aliases remain accepted, surviving overflow still rejects without mutation.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts",
+        "docs/coordination-backend.md"
+      ]
+    }
+  ],
+  "optional_dispositions": [],
+  "source_binding": {
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "f9e7cb681d5583941dc8230abaf5670d13ab32b4dbe700924a85b92ae98a5f56",
+    "tests/guard/coordination.integration.db.test.ts": "0139dc2ebe51c5b5562457f5e5b58a879408320a2f3d9d107a5304679b5d3d49",
+    "docs/coordination-backend.md": "0a8d23ec12348312f50f888948cabe92b0ba577c7001bd3f097de6821a3d4359"
+  },
+  "additional_probe": {
+    "path": "/home/viperjuice/workspace/coord-reviews/sql-repaired-edge-preflight-f9e7cb6.json",
+    "sha256": "c4196b5f628ab2ab6b65d7e01bea39e8e9dcc7ff49697dba7e7df6545f7e93f9",
+    "record": {
+      "schema": "coord-sql-repaired-edge-probe.v1",
+      "source_head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+      "source_dirty": true,
+      "migration_sha256": "f9e7cb681d5583941dc8230abaf5670d13ab32b4dbe700924a85b92ae98a5f56",
+      "topology": "owned disposable internal PostgreSQL17, no host port; narrow probe only, no local full SQL claim",
+      "rejected": 87,
+      "allowed": 29,
+      "sdk_complete_page_valid": true,
+      "null_preserved": true,
+      "rows": [
+        {
+          "case": "corpus-0",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-1",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-2",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-3",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-4",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-5",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-6",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-7",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-8",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-9",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-10",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-11",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-12",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-13",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-14",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-15",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-16",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-17",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-18",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-19",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-20",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-21",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-22",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-23",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-24",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-25",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-26",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-27",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-28",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-29",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-30",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-31",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-32",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-33",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-34",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-35",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-36",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-37",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-38",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-39",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-40",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-41",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-42",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-43",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-44",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-45",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-46",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-47",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x9",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0xa",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0xd",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0xc",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0xb",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0xa0",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x1680",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2000",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2001",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2002",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2003",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2004",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2005",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2006",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2007",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2008",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2009",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x200a",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2028",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x2029",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x202f",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x205f",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0x3000",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "space-0xfeff",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "env-line-0xa",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "env-line-0xd",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "env-line-0x2028",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "env-line-0x2029",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "encoded-unsafe-surrogate",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "encoded-null-key",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "encoded-surrogate-key",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "encoded-overflow",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "encoded-overflow-edge",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "null-collision",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "null-collision-reversed",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "surrogate-collision",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "distinct-surrogates",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "effective-overflow",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "nested-pair-effective-overflow",
+          "expected": "reject",
+          "passed": true,
+          "retained_inbox_unchanged": true
+        },
+        {
+          "case": "corpus-0",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-1",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-2",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-3",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-4",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-5",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-6",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-7",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-8",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-9",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-10",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-11",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "corpus-12",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "punct-token",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "unicode-token",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "empty-password",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "encoded-null",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "encoded-surrogate",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "encoded-literal-surrogate",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "encoded-underflow",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "encoded-zero-overflow",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "encoded-finite-boundary",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "mixed-env-null",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "discarded-overflow",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "alias-discarded-overflow",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "twice-encoded-null-key",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "twice-encoded-literal-null-key",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "nested-pair-discarded-overflow",
+          "expected": "accept",
+          "passed": true
+        },
+        {
+          "case": "pair-alias-discarded-unsafe",
+          "expected": "accept",
+          "passed": true
+        }
+      ],
+      "status": "passed"
+    }
+  },
+  "failed_hosted_gates": [
+    {
+      "source_head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+      "run_id": 37172460542,
+      "status": "failed",
+      "full_verify": {
+        "passed": 743,
+        "skipped": 1
+      },
+      "failure": {
+        "command": "test:guard",
+        "file": "tests/guard/coordination.integration.db.test.ts",
+        "case_index": 6,
+        "kind": "test-failure"
+      },
+      "log": "/home/viperjuice/workspace/coord-reviews/hosted-ed63de8-ci-failed.log",
+      "log_sha256": "a24dc65327a557ff700ceddf150a0d6c56cb033996d57356c2e00ceeac2afdc3"
+    },
+    {
+      "source_head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+      "run_id": 37172460537,
+      "status": "failed",
+      "full_verify": {
+        "passed": 743,
+        "skipped": 1
+      },
+      "failure": {
+        "command": "test:guard",
+        "file": "tests/guard/coordination.integration.db.test.ts",
+        "case_index": 6,
+        "kind": "test-failure"
+      },
+      "log": "/home/viperjuice/workspace/coord-reviews/hosted-ed63de8-publish-failed.log",
+      "log_sha256": "60edd4d07e8e77737db7e1280c0c559b6186d68dd7a2c48ecde1919ee59da8da"
+    }
+  ],
+  "focused_case_budget": {
+    "change": "30s to90s for the expanded sequential inbox control; all eight mandatory SQL IDs and strict child/custody/fixture controls unchanged.",
+    "diagnosis": "Canonical service full suite passed743/1; both subsequent Docker-backed focused suites failed case6. More than200 serial owned psql admissions and snapshot controls now exceed the prior case budget under concurrent GUARD stress; this cumulative-budget explanation is an inference pending current-head hosted recheck."
+  },
+  "unavailable_review": {
+    "seat": "manual:claude-opus-5-5:max:TUI-tools",
+    "source_head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+    "attempts": {
+      "head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+      "model": "claude-opus-5-5",
+      "exit_code": 1,
+      "detail": "claude_tui_stalled",
+      "verdict_written": true,
+      "attempts": [
+        {
+          "exit_code": 1,
+          "detail": "claude_tui_stalled"
+        },
+        {
+          "exit_code": 1,
+          "detail": "claude_tui_stalled",
+          "fresh_scratch": true
+        }
+      ]
+    },
+    "disposition": "Both incomplete TUI attempts remain UNAVAILABLE, not approved. A separate corrected tools-only diagnostic completed with actual file output; its probe is not a source review. Fresh required source review remains mandatory."
+  },
+  "tool_diagnostic": {
+    "path": "/home/viperjuice/workspace/coord-reviews/opus-r6-tools-diagnostic-corrected/result.json",
+    "result": {
+      "head": "ed63de8eaf0501804a7ca38cc5490349ec75a063",
+      "model": "claude-opus-5-5",
+      "exit_code": 0,
+      "detail": "claude_tui_file_output",
+      "verdict_written": true,
+      "attempts": [
+        {
+          "exit_code": 0,
+          "detail": "claude_tui_file_output"
+        }
+      ]
+    },
+    "not_a_code_review": true,
+    "diagnostic_correction": "Initial probe wrote TOOL_PROBE_OK, which the review-mode adapter could not accept as a verdict. Corrected probe wrote TOOL_PROBE_OK followed by AGREE and completed. No raw transcript reads."
+  },
+  "verification_scope": "Narrow internal PostgreSQL87-reject/29-allow probe is extra evidence only; local full SQL failure is never relabelled passed. Current/final canonical hosted full gate, source-bound rehearsal, observed producer audit and postmerge CI remain mandatory.",
+  "rule": "All R6 attempts finished before repairs. Seven fresh grounded AGREE verdicts required. Historical dissent and failed gates retained; no continuing issue waived."
+}
