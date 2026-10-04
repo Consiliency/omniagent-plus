@@ -217,7 +217,7 @@ export function getSignalText(input: ClassifierInput): string {
 function parseRetryAfterValue(value: string, now: number): number | undefined {
   if (/^\d+$/.test(value)) {
     const seconds = Number(value);
-    return Number.isFinite(seconds) ? Math.min(300, seconds) : undefined;
+    return Number.isSafeInteger(seconds) ? Math.min(300, seconds) : undefined;
   }
   if (!/^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)) return undefined;
   const at = Date.parse(value);

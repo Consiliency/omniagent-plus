@@ -254,6 +254,43 @@ describe("local lease store conformance", () => {
 });
 
 describe("Supabase lease store RPC mapping", () => {
+  it("rejects malformed holder, renewal and cursor inputs before an SDK request", async () => {
+    let calls = 0;
+    const store = createSupabaseLeaseStore({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async () => {
+      calls += 1;
+      return new Response("{}");
+    } });
+    for (const holder of ["", null, undefined, 42]) {
+      await expect(store.renew("lease:a", holder as string)).rejects.toThrow();
+      await expect(store.release("lease:a", holder as string)).rejects.toThrow();
+    }
+    await expect(store.release("", holderA)).rejects.toThrow();
+    for (const ttlSeconds of [-1, 0, 1.5, 7201, NaN, Infinity]) await expect(store.renew("lease:a", holderA, { ttlSeconds })).rejects.toThrow();
+    for (const cursor of [{}, { id: "lease:a" }, { timestamp: request(holderA, []).now }, { timestamp: null, id: "lease:a" }]) {
+      await expect(store.query({ cursor: cursor as unknown as { timestamp: string; id: string } })).rejects.toThrow();
+    }
+    expect(calls).toBe(0);
+  });
+  it("walks three installed-SDK cursor pages using returned timestamp and ID", async () => {
+    const leases = ["lease:c", "lease:b", "lease:a"].map((leaseId) => createLeaseFromAcquireRequest({ ...request(holderA, [leaseId]), leaseId })).reverse();
+    const cursors: unknown[] = [];
+    const store = createSupabaseLeaseStore({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async (_input, init) => {
+      const { request: query } = JSON.parse(String(init?.body));
+      cursors.push(query.cursor);
+      const page = leases.filter((lease) => !query.cursor || lease.lease_id > query.cursor.id).slice(0, query.limit);
+      return new Response(JSON.stringify({ leases: page }), { headers: { "content-type": "application/json" } });
+    } });
+    const walked = [];
+    let cursor: { timestamp: string; id: string } | undefined;
+    for (let n = 0; n < 4; n += 1) {
+      const page = (await store.query({ limit: 1, cursor })).leases;
+      if (!page.length) break;
+      walked.push(page[0]!.lease_id);
+      cursor = { timestamp: page[0]!.acquired_at, id: page[0]!.lease_id };
+    }
+    expect(walked).toEqual(["lease:a", "lease:b", "lease:c"]);
+    expect(cursors.slice(1)).toEqual(leases.map((lease) => ({ timestamp: lease.acquired_at, id: lease.lease_id })));
+  });
   it("uses the installed SDK with an offline endpoint and validates its actual wire/results", async () => {
     const wires: Array<{ path: string; body: unknown }> = [];
     const expected = createLeaseFromAcquireRequest({ ...request(holderA, ["packages"]), leaseId: "lease:sdk" });

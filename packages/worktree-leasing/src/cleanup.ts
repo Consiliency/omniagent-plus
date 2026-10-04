@@ -35,7 +35,8 @@ export async function cleanupLeasedWorktree(
       if (registration && registration.branchName !== current.branchName) return blocked("branch_diverged");
       const now = options.now ?? new Date().toISOString();
       if (!identity) {
-        if (live.state !== "missing" && options.holder.processId !== process.pid) return blocked(live.state === "alive" ? "active_process" : "unknown_process");
+        const selfHolder = current.holder.host === getCurrentHostIdentity() && current.holder.processId === process.pid && live.state === "alive";
+        if (live.state !== "missing" && !selfHolder) return blocked(live.state === "alive" ? "active_process" : live.state === "different_host" ? "different_host" : "unknown_process");
         await controls.release(now);
         return { deleted: false, reconciled: true, reason: "absent_path_reconciled",
           metadataOnlyEvidence: { leaseId: current.id, deleted: false, reconciled: true } };

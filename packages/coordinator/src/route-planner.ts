@@ -4,6 +4,7 @@ import type {
 } from "@consiliency/runtime-provider";
 
 import { scoreTaskPortability } from "./portability.js";
+import { effectiveRouteClassification } from "./cooldowns.js";
 import type {
   IdentityPoolMember,
   LaunchGateAction,
@@ -326,6 +327,7 @@ export function planRoute(input: RoutePlannerInput): PlannedRoute {
   const portability = buildPortability(input);
   const preferredCandidate = findPreferredCandidate(input);
   if (preferredCandidate === undefined) throw new TypeError("Unknown or contradictory preferred route target");
+  input = { ...input, latestClassification: effectiveRouteClassification(input.latestClassification, preferredCandidate.profile, Date.parse(input.identityPool.evaluatedAt)) };
   const fallbackCandidate = pickFallbackCandidate(
     input,
     preferredCandidate,

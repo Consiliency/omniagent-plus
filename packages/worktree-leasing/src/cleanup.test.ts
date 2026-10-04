@@ -13,6 +13,7 @@ import {
   resolveMountedWorkspacePlacement,
   WorktreeLeaseManager,
   getCurrentHostIdentity,
+  recoverStaleLease,
 } from "./index.js";
 
 interface CleanupFixture {
@@ -54,7 +55,7 @@ function readFixture(): CleanupFixture {
   ) as CleanupFixture;
 }
 
-async function createLease(mode: "exclusive_write" | "read_only" = "exclusive_write", processId = 2147483647) {
+async function createLease(mode: "exclusive_write" | "read_only" = "exclusive_write", processId = 2147483647, host = getCurrentHostIdentity()) {
   const rootDir = await mkdtemp(join(tmpdir(), "worktree-cleanup-"));
   const repoRoot = await createRepo(rootDir);
   const placement = await resolveMountedWorkspacePlacement({
@@ -87,7 +88,7 @@ async function createLease(mode: "exclusive_write" | "read_only" = "exclusive_wr
     {
       holder: {
         processId,
-        host: getCurrentHostIdentity(),
+        host,
         sessionId: "session-cleanup",
         turnId: "turn-cleanup-1",
       },
@@ -108,6 +109,17 @@ async function createLease(mode: "exclusive_write" | "read_only" = "exclusive_wr
 }
 
 describe("cleanup", () => {
+  it("records actual recovery provenance separately from holder release and cleanup reconciliation", async () => {
+    const context = await createLease();
+    const host = getCurrentHostIdentity();
+    const recovered = await recoverStaleLease(context.manager, { lease: context.lease, now: "2026-06-30T02:00:00Z", currentHost: host,
+      processLiveness: { state: "missing", processId: context.lease.holder.processId, holderHost: host, currentHost: host, sameHost: true },
+      dirtyState: "clean", branchMatches: true, ledgerEvidencePresent: true,
+    });
+    expect(recovered.reusable).toBe(true);
+    expect((await context.manager.getStoredLeaseRecord(context.lease.id))?.lease.release).toMatchObject({ cause: "recovery", actor: "stale-lease-recovery" });
+    expect(() => accessSync(context.worktreePath)).not.toThrow();
+  });
   it("checks actual dirtiness and live processes despite permissive caller labels", async () => {
     const dirty = await createLease();
     await writeFile(join(dirty.worktreePath, "untracked.txt"), "keep me");
@@ -158,8 +170,23 @@ describe("cleanup", () => {
       activeFencingToken: context.lease.fencingToken, holder: context.lease.holder, currentHost: getCurrentHostIdentity(),
     });
     expect(result).toMatchObject({ deleted: false, reconciled: true, reason: "absent_path_reconciled" });
-    expect((await noRoot.getStoredLeaseRecord(context.lease.id))?.lease.release?.cause).toBe("holder_release");
+    expect((await noRoot.getStoredLeaseRecord(context.lease.id))?.lease.release?.cause).toBe("reconciliation");
     expect(await noRoot.listActiveLeases()).toEqual([]);
+  });
+
+  it("refuses cross-host PID collisions but permits same-host self-holder absence reconciliation", async () => {
+    for (const host of ["remote-holder", getCurrentHostIdentity()]) {
+      const context = await createLease("exclusive_write", process.pid, host);
+      runGit(context.repoRoot, ["worktree", "remove", context.worktreePath]);
+      const result = await cleanupLeasedWorktree(context.manager, context.lease, {
+        activeFencingToken: context.lease.fencingToken, holder: context.lease.holder, currentHost: getCurrentHostIdentity(),
+      });
+      if (host === getCurrentHostIdentity()) expect(result).toMatchObject({ deleted: false, reconciled: true });
+      else {
+        expect(result).toMatchObject({ deleted: false, reason: "different_host" });
+        expect((await context.manager.getStoredLeaseRecord(context.lease.id))?.status).toBe("active");
+      }
+    }
   });
 
   it("reports actual deletion and retains release evidence when ledger capacity refuses the release", async () => {

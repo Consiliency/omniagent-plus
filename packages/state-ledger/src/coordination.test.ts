@@ -5,11 +5,40 @@ import { describe, expect, it } from "vitest";
 import { CoordinationStore } from "./coordination.js";
 import { getStateLedgerPaths } from "./schema.js";
 import { WorktreeLeaseManager } from "../../worktree-leasing/src/lease-manager.js";
+import { getCurrentHostIdentity, checkProcessLiveness } from "../../worktree-leasing/src/process-liveness.js";
 
 const request = { taskId: "task", repoId: "repo", branchName: "feature/legacy", mode: "exclusive_write" as const };
 const holder = { processId: process.pid, host: "local" };
 const now = "2026-06-30T00:00:00Z";
 describe("legacy coordination boundary", () => {
+  it("documents permanent expired legacy ownership and starts COORD only on a fresh disjoint root", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-legacy-retained-"));
+    const store = await CoordinationStore.open({ rootDir });
+    const dead = { processId: 2147483647, host: getCurrentHostIdentity() };
+    expect(checkProcessLiveness({ processId: dead.processId, holderHost: dead.host }).state).toBe("missing");
+    const first = await store.acquireExclusiveLease({ ...request, repoRoot: join(rootDir, "legacy-path") }, dead, { now, ttlSeconds: 1 });
+    const before = await readFile(getStateLedgerPaths(rootDir).worktreeLeasesPath);
+    expect((await store.acquireExclusiveLease({ ...request, repoRoot: join(rootDir, "legacy-path"), branchName: "other" }, dead, { now: "2026-07-01T00:00:00Z" })).acquired).toBe(false);
+    expect((await store.listActiveLeases())[0]?.id).toBe(first.lease?.id);
+    const blocked = await WorktreeLeaseManager.open({ rootDir });
+    await expect(blocked.acquireLease(request, { holder: dead, now })).rejects.toMatchObject({ code: "legacy_lease_conflict" });
+    expect(await readFile(getStateLedgerPaths(rootDir).worktreeLeasesPath)).toEqual(before);
+    const freshRoot = await mkdtemp(join(tmpdir(), "coord-fresh-root-"));
+    const manager = await WorktreeLeaseManager.open({ rootDir: freshRoot });
+    expect((await manager.acquireLease(request, { holder: dead, now, leasePath: join(freshRoot, "disjoint-tree") })).acquired).toBe(true);
+    expect(await readFile(getStateLedgerPaths(rootDir).worktreeLeasesPath)).toEqual(before);
+  });
+  it.each(["prototype", "mismatched-key"])("preserves unsupported legacy identifier maps (%s)", async (kind) => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-legacy-keys-"));
+    const store = await CoordinationStore.open({ rootDir });
+    const acquired = await store.acquireExclusiveLease(request, holder, { now });
+    const path = getStateLedgerPaths(rootDir).worktreeLeasesPath;
+    const bytes = JSON.stringify({ [kind === "prototype" ? "__proto__" : "wrong-key"]: acquired.lease });
+    await writeFile(path, bytes);
+    await expect(store.listActiveLeases()).rejects.toThrow();
+    await expect(store.acquireExclusiveLease(request, holder)).rejects.toThrow();
+    expect(await readFile(path, "utf8")).toBe(bytes);
+  });
   it("denies physical acquisition on a COORD-managed root before changing state", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "coord-legacy-deny-"));
     const manager = await WorktreeLeaseManager.open({ rootDir });

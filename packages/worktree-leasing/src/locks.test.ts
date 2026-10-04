@@ -94,6 +94,7 @@ describe("locks", () => {
       ["exec", "vite-node", "--script", scriptPath],
       {
         cwd: process.cwd(),
+        custodyControlId: "owner-death",
         env: {
           ...process.env,
           LOCK_ROOT: rootDir,

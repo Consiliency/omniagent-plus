@@ -1,6 +1,6 @@
 export { ActiveTurnAccounting, buildActiveTurnSnapshot, createEmptyActiveTurnSnapshot, decrementActiveTurns, incrementActiveTurns } from "./active-turns.js";
 export { evaluateAdaptiveConcurrency } from "./adaptive-concurrency.js";
-export { deriveProviderFamilyCooldown, evaluateCooldownState } from "./cooldowns.js";
+export { deriveProviderFamilyCooldown, evaluateCooldownState, effectiveRouteClassification } from "./cooldowns.js";
 export { evaluateFailurePolicy } from "./failure-policy.js";
 export { LeaseArbiter } from "./lease-arbiter.js";
 export { buildIdentityPool } from "./identity-pool.js";

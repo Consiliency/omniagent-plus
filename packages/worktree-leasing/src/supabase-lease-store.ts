@@ -99,6 +99,9 @@ export class SupabaseLeaseStore implements LeaseStore {
     holder: string,
     options: { readonly ttlSeconds?: number; readonly now?: string } = {},
   ): Promise<LeaseRenewResult> {
+    z.string().min(1).parse(leaseId);
+    z.string().min(1).parse(holder);
+    options = z.object({ ttlSeconds: z.number().int().min(1).max(7200).optional(), now: z.string().datetime({ offset: true }).optional() }).parse(options);
     try {
       return await rpcOrUnavailable<LeaseRenewResult>(
         this.client,
@@ -123,6 +126,9 @@ export class SupabaseLeaseStore implements LeaseStore {
     holder: string,
     options: { readonly now?: string } = {},
   ): Promise<LeaseReleaseResult> {
+    z.string().min(1).parse(leaseId);
+    z.string().min(1).parse(holder);
+    options = z.object({ now: z.string().datetime({ offset: true }).optional() }).parse(options);
     try {
       return await rpcOrUnavailable<LeaseReleaseResult>(
         this.client,

@@ -3,6 +3,34 @@ import { describe, expect, it } from "vitest";
 import { SupabaseCoordinationChannel, createSupabaseCoordinationChannel, createSupabaseCoordinationChannelFromEnv } from "./supabase-coordination-channel.js";
 
 describe("Supabase coordination content boundary", () => {
+  it("detaches query scope before lazy SDK serialization and walks returned cursor pages", async () => {
+    const scope = { granularity: "repo" as const, selector: ["repo"] };
+    const messages = ["msg:c", "msg:b", "msg:a"].map((message_id) => ({ schema: "consiliency.coordination_message.v1", message_id,
+      type: "done", sender: "operator", scope: { ...scope, selector: ["repo"] }, created_at: "2026-10-03T00:00:00Z" })).reverse();
+    const wires: Array<{ query: { scope: typeof scope; cursor?: { timestamp: string; id: string }; limit: number } }> = [];
+    const channel = createSupabaseCoordinationChannel({ url: "http://127.0.0.1:1", serviceRoleKey: "synthetic-test-key", fetch: async (_input, init) => {
+      const wire = JSON.parse(String(init?.body));
+      wires.push(wire);
+      return new Response(JSON.stringify({ messages: messages.filter((message) => !wire.query.cursor || message.message_id > wire.query.cursor.id).slice(0, wire.query.limit) }),
+        { headers: { "content-type": "application/json" } });
+    } });
+    const pending = channel.list({ scope, limit: 1 });
+    scope.selector[0] = "mutated";
+    let page = await pending;
+    const walked = [];
+    while (page.length && walked.length < 4) {
+      const message = page[0]!;
+      walked.push(message.message_id);
+      page = await channel.list({ limit: 1, cursor: { timestamp: message.created_at, id: message.message_id } });
+    }
+    expect(walked).toEqual(["msg:a", "msg:b", "msg:c"]);
+    expect(wires[0]?.query.scope.selector).toEqual(["repo"]);
+    expect(wires.slice(1).map((wire) => wire.query.cursor)).toEqual(messages.map((message) => ({ timestamp: message.created_at, id: message.message_id })));
+    const before = wires.length;
+    await expect(channel.list({ cursor: {} as { timestamp: string; id: string } })).rejects.toThrow();
+    await expect(channel.list({ scope: { ...scope, selector: ["../unsafe"] } })).rejects.toThrow();
+    expect(wires).toHaveLength(before);
+  });
   it("maps detached bodies and cursor pages through the installed SDK's offline fetch endpoint", async () => {
     const wires: Array<{ path: string; body: unknown }> = [];
     const scope = { granularity: "repo" as const, selector: ["repo"] };

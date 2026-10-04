@@ -52,6 +52,7 @@ export class CoordinationStore {
   async setProviderCooldown(
     cooldown: ProviderFamilyCooldown,
   ): Promise<ProviderFamilyCooldown> {
+    cooldown = providerFamilyCooldownSchema.parse(cooldown);
     return withFilesystemLock(
       join(this.ledger.store.paths.locksDir, "coordination.lock"),
       async () => {
@@ -74,7 +75,9 @@ export class CoordinationStore {
       readonly now?: string;
     } = {},
   ): Promise<LeaseAcquisitionResult> {
-    worktreeLeaseRequestSchema.parse(request);
+    request = worktreeLeaseRequestSchema.parse(request);
+    holder = { ...holder };
+    options = { ...options };
     await this.assertStandaloneRoot();
     return withFilesystemLock(
       join(this.ledger.store.paths.locksDir, "coordination.lock"),
@@ -134,12 +137,18 @@ export class CoordinationStore {
 
   private async readCooldownMap(): Promise<Record<string, ProviderFamilyCooldown>> {
     const raw = await readJsonFile<unknown>(this.ledger.store.paths.cooldownsPath);
-    return Object.assign(Object.create(null) as Record<string, ProviderFamilyCooldown>, raw === undefined ? {} : providerCooldownMapSchema.parse(raw));
+    const parsed = raw === undefined ? {} : providerCooldownMapSchema.parse(raw);
+    if (raw !== undefined && Object.keys(raw as Record<string, unknown>).length !== Object.keys(parsed).length) throw new Error("Unsupported cooldown identifier key.");
+    for (const [key, value] of Object.entries(parsed)) if (key !== value.provider) throw new Error("Cooldown map key does not match its payload.");
+    return Object.assign(Object.create(null) as Record<string, ProviderFamilyCooldown>, parsed);
   }
 
   private async readLeaseMap(): Promise<Record<string, WorktreeLease>> {
     const raw = await readJsonFile<unknown>(this.ledger.store.paths.worktreeLeasesPath);
-    return Object.assign(Object.create(null) as Record<string, WorktreeLease>, raw === undefined ? {} : worktreeLeaseMapSchema.parse(raw));
+    const parsed = raw === undefined ? {} : worktreeLeaseMapSchema.parse(raw);
+    if (raw !== undefined && Object.keys(raw as Record<string, unknown>).length !== Object.keys(parsed).length) throw new Error("Unsupported lease identifier key.");
+    for (const [key, value] of Object.entries(parsed)) if (key !== `${value.repoId}:${value.branchName}:${value.mode}`) throw new Error("Lease map key does not match its payload.");
+    return Object.assign(Object.create(null) as Record<string, WorktreeLease>, parsed);
   }
 
   private async assertStandaloneRoot(): Promise<void> {

@@ -86,7 +86,7 @@ export const COMMAND_REGISTRY: readonly CliCommandRegistration[] = [
   },
   {
     key: "route-task",
-    description: "Plan one route-task decision without provider launch side effects.",
+    description: "Plan without provider launch. --record persists the decision and, with a coordination scope, may acquire a lease or request yield.",
     handle: runRouteTaskCommand,
   },
 ];

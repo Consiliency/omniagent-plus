@@ -4,13 +4,25 @@ import { classifyLimitSignal } from "./classifier.js";
 
 describe("classifier", () => {
   it("bounds complete integer and HTTP-date delays and ignores invalid or overflowing inputs", () => {
-    for (const value of ["-1", "1.5", "5junk", "Infinity", "9".repeat(400)]) {
+    for (const value of ["-1", "1.5", "5junk", "Infinity", "9007199254740992", "9".repeat(400)]) {
       expect(classifyLimitSignal({ headers: { "retry-after": value }, statusCode: 429 }).retryAfterSeconds).toBeUndefined();
     }
     expect(classifyLimitSignal({ headers: { "retry-after": "301" } }).retryAfterSeconds).toBe(300);
     expect(classifyLimitSignal({ headers: { "retry-after": "0" } }).retryAfterSeconds).toBe(0);
     expect(classifyLimitSignal({ headers: { "retry-after": "Sat, 03 Oct 2026 00:02:00 GMT" }, now: "2026-10-03T00:00:00Z" }).retryAfterSeconds).toBe(120);
     expect(classifyLimitSignal({ headers: { "x-ratelimit-reset": "9".repeat(400) } }).resetAt).toBeUndefined();
+  });
+  it("keeps individual confidence scores heuristic and precedence deterministic", () => {
+    const keyword = classifyLimitSignal({ bodyText: "policy" });
+    expect(keyword.type).toBe("abuse_or_policy_block");
+    expect(keyword.confidence).toBeGreaterThanOrEqual(0.86);
+    expect(keyword.rawSignal.statusCode).toBeUndefined();
+    expect(keyword.resetAt).toBeUndefined();
+    const mixed = { bodyText: "policy billing overload monthly quota concurrency rate limit", statusCode: 401 };
+    expect(classifyLimitSignal(mixed).type).toBe("abuse_or_policy_block");
+    expect(classifyLimitSignal(mixed)).toEqual(classifyLimitSignal(mixed));
+    expect(classifyLimitSignal({ bodyText: "billing overload", statusCode: 401 }).type).toBe("auth_or_billing_problem");
+    expect(classifyLimitSignal({ bodyText: "overload monthly quota", statusCode: 503 }).type).toBe("overload_or_transient");
   });
   it("does not publish raw credentials, secret-like headers or provider text", () => {
     const classification = classifyLimitSignal({ bodyText: "Rate limit. API_KEY=synthetic-private", stderrText: "Authorization: Bearer synthetic-private", headers: { "private-reset-token": "synthetic-private", "retry-after": "5", "x-ratelimit-reset": "API_KEY=synthetic-private" }, statusCode: 429 });

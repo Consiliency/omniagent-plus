@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, mkdir, stat, writeFile, readdir } from "node:fs/promises";
+import { mkdtemp, readFile, mkdir, stat, writeFile, readdir, rename, symlink } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,11 +7,14 @@ import { AuditLedger, AppendOnlyStore, getStateLedgerPaths } from "@omniagent-pl
 import type * as LedgerModule from "@omniagent-plus/state-ledger";
 import { WorktreeLeaseManager } from "./lease-manager.js";
 import { getCurrentHostIdentity } from "./process-liveness.js";
+import { ensureGitWorktree } from "./git.js";
+import { cleanupLeasedWorktree } from "./cleanup.js";
 
-const fault = vi.hoisted(() => ({ boundary: 0, writes: 0 }));
+const fault = vi.hoisted(() => ({ boundary: 0, before: 0, writes: 0 }));
 vi.mock("@omniagent-plus/state-ledger", async (original) => {
   const module = await original<typeof LedgerModule>();
   return { ...module, writeJsonAtomic: async (path: string, value: unknown) => {
+    if (path.endsWith("worktree-lease-registry.json") && fault.before === fault.writes + 1) throw new Error("injected pre-publication interruption");
     await module.writeJsonAtomic(path, value);
     if (path.endsWith("worktree-lease-registry.json") || path.endsWith("worktree-leases.json")) {
       fault.writes += 1;
@@ -21,9 +25,94 @@ vi.mock("@omniagent-plus/state-ledger", async (original) => {
 const request = { taskId: "task", repoId: "repo", branchName: "feature/durable", mode: "exclusive_write" as const };
 const holder = { processId: 2147483647, host: getCurrentHostIdentity(), sessionId: "closed" };
 const now = "2026-06-30T00:00:00.000Z";
-afterEach(() => { fault.boundary = 0; fault.writes = 0; vi.restoreAllMocks(); });
+afterEach(() => { fault.boundary = 0; fault.before = 0; fault.writes = 0; vi.restoreAllMocks(); });
 
 describe("COORD durable publication", () => {
+  it("recovers physical removal interrupted before the removal_done marker without claiming another deletion", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-removal-marker-"));
+    const repoRoot = join(rootDir, "repo");
+    await mkdir(repoRoot);
+    for (const args of [["init", "--initial-branch=main"], ["-c", "user.name=COORD test", "-c", "user.email=coord@example.invalid", "commit", "--allow-empty", "-m", "fixture"]]) {
+      expect(spawnSync("git", args, { cwd: repoRoot }).status).toBe(0);
+    }
+    const path = join(rootDir, "tree");
+    await ensureGitWorktree({ repoRoot, targetPath: path, branchName: request.branchName });
+    const manager = await WorktreeLeaseManager.open({ rootDir: join(rootDir, "state"), managedRoot: rootDir });
+    const lease = (await manager.acquireLease({ ...request, repoRoot }, { holder, leasePath: path, now })).lease!;
+    fault.writes = 0;
+    fault.before = 2;
+    const result = await cleanupLeasedWorktree(manager, lease, { holder, activeFencingToken: lease.fencingToken, currentHost: getCurrentHostIdentity(), now });
+    expect(result).toMatchObject({ deleted: true, releaseIncomplete: true, reason: "cleanup_release_incomplete" });
+    expect((await manager.inspectIncomplete()).pending[0]?.removal?.state).toBe("prepared");
+    await expect(stat(path)).rejects.toMatchObject({ code: "ENOENT" });
+    fault.before = 0;
+    await manager.reconcile();
+    expect((await manager.inspectIncomplete()).pending).toEqual([]);
+    expect((await manager.getStoredLeaseRecord(lease.id))?.lease.release).toMatchObject({ cause: "reconciliation", actor: "worktree-cleanup" });
+  });
+  it("detaches validated acquisition requests and serializes only validated authoritative state", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-request-snapshot-"));
+    const manager = await WorktreeLeaseManager.open({ rootDir });
+    let hooks = 0;
+    const input = { ...request, extension: { unvalidated: true }, toJSON() { hooks += 1; return { ...request, repoId: "wrong" }; } };
+    const options = { holder: { ...holder }, leasePath: join(rootDir, "tree"), now };
+    const pending = manager.acquireLease(input, options);
+    input.repoId = "mutated";
+    input.branchName = "mutated";
+    options.holder.host = "mutated";
+    const acquired = await pending;
+    expect(acquired.acquired).toBe(true);
+    expect(hooks).toBe(0);
+    const reopened = await WorktreeLeaseManager.open({ rootDir });
+    const stored = await reopened.getStoredLeaseRecord(acquired.lease!.id);
+    expect(stored?.request).toEqual(request);
+    expect(stored?.lease.holder).toEqual(holder);
+    expect(await reopened.listActiveLeases()).toHaveLength(1);
+    await expect((await AuditLedger.open({ rootDir, readOnly: true })).listRecordsByKind("worktree_lease")).resolves.toHaveLength(1);
+  });
+
+  it("protects pending pre-append holder dependencies and ancestors during retention", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-pending-ancestors-"));
+    const ledger = await AuditLedger.open({ rootDir });
+    const session = { runtime: "omnigent" as const, targetHarness: "codex" as const, title: "closed", state: "closed" as const, createdAt: now, updatedAt: now };
+    await ledger.store.appendRecord({ kind: "session", recordedAt: now, payload: { ...session, id: "ancestor" } });
+    await ledger.store.appendRecord({ kind: "session", recordedAt: now, payload: { ...session, id: "closed", parentSessionId: "ancestor" } });
+    await ledger.store.appendRecord({ kind: "turn", recordedAt: now, payload: { sessionId: "closed", turnId: "turn", idempotencyKey: "turn", state: "completed", createdAt: now, updatedAt: now } });
+    const manager = await WorktreeLeaseManager.open({ rootDir });
+    fault.boundary = 1;
+    await expect(manager.acquireLease(request, { holder: { ...holder, turnId: "turn" }, now })).rejects.toThrow("interruption");
+    fault.boundary = 0;
+    const pendingId = (await manager.inspectIncomplete()).pending[0]!.recordId;
+    await manager.retainHistory({ maxAgeMs: 1 }, new Date("2026-06-30T02:00:00Z"));
+    await manager.reconcile();
+    const rows = await ledger.listRecords();
+    expect(rows.filter((r) => r.kind === "session").map((r) => r.payload.id)).toEqual(["ancestor", "closed"]);
+    expect(rows.filter((r) => r.kind === "turn")).toHaveLength(1);
+    expect(rows.filter((r) => r.recordId === pendingId)).toHaveLength(1);
+    expect((await manager.inspectIncomplete()).pending).toEqual([]);
+  });
+
+  it.each(["symlink", "missing-repository"])("quarantines a prepared removal with %s inspection uncertainty", async (kind) => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-removal-scoped-"));
+    const repoRoot = join(rootDir, "repo");
+    await mkdir(repoRoot);
+    for (const args of [["init", "--initial-branch=main"], ["-c", "user.name=COORD test", "-c", "user.email=coord@example.invalid", "commit", "--allow-empty", "-m", "fixture"]]) {
+      expect(spawnSync("git", args, { cwd: repoRoot }).status).toBe(0);
+    }
+    const path = join(rootDir, "tree");
+    await ensureGitWorktree({ repoRoot, targetPath: path, branchName: request.branchName });
+    const manager = await WorktreeLeaseManager.open({ rootDir: join(rootDir, "state"), managedRoot: rootDir });
+    const lease = (await manager.acquireLease({ ...request, repoRoot }, { holder, leasePath: path, now })).lease!;
+    await manager.withCleanup(lease, async (record, controls) => controls.stageRemoval(record.pathIdentity!, now));
+    if (kind === "symlink") { await rename(path, path + "-original"); await symlink(path + "-original", path); }
+    else await rename(repoRoot, repoRoot + "-original");
+    const unrelated = (await manager.acquireLease({ ...request, branchName: "unrelated" }, { holder, leasePath: join(rootDir, "other"), now })).lease!;
+    expect(unrelated).toBeDefined();
+    await manager.releaseLease(unrelated, { now });
+    expect((await manager.acquireLease(request, { holder, leasePath: join(rootDir, "blocked"), now })).acquired).toBe(false);
+    expect((await manager.inspectIncomplete()).pending).toHaveLength(1);
+    expect((await manager.getStoredLeaseRecord(lease.id))?.status).toBe("active");
+  });
   it.each([1, 2, 3, 4])("reconciles publication boundary %i without duplicating ledger transitions", async (boundary) => {
     const rootDir = await mkdtemp(join(tmpdir(), "coord-boundary-"));
     const manager = await WorktreeLeaseManager.open({ rootDir });

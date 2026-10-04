@@ -7,6 +7,7 @@ import type {
 import {
   buildActiveTurnSnapshot,
   buildIdentityPool,
+  effectiveRouteClassification,
   LeaseArbiter,
   persistRouteDecision,
   planRoute,
@@ -186,29 +187,13 @@ export async function runRouteTaskCommand(
       (record) => record.sequence,
     ).values(),
   ].map((record) => record.payload as ProviderFamilyCooldown);
-  const classificationByProviderEntries = [
-    ...latestBySequence(
-      classificationRecords,
-      (record) => (record.payload as LimitClassification).provider,
-      (record) => record.sequence,
-    ).values(),
-  ];
-  const classificationByProvider = Object.fromEntries(
-    classificationByProviderEntries.flatMap((record) => {
-      const payload = record.payload as LimitClassification;
-      return payload.provider === undefined ? [] : [[payload.provider, payload] as const];
-    }),
-  );
   const classificationTaskId = request.classificationTaskId ?? request.taskId;
-  const latestClassification = [...classificationRecords]
-    .filter((record) => record.taskId === classificationTaskId)
-    .sort((left, right) => left.sequence - right.sequence)
-    .at(-1)?.payload as LimitClassification | undefined
-    ?? (
-      request.preferredProvider === undefined
-        ? undefined
-        : classificationByProvider[request.preferredProvider]
-    );
+  const now = new Date().toISOString();
+  const classifications = [...classificationRecords].sort((left, right) => right.sequence - left.sequence)
+    .filter((record) => (record.taskId === undefined || record.taskId === classificationTaskId) && record.sessionId === undefined);
+  const classificationByProfileId = Object.assign(Object.create(null), Object.fromEntries(profiles.map(({ profile }) => [profile.id,
+    classifications.map((record) => record.payload as LimitClassification).find((classification) => effectiveRouteClassification(classification, profile) !== undefined),
+  ]))) as Record<string, LimitClassification | undefined>;
   const worktreeLease = await readWorktreeLease(
     request.stateRoot,
     request.worktreeLeaseId,
@@ -218,8 +203,14 @@ export async function runRouteTaskCommand(
     statuses: latestStatuses,
     providerCooldowns: latestCooldowns,
     activeTurns: buildActiveTurnSnapshot(latestStatuses),
-    classificationByProvider,
+    classificationByProfileId,
+    now,
   });
+  const preferred = identityPool.candidates.find(({ profile }) =>
+    (request.preferredProvider === undefined || profile.provider === request.preferredProvider)
+    && (request.preferredHarness === undefined || profile.harness === request.preferredHarness)
+    && (request.preferredIdentityProfileId === undefined || profile.id === request.preferredIdentityProfileId));
+  const latestClassification = preferred === undefined ? undefined : classificationByProfileId[preferred.profile.id];
   const plannerInput = {
     taskId: request.taskId,
     identityPool,
@@ -238,12 +229,14 @@ export async function runRouteTaskCommand(
     manualConfirmationProvided: request.manualConfirmationProvided,
     worktreeLease,
   };
-  try { planRoute(plannerInput); } catch (error) {
+  let preliminary;
+  try { preliminary = planRoute(plannerInput); } catch (error) {
     if (error instanceof TypeError && /preferred route target/.test(error.message)) throw createCliError("argument_error", "Unknown or contradictory preferred route target.");
     throw error;
   }
-  const leaseArbitration = await arbitrateCoordinationLease(request, context);
-  const planned = planRoute({ ...plannerInput, leaseArbitration });
+  const admissible = preliminary.decision.launchGate?.action === "allowed";
+  const leaseArbitration = admissible ? await arbitrateCoordinationLease(request, context) : undefined;
+  const planned = admissible ? planRoute({ ...plannerInput, leaseArbitration }) : preliminary;
   let routeDecision = planned.decision;
   let persistedRecord:
     | {
@@ -253,7 +246,7 @@ export async function runRouteTaskCommand(
     | undefined;
   let recordMode: "dry_run" | "recorded" = "dry_run";
 
-  if (request.record) {
+  if (request.record && admissible) {
     const writableLedger = await AuditLedger.open({ rootDir: request.stateRoot });
     routeDecision = await persistRouteDecision(writableLedger, routeDecision);
     recordMode = "recorded";

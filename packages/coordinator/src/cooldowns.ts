@@ -55,6 +55,7 @@ export function evaluateCooldownState(options: {
 }): CooldownEvaluation {
   const now = Date.parse(options.now ?? new Date().toISOString());
   if (!Number.isFinite(now)) throw new TypeError("Invalid cooldown clock");
+  const classification = effectiveRouteClassification(options.classification, options.profile, now);
   const active = (source: { active: boolean; reason?: string; resetAt?: string } | undefined) =>
     source?.active === true && !resetBoundCooldownExpired(source.reason, source.resetAt, now);
   const providerSources = [options.providerCooldown, options.profile.providerFamilyCooldown].filter(active);
@@ -72,7 +73,7 @@ export function evaluateCooldownState(options: {
     reason,
     resetAt,
     sameProviderAccountSwitch:
-      options.classification?.routingAction.sameProviderAccountSwitch ?? "forbidden",
+      classification?.routingAction.sameProviderAccountSwitch ?? "forbidden",
   };
 }
 
@@ -80,4 +81,14 @@ export function resetBoundCooldownExpired(reason: string | undefined, resetAt: s
   if (reason !== "fixed_window_usage_cap" && reason !== "monthly_spend_or_quota_cap" && reason !== "unknown_limit") return false;
   const reset = Date.parse(resetAt ?? "");
   return Number.isFinite(reset) && reset <= now;
+}
+
+export function effectiveRouteClassification(classification: LimitClassification | undefined, profile: { readonly id: string; readonly provider: string; readonly harness: string }, now?: number): LimitClassification | undefined {
+  if (!classification || classification.provider !== profile.provider || classification.harness !== profile.harness
+    || classification.identityProfileId !== undefined && classification.identityProfileId !== profile.id
+    || classification.sessionId !== undefined || classification.scope === "session"
+    || classification.scope === "identity_profile" && classification.identityProfileId === undefined
+    || ["model", "project", "organization"].includes(classification.scope)
+    || now !== undefined && resetBoundCooldownExpired(classification.type, classification.resetAt, now)) return undefined;
+  return classification;
 }

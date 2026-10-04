@@ -1,6 +1,7 @@
 import { limitClassificationSchema, routeDecisionSchema, type LimitClassification, type RouteDecision } from "@consiliency/runtime-provider";
 
 import type { RouteReplayEntry, RouteStoreReader } from "./types.js";
+import { effectiveRouteClassification } from "./cooldowns.js";
 
 export function explainRouteDecision(
   decision: RouteDecision,
@@ -63,8 +64,7 @@ export async function replayTaskRouting(
     const provider = decision.preferredTarget?.provider ?? decision.preferredProvider ?? decision.selectedProvider;
     const harness = decision.preferredTarget?.harness ?? decision.preferredHarness ?? decision.selectedHarness;
     const identity = decision.preferredTarget?.identityProfileId ?? decision.selectedIdentityProfileId;
-    const latestClassification = [...classifications].reverse().find((classification) => classification.provider === provider && classification.harness === harness
-      && (classification.identityProfileId === undefined || classification.identityProfileId === identity) && classification.sessionId === undefined);
+    const latestClassification = [...classifications].reverse().find((classification) => effectiveRouteClassification(classification, { provider, harness, id: identity ?? "" }) !== undefined);
     result.push({
     taskId: decision.taskId,
     selectedProvider: decision.selectedProvider,

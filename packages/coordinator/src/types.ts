@@ -81,6 +81,7 @@ export interface BuildIdentityPoolInput {
   readonly classificationByProvider?: Partial<
     Record<ProviderFamilyId, LimitClassification>
   >;
+  readonly classificationByProfileId?: Readonly<Record<string, LimitClassification | undefined>>;
   readonly capabilityFitByProfileId?: Readonly<Record<string, number>>;
   readonly providerHealth?: Readonly<Partial<Record<ProviderFamilyId, number>>>;
   readonly now?: string;

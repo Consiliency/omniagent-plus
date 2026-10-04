@@ -12,9 +12,9 @@ begin
     page_limit := (query->>'limit')::numeric;
     if page_limit < 1 or page_limit > 500 or page_limit <> trunc(page_limit) then raise exception 'Invalid coordination limit' using errcode='22023'; end if;
   end if;
-  if cursor_value is not null and cursor_value <> 'null'::jsonb then
-    if jsonb_typeof(cursor_value) <> 'object' or jsonb_typeof(cursor_value->'timestamp') <> 'string'
-      or jsonb_typeof(cursor_value->'id') <> 'string' or length(cursor_value->>'id') = 0
+  if query ? 'cursor' then
+    if jsonb_typeof(cursor_value) is distinct from 'object' or jsonb_typeof(cursor_value->'timestamp') is distinct from 'string'
+      or jsonb_typeof(cursor_value->'id') is distinct from 'string' or length(cursor_value->>'id') = 0
       or (cursor_value->>'timestamp') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$'
       or (select count(*) from jsonb_object_keys(cursor_value)) <> 2 then
       raise exception 'Invalid coordination cursor' using errcode='22023';
@@ -209,6 +209,9 @@ declare
   lease_row public.coordination_current_leases%rowtype;
   renewed_payload jsonb;
 begin
+  if jsonb_typeof(request->'holder') is distinct from 'string' or length(request->>'holder') = 0 then
+    return jsonb_build_object('renewed',false,'failure','not-holder');
+  end if;
   perform pg_advisory_xact_lock(hashtext('coordination_acquire_lease:v1'));
   now_at := date_trunc('second',clock_timestamp());
   perform public.coordination_expire_leases(now_at);
@@ -222,7 +225,7 @@ begin
   if lease_row.state <> 'active' then
     return jsonb_build_object('renewed', false, 'failure', 'expired');
   end if;
-  if lease_row.holder <> request->>'holder' then
+  if lease_row.holder is distinct from request->>'holder' then
     return jsonb_build_object('renewed', false, 'failure', 'not-holder');
   end if;
 
@@ -268,6 +271,9 @@ declare
   now_at timestamptz;
   lease_row public.coordination_current_leases%rowtype;
 begin
+  if jsonb_typeof(request->'holder') is distinct from 'string' or length(request->>'holder') = 0 then
+    return jsonb_build_object('released',false,'failure','not-holder');
+  end if;
   perform pg_advisory_xact_lock(hashtext('coordination_acquire_lease:v1'));
   now_at := date_trunc('second',clock_timestamp());
 
@@ -277,7 +283,7 @@ begin
   if not found then
     return jsonb_build_object('released', true, 'failure', 'not-found');
   end if;
-  if lease_row.holder <> request->>'holder' then
+  if lease_row.holder is distinct from request->>'holder' then
     return jsonb_build_object('released', false, 'failure', 'not-holder');
   end if;
 

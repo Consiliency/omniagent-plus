@@ -36,6 +36,7 @@ export function compareCoordinationTuple(a: { timestamp: string; id: string }, b
 export function coordinationFailureCause(error: unknown): BackendFailureCause {
   if (error instanceof CoordinationBackendError) return error.failureCause;
   if (error instanceof z.ZodError || error instanceof TypeError && /URL/i.test(error.message)) return "validation";
+  if (error instanceof Error && /^Metadata contains [a-z ]+\.$/.test(error.message)) return "validation";
   if (error && typeof error === "object") {
     const value = error as { code?: unknown; status?: unknown; name?: unknown; message?: unknown };
     if (value.status === 401 || value.code === "PGRST301" || value.code === "PGRST302") return "authentication";
@@ -167,9 +168,17 @@ export class LocalCoordinationChannel implements CoordinationChannel {
       const now = toContractTimestamp(this.clock());
       const state = await this.readState(now);
       const built = buildMessage(message, now);
-      state.messages = state.messages.map((entry) => ({ ...entry, created_at: Date.parse(entry.created_at) > Date.parse(now) ? now : toContractTimestamp(entry.created_at) }))
+      let normalized = false;
+      state.messages = state.messages.map((entry) => {
+        const created_at = Date.parse(entry.created_at) > Date.parse(now) ? now : toContractTimestamp(entry.created_at);
+        normalized ||= created_at !== entry.created_at;
+        return { ...entry, created_at };
+      })
         .filter((entry) => Date.parse(entry.created_at) > Date.parse(now) - INBOX_TTL_MS);
-      if (state.messages.length >= 10000) throw new CoordinationBackendError("capacity");
+      if (state.messages.length >= 10000) {
+        if (normalized) await this.writeState(state, now);
+        throw new CoordinationBackendError("capacity");
+      }
       state.messages.push(built);
       await this.writeState(state, now);
       return {

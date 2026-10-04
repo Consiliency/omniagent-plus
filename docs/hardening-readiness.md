@@ -51,7 +51,7 @@ here pending DATA/COORD/WIRE/INTEG/PREP remediation.
   [hybrid provider](../packages/omnigent-transport/src/hybrid-provider.ts) does
   not schedule heartbeat-timeout or parent-death enforcement.
 - Retry decisions require caller-driven attempts/counters and settlement.
-  [Cooldown evaluation](../packages/coordinator/src/cooldowns.ts) tests active
+  [Cooldown evaluation](../packages/coordinator/src/cooldowns.ts)
   evaluates every source against an injected clock, releasing valid expired
   reset-bound cooldowns while retaining permanent/invalid-reset blocks.
   INTEG owns lifecycle scheduling and persistence.

@@ -171,8 +171,9 @@ unsupported audit values, including known scalar fields, become placeholders bef
 schema validation; text policy still applies afterward. The exported schemas retain
 their concrete effects and array APIs. Derived or caller-built schemas that inspect
 raw roots first require the caller's guard.
-Append and local coordination recheck inputs after asynchronous waits and validate
-the complete inbox immediately before serialization. RPC sends use a detached inert
+Append and local coordination recheck inputs after asynchronous waits. Local inbox
+reads validate retained messages; new messages are validated and detached before
+publishing the retained snapshot. RPC sends use a detached inert
 copy so later caller mutations cannot change the serialized request.
 RPC sends retain the whole input and therefore apply the full metadata check before
 copying; they do not have the local schema's unknown-field stripping stage.
@@ -248,11 +249,11 @@ Metadata evidence and test scope are recorded in `plans/evidence/v2/DATA.json`.
 
 Shared provider-family cooldowns and exclusive worktree leases use the ledger
 plus coordination sidecars so two independent Node processes observe the same
-state. Exclusive write leases reject a second claimant while the active lease
-remains unexpired.
+state. Physical exclusive owners reject a second claimant until an explicit
+release or supported recovery; elapsed TTL alone does not grant takeover.
 
 CS-2.2 adds a second coordination sidecar for the published Consiliency
-`consiliency.lease.v1` shape and an append-only local inbox for negotiation
+`consiliency.lease.v1` shape and a bounded, expiring local inbox for negotiation
 messages. The inbox is not part of lease projection and cannot mutate lease
 state.
 

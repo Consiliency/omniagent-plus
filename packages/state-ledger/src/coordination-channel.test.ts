@@ -17,6 +17,24 @@ const scope = {
 };
 
 describe("coordination channel", () => {
+  it("persists legacy future-clock normalization even when a full inbox refuses admission", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "coord-inbox-future-full-"));
+    let now = new Date("2026-10-03T00:00:00Z");
+    const channel = new LocalCoordinationChannel({ rootDir, clock: () => now });
+    await mkdir(join(rootDir, "coordination"));
+    const path = join(rootDir, "coordination", "coordination-inbox.json");
+    const messages = Array.from({ length: 10000 }, (_, n) => ({ schema: "consiliency.coordination_message.v1", message_id: "future-" + n,
+      type: "done", sender: "operator", scope, created_at: "2099-01-01T00:00:00Z" }));
+    await writeFile(path, JSON.stringify({ schema: "consiliency.local_coordination_inbox.v0.1", updatedAt: now.toISOString(), messages }));
+    await expect(channel.send({ type: "done", sender: "operator", scope })).rejects.toMatchObject({ failureCause: "capacity" });
+    const normalized = JSON.parse(await readFile(path, "utf8"));
+    expect(normalized.messages.map((entry: { message_id: string }) => entry.message_id)).toEqual(messages.map((entry) => entry.message_id));
+    expect(normalized.messages.every((entry: { created_at: string }) => entry.created_at === "2026-10-03T00:00:00Z")).toBe(true);
+    now = new Date("2026-10-11T00:00:00Z");
+    expect(await channel.list()).toEqual([]);
+    await channel.send({ type: "done", sender: "operator", scope });
+    expect(await channel.list()).toHaveLength(1);
+  }, 30_000);
   it("uses its injected clock and walks same-second messages in bytewise ID order", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "coord-inbox-page-"));
     const now = new Date("2026-10-03T00:00:00Z");

@@ -45,7 +45,8 @@ export function applyRetryGuardrails(
     if (!Number.isSafeInteger(count) || count < 0) throw new TypeError("Retry counts must be nonnegative safe integers");
   }
   const suppliedDelay = classification.retryAfterSeconds;
-  const delay = suppliedDelay !== undefined && Number.isFinite(suppliedDelay) && suppliedDelay >= 0
+  const validDelay = suppliedDelay !== undefined && Number.isSafeInteger(suppliedDelay) && suppliedDelay >= 0;
+  const delay = validDelay
     ? Math.min(300, suppliedDelay) : Math.min(300, 2 ** Math.min(9, repeatedAttempts));
 
   if (hardStopTypes.has(classification.type)) {
@@ -54,7 +55,7 @@ export function applyRetryGuardrails(
       classification,
       nextDelaySeconds: delay,
       reason:
-        classification.resetAt || classification.retryAfterSeconds !== undefined
+        Number.isFinite(Date.parse(classification.resetAt ?? "")) || validDelay
           ? "wait_for_reset"
           : "hard_cap",
     };

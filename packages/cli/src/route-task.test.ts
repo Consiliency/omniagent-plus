@@ -52,6 +52,41 @@ function readFixture<T>(): T {
 }
 
 describe("route-task", () => {
+  it("rejects unavailable preferences before record-mode coordination and state initialization", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "cli-route-unavailable-"));
+    const stateRoot = join(rootDir, "absent");
+    const result = await executeCli(["route-task", "--task-id", "t", "--preferred-identity-profile-id", "profile-openai-prod-cooldown",
+      "--record", "--coordination-scope", "repo:omniagent-plus", "--coordination-holder", "operator", "--coordination-request-yield",
+      "--state-root", stateRoot, "--profiles-dir", profilesDir, "--json"], COMMAND_REGISTRY);
+    expect(result.exitCode).toBe(7);
+    await expect(access(stateRoot)).rejects.toThrow();
+  });
+  it("scopes classification effects per identity, harness, session and task without resurrecting expired evidence", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "cli-route-scoped-"));
+    const profiles = join(rootDir, "profiles");
+    await mkdir(profiles);
+    for (const id of ["profile-a", "profile-b"]) await writeFile(join(profiles, id + ".json"), JSON.stringify({ id, provider: "openai", harness: "codex",
+      authMode: "local_subscription", isolation: "host_env", maxOpenSessions: 2, maxActiveTurns: 2 }));
+    const stateRoot = join(rootDir, "state");
+    const ledger = await AuditLedger.open({ rootDir: stateRoot });
+    const classification = { schema: "limit_classification.v0.1" as const, type: "auth_or_billing_problem" as const, scope: "identity_profile" as const,
+      confidence: 0.9, provider: "openai", harness: "codex", identityProfileId: "profile-a", rawSignal: {},
+      routingAction: { retrySameSession: false, reduceConcurrency: true, routeNewWorkElsewhere: false, migrateExistingPortableWork: false,
+        requireManualReview: true, sameProviderAccountSwitch: "forbidden" as const },
+    };
+    await ledger.appendLimitClassification(classification, { taskId: "task" });
+    for (const patch of [{ identityProfileId: "missing" }, { harness: "claude-code" }, { sessionId: "another-session" }, { scope: "organization" as const }]) {
+      await ledger.appendLimitClassification({ ...classification, ...patch }, { taskId: "task" });
+    }
+    await ledger.appendLimitClassification(classification, { taskId: "another-task" });
+    const run = (id: string) => executeCli(["route-task", "--task-id", "task", "--preferred-identity-profile-id", id,
+      "--state-root", stateRoot, "--profiles-dir", profiles, "--json"], COMMAND_REGISTRY);
+    expect((await run("profile-b")).exitCode).toBe(0);
+    expect((await run("profile-a")).exitCode).toBe(7);
+    await ledger.appendLimitClassification({ ...classification, type: "fixed_window_usage_cap", resetAt: "2025-01-01T00:00:00Z" }, { taskId: "task" });
+    expect((await run("profile-a")).exitCode).toBe(0);
+    expect((await ledger.listRecords()).filter((record) => record.kind === "route_decision")).toEqual([]);
+  });
   it("rejects bad preferences in record mode before initializing state or acquiring coordination", async () => {
     const rootDir = await mkdtemp(join(tmpdir(), "cli-route-invalid-"));
     for (const preference of [["--preferred-provider", "unknown"], ["--preferred-harness", "unknown"], ["--preferred-identity-profile-id", "unknown"], ["--preferred-provider", "google", "--preferred-identity-profile-id", "profile-openai-prod-cooldown"]]) {
@@ -135,7 +170,7 @@ describe("route-task", () => {
         provider: "openai",
         harness: "codex",
         retryAfterSeconds: 120,
-        resetAt: "2026-07-01T00:00:00.000Z",
+        resetAt: "2099-07-01T00:00:00.000Z",
         rawSignal: {
           statusCode: 429,
           stderrExcerpt: "quota exceeded until reset",

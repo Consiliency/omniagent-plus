@@ -12,8 +12,17 @@ collisions. Elapsed TTL never steals a live or uncertain physical owner.
 
 DATA SQLite arbitration retains its canonical inode permanently. Holder
 sidecars are diagnostics only; do not delete locks. Legacy CoordinationStore
-physical acquisition is denied on COORD-managed shared roots; standalone
-compatibility remains. Default writer wait is2seconds; Git children have30second
+physical acquisition is denied on COORD-managed shared roots. On standalone
+roots the retained API supports cooldown operations, acquisition and inspection;
+renew/release and expiry takeover are unsupported. Even an expired lease with
+a proven dead holder remains an owner. Its default path is request.repoRoot
+when provided, so branches sharing that physical checkout collide unless they
+supply distinct leasePath values. In-place adoption by COORD is unsupported.
+To leave legacy_lease_conflict safely, stop legacy writers, verify their actual
+host/liveness and Git worktrees, preserve the old state as a read-only archive,
+and select a fresh stateRoot with disjoint new managed/worktree paths. Do not
+edit the old map, reuse its leased paths, or infer release from TTL.
+Default writer wait is2seconds; Git children have30second
 deadlines and wait for exit. Retry contention and budget heartbeat TTL for
 operation time; expiry is uncertainty, never takeover authority.
 
@@ -26,6 +35,11 @@ non-force Git removal; there is no recursive rm fallback. ENOENT proof may
 reconcile legacy metadata with reconciled=true/deleted=false. Removal followed
 by release refusal reports deleted=true/releaseIncomplete and keeps durable
 intent. Ambiguous pre-marker recovery does not infer acknowledged deletion.
+Direct releases record holder_release/worktree-lease-manager. Metadata absence
+reconciliation and operator Git cleanup record reconciliation/worktree-cleanup;
+stale recovery records recovery/stale-lease-recovery. Acquiring before the
+physical worktree exists records no path identity and cannot authorize deletion;
+create/register the worktree before a deletion-capable acquisition.
 
 Shared-ledger retention uses WorktreeLeaseManager.retainHistory(policy, now):
 one DATA writer snapshot preserves active/pending/unknown/genuine references,

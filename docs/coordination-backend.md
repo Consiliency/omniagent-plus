@@ -19,11 +19,16 @@ Inbox entries expire after7days. Local creation/expiry uses an injected clock,
 never message.now; SQL uses server time. Writes normalize legacy future times
 and prune expiry under the same lock before enforcing10000 retained entries.
 Reads filter expiry without pruning. Overflow preserves unexpired entries.
+Local legacy timestamp normalization is durable even when admission is refused,
+so future-dated entries can subsequently expire; their IDs and bodies remain.
 These are retained advisory histories, not indefinitely append-only inboxes.
 Failed yield delivery leaves hard refusal intact with private sent=false/cause.
 No acknowledgement, transfer or ownership derives from delivery.
 
-Local live leases and event history are bounded at10000. SQL caps unprotected
+Local live leases and event history are each bounded at10000. The protected
+acquisition plus latest-heartbeat records can exhaust the event budget before
+the live-lease bound; capacity depends on retained proof, not just lease count.
+SQL caps unprotected
 released/event history at10000, preserving active acquisition/current proof.
 Protected overflow refuses mutation. Bounded causes are authentication,
 permission, timeout, transport, validation, malformed-response, unavailable and
@@ -58,7 +63,7 @@ The lease store is the only source of truth for lock state.
 - `LeaseStore.renew` extends heartbeat for the holder.
 - `LeaseStore.release` is holder-only and idempotent for missing leases.
 - `LeaseStore.query` reads the current projection.
-- `CoordinationChannel.send/list` is append-only inbox traffic.
+- `CoordinationChannel.send/list` is retained, expiring advisory inbox traffic.
 
 Inbox messages such as `announce-intent`, `request-yield`, `handoff`, and
 `done` never acquire, renew, release, transfer, or expire a lease. They may
@@ -87,9 +92,9 @@ to local soft coordination.
 
 The migration creates:
 
-- `coordination_lease_events`, an append-only lease event stream
+- `coordination_lease_events`, a bounded lease event history
 - `coordination_current_leases`, the current lease projection
-- `coordination_inbox_messages`, an append-only negotiation channel
+- `coordination_inbox_messages`, a bounded, expiring negotiation channel
 - RPC functions for acquire, renew, release, query, expiry, send, and list
 
 Hard acquire runs in a database transaction and checks live hard-mode scope

@@ -1,7 +1,6 @@
-import { hostname } from "node:os";
-
 import {
   cleanupLeasedWorktree,
+  getCurrentHostIdentity,
   WorktreeLeaseManager,
   type CleanupResult,
 } from "@omniagent-plus/worktree-leasing";
@@ -82,7 +81,7 @@ async function runWorktreesCleanup(
   const result = await cleanupLeasedWorktree(manager, stored.lease, {
     activeFencingToken: request.fencingToken,
     holder: { processId: request.holderProcessId, host: request.holderHost, sessionId: request.holderSessionId, turnId: request.holderTurnId },
-    currentHost: request.currentHost ?? hostname(),
+    currentHost: request.currentHost ?? getCurrentHostIdentity(),
     repoRoot: stored.repoRoot,
     worktreePath: stored.lease.path,
     allowReadOnlyCleanup: request.allowReadOnlyCleanup,

@@ -102,7 +102,7 @@ export async function recoverStaleLease(
       branchMatches: verified && await readGitBranch(record.lease.path) === record.lease.branchName,
       ledgerEvidencePresent: await controls.ledgerEvidence(),
     });
-    if (actual.reusable) await controls.release(inspection.now ?? nowIsoString());
+    if (actual.reusable) await controls.release(inspection.now ?? nowIsoString(), "recovery");
     return actual;
   });
 }

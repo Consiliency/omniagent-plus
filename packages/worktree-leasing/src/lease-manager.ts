@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { createWorktreeLeaseRelease, worktreeLeaseSchema, worktreeLeaseRequestSchema,
-  type WorktreeLease, type WorktreeLeaseRequest, type StateLedgerEntry } from "@consiliency/runtime-provider";
+  type WorktreeLease, type WorktreeLeaseRelease, type WorktreeLeaseRequest, type StateLedgerEntry } from "@consiliency/runtime-provider";
 import { AuditLedger, getStateLedgerPaths, nowIsoString, readJsonFile, withFilesystemLock,
   writeJsonAtomic, selectRetentionSequences, LedgerReadError, type RetentionPolicy, type RetentionResult } from "@omniagent-plus/state-ledger";
 import { z } from "zod";
@@ -91,7 +91,8 @@ export class WorktreeLeaseManager {
   }
 
   async acquireLease(request: WorktreeLeaseRequest, options: AcquireWorktreeLeaseOptions): Promise<WorktreeLeaseAcquisition> {
-    worktreeLeaseRequestSchema.parse(request);
+    request = worktreeLeaseRequestSchema.parse(request);
+    options = { ...options, holder: { ...options.holder } };
     const now = options.now ?? nowIsoString();
     const expiresAt = expiry(now, options.ttlSeconds ?? request.requestedTtlSeconds ?? this.options.defaultTtlSeconds ?? 300);
     return this.withMutation(async (registry, ledger) => {
@@ -120,6 +121,8 @@ export class WorktreeLeaseManager {
     });
   }
   async renewLease(lease: WorktreeLease, options: RenewWorktreeLeaseOptions = {}): Promise<WorktreeLease> {
+    lease = worktreeLeaseSchema.parse(lease);
+    options = { ...options };
     return this.withMutation(async (registry, ledger) => {
       const existing = this.requireOwner(registry, lease);
       const now = options.now ?? nowIsoString();
@@ -133,6 +136,8 @@ export class WorktreeLeaseManager {
     });
   }
   async releaseLease(lease: WorktreeLease, options: { readonly now?: string } = {}): Promise<void> {
+    lease = worktreeLeaseSchema.parse(lease);
+    options = { ...options };
     await this.withMutation(async (registry, ledger) => {
       const record = registry.records[lease.id];
       if (!record) return;
@@ -196,8 +201,9 @@ export class WorktreeLeaseManager {
 
   async withCleanup<T>(lease: WorktreeLease, callback: (record: StoredLeaseRecord, controls: {
     validatePath(): Promise<void>; stageRemoval(identity: PathIdentity, now: string): Promise<void>;
-    markRemovalDone(): Promise<void>; release(now: string): Promise<void>; ledgerEvidence(): Promise<boolean>;
+    markRemovalDone(): Promise<void>; release(now: string, cause?: WorktreeLeaseRelease["cause"]): Promise<void>; ledgerEvidence(): Promise<boolean>;
   }) => Promise<T>): Promise<T> {
+    lease = worktreeLeaseSchema.parse(lease);
     return this.withMutation(async (registry, ledger) => {
       const record = this.requireOwner(registry, lease);
       return callback(record, {
@@ -219,8 +225,8 @@ export class WorktreeLeaseManager {
           registry.pending![lease.id] = { ...intent, removal: { ...intent.removal, state: "removal_done" } };
           await this.writeRegistry(registry);
         },
-        release: async (now) => {
-          await this.publishMutation(registry, ledger, registry.pending?.[lease.id] ?? this.releaseIntent(record, now, "release"));
+        release: async (now, cause = "reconciliation") => {
+          await this.publishMutation(registry, ledger, registry.pending?.[lease.id] ?? this.releaseIntent(record, now, "release", cause));
         },
       });
     });
@@ -253,9 +259,9 @@ export class WorktreeLeaseManager {
       || recorded.repoId !== supplied.repoId || recorded.branchName !== supplied.branchName || recorded.mode !== supplied.mode)
       throw new WorktreeLeasingError("holder_mismatch", "Lease ownership identity does not match.");
   }
-  private releaseIntent(record: StoredLeaseRecord, now: string, operation: "release" | "remove"): PendingLeaseMutation {
-    const lease = createWorktreeLeaseRelease(record.lease, { cause: operation === "remove" ? "reconciliation" : "holder_release",
-      actor: "worktree-lease-manager", releasedAt: now });
+  private releaseIntent(record: StoredLeaseRecord, now: string, operation: "release" | "remove", cause: WorktreeLeaseRelease["cause"] = operation === "remove" ? "reconciliation" : "holder_release"): PendingLeaseMutation {
+    const lease = createWorktreeLeaseRelease(record.lease, { cause,
+      actor: cause === "recovery" ? "stale-lease-recovery" : cause === "reconciliation" ? "worktree-cleanup" : "worktree-lease-manager", releasedAt: now });
     return { operation, recordId: randomUUID(), record: { ...record, lease, status: "released", releasedAt: now, updatedAt: now } };
   }
   private async getLedger(): Promise<AuditLedger> {
@@ -280,7 +286,7 @@ export class WorktreeLeaseManager {
   private async ensureManagedStore(registry: WorktreeLeaseRegistry): Promise<void> {
     for (const lease of Object.values(await this.readActiveMap())) {
       if (!registry.records[lease.id] && !registry.pending?.[lease.id])
-        throw new WorktreeLeasingError("legacy_lease_conflict", "Legacy physical ownership must be reconciled before COORD manages this root.");
+        throw new WorktreeLeasingError("legacy_lease_conflict", "In-place legacy adoption is unsupported; archive the quiescent legacy store and use a fresh COORD root with disjoint managed paths.");
     }
     const marker = join(this.paths.coordinationDir, "worktree-coord-root.json");
     const existing = await readJsonFile<unknown>(marker);
@@ -312,11 +318,10 @@ export class WorktreeLeaseManager {
     return dictionary(entries);
   }
   private async writeRegistry(registry: WorktreeLeaseRegistry): Promise<void> {
-    registrySchema.parse(registry);
-    await writeJsonAtomic(this.registryPath, registry);
+    await writeJsonAtomic(this.registryPath, registrySchema.parse(registry));
   }
   private async publishMutation(registry: WorktreeLeaseRegistry, ledger: AuditLedger, intent: PendingLeaseMutation): Promise<void> {
-    pendingSchema.parse(intent);
+    intent = pendingSchema.parse(intent);
     const id = intent.record.lease.id;
     registry.pending ??= dictionary();
     registry.pending[id] = intent;
@@ -350,17 +355,27 @@ export class WorktreeLeaseManager {
   private async replayPending(registry: WorktreeLeaseRegistry, ledger: AuditLedger): Promise<void> {
     for (const intent of Object.values(registry.pending ?? {})) {
       if (intent.removal?.state === "prepared") {
-        const path = await readPathIdentity(resolve(intent.record.lease.path));
-        if (!intent.record.repoRoot) continue;
-        const registration = await readGitWorktreeRegistration(intent.record.repoRoot, resolve(intent.record.lease.path));
-        if (!path) {
-          if (registration && registration.branchName !== intent.record.lease.branchName
-            || checkProcessLiveness({ processId: intent.record.lease.holder.processId, holderHost: intent.record.lease.holder.host }).state !== "missing") continue;
-        } else {
-          if (samePathIdentity(path, intent.removal.identity) && registration?.branchName === intent.record.lease.branchName
-            && await verifyGitWorktreeRepository(intent.record.repoRoot, path.path) && await inspectWorktreeDirtyState(path.path) === "clean") {
-            delete registry.pending![intent.record.lease.id]; await this.writeRegistry(registry);
+        let noEffect = false;
+        let absent = false;
+        try {
+          const path = await readPathIdentity(resolve(intent.record.lease.path));
+          if (!intent.record.repoRoot) continue;
+          const registration = await readGitWorktreeRegistration(intent.record.repoRoot, resolve(intent.record.lease.path));
+          if (!path) {
+            if (registration && registration.branchName !== intent.record.lease.branchName
+              || checkProcessLiveness({ processId: intent.record.lease.holder.processId, holderHost: intent.record.lease.holder.host }).state !== "missing") continue;
+            absent = true;
+          } else {
+            noEffect = samePathIdentity(path, intent.removal.identity) && registration?.branchName === intent.record.lease.branchName
+              && await verifyGitWorktreeRepository(intent.record.repoRoot, path.path) && await inspectWorktreeDirtyState(path.path) === "clean";
           }
+        } catch (error) {
+          if (error instanceof WorktreeLeasingError && ["unsafe_path", "git_command_failed"].includes(error.code)
+            || error instanceof Error && "code" in error && ["EACCES", "EPERM"].includes(String(error.code))) continue;
+          throw error;
+        }
+        if (noEffect) { delete registry.pending![intent.record.lease.id]; await this.writeRegistry(registry); }
+        if (!absent) {
           continue;
         }
       }
@@ -374,9 +389,21 @@ export class WorktreeLeaseManager {
   private retentionSelection(records: readonly StateLedgerEntry[], registry: WorktreeLeaseRegistry, policy: RetentionPolicy, now: Date): Set<number> {
     const pins = new Set(policy.protectedRecordIds ?? []);
     const grouped = new Map<string, StateLedgerEntry[]>();
-    for (const entry of records) if (entry.kind === "worktree_lease") {
-      const rows = grouped.get(entry.payload.id) ?? [];
-      rows.push(entry); grouped.set(entry.payload.id, rows);
+    const dependencies = new Map<string, string>();
+    for (const entry of records) {
+      if (entry.kind === "session") dependencies.set(JSON.stringify(["session", entry.payload.id]), entry.recordId);
+      if (entry.kind === "turn") dependencies.set(JSON.stringify(["turn", entry.payload.sessionId, entry.payload.turnId]), entry.recordId);
+      if (entry.kind === "worktree_lease") {
+        const rows = grouped.get(entry.payload.id) ?? [];
+        rows.push(entry); grouped.set(entry.payload.id, rows);
+      }
+    }
+    for (const intent of Object.values(registry.pending ?? {})) {
+      const holder = intent.record.lease.holder;
+      for (const key of [JSON.stringify(["session", holder.sessionId]), JSON.stringify(["turn", holder.sessionId, holder.turnId])]) {
+        const dependency = dependencies.get(key);
+        if (dependency) pins.add(dependency);
+      }
     }
     for (const [id, entries] of grouped) {
       const record = registry.records[id];

@@ -6,7 +6,7 @@ import type {
   CoordinationMessageQuery,
   CoordinationMessageReceipt,
 } from "./coordination-channel.js";
-import { assertMetadataSafe, projectMetadataExport, coordinationMessageSchema, type CoordinationMessage } from "@consiliency/runtime-provider";
+import { assertMetadataSafe, projectMetadataExport, coordinationMessageSchema, consiliencyLeaseScopeSchema, coordinationMessageTypes, type CoordinationMessage } from "@consiliency/runtime-provider";
 import { z } from "zod";
 import { CoordinationBackendError, coordinationFailureCause, validateCoordinationPage } from "./coordination-channel.js";
 
@@ -58,11 +58,14 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
   }
 
   async list(query: CoordinationMessageQuery = {}): Promise<readonly CoordinationMessage[]> {
+    assertMetadataSafe(query, { inertOnly: true });
     const page = validateCoordinationPage(query);
+    const scope = query.scope === undefined ? undefined : consiliencyLeaseScopeSchema.parse(query.scope);
+    const type = query.type === undefined ? undefined : z.enum(coordinationMessageTypes).parse(query.type);
     const response = await rpcOrThrow<{ readonly messages: CoordinationMessage[] }>(
       this.client,
       "coordination_list_messages",
-      { query: { ...query, ...page } },
+      { query: { scope, type, ...page } },
       (value) => z.object({ messages: z.array(coordinationMessageSchema) }).parse(value),
     );
     return response.messages.map((message) => coordinationMessageSchema.parse(message));

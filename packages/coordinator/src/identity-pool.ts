@@ -7,7 +7,7 @@ import type {
 
 import { createEmptyActiveTurnSnapshot } from "./active-turns.js";
 import { evaluateAdaptiveConcurrency } from "./adaptive-concurrency.js";
-import { evaluateCooldownState, resetBoundCooldownExpired } from "./cooldowns.js";
+import { evaluateCooldownState, effectiveRouteClassification } from "./cooldowns.js";
 import type {
   BuildIdentityPoolInput,
   IdentityPoolMember,
@@ -42,7 +42,9 @@ function buildCandidate(
     ?? 0;
   const activeSessions = status?.activeSessions ?? 0;
   const providerCooldown = providerCooldowns.get(profile.provider);
-  const classification = input.classificationByProvider?.[profile.provider];
+  const classification = effectiveRouteClassification(
+    input.classificationByProfileId && Object.hasOwn(input.classificationByProfileId, profile.id)
+      ? input.classificationByProfileId[profile.id] : input.classificationByProvider?.[profile.provider], profile, Date.parse(input.now!));
   const cooldownState = evaluateCooldownState({
     profile,
     status,
@@ -55,7 +57,7 @@ function buildCandidate(
     baseTarget: profile.maxActiveTurns,
     maxActiveTurns: profile.maxActiveTurns,
     activeTurns,
-    classification: classification !== undefined && resetBoundCooldownExpired(classification.type, classification.resetAt, Date.parse(input.now!)) ? undefined : classification,
+    classification,
     providerHealth,
   });
   const reasons: string[] = [];

@@ -2,7 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { LocalCoordinationChannel } from "@omniagent-plus/state-ledger";
+import { LocalCoordinationChannel, CoordinationBackendError } from "@omniagent-plus/state-ledger";
 import { LocalLeaseStore } from "@omniagent-plus/worktree-leasing";
 import { describe, expect, it } from "vitest";
 
@@ -14,15 +14,15 @@ const scope = {
 };
 
 describe("lease arbiter", () => {
-  it("preserves hard refusal when its advisory notification fails", async () => {
+  it.each(["permission", "capacity", "transport"] as const)("preserves hard refusal when its advisory notification fails with %s", async (cause) => {
     const rootDir = await mkdtemp(join(tmpdir(), "lease-arbiter-notification-"));
     const store = new LocalLeaseStore({ rootDir });
     await store.acquire({ holder: "a", ttlSeconds: 60, mode: "hard", scope, phase: "COORD" });
-    const arbiter = new LeaseArbiter({ store, channel: { send: async () => { throw { status: 403 }; }, list: async () => [] } });
+    const arbiter = new LeaseArbiter({ store, channel: { send: async () => { throw new CoordinationBackendError(cause); }, list: async () => [] } });
     const decision = await arbiter.arbitrate({ taskId: "t", holder: "b", ttlSeconds: 60, mode: "hard", scope, phase: "COORD", sendYieldRequest: true });
     expect(decision.launchAllowed).toBe(false);
     expect(decision.routeDecision.status).toBe("blocked_hard_conflict");
-    expect(decision.notification).toEqual({ sent: false, cause: "permission" });
+    expect(decision.notification).toEqual({ sent: false, cause });
     expect((await store.query()).leases[0]?.holder).toBe("a");
   });
   it("acquires a hard lease and returns route metadata", async () => {

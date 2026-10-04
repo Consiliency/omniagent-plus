@@ -46,6 +46,14 @@ describe.sequential("admitted COORD SQL", () => {
     expect((queried.leases as unknown[]).length).toBe(1);
     expect(await invoke("coordination_renew_lease", { lease_id: request.leaseId, holder: "other", now: "2099-01-01T00:00:00Z" })).toMatchObject({ renewed: false, failure: "not-holder" });
     expect(await invoke("coordination_release_lease", { lease_id: request.leaseId, holder: "other", now: "1970-01-01T00:00:00Z" })).toMatchObject({ released: false, failure: "not-holder" });
+    const snapshot = () => service(`select md5(jsonb_build_object('projection',(select to_jsonb(c) from public.coordination_current_leases c where lease_id='${request.leaseId}'),
+      'events',(select jsonb_agg(to_jsonb(e) order by e.id) from public.coordination_lease_events e where lease_id='${request.leaseId}'))::text)`, true);
+    const before = await snapshot();
+    for (const holderFields of [{}, { holder: null }, { holder: "" }, { holder: 7 }, { holder: {} }]) {
+      expect(await invoke("coordination_renew_lease", { lease_id: request.leaseId, ...holderFields })).toMatchObject({ renewed: false, failure: "not-holder" });
+      expect(await invoke("coordination_release_lease", { lease_id: request.leaseId, ...holderFields })).toMatchObject({ released: false, failure: "not-holder" });
+      expect(await snapshot()).toBe(before);
+    }
     const renewed = await invoke("coordination_renew_lease", { lease_id: request.leaseId, holder: prefix, now: "1970-01-01T00:00:00Z" });
     expect(Math.abs(Date.now() - Date.parse((renewed.lease as { heartbeat_at: string }).heartbeat_at))).toBeLessThan(5000);
     expect(await invoke("coordination_release_lease", { lease_id: request.leaseId, holder: prefix, now: "1970-01-01T00:00:00Z" })).toMatchObject({ released: true });
@@ -121,11 +129,23 @@ describe.sequential("admitted COORD SQL", () => {
     }
     expect(messages).toEqual([...messageIds].reverse());
     await expect(invoke("coordination_query_leases", { limit: 501 })).rejects.toThrow();
+    for (const cursor of [null, {}, { id: "x", extra: "y" }, { timestamp: "2026-10-03T00:00:00Z", extra: "y" }, { timestamp: null, id: "x" }]) {
+      await expect(invoke("coordination_query_leases", { cursor })).rejects.toThrow();
+      await expect(invoke("coordination_list_messages", { cursor })).rejects.toThrow();
+    }
   }, 30_000);
 
   it("COORD-DB-inbox-capacity", async () => {
     const prefix = "coord-capacity-" + randomUUID();
     const scope = { granularity: "path-set", selector: [prefix] };
+    const futureId = prefix + ":future";
+    await service(`insert into public.coordination_inbox_messages(message_id,message_type,sender,scope_kind,scope_selector,payload,created_at)
+      values('${futureId}','done','operator','path-set',array['${prefix}'],${json({ schema: "consiliency.coordination_message.v1", message_id: futureId, type: "done", sender: "operator", scope, created_at: "2099-01-01T00:00:00Z" })},'2099-01-01T00:00:00Z')`);
+    await invoke("coordination_send_message", { type: "done", sender: "operator", scope });
+    const normalized = JSON.parse(await service(`select json_build_object('column',to_char(created_at at time zone 'utc','YYYY-MM-DD"T"HH24:MI:SS"Z"'),'payload',payload->>'created_at')
+      from public.coordination_inbox_messages where message_id='${futureId}'`, true));
+    expect(normalized.column).toBe(normalized.payload);
+    expect(Math.abs(Date.now() - Date.parse(normalized.column))).toBeLessThan(5000);
     await service("update public.coordination_inbox_messages set created_at=clock_timestamp()-interval '8 days'");
     await invoke("coordination_send_message", { type: "done", sender: "operator", scope, now: "2099-01-01T00:00:00Z" });
     await service(`insert into public.coordination_inbox_messages(message_id,message_type,sender,scope_kind,scope_selector,payload,created_at)
