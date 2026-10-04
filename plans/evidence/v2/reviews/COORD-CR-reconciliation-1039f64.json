@@ -1,0 +1,197 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "867a4412dd48219cf98668cd65ec4fbb0abffe34",
+  "review_base": "1039f64c7d36b781b57d7b47a9a58f1e407f5588",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-1039f64.json",
+  "status": "pending_re_review",
+  "findings": [
+    {
+      "id": "launch-detachment",
+      "criteria": [
+        "EC-COORD-1"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Schema-detach requests and decisions, capture provider/store before any lookup or persistence await, then dispatch the validated copy.",
+      "source": [
+        "packages/coordinator/src/launch-gate.ts",
+        "packages/coordinator/src/launch-gate.test.ts"
+      ]
+    },
+    {
+      "id": "ttl-before-effects",
+      "criteria": [
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "CLI route/acquire/renew cap TTL at7200; full route lease construction validates before arbitration. Local acquire/renew/release reject invalid input before physical lock or state creation.",
+      "source": [
+        "packages/cli/src/args.ts",
+        "packages/cli/src/args.test.ts",
+        "packages/cli/src/commands/route-task.ts",
+        "packages/cli/src/route-task.test.ts",
+        "packages/worktree-leasing/src/lease-store.ts",
+        "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+      ]
+    },
+    {
+      "id": "coherent-preferred-replay",
+      "criteria": [
+        "EC-COORD-2"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Persist the complete resolved original profile tuple for provider/harness/identity-only preferences. Historical partial targets never borrow selected fallback fields. Real catalog planner-to-replay checks prefer latest original evidence over older unattributed stops.",
+      "source": [
+        "packages/coordinator/src/route-planner.ts",
+        "packages/coordinator/src/replay.ts",
+        "packages/coordinator/src/replay.test.ts"
+      ]
+    },
+    {
+      "id": "sql-future-full-inbox",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "A tagged capacity refusal commits future timestamp normalization; installed SDK maps it to the bounded existing capacity error. Admitted SQL test combines10000 future rows, capacity refusal, body/ID preservation, durable normalized timestamps and later expiry/admission; concurrent9999 boundary admits exactly one.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts",
+        "packages/state-ledger/src/supabase-coordination-channel.ts",
+        "packages/state-ledger/src/supabase-coordination-channel.test.ts"
+      ]
+    },
+    {
+      "id": "lock-holder-detachment",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Retain metadataSchema.parse output before waiting; mutable holder and toJSON hooks cannot corrupt diagnostic sidecars. Physical SQLite authority unchanged.",
+      "source": [
+        "packages/worktree-leasing/src/locks.ts",
+        "packages/worktree-leasing/src/locks.test.ts"
+      ]
+    },
+    {
+      "id": "custody-determinism",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Launch held-lock fixture using the actual Node vite-node entrypoint, avoiding a pnpm wrapper. Ordinary crash cleanup now has strict zero-rescue posture; independent GUARD owner-death positive controls remain unchanged. Earlier R1 assertion that tagging this fixture establishes deterministic rescue is superseded.",
+      "source": [
+        "packages/worktree-leasing/src/locks.test.ts",
+        "tests/guard/process.test.ts"
+      ]
+    },
+    {
+      "id": "catalog-scope-authority",
+      "criteria": [
+        "EC-COORD-1",
+        "EC-COORD-2"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Real project quota, organization spend, model token and unattributed identity stops remain conservative for matching provider/harness where narrower exclusion cannot be proved. Explicit identity must match; all session-bound evidence is excluded from new routes. Latest known expired classification releases authority without resurrecting older evidence. Source-grounded R2 dissent corrects R1 overbroad scope exclusion.",
+      "source": [
+        "packages/coordinator/src/cooldowns.ts",
+        "packages/coordinator/src/identity-pool.ts",
+        "packages/coordinator/src/route-planner.ts",
+        "packages/coordinator/src/replay.ts",
+        "packages/cli/src/route-task.test.ts",
+        "docs/coordinator-routing.md"
+      ]
+    }
+  ],
+  "optional_dispositions": [
+    {
+      "finding": "Opus S1",
+      "disposition": "promoted_to_blocker_and_fixed",
+      "reason": "SQL future full inbox is an EC violation; repaired transaction-preserving refusal."
+    },
+    {
+      "finding": "Opus S2",
+      "disposition": "fixed",
+      "reason": "ENOTDIR and ELOOP inspection uncertainty quarantine only the prepared key; parent-file regression permits unrelated mutations.",
+      "source": [
+        "packages/worktree-leasing/src/lease-manager.ts",
+        "packages/worktree-leasing/src/coord-durability.test.ts"
+      ]
+    },
+    {
+      "finding": "Opus S3",
+      "disposition": "fixed",
+      "reason": "Invalid local mutation inputs refuse before lock creation, aligned with SDK validation."
+    },
+    {
+      "finding": "Opus S4",
+      "disposition": "retained_defensive_predicate",
+      "reason": "Null cursor is already rejected by SQL validation; the unreachable predicate grants no authority. Removing it would only be optional cleanup."
+    },
+    {
+      "finding": "Opus S5",
+      "disposition": "documented",
+      "reason": "Retry-After docs explicitly name IMF-fixdate, with no new obsolete-date contract.",
+      "source": [
+        "docs/coordinator-routing.md"
+      ]
+    },
+    {
+      "finding": "Opus S6",
+      "disposition": "fixed",
+      "reason": "Persisted classification ledger itself is asserted free of the synthetic secret.",
+      "source": [
+        "packages/cli/src/classify-limit.test.ts"
+      ]
+    },
+    {
+      "finding": "Opus S7",
+      "disposition": "fixed",
+      "reason": "Own-property lookup ignores inherited active counts for a legal constructor profile.",
+      "source": [
+        "packages/coordinator/src/identity-pool.ts",
+        "packages/coordinator/src/identity-pool.test.ts"
+      ]
+    }
+  ],
+  "source_binding": {
+    "docs/coordinator-routing.md": "33a3532a11fcbfc240ae3c8bc98da4e50dc60446b71357d1fa05d77f82441cde",
+    "packages/cli/src/args.test.ts": "d4c3bd1fb46257e5fc908fef03b684325164eed73ac261b52519da0e5170538e",
+    "packages/cli/src/args.ts": "232d23517f77999da3300aae6d643f2fa57aaf04287fbff831b9d7c87027aa1d",
+    "packages/cli/src/classify-limit.test.ts": "8a4f73dace6b6fd6c95257bb0fb4179936a90eea3c6553059d73fb24790107b8",
+    "packages/cli/src/commands/route-task.ts": "7ac4b52acac23a488d83af93e4af18453fcf91d7ab07591228d2996543b13be8",
+    "packages/cli/src/route-task.test.ts": "2b71b833915b469bf168127e8c88828cc80a6c29ce6fb8dc8a91fa520b43e5e9",
+    "packages/coordinator/src/cooldowns.ts": "efb08cf756f91b02f7b6242dbe56b6df5b6348de4cf9d4aa10511391716fe55b",
+    "packages/coordinator/src/identity-pool.test.ts": "e61ea9425293ce87660739979c3f2b268413f2b0a92499dbb5ccbff3e7e2022a",
+    "packages/coordinator/src/identity-pool.ts": "7ea55a39fb0b1d590803ee6c0e1b50f1c7f5f217ea495e11ba3f217f61eec285",
+    "packages/coordinator/src/launch-gate.test.ts": "ef179351d6accf546e18f40bc111870362043f6c77d9129126ad649373e5386c",
+    "packages/coordinator/src/launch-gate.ts": "9b6ed0969aded7ab109bfc7f91ff33b37ec5c8bbc0bd1b9fe492a6169a48cdef",
+    "packages/coordinator/src/replay.test.ts": "4dc174b283c0cc1008e53273d8b79e62f806dac53b33615ffd5f9c41fed742e8",
+    "packages/coordinator/src/replay.ts": "1c64068cb8520e113977df299285629e42037e45b13e65bb175353b6ee10e966",
+    "packages/coordinator/src/route-planner.ts": "ff1bfdf56e3ac841e9a4e26fff30a37d184fd90acb7f1cca1ba945820188720c",
+    "packages/state-ledger/src/supabase-coordination-channel.test.ts": "8bb611691ba6da4d595f28ba60652f6c3de874c4cda3bb558e0185b967a468a0",
+    "packages/state-ledger/src/supabase-coordination-channel.ts": "a1094ec5d953a05612b29be18ec24e0a3edf681607a35114a6c687694f937e5e",
+    "packages/worktree-leasing/src/coord-durability.test.ts": "f4269143b8a75f482791ac2ef142747e5d4abe5f61b34b051c94be235b5d99b1",
+    "packages/worktree-leasing/src/lease-manager.ts": "4e49ec06457bd431b219acd641dc38bb921a6da6ceea14c2b089aee14640ec23",
+    "packages/worktree-leasing/src/lease-store.ts": "438a5f128eb6304016c4163edd977198599480aee7b9ed0cc9b3616ede693399",
+    "packages/worktree-leasing/src/locks.test.ts": "9d402871269bfbf1b50baf7880350fb6c9d251fa9539bf2edfe71a020dc23c65",
+    "packages/worktree-leasing/src/locks.ts": "de57ec3ca985c380b377c4166bbe1e9aac4c8687a68d74610dc2b5c6039bbb00",
+    "packages/worktree-leasing/src/supabase-lease-store.test.ts": "960b79b6a904007b3c8e48d8f08aecb20ef297d2218294559a4477934dd313fb",
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "29d6840f9814b450f64e41ad53d7e9fe54fededcbcfab19713b1772838a0736b",
+    "tests/guard/coordination.integration.db.test.ts": "743b1a1803b7db01a5838d7884c009c84f370dabe6ed7c52bd124cfc0e294397",
+    "tests/guard/process.test.ts": "91dd2f869469486c5b083f2394c437a9ebaacf172dfc0cb64d57b5a11a1e6b19"
+  },
+  "prior_gate_failure": {
+    "source_head": "1039f64c7d36b781b57d7b47a9a58f1e407f5588",
+    "ci_run": 37165496324,
+    "status": "failed",
+    "tests": {
+      "passed": 722,
+      "skipped": 1
+    },
+    "cause": "Owner-death-tagged pnpm lock fixture required1..2 rescued descendants but actual adopted2/natural2/signaled0. Full gate failure is preserved; new source must pass all canonical gates.",
+    "passing_rehearsal_run": 37165496305
+  },
+  "binding": "Repairs remain subject to all required fresh reviews. Recording commit is later metadata, not retroactively measured.",
+  "rule": "All seats finished R2 before repairs. No scope dismissal or gate waiver; current-head hosted full gate, source-bound rehearsal, final observed audit and postmerge main CI remain mandatory."
+}

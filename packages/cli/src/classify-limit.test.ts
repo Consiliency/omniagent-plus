@@ -73,11 +73,10 @@ describe("classify-limit", () => {
     expect(parsed.result.recordMode).toBe(fixture.recordMode);
     expect(parsed.result.classification.provider).toBe(fixture.provider);
     expect(parsed.result.classification.harness).toBe(fixture.harness);
-    expect(parsed.result.classification.rawSignal.stderrExcerpt).toBeUndefined();
-    expect(parsed.result.classification.notes).toContain(
-      "CLI redacted unsafe stderr excerpt.",
-    );
+    expect(parsed.result.classification.rawSignal.stderrExcerpt).toBe("[redacted]");
+    expect(result.stdout).not.toContain("sk-secret-12345678");
     expect(parsed.result.persistedRecord?.recordId.length).toBeGreaterThan(0);
     expect(taskRecords.filter((record) => record.kind === "limit_classification")).toHaveLength(1);
+    expect(JSON.stringify(taskRecords)).not.toContain("sk-secret-12345678");
   });
 });

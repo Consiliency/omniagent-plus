@@ -1,8 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { classifyLimitSignal } from "@omniagent-plus/rate-limit-catalog";
 
 import { buildActiveTurnSnapshot, buildIdentityPool } from "./index.js";
 
 describe("identity pool", () => {
+  it("uses real model rate evidence conservatively while excluding another route's evidence", () => {
+    const profile = { id: "profile", provider: "openai" as const, harness: "codex" as const, authMode: "local_subscription" as const, isolation: "host_env" as const, maxOpenSessions: 2, maxActiveTurns: 3 };
+    const classification = classifyLimitSignal({ provider: "openai", harness: "codex", statusCode: 429, bodyText: "tokens per minute limit" });
+    expect(classification).toMatchObject({ type: "token_rate_limit", scope: "model" });
+    const pool = (evidence: typeof classification) => buildIdentityPool({ profiles: [profile], classificationByProfileId: { profile: evidence } }).candidates[0]!;
+    expect(pool(classification).targetActiveTurns).toBe(2);
+    for (const patch of [{ provider: "google" }, { harness: "claude-code" }, { identityProfileId: "other" }, { sessionId: "other" }]) {
+      expect(pool({ ...classification, ...patch }).targetActiveTurns).toBe(3);
+    }
+  });
+  it("ignores inherited snapshot counts for a legal prototype-named profile", () => {
+    const pool = buildIdentityPool({ profiles: [{ id: "constructor", provider: "openai", harness: "codex", authMode: "local_subscription", isolation: "host_env", maxOpenSessions: 2, maxActiveTurns: 3 }],
+      activeTurns: { totalActiveTurns: 0, byProfileId: {}, byProvider: {}, bySessionId: {} } });
+    expect(pool.candidates[0]?.activeTurns).toBe(0);
+    expect(pool.candidates[0]?.availableTurnSlots).toBe(3);
+  });
   it("orders available candidates ahead of blocked profiles and carries capacity evidence", () => {
     const pool = buildIdentityPool({
       profiles: [

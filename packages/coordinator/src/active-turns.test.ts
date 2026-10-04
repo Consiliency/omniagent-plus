@@ -4,9 +4,53 @@ import {
   buildActiveTurnSnapshot,
   createEmptyActiveTurnSnapshot,
   incrementActiveTurns,
+  decrementActiveTurns,
+  ActiveTurnAccounting,
 } from "./index.js";
 
 describe("active turn accounting", () => {
+  it("settles each turn once across completion, cancellation, failure and retry notifications", () => {
+    const accounting = new ActiveTurnAccounting();
+    const options = { profileId: "constructor", provider: "openai" as const, sessionId: "__proto__" };
+    accounting.begin("turn-1", options);
+    accounting.begin("turn-2", options);
+    for (const _terminal of ["complete", "cancel", "failure", "retry"]) accounting.settle("turn-1", options.sessionId);
+    expect(accounting.snapshot.totalActiveTurns).toBe(1);
+    expect(accounting.snapshot.bySessionId.__proto__).toBe(1);
+    accounting.settle("turn-2", options.sessionId);
+    expect(accounting.snapshot.totalActiveTurns).toBe(0);
+    expect(() => accounting.begin("turn-1", options)).toThrow();
+    expect(() => accounting.settle("unknown")).toThrow();
+    expect(() => decrementActiveTurns(accounting.snapshot, options)).toThrow();
+    for (const delta of [-1, 0.5, NaN, Infinity]) expect(() => incrementActiveTurns(accounting.snapshot, { ...options, delta })).toThrow();
+  });
+  it("owns turn IDs independently in each session and preserves identifier maps across transitions", () => {
+    const accounting = new ActiveTurnAccounting();
+    accounting.begin("same", { profileId: "ordinary", provider: "openai", sessionId: "a" });
+    accounting.begin("same", { profileId: "constructor", provider: "openai", sessionId: "toString" });
+    expect(accounting.snapshot.totalActiveTurns).toBe(2);
+    accounting.settle("same", "a");
+    accounting.settle("same", "a");
+    expect(accounting.snapshot.byProfileId.constructor).toBe(1);
+    expect(accounting.snapshot.bySessionId.toString).toBe(1);
+    accounting.settle("same", "toString");
+    expect(accounting.snapshot.totalActiveTurns).toBe(0);
+    expect(Object.getPrototypeOf(accounting.snapshot.byProfileId)).toBeNull();
+    expect(Object.getPrototypeOf(accounting.snapshot.bySessionId)).toBeNull();
+    const built = incrementActiveTurns(buildActiveTurnSnapshot([]), { profileId: "toString", provider: "openai", sessionId: "__proto__" });
+    expect(built.bySessionId.__proto__).toBe(1);
+    const legacy = incrementActiveTurns({ totalActiveTurns: 0, byProfileId: {}, byProvider: {}, bySessionId: {} }, { profileId: "constructor", provider: "openai", sessionId: "constructor" });
+    expect(legacy.totalActiveTurns).toBe(1);
+  });
+  it("refuses aggregate overflow before publishing counts", () => {
+    const status = { schema: "identity_profile_status.v0.1" as const, profileId: "a", provider: "openai" as const, harness: "codex" as const,
+      status: "ready" as const, checkedAt: "2026-06-30T00:00:00Z", activeSessions: 0, activeTurns: Number.MAX_SAFE_INTEGER };
+    expect(() => buildActiveTurnSnapshot([status, { ...status, profileId: "b", activeTurns: 1 }])).toThrow(/safe integers/);
+    expect(() => buildActiveTurnSnapshot([status, { ...status, profileId: "b", provider: "google", activeTurns: 1 }])).toThrow(/safe integers/);
+    const full = buildActiveTurnSnapshot([status]);
+    expect(() => incrementActiveTurns(full, { profileId: "b", provider: "openai" })).toThrow(/safe integers/);
+    expect(() => incrementActiveTurns({ ...createEmptyActiveTurnSnapshot(), totalActiveTurns: -1 }, { profileId: "a", provider: "openai" })).toThrow();
+  });
   it("aggregates active turns per profile and provider", () => {
     const snapshot = buildActiveTurnSnapshot([
       {

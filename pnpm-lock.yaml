@@ -152,6 +152,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.52.1
         version: 2.110.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
 packages:
 

@@ -1,13 +1,15 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { hostname, tmpdir } from "node:os";
-import { join } from "node:path";
+import { mkdtemp, mkdir, writeFile, readFile, rename } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AppendOnlyStore } from "@omniagent-plus/state-ledger";
 
 import {
   ensureGitWorktree,
+  getCurrentHostIdentity,
   resolveMountedWorkspacePlacement,
   WorktreeLeaseManager,
 } from "@omniagent-plus/worktree-leasing";
@@ -44,6 +46,10 @@ async function createLease(
 ): Promise<{
   readonly stateRoot: string;
   readonly leaseId: string;
+  readonly managedRoot: string;
+  readonly fencingToken: string;
+  readonly path: string;
+  readonly repoRoot: string;
 }> {
   const rootDir = await mkdtemp(join(tmpdir(), "cli-worktrees-"));
   const repoRoot = await createRepo(rootDir);
@@ -63,6 +69,7 @@ async function createLease(
   const stateRoot = join(rootDir, "ledger");
   const manager = await WorktreeLeaseManager.open({
     rootDir: stateRoot,
+    managedRoot: dirname(worktree.path),
   });
   const lease = await manager.acquireLease(
     {
@@ -88,6 +95,10 @@ async function createLease(
   return {
     stateRoot,
     leaseId: lease.lease!.id,
+    managedRoot: dirname(worktree.path),
+    fencingToken: lease.lease!.fencingToken,
+    path: worktree.path,
+    repoRoot,
   };
 }
 
@@ -101,6 +112,49 @@ function readFixture<T>(name: string): T {
 }
 
 describe("worktree commands", () => {
+  afterEach(() => vi.restoreAllMocks());
+  it("reconciles absence without a managed root and refuses deletion without acquisition provenance", async () => {
+    const absent = await createLease(2147483647, getCurrentHostIdentity());
+    runGit(absent.repoRoot, ["worktree", "remove", absent.path]);
+    const ownership = (lease: typeof absent) => ["worktrees", "cleanup", "--lease-id", lease.leaseId, "--state-root", lease.stateRoot,
+      "--holder-process-id", "2147483647", "--holder-host", getCurrentHostIdentity(), "--fencing-token", lease.fencingToken, "--json"];
+    const reconciled = await executeCli(ownership(absent), COMMAND_REGISTRY);
+    expect(reconciled.exitCode).toBe(0);
+    expect(JSON.parse(reconciled.stdout).result).toMatchObject({ deleted: false, reconciled: true, reason: "absent_path_reconciled" });
+    const legacy = await createLease(2147483647, getCurrentHostIdentity());
+    const registryPath = join(legacy.stateRoot, "coordination", "worktree-lease-registry.json");
+    const registry = JSON.parse(await readFile(registryPath, "utf8"));
+    delete registry.records[legacy.leaseId].managedRoot;
+    await writeFile(registryPath, JSON.stringify(registry));
+    const denied = await executeCli([...ownership(legacy), "--managed-root", legacy.managedRoot], COMMAND_REGISTRY);
+    expect(denied.exitCode).toBe(6);
+    expect(JSON.parse(denied.stderr).error.details.result).toMatchObject({ deleted: false, reason: "managed_root_unproven" });
+    expect(await readFile(join(legacy.path, "README.md"), "utf8")).toBe("hello\n");
+  });
+  it("reports actual deletion separately from incomplete release and then reconciles", async () => {
+    const lease = await createLease(2147483647, getCurrentHostIdentity());
+    vi.spyOn(AppendOnlyStore.prototype, "appendRecord").mockRejectedValueOnce(new Error("synthetic release interruption"));
+    const result = await executeCli(["worktrees", "cleanup", "--lease-id", lease.leaseId, "--state-root", lease.stateRoot,
+      "--managed-root", lease.managedRoot, "--holder-process-id", "2147483647", "--holder-host", getCurrentHostIdentity(),
+      "--fencing-token", lease.fencingToken, "--json"], COMMAND_REGISTRY);
+    expect(result.exitCode).toBe(6);
+    expect(JSON.parse(result.stderr).error.details.result).toMatchObject({ deleted: true, releaseIncomplete: true, reason: "cleanup_release_incomplete" });
+    await expect(readFile(join(lease.path, "README.md"))).rejects.toMatchObject({ code: "ENOENT" });
+    const manager = await WorktreeLeaseManager.open({ rootDir: lease.stateRoot });
+    await manager.reconcile();
+    expect((await manager.getStoredLeaseRecord(lease.leaseId))?.status).toBe("released");
+  });
+  it("requires independent cleanup ownership and preserves a replacement path", async () => {
+    const lease = await createLease(2147483647, getCurrentHostIdentity());
+    const missing = await executeCli(["worktrees", "cleanup", "--lease-id", lease.leaseId, "--state-root", lease.stateRoot, "--json"], COMMAND_REGISTRY);
+    expect(missing.exitCode).toBe(2);
+    await rename(lease.path, lease.path + "-original");
+    await mkdir(lease.path);
+    await writeFile(join(lease.path, "sentinel"), "preserve");
+    const result = await executeCli(["worktrees", "cleanup", "--lease-id", lease.leaseId, "--state-root", lease.stateRoot, "--managed-root", lease.managedRoot, "--holder-process-id", "2147483647", "--holder-host", getCurrentHostIdentity(), "--fencing-token", lease.fencingToken, "--json"], COMMAND_REGISTRY);
+    expect(result.exitCode).toBe(6);
+    expect(await readFile(join(lease.path, "sentinel"), "utf8")).toBe("preserve");
+  });
   it("lists active worktree leases from durable state", async () => {
     const fixture = readFixture<{
       count: number;
@@ -141,7 +195,7 @@ describe("worktree commands", () => {
       deleted: boolean;
       reason: string;
     }>("cleanup.json");
-    const stale = await createLease(999999, hostname());
+    const stale = await createLease(2147483647, getCurrentHostIdentity());
     const cleaned = await executeCli(
       [
         "worktrees",
@@ -150,6 +204,10 @@ describe("worktree commands", () => {
         stale.leaseId,
         "--state-root",
         stale.stateRoot,
+        "--managed-root", stale.managedRoot,
+        "--holder-process-id", "2147483647",
+        "--holder-host", getCurrentHostIdentity(),
+        "--fencing-token", stale.fencingToken,
         "--json",
       ],
       COMMAND_REGISTRY,
@@ -174,6 +232,10 @@ describe("worktree commands", () => {
         blocked.leaseId,
         "--state-root",
         blocked.stateRoot,
+        "--managed-root", blocked.managedRoot,
+        "--holder-process-id", String(process.pid),
+        "--holder-host", "display",
+        "--fencing-token", blocked.fencingToken,
         "--json",
       ],
       COMMAND_REGISTRY,

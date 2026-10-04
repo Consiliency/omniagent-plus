@@ -12,6 +12,8 @@ export interface RetentionPolicy {
   readonly pruneKinds?: StateLedgerRecordKind[];
   readonly maxAgeMs?: number;
   readonly keepLatestPerKind?: number;
+  readonly protectedRecordIds?: readonly string[];
+  readonly nonRootKinds?: readonly StateLedgerRecordKind[];
 }
 
 export interface RetentionResult {
@@ -24,13 +26,9 @@ export async function applyRetentionPolicy(
   policy: RetentionPolicy,
   now = new Date(),
 ): Promise<RetentionResult> {
-  const pruneKinds = new Set(policy.pruneKinds ?? stateLedgerRecordKinds);
-  const keepLatestPerKind = policy.keepLatestPerKind ?? 0;
-  const cutoff =
-    policy.maxAgeMs === undefined ? undefined : now.getTime() - policy.maxAgeMs;
   let protectedSequences: Set<number> | undefined;
   const result = await ledger.store.compactRecords((record, snapshot) => {
-    protectedSequences ??= retentionClosure(snapshot, pruneKinds, keepLatestPerKind, cutoff, now.getTime());
+    protectedSequences ??= selectRetentionSequences(snapshot, policy, now);
     return protectedSequences.has(record.sequence);
   });
 
@@ -53,15 +51,21 @@ function entityKey(record: StateLedgerEntry): string {
   }
 }
 
-function retentionClosure(
-  records: readonly StateLedgerEntry[], pruneKinds: Set<StateLedgerRecordKind>,
-  keepLatestPerKind: number, cutoff: number | undefined, now: number,
+export function selectRetentionSequences(
+  records: readonly StateLedgerEntry[], policy: RetentionPolicy, at = new Date(),
 ): Set<number> {
+  const pruneKinds = new Set(policy.pruneKinds ?? stateLedgerRecordKinds);
+  const nonRoots = new Set(policy.nonRootKinds ?? []);
+  const pins = new Set(policy.protectedRecordIds ?? []);
+  const keepLatestPerKind = policy.keepLatestPerKind ?? 0;
+  const now = at.getTime();
+  const cutoff = policy.maxAgeMs === undefined ? undefined : now - policy.maxAgeMs;
   const latest = new Map<string, StateLedgerEntry>();
   for (const record of records) latest.set(entityKey(record), record);
-  const keep = new Set(records.filter((record) => !pruneKinds.has(record.kind)
-    || cutoff === undefined || Date.parse(record.recordedAt) >= cutoff).map((record) => record.sequence));
+  const keep = new Set(records.filter((record) => pins.has(record.recordId) || (!nonRoots.has(record.kind)
+    && (!pruneKinds.has(record.kind) || cutoff === undefined || Date.parse(record.recordedAt) >= cutoff))).map((record) => record.sequence));
   for (const kind of pruneKinds) {
+    if (nonRoots.has(kind)) continue;
     for (const record of records.filter((record) => record.kind === kind).slice(-keepLatestPerKind || records.length)) {
       if (keepLatestPerKind > 0) keep.add(record.sequence);
     }
@@ -72,6 +76,7 @@ function retentionClosure(
   const tasks = new Set<string>();
   const requests = new Set<string>();
   for (const record of latest.values()) {
+    if (nonRoots.has(record.kind)) continue;
     if (record.kind === "session" && !["closed", "failed"].includes(record.payload.state)) sessions.add(record.payload.id);
     if (record.kind === "turn" && !["cancelled", "timed_out", "completed", "failed"].includes(record.payload.state)) {
       turns.add(JSON.stringify([record.payload.sessionId, record.payload.turnId]));
@@ -97,10 +102,10 @@ function retentionClosure(
     for (const record of records) {
       const scopedSession = record.kind === "session" ? record.payload.id : record.sessionId;
       const turn = JSON.stringify([record.sessionId, record.turnId]);
-      const protectedHistory = (scopedSession && sessions.has(scopedSession)) || turns.has(turn)
+      const protectedHistory = !nonRoots.has(record.kind) && ((scopedSession && sessions.has(scopedSession)) || turns.has(turn)
         || (record.taskId && tasks.has(record.taskId))
         || (record.kind === "worktree_lease" && leases.has(record.payload.id))
-        || (record.kind === "approval_request" && requests.has(JSON.stringify([record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId])));
+        || (record.kind === "approval_request" && requests.has(JSON.stringify([record.payload.sessionId, record.payload.turnId, record.payload.approvalRequestId]))));
       if (protectedHistory) {
         if (!keep.has(record.sequence)) { keep.add(record.sequence); changed = true; }
       }

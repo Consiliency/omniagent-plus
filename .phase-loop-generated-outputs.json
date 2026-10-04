@@ -1,0 +1,14 @@
+{
+  "schema": "phase-loop.generated-outputs.v1",
+  "producers": [
+    {
+      "name": "build",
+      "command": ["pnpm", "build"],
+      "outputs": [
+        "packages/core-contracts/dist/**",
+        "packages/governed-pipeline-adapter/dist/**",
+        "packages/omnigent-transport/dist/**"
+      ]
+    }
+  ]
+}

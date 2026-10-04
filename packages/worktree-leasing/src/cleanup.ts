@@ -1,118 +1,79 @@
-import { rm } from "node:fs/promises";
-
+import { resolve } from "node:path";
 import type { WorktreeLease } from "@consiliency/runtime-provider";
-
-import { removeGitWorktree } from "./git.js";
-import { checkProcessLiveness } from "./process-liveness.js";
-import type { WorktreeLeaseManager } from "./lease-manager.js";
-import type { CleanupLeaseOptions, CleanupResult } from "./types.js";
-
-function blockedCleanup(
-  lease: WorktreeLease,
-  reason: string,
-  details: Record<string, string | boolean>,
-): CleanupResult {
-  return {
-    deleted: false,
-    reason,
-    metadataOnlyEvidence: {
-      leaseId: lease.id,
-      branchName: lease.branchName,
-      repoId: lease.repoId,
-      ...details,
-    },
-  };
-}
+import { inspectWorktreeDirtyState, readGitBranch, removeGitWorktree, readGitWorktreeRegistration, verifyGitWorktreeRepository } from "./git.js";
+import { checkProcessLiveness, getCurrentHostIdentity } from "./process-liveness.js";
+import { readPathIdentity, samePathIdentity, type WorktreeLeaseManager } from "./lease-manager.js";
+import { WorktreeLeasingError, type CleanupLeaseOptions, type CleanupResult } from "./types.js";
 
 export async function cleanupLeasedWorktree(
-  manager: WorktreeLeaseManager,
-  lease: WorktreeLease,
-  options: CleanupLeaseOptions & {
-    readonly repoRoot?: string;
-    readonly worktreePath?: string;
-  },
+  manager: WorktreeLeaseManager, lease: WorktreeLease,
+  options: CleanupLeaseOptions & { readonly repoRoot?: string; readonly worktreePath?: string },
 ): Promise<CleanupResult> {
-  const record = await manager.getStoredLeaseRecord(lease.id);
-  if (record === undefined || record.status !== "active") {
-    return blockedCleanup(lease, "lease_not_active", {
-      active: false,
-    });
-  }
-
-  if (record.lease.fencingToken !== options.activeFencingToken) {
-    return blockedCleanup(lease, "fencing_token_mismatch", {
-      activeTokenMatches: false,
-    });
-  }
-
-  if (lease.mode === "read_only" && options.allowReadOnlyCleanup !== true) {
-    return blockedCleanup(lease, "read_only_reviewer", {
-      mode: lease.mode,
-    });
-  }
-
-  const dirtyState = options.dirtyState ?? record.lease.dirtyState;
-  if (dirtyState === "unknown") {
-    return blockedCleanup(lease, "unknown_dirty_state", {
-      dirtyState,
-    });
-  }
-
-  if (dirtyState === "dirty") {
-    return blockedCleanup(lease, "dirty_worktree", {
-      dirtyState,
-    });
-  }
-
-  const processLiveness =
-    options.processLiveness ??
-    checkProcessLiveness({
-      processId: record.lease.holder.processId,
-      holderHost: record.lease.holder.host,
-      currentHost: options.currentHost,
-    });
-  if (processLiveness.state === "alive") {
-    return blockedCleanup(lease, "active_process", {
-      holderHost: processLiveness.holderHost,
-      currentHost: processLiveness.currentHost,
-    });
-  }
-
-  if (processLiveness.state === "different_host") {
-    return blockedCleanup(lease, "different_host", {
-      holderHost: processLiveness.holderHost,
-      currentHost: processLiveness.currentHost,
-    });
-  }
-
-  if (options.branchMatches === false) {
-    return blockedCleanup(lease, "branch_diverged", {
-      branchMatches: false,
-    });
-  }
-
-  if (options.repoRoot !== undefined) {
-    await removeGitWorktree(options.repoRoot, options.worktreePath ?? lease.path);
-  } else {
-    await rm(options.worktreePath ?? lease.path, {
-      recursive: true,
-      force: true,
-    });
-  }
-
-  await manager.releaseLease(lease, {
-    now: options.now,
+  const blocked = (reason: string): CleanupResult => ({
+    deleted: false, reason, metadataOnlyEvidence: { leaseId: lease.id, repoId: lease.repoId, branchName: lease.branchName },
   });
-
-  return {
-    deleted: true,
-    reason: "cleanup_complete",
-    metadataOnlyEvidence: {
-      leaseId: lease.id,
-      branchName: lease.branchName,
-      repoId: lease.repoId,
-      worktreePath: options.worktreePath ?? lease.path,
-      metadataOnly: true,
-    },
-  };
+  try {
+    return await manager.withCleanup(lease, async (record, controls) => {
+      const current = record.lease;
+      if (current.fencingToken !== options.activeFencingToken) return blocked("fencing_token_mismatch");
+      if (current.mode === "read_only" && options.allowReadOnlyCleanup !== true) return blocked("read_only_reviewer");
+      if (options.dirtyState === "unknown") return blocked("unknown_dirty_state");
+      if (options.dirtyState === "dirty") return blocked("dirty_worktree");
+      if (options.processLiveness?.state === "alive") return blocked("active_process");
+      if (options.processLiveness?.state === "different_host") return blocked("different_host");
+      if (options.processLiveness?.state === "unknown") return blocked("unknown_process");
+      if (options.branchMatches === false) return blocked("branch_diverged");
+      if (!options.holder || options.holder.processId !== current.holder.processId || options.holder.host !== current.holder.host
+        || options.holder.sessionId !== current.holder.sessionId || options.holder.turnId !== current.holder.turnId) return blocked("holder_mismatch");
+      if (options.currentHost !== getCurrentHostIdentity()) return blocked("different_host");
+      if (options.worktreePath !== undefined && resolve(options.worktreePath) !== resolve(current.path)
+        || options.repoRoot !== undefined && resolve(options.repoRoot) !== resolve(record.repoRoot ?? "")) return blocked("path_override");
+      const live = checkProcessLiveness({ processId: current.holder.processId, holderHost: current.holder.host });
+      const identity = await readPathIdentity(resolve(current.path));
+      if (!record.repoRoot) return blocked("repo_root_unproven");
+      const registration = await readGitWorktreeRegistration(record.repoRoot, resolve(current.path));
+      if (registration && registration.branchName !== current.branchName) return blocked("branch_diverged");
+      const now = options.now ?? new Date().toISOString();
+      if (!identity) {
+        const selfHolder = current.holder.host === getCurrentHostIdentity() && current.holder.processId === process.pid && live.state === "alive";
+        if (live.state !== "missing" && !selfHolder) return blocked(live.state === "alive" ? "active_process" : live.state === "different_host" ? "different_host" : "unknown_process");
+        await controls.release(now);
+        return { deleted: false, reconciled: true, reason: "absent_path_reconciled",
+          metadataOnlyEvidence: { leaseId: current.id, deleted: false, reconciled: true } };
+      }
+      if (live.state !== "missing") return blocked(live.state === "alive" ? "active_process" : live.state === "different_host" ? "different_host" : "unknown_process");
+      try { await controls.validatePath(); }
+      catch (error) { if (error instanceof WorktreeLeasingError) return blocked(error.code); throw error; }
+      if (!record.pathIdentity || !samePathIdentity(record.pathIdentity, identity)) return blocked("path_identity_unproven");
+      if (!registration || !await verifyGitWorktreeRepository(record.repoRoot, identity.path)) return blocked("unregistered_worktree");
+      const dirty = await inspectWorktreeDirtyState(identity.path);
+      if (dirty !== "clean") return blocked(dirty === "dirty" ? "dirty_worktree" : "unknown_dirty_state");
+      if (await readGitBranch(identity.path) !== current.branchName) return blocked("branch_diverged");
+      const checked = await readPathIdentity(identity.path);
+      if (!checked || !samePathIdentity(identity, checked)) return blocked("path_identity_changed");
+      await controls.stageRemoval(identity, now);
+      let deleted = false;
+      try {
+        const finalRegistration = await readGitWorktreeRegistration(record.repoRoot, identity.path);
+        const finalLiveness = checkProcessLiveness({ processId: current.holder.processId, holderHost: current.holder.host });
+        if (finalRegistration?.branchName !== current.branchName || finalLiveness.state !== "missing"
+          || await inspectWorktreeDirtyState(identity.path) !== "clean" || await readGitBranch(identity.path) !== current.branchName
+          || !await verifyGitWorktreeRepository(record.repoRoot, identity.path)) throw new WorktreeLeasingError("cleanup_recheck_failed", "Cleanup authority changed before removal.");
+        const finalIdentity = await readPathIdentity(identity.path);
+        if (!finalIdentity || !samePathIdentity(identity, finalIdentity)) throw new WorktreeLeasingError("path_identity_changed", "Cleanup path identity changed.");
+        await removeGitWorktree(record.repoRoot, identity.path);
+        deleted = true;
+        await controls.markRemovalDone();
+        await controls.release(now);
+      } catch {
+        return { deleted, releaseIncomplete: true, reason: deleted ? "cleanup_release_incomplete" : "cleanup_effect_uncertain",
+          metadataOnlyEvidence: { leaseId: current.id, deleted, releaseIncomplete: true } };
+      }
+      return { deleted: true, reason: "cleanup_complete", metadataOnlyEvidence: { leaseId: current.id, worktreePath: identity.path, metadataOnly: true } };
+    });
+  } catch (error) {
+    if (error instanceof WorktreeLeasingError) return blocked(error.code);
+    if (error instanceof Error && "code" in error && ["EACCES", "EPERM"].includes(String(error.code))) return blocked("path_permission_unknown");
+    throw error;
+  }
 }

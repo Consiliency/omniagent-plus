@@ -11,7 +11,8 @@ import type {
   RouteDecision,
 } from "@consiliency/runtime-provider";
 
-import { explainRouteDecision, replayTaskRouting } from "./index.js";
+import { classifyLimitSignal } from "@omniagent-plus/rate-limit-catalog";
+import { buildIdentityPool, planRoute, explainRouteDecision, replayTaskRouting } from "./index.js";
 
 interface ReplayFixture {
   readonly decision: RouteDecision;
@@ -31,6 +32,44 @@ function readReplayFixture(): ReplayFixture {
 }
 
 describe("route replay", () => {
+  it.each(["provider", "harness", "identity"])("replays the resolved original profile after a %s-only fallback preference", async (preference) => {
+    const classification = { ...classifyLimitSignal({ provider: "openai", harness: "codex", statusCode: 429, bodyText: "quota exceeded until reset" }), identityProfileId: "original" };
+    const identityPool = buildIdentityPool({ profiles: [
+      { id: "original", provider: "openai", harness: "codex", authMode: "local_subscription", isolation: "host_env", maxOpenSessions: 2, maxActiveTurns: 2 },
+      { id: "fallback", provider: "google", harness: "gemini-antigravity", authMode: "local_subscription", isolation: "host_env", maxOpenSessions: 2, maxActiveTurns: 2 },
+    ], classificationByProfileId: { original: classification }, now: "2026-06-30T00:00:00Z" });
+    const decision = planRoute({ taskId: "task", identityPool, latestClassification: classification,
+      ...(preference === "provider" ? { preferredProvider: "openai" } : preference === "harness" ? { preferredHarness: "codex" } : { preferredIdentityProfileId: "original" }),
+      portability: { level: "high", score: 1, migrateAcrossProviders: true, reasons: [] } }).decision;
+    expect(decision.selectedIdentityProfileId).toBe("fallback");
+    expect(decision.preferredTarget).toEqual({ provider: "openai", harness: "codex", identityProfileId: "original" });
+    const unrelated = classifyLimitSignal({ provider: "openai", harness: "codex", statusCode: 401, bodyText: "invalid api key" });
+    const reader = { listTaskRecords: async () => [
+      { kind: "limit_classification", payload: unrelated },
+      { kind: "limit_classification", payload: classification },
+      { kind: "route_decision", payload: decision },
+    ] };
+    expect((await replayTaskRouting(reader, "task"))[0]?.explanation).toContain("limit evidence fixed_window_usage_cap");
+    expect((await replayTaskRouting(reader, "task"))[0]?.explanation).not.toContain("limit evidence auth_or_billing_problem");
+    const partial = { ...decision, preferredTarget: { provider: "openai" } };
+    expect((await replayTaskRouting({ listTaskRecords: async () => [{ kind: "limit_classification", payload: classification }, { kind: "route_decision", payload: partial }] }, "task"))[0]?.explanation).not.toContain("limit evidence");
+  });
+  it("uses only preceding matching classifications and rejects malformed history", async () => {
+    const fixture = readReplayFixture();
+    const records = [
+      { kind: "route_decision", payload: fixture.decision },
+      { kind: "limit_classification", payload: fixture.classification },
+      { kind: "route_decision", payload: fixture.decision },
+      { kind: "limit_classification", payload: { ...fixture.classification, provider: "anthropic", type: "unknown_limit" } },
+      { kind: "route_decision", payload: fixture.decision },
+    ];
+    const reader = { listTaskRecords: async () => records };
+    const replay = await replayTaskRouting(reader, fixture.decision.taskId);
+    expect(replay[0]?.explanation).not.toContain("limit evidence");
+    expect(replay[1]?.explanation).toContain("limit evidence fixed_window_usage_cap");
+    expect(replay[2]?.explanation).not.toContain("unknown_limit");
+    await expect(replayTaskRouting({ listTaskRecords: async () => [{ kind: "limit_classification", payload: {} }] }, fixture.decision.taskId)).rejects.toThrow();
+  });
   it("replays a task with provider, cooldown, portability, and evidence rationale", async () => {
     const fixture = readReplayFixture();
     const ledger = await AuditLedger.open({

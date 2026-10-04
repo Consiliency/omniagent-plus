@@ -1,0 +1,262 @@
+{
+  "schema": "coord-upstream-recheck.v1",
+  "checked_at": "2026-10-03T20:26:34.202785+00:00",
+  "client_date": "2026-10-03",
+  "reviewed_repo_head": "92002845cf11ad4bec3f2bc44a0e70c5f06ac466",
+  "approved_plan_source_sha": "9430610d83c58f4891f1a7a06e5805941931d181",
+  "approved_plan_sha256": "810a63da7b61236ae6ad8f294fdf3b59d19edec7ffea0be1aac6d0ac2795f6bb",
+  "roadmap_sha256": "ceb903000c4b4ffc9859e5ee6078e1d0ba95a3350e5317978e2e1cdea4f0ae74",
+  "decision": "COORD product design remains applicable; incorporate execution-tooling requirements before implementation and refresh WIRE accommodation separately.",
+  "approval_scope": "Original plan/review evidence is retained unchanged. This recheck is not independent panel approval, implementation acceptance or a runtime upgrade.",
+  "implementation_started": false,
+  "human_required": false,
+  "repository_upstream": {
+    "main_sha": "b576d921f999fe514959bc0e3989e9271bb8449c",
+    "coord_pr": "Consiliency/omniagent-plus#32",
+    "coord_pr_head": "92002845cf11ad4bec3f2bc44a0e70c5f06ac466",
+    "changed_since_approval": false
+  },
+  "required_execution_amendments": [
+    {
+      "id": "REVIEW-GROUNDING",
+      "source": "https://github.com/Consiliency/agent-harness/pull/1205",
+      "merged_at": "2026-10-01T21:11:57Z",
+      "requirement": "For source-by-reference board runs, pass pointer_brief=True/--pointer-brief, retain prelaunch seat notices/source_grounded and count only source-grounded passing seats. Retain dissent from ungrounded seats. Manual tool-enabled Opus/Gemini remain separate exact-source reviews; do not count unbound sessions as harness seats.",
+      "observed_gap": "Both system tooling/current and user installed audit runtime lack pointer_brief; prior review_data.py uses older checkout and omits it.",
+      "action": "Qualify a current supported agent-harness runtime in an isolated environment before next implementation panel; update the external review launcher to the current API, verify source access and record runtime identity. Do not silently reuse the old helper or upgrade global/shared tooling as part of this inspection."
+    },
+    {
+      "id": "CLOSEOUT-PROVENANCE",
+      "source": "https://github.com/Consiliency/agent-harness/pull/1189",
+      "merged_at": "2026-10-03T03:15:54Z",
+      "requirement": "Run phase-loop-closeout-audit --repo . --record-outputs --phase COORD with a current runtime. Ignored dist outputs need committed bounded producer declarations and observed current-head/current-phase production; ignoring bytes is insufficient.",
+      "action": "During execution-plan refresh, assign .phase-loop-generated-outputs.json to SL-0 and declaration/producer controls to appropriate existing verification owners. Declare actual pnpm build outputs, commit declaration before observed production and retain exact source/phase receipts. Preserve DATA/GUARD custody separately; audit approval is not product verification.",
+      "observed_gap": "Installed user audit lacks explicit --phase; repo has ignored dist output and no committed producer declaration."
+    },
+    {
+      "id": "REVIEW-OBSERVABILITY",
+      "source": "https://github.com/Consiliency/agent-harness/pull/1194",
+      "merged_at": "2026-10-03T17:20:20Z",
+      "requirement": "Use current provider-turn/stall/owner-question diagnostics; terminal provider give-up is not approval. Monitoring policy remains explicit; do not count partial output or invent complete verdicts.",
+      "action": "Carry this behavior through current-runtime qualification, preserving manual TUI/tool review requirements."
+    }
+  ],
+  "omnigent": {
+    "supported_authority": "v0.12.0",
+    "latest_stable": "v0.16.0",
+    "tag_commit": "82a74473ee4c01163c4269f4296b10a158f0e47e",
+    "github_published_at": "2026-09-29T20:34:22Z",
+    "pypi_version": "0.16.0",
+    "pypi_published_at": "2026-09-29T19:22:26.786239Z",
+    "sources": [
+      "https://github.com/omnigent-ai/omnigent/releases/tag/v0.16.0",
+      "https://omnigent.ai/releases/0.16.0",
+      "https://pypi.org/pypi/omnigent/json"
+    ],
+    "openapi": {
+      "operations": 118,
+      "paths": 89,
+      "schemas": 163,
+      "stream_events": 55,
+      "canonical_json_sha256": "b1800ab7cd3ac649b77f27b50bb42e68a0d13afa2ed4aa9aa080105e13bd3e15"
+    },
+    "v015_candidate_pr": "Consiliency/omniagent-plus#30",
+    "v015_candidate_head": "aee2df42ebdd5679664477c9b2c754e6eb5942ea",
+    "v015_candidate_status": "OPEN, not accepted or merged; preserve existing worktrees",
+    "v015_to_v016": {
+      "base": "v0.15.0",
+      "target": "v0.16.0",
+      "added_operations": [
+        "GET /v1/sessions/{session_id}/sign-in-link"
+      ],
+      "removed_operations": [],
+      "added_events": [],
+      "removed_events": [],
+      "changed_schemas": [
+        "ErrorData",
+        "ErrorDetail",
+        "SetSharingRequest"
+      ]
+    },
+    "wire_actions": [
+      "Reconcile/reuse existing v0.15 candidate work rather than duplicate transport edits; refresh tagged stable v0.16 probes, fixtures, mapping/drop dispositions and packed consumers in separate WIRE accommodation. Do not adopt dev main.",
+      "ErrorData adds optional title/cause/remediation, ErrorDetail adds optional undelivered, SetSharingRequest adds default_public_sessions; sign-in-link endpoint is administration, not authority.",
+      "Test informational errors versus terminal failure, undelivered/reconnect uncertainty and zero automatic mutation resend. Treat cause/remediation/sign-in material as untrusted content and potentially sensitive; preserve DATA metadata projection.",
+      "Release breaking changes include preference/snapshot byte limits and owner-only MCP/bundle changes; do not infer Consiliency approval/lease capability or grant ownership from them."
+    ],
+    "coord_disposition": "No new local lease authority or frozen schema requirement. Current v0.12 authority remains until separately reviewed accommodation; v0.16 existed before approval but was absent from approved branch."
+  },
+  "published_contract": {
+    "pinned": "0.6.3",
+    "latest": "0.6.5",
+    "latest_published": "2026-07-09T07:44:48.013Z",
+    "source": "https://github.com/Consiliency/consiliency-contract/releases/tag/v0.6.5",
+    "coord_schema_git_blob_ids_unchanged": {
+      "core/schemas/coordination-channel-protocol.schema.json": "51a5b4fd7816b28e3107651e37882dc61bf365ca",
+      "core/schemas/coordination-scenario.schema.json": "a07472c0f9a7333724ddb7fcb7c136c3722e586c",
+      "core/schemas/lease-event.schema.json": "a73d6d66dd867d7afdd4c7ee30623b80ab43497e",
+      "core/schemas/lease-store-protocol.schema.json": "1d3bd4268087fcc0c6291f32e2f838177985601d",
+      "core/schemas/lease.schema.json": "896c6e92e2c46f10231ecfcd5229a41f2174ec50"
+    },
+    "disposition": "0.6.4 parity certificate and0.6.5 protected-source categories are older additive releases; no COORD lease/channel schema changes, retain pin."
+  },
+  "npm_dependency_observations": [
+    {
+      "package": "@consiliency/contract",
+      "pinned": "0.6.3",
+      "pinned_published": "2026-07-07T07:24:45.826Z",
+      "latest": "0.6.5",
+      "latest_published": "2026-07-09T07:44:48.013Z",
+      "same_major_latest": "0.6.5",
+      "same_major_published": "2026-07-09T07:44:48.013Z",
+      "latest_engines": {
+        "node": ">=18"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Consiliency/consiliency-contract.git"
+      },
+      "source": "https://registry.npmjs.org/@consiliency%2fcontract",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "@supabase/supabase-js",
+      "pinned": "2.110.1",
+      "pinned_published": "2026-07-07T12:23:39.898Z",
+      "latest": "2.117.2",
+      "latest_published": "2026-09-25T10:08:51.684Z",
+      "same_major_latest": "2.117.2",
+      "same_major_published": "2026-09-25T10:08:51.684Z",
+      "latest_engines": {
+        "node": ">=22.0.0"
+      },
+      "repository": {
+        "url": "https://github.com/supabase/supabase-js.git",
+        "type": "git",
+        "directory": "packages/core/supabase-js"
+      },
+      "source": "https://registry.npmjs.org/@supabase%2fsupabase-js",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "zod",
+      "pinned": "3.25.76",
+      "pinned_published": "2025-07-08T09:10:18.684Z",
+      "latest": "4.6.5",
+      "latest_published": "2026-09-13T23:25:14.644Z",
+      "same_major_latest": "3.25.76",
+      "same_major_published": "2025-07-08T09:10:18.684Z",
+      "latest_engines": null,
+      "repository": {
+        "url": "git+https://github.com/colinhacks/zod.git",
+        "type": "git"
+      },
+      "source": "https://registry.npmjs.org/zod",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "typescript",
+      "pinned": "5.9.3",
+      "pinned_published": "2025-09-30T21:19:38.784Z",
+      "latest": "7.0.2",
+      "latest_published": "2026-07-08T15:55:18.431Z",
+      "same_major_latest": "5.9.3",
+      "same_major_published": "2025-09-30T21:19:38.784Z",
+      "latest_engines": {
+        "node": ">=16.20.0"
+      },
+      "repository": {
+        "url": "git+https://github.com/microsoft/TypeScript.git",
+        "type": "git"
+      },
+      "source": "https://registry.npmjs.org/typescript",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "vitest",
+      "pinned": "3.2.6",
+      "pinned_published": "2026-06-01T09:39:03.561Z",
+      "latest": "5.0.3",
+      "latest_published": "2026-09-30T11:30:42.429Z",
+      "same_major_latest": "3.2.7",
+      "same_major_published": "2026-07-06T06:36:21.782Z",
+      "latest_engines": {
+        "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+      },
+      "repository": {
+        "url": "git+https://github.com/vitest-dev/vitest.git",
+        "type": "git",
+        "directory": "packages/vitest"
+      },
+      "source": "https://registry.npmjs.org/vitest",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "vite-node",
+      "pinned": "3.2.4",
+      "pinned_published": "2025-06-17T17:53:59.165Z",
+      "latest": "6.0.0",
+      "latest_published": "2026-03-13T14:41:46.760Z",
+      "same_major_latest": "3.2.4",
+      "same_major_published": "2025-06-17T17:53:59.165Z",
+      "latest_engines": {
+        "node": "^20.19.0 || >=22.12.0"
+      },
+      "repository": {
+        "url": "git+https://github.com/antfu-collective/vite-node.git",
+        "type": "git"
+      },
+      "source": "https://registry.npmjs.org/vite-node",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "pnpm",
+      "pinned": "11.1.1",
+      "pinned_published": "2026-05-12T11:03:54.837Z",
+      "latest": "12.8.1",
+      "latest_published": "2026-09-28T17:38:17.288Z",
+      "same_major_latest": "11.28.3",
+      "same_major_published": "2026-09-30T15:27:28.430Z",
+      "latest_engines": {
+        "node": ">=18.*"
+      },
+      "repository": {
+        "url": "https://github.com/pnpm/pnpm",
+        "type": "git",
+        "directory": "pnpm/npm/pnpm"
+      },
+      "source": "https://registry.npmjs.org/pnpm",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    },
+    {
+      "package": "yaml",
+      "pinned": "2.8.1",
+      "pinned_published": "2025-08-05T13:19:28.985Z",
+      "latest": "2.9.1",
+      "latest_published": "2026-09-11T20:30:10.905Z",
+      "same_major_latest": "2.9.1",
+      "same_major_published": "2026-09-11T20:30:10.905Z",
+      "latest_engines": {
+        "node": ">= 14.6"
+      },
+      "repository": {
+        "url": "git+https://github.com/eemeli/yaml.git",
+        "type": "git"
+      },
+      "source": "https://registry.npmjs.org/yaml",
+      "disposition": "Retain frozen COORD dependency; evaluate compatible updates in PREP with targeted/full verification. Major toolchain upgrades are separate changes."
+    }
+  ],
+  "dependency_limit": "Release/compatibility review only, not a complete vulnerability audit or evidence that every transitive dependency is secure. Observed latest/same-major releases predate original approval; do not infer required upgrade merely from availability.",
+  "governed_pipeline": {
+    "source": "https://github.com/Consiliency/governed-pipeline/commit/d2e4f378c537566d590cbac2953feac0139b0139",
+    "change": "GP-101 intervention invocation registry/reader hardening after approval",
+    "disposition": "No direct runtime dependency in omniagent-plus adapter; intervention authority is not a COORD lease API. Preserve existing adapter boundary and reassess at INTEG."
+  },
+  "next_actions": [
+    "Amend only execution/preflight ownership and verification requirements, then review that amendment before production edits; retain original approval and dissent honestly.",
+    "Qualify current installed/isolated harness and by-reference launcher before next review.",
+    "Execute COORD serially after the preflight amendment is admitted; handle Omnigent v0.16 through WIRE, dependency refresh through PREP."
+  ],
+  "verification_scope": "Read-only GitHub/registry/PyPI/tagged OpenAPI inspection plus digest/schema equality checks. No tests, installs, builds, migration, implementation or release executed."
+}

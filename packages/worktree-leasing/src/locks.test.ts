@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, stat, rename } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnOwned as spawn, runProcess, waitReady, waitExit, cleanupChild } from "../../../tests/helpers/guard-process.js";
 
 import { describe, expect, it } from "vitest";
@@ -42,8 +43,8 @@ function writeChildScript(rootDir: string): string {
       async (metadata) => {
         if (process.env.LOCK_HOLD_OPEN === "1") {
           console.log(JSON.stringify({ acquired: true, metadata }));
-          await new Promise((resolve) => {
-            process.stdin.once("data", () => resolve(undefined));
+          await new Promise(() => {
+            process.stdin.once("data", () => process.exit(0));
           });
         }
         return metadata;
@@ -64,14 +65,56 @@ function writeChildScript(rootDir: string): string {
 }
 
 describe("locks", () => {
+  it("publishes detached validated holder diagnostics despite hooks and mutation while waiting", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "worktree-lock-detached-"));
+    const backend = new FilesystemLockBackend({ rootDir });
+    const original = readFixture().exclusiveWrite.holder;
+    let unblock!: () => void;
+    let entered!: () => void;
+    const ready = new Promise<void>((resolve) => { entered = resolve; });
+    const held = backend.withExclusiveLock("detached", original, async () => {
+      entered();
+      await new Promise<void>((resolve) => { unblock = resolve; });
+    });
+    await ready;
+    let hooks = 0;
+    const holder = { ...original, toJSON() { hooks += 1; return { processId: 0 }; } };
+    const pending = backend.withExclusiveLock("detached", holder, async (metadata) => metadata);
+    holder.host = "mutated";
+    unblock();
+    await held;
+    expect((await pending).holder).toEqual(original);
+    expect((await backend.readLockMetadata("detached"))?.holder).toEqual(original);
+    expect(hooks).toBe(0);
+  });
+  it("rejects replacement of its permanent inode while the callback is running", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "worktree-lock-replacement-"));
+    const backend = new FilesystemLockBackend({ rootDir });
+    await expect(backend.withExclusiveLock("replacement", readFixture().exclusiveWrite.holder, async (metadata) => {
+      await rename(metadata.lockPath, metadata.lockPath + "-displaced");
+    })).rejects.toThrow();
+  });
+  it("preserves undefined results and propagates callback EEXIST exactly once", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "worktree-lock-return-"));
+    const backend = new FilesystemLockBackend({ rootDir });
+    const holder = readFixture().exclusiveWrite.holder;
+    await expect(backend.withExclusiveLock("return", holder, async () => undefined)).resolves.toBeUndefined();
+    let calls = 0;
+    const failure = Object.assign(new Error("callback collision"), { code: "EEXIST" });
+    await expect(backend.tryExclusiveLock("return", holder, async () => {
+      calls += 1;
+      throw failure;
+    }, { timeoutMs: 25 })).rejects.toBe(failure);
+    expect(calls).toBe(1);
+  });
   it("proves atomic cross-process lock acquisition and durable holder metadata", async () => {
     const fixture = readFixture();
     const rootDir = await mkdtemp(join(tmpdir(), "worktree-locks-"));
     const scriptPath = writeChildScript(rootDir);
     const resourceId = "worktree-lock";
     const holdingChild = spawn(
-      "pnpm",
-      ["exec", "vite-node", "--script", scriptPath],
+      process.execPath,
+      [fileURLToPath(new URL("../../../node_modules/vite-node/vite-node.mjs", import.meta.url)), "--script", scriptPath],
       {
         cwd: process.cwd(),
         env: {
@@ -124,8 +167,13 @@ describe("locks", () => {
     };
     expect(secondAttempt.acquired).toBe(false);
 
-    holdingChild.stdin.end("\n");
+    const inode = (await stat(metadata!.lockPath)).ino;
+    holdingChild.stdin.end("crash");
     expect(await waitExit(holdingChild)).toBe(0);
+    const afterCrash = await backend.tryExclusiveLock(resourceId, fixture.exclusiveWrite.holder, async () => undefined);
+    expect(afterCrash.acquired).toBe(true);
+    expect(afterCrash.metadata?.fencingToken).not.toBe(metadata!.fencingToken);
+    expect((await stat(metadata!.lockPath)).ino).toBe(inode);
     } finally { await cleanupChild(holdingChild); }
   }, 50_000);
 });

@@ -38,7 +38,7 @@ function normalizeFamily(value: string | undefined): string | undefined {
   }
 
   const slug = value.trim().toLowerCase().replace(/\s+/g, "-");
-  return providerAliases[slug] ?? slug;
+  return Object.hasOwn(providerAliases, slug) ? providerAliases[slug] : slug;
 }
 
 export function normalizeProviderFamily(provider: string | undefined): string | undefined {
@@ -56,7 +56,7 @@ export function classifyProviderSignal(input: ClassifierInput): LimitClassificat
     return classification;
   }
 
-  const note = providerNotes[provider];
+  const note = Object.hasOwn(providerNotes, provider) ? providerNotes[provider] : undefined;
   if (!note) {
     return classification;
   }

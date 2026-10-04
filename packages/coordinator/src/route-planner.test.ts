@@ -26,6 +26,40 @@ function readRoutingFixture(): RoutingFixture {
 }
 
 describe("route planner", () => {
+  it("rejects an empty identity pool", () => {
+    expect(() => planRoute({ taskId: "t", identityPool: { evaluatedAt: "2026-06-30T00:00:00Z", candidates: [] } })).toThrow(/at least one candidate/);
+  });
+  it("removes expired classifications from every routing and account-switch decision", () => {
+    const fixture = readRoutingFixture();
+    const classification = { ...fixture.poolInput.classificationByProvider!.openai!, routingAction: {
+      ...fixture.poolInput.classificationByProvider!.openai!.routingAction, sameProviderAccountSwitch: "allowed_by_policy" as const,
+    } };
+    for (const unavailable of [false, true]) {
+      const identityPool = buildIdentityPool({ ...fixture.poolInput, now: "2027-01-01T00:00:00Z", classificationByProvider: { openai: classification },
+        statuses: fixture.poolInput.statuses?.map((status) => ({ ...status, activeSessions: unavailable && status.provider === "openai" ? 2 : status.activeSessions })),
+      });
+      const planned = planRoute({ taskId: "t", identityPool, preferredProvider: "openai", preferredHarness: "codex", latestClassification: classification,
+        portability: { level: "high", score: 1, migrateAcrossProviders: true, reasons: [] },
+      });
+      expect(planned.decision.fallbackUsed).toBe(false);
+      expect(planned.decision.routeReason).toBe("capability_fit");
+      expect(planned.decision.cooldownState?.sameProviderAccountSwitch).toBe("forbidden");
+      expect(planned.decision.launchGate?.action).toBe(unavailable ? "blocked" : "allowed");
+    }
+  });
+  it("rejects unknown and contradictory preferred tuples instead of substituting an override", () => {
+    const identityPool = buildIdentityPool(readRoutingFixture().poolInput);
+    expect(() => planRoute({ taskId: "t", identityPool, preferredIdentityProfileId: "missing" })).toThrow(/preferred/);
+    expect(() => planRoute({ taskId: "t", identityPool, preferredIdentityProfileId: "profile-google-primary", preferredProvider: "openai" })).toThrow(/preferred/);
+    expect(() => planRoute({ taskId: "t", identityPool, preferredHarness: "claude-code" })).toThrow(/preferred/);
+  });
+  it("allows expired reset-bound preferences despite stale adaptive classifications", () => {
+    const fixture = readRoutingFixture();
+    const identityPool = buildIdentityPool({ ...fixture.poolInput, now: "2027-01-01T00:00:00Z" });
+    const planned = planRoute({ taskId: "t", identityPool, preferredIdentityProfileId: fixture.preferred.identityProfileId, preferredProvider: "openai", preferredHarness: "codex" });
+    expect(planned.decision.launchGate?.action).toBe("allowed");
+    expect(planned.decision.fallbackUsed).toBe(false);
+  });
   it("routes high-portability work to another provider family when policy allows", () => {
     const fixture = readRoutingFixture();
     const identityPool = buildIdentityPool(fixture.poolInput);

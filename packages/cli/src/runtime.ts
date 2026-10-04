@@ -32,9 +32,11 @@ export interface ExecuteCliResult {
   readonly envelope: CliEnvelope;
 }
 
-function fallbackStateRoot(cwd: string): string {
+function fallbackStateRoot(cwd: string, argv: readonly string[]): string {
   try {
-    const request = parseCliArgs(["health"], cwd);
+    const index = argv.indexOf("--state-root");
+    const supplied = index >= 0 ? argv[index + 1] : argv.find((token) => token.startsWith("--state-root="))?.slice("--state-root=".length);
+    const request = parseCliArgs(supplied === undefined ? ["health"] : ["health", "--state-root", supplied], cwd);
     return request.stateRoot;
   } catch {
     return cwd;
@@ -46,13 +48,19 @@ export async function executeCli(
   registry: readonly CliCommandRegistration[],
   options: {
     readonly cwd?: string;
+    readonly hostEnv?: Readonly<Record<string, string | undefined>>;
   } = {},
 ): Promise<ExecuteCliResult> {
   const cwd = options.cwd ?? process.cwd();
   let command = "unknown";
-  let stateRoot = fallbackStateRoot(cwd);
+  let stateRoot = fallbackStateRoot(cwd, argv);
 
   try {
+    const known = registry.map((entry) => entry.key).sort((a, b) => b.length - a.length).find((key) => {
+      const parts = key.split(" ");
+      return argv.some((token, index) => token === parts[0] && parts.every((part, offset) => argv[index + offset] === part));
+    });
+    if (known !== undefined) command = known;
     const request = parseCliArgs(argv, cwd);
     command = request.command;
     stateRoot = request.stateRoot;
@@ -71,6 +79,7 @@ export async function executeCli(
       stateRoot: request.stateRoot,
       profilesDir: request.profilesDir,
       availableCommands,
+      hostEnv: options.hostEnv,
     };
     const result = await handler.handle(request, context);
     const envelope = createSuccessEnvelope(request.command, request.stateRoot, result);

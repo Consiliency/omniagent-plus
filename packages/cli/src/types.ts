@@ -41,6 +41,7 @@ export interface CliContext {
   readonly stateRoot: string;
   readonly profilesDir: string;
   readonly availableCommands: readonly CliCommandInfo[];
+  readonly hostEnv?: Readonly<Record<string, string | undefined>>;
 }
 
 export const persistedRecordSchema = z.object({
@@ -226,9 +227,12 @@ export const worktreesCleanupResultSchema = z.object({
   deleted: z.boolean(),
   reason: z.string().min(1),
   metadataOnlyEvidence: cleanupEvidenceSchema,
+  reconciled: z.boolean().optional(),
+  releaseIncomplete: z.boolean().optional(),
 });
 
 export const coordinationBackendSchema = z.enum(["local", "supabase"]);
+const backendCauseSchema = z.enum(["authentication", "permission", "timeout", "transport", "validation", "malformed-response", "unavailable", "capacity"]);
 
 const coordinationLeaseSummarySchema = consiliencyLeaseSchema.extend({
   expires_at: z.string().datetime({ offset: true }),
@@ -248,6 +252,7 @@ export const coordinationLeasesAcquireResultSchema = z.object({
   lease: coordinationLeaseSummarySchema.optional(),
   conflict: coordinationLeaseSummarySchema.optional(),
   failure: z.string().min(1).optional(),
+  cause: backendCauseSchema.optional(),
 });
 
 export const coordinationLeasesRenewResultSchema = z.object({
@@ -256,6 +261,7 @@ export const coordinationLeasesRenewResultSchema = z.object({
   renewed: z.boolean(),
   lease: coordinationLeaseSummarySchema.optional(),
   failure: z.string().min(1).optional(),
+  cause: backendCauseSchema.optional(),
 });
 
 export const coordinationLeasesReleaseResultSchema = z.object({
@@ -263,6 +269,7 @@ export const coordinationLeasesReleaseResultSchema = z.object({
   backend: coordinationBackendSchema,
   released: z.boolean(),
   failure: z.string().min(1).optional(),
+  cause: backendCauseSchema.optional(),
 });
 
 export const coordinationInboxSendResultSchema = z.object({
@@ -311,6 +318,8 @@ export const routeTaskResultSchema = z.object({
   portability: portabilitySummarySchema,
   routeDecision: routeDecisionSchema,
   persistedRecord: persistedRecordSchema.optional(),
+  coordinationCause: backendCauseSchema.optional(),
+  coordinationNotification: z.object({ sent: z.boolean(), cause: backendCauseSchema.optional() }).optional(),
 });
 
 export const commandResultSchema = z.discriminatedUnion("schema", [

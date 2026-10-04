@@ -4,6 +4,24 @@ import { CliError } from "./errors.js";
 import { parseCliArgs } from "./args.js";
 
 describe("argument parsing", () => {
+  it("enforces the contract TTL ceiling for route, acquire and renew", () => {
+    for (const prefix of [
+      ["route-task", "--task-id", "t", "--coordination-ttl-seconds"],
+      ["coordination", "leases", "acquire", "--holder", "h", "--scope", "repo:r", "--mode", "hard", "--ttl-seconds"],
+      ["coordination", "leases", "renew", "--lease-id", "l", "--holder", "h", "--ttl-seconds"],
+    ]) {
+      expect(() => parseCliArgs([...prefix, "7201"])).toThrow(CliError);
+      expect(() => parseCliArgs([...prefix, "7200"])).not.toThrow();
+    }
+  });
+  it("rejects fractional, trailing, negative and overflowing integer arguments and invalid page cursors", () => {
+    for (const count of ["1.5", "1junk", "-1", "Infinity", "9007199254740992"]) expect(() => parseCliArgs(["identities", "preflight", "p", "--active-turns", count])).toThrow(CliError);
+    for (const limit of ["0", "501", "2.5"]) expect(() => parseCliArgs(["coordination", "inbox", "list", "--limit", limit])).toThrow(CliError);
+    expect(() => parseCliArgs(["worktrees", "list", "--cursor", "{}"])) .toThrow(CliError);
+    const cursor = { timestamp: "2026-10-03T00:00:00.123Z", id: "id" };
+    const page = parseCliArgs(["worktrees", "list", "--limit", "1", "--cursor", JSON.stringify(cursor)]);
+    expect("cursor" in page && page.cursor).toEqual(cursor);
+  });
   it("parses global state-root/json flags for health", () => {
     const parsed = parseCliArgs([
       "--json",

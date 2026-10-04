@@ -1,9 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir } from "node:fs/promises";
-import { open, readFile, unlink } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { nowIsoString } from "@omniagent-plus/state-ledger";
+import { nowIsoString, withFilesystemLock, writeJsonAtomic } from "@omniagent-plus/state-ledger";
+import { worktreeLeaseSchema } from "@consiliency/runtime-provider";
+import { z } from "zod";
 
 import {
   WorktreeLeasingError,
@@ -13,11 +14,12 @@ import {
   type LockHolderIdentity,
 } from "./types.js";
 
-async function sleep(milliseconds: number): Promise<void> {
-  await new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
-  });
-}
+const metadataSchema = z.object({
+  resourceId: z.string().min(1), fencingToken: z.string().min(1),
+  holder: worktreeLeaseSchema.innerType().shape.holder,
+  acquiredAt: z.string().datetime({ offset: true }), expiresAt: z.string().datetime({ offset: true }),
+  lockPath: z.string().min(1),
+}).strict();
 
 function buildLockFileName(resourceId: string): string {
   return `${createHash("sha256").update(resourceId).digest("hex")}.lock`;
@@ -57,7 +59,7 @@ export class FilesystemLockBackend {
       options,
     );
 
-    if (!attempt.acquired || attempt.result === undefined) {
+    if (!attempt.acquired) {
       throw new WorktreeLeasingError(
         "lock_acquisition_failed",
         `Failed to acquire durable lock for ${resourceId}.`,
@@ -65,7 +67,7 @@ export class FilesystemLockBackend {
       );
     }
 
-    return attempt.result;
+    return attempt.result as T;
   }
 
   async tryExclusiveLock<T>(
@@ -74,52 +76,32 @@ export class FilesystemLockBackend {
     callback: (metadata: DurableLockMetadata) => Promise<T>,
     options: LockAttemptOptions = {},
   ): Promise<LockAttemptResult<T>> {
-    await mkdir(this.rootDir, { recursive: true });
-
     const retryMs = options.retryMs ?? this.retryMs;
     const timeoutMs = options.timeoutMs ?? this.timeoutMs;
     const now = options.now ?? nowIsoString();
     const ttlSeconds = options.ttlSeconds ?? 300;
     const lockPath = join(this.rootDir, buildLockFileName(resourceId));
-    const metadata: DurableLockMetadata = {
+    const metadata: DurableLockMetadata = metadataSchema.parse({
       resourceId,
       fencingToken: randomUUID(),
       holder,
       acquiredAt: now,
       expiresAt: buildExpiresAt(now, ttlSeconds),
       lockPath,
-    };
-    const deadline = Date.now() + timeoutMs;
-
-    while (true) {
-      try {
-        const handle = await open(lockPath, "wx");
-        try {
-          await handle.writeFile(`${JSON.stringify(metadata, null, 2)}\n`, "utf8");
-          const result = await callback(metadata);
-          return {
-            acquired: true,
-            metadata,
-            result,
-          };
-        } finally {
-          await handle.close();
-          await unlink(lockPath).catch(() => undefined);
-        }
-      } catch (error) {
-        const lockBusy =
-          error instanceof Error && "code" in error && error.code === "EEXIST";
-        if (!lockBusy) {
-          throw error;
-        }
-        if (Date.now() >= deadline) {
-          return {
-            acquired: false,
-            metadata: await this.readLockMetadata(resourceId),
-          };
-        }
-        await sleep(retryMs);
+    });
+    if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0) throw new WorktreeLeasingError("invalid_ttl", "Lock TTL must be a positive whole number.");
+    let entered = false;
+    try {
+      return await withFilesystemLock(lockPath, async () => {
+        entered = true;
+        await writeJsonAtomic(`${lockPath}.holder.json`, metadata);
+        return { acquired: true, metadata, result: await callback(metadata) };
+      }, { retryMs, timeoutMs });
+    } catch (error) {
+      if (!entered && error instanceof Error && error.message === "Timed out waiting for state-ledger lock.") {
+        return { acquired: false, metadata: await this.readLockMetadata(resourceId) };
       }
+      throw error;
     }
   }
 
@@ -129,9 +111,9 @@ export class FilesystemLockBackend {
     const lockPath = join(this.rootDir, buildLockFileName(resourceId));
 
     try {
-      return JSON.parse(
-        await readFile(lockPath, "utf8"),
-      ) as DurableLockMetadata;
+      const metadata = metadataSchema.parse(JSON.parse(await readFile(`${lockPath}.holder.json`, "utf8")));
+      if (metadata.resourceId !== resourceId || metadata.lockPath !== lockPath) throw new WorktreeLeasingError("invalid_lock_metadata", "Lock diagnostic identity does not match.");
+      return metadata;
     } catch (error) {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return undefined;

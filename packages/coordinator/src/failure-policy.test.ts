@@ -41,7 +41,7 @@ describe("failure policy", () => {
     expect(decision.allowRetry).toBe(false);
     expect(decision.action).toBe("pause_provider_family");
     expect(decision.providerCooldown?.provider).toBe("openai");
-    expect(decision.retryAfterSeconds).toBe(600);
+    expect(decision.retryAfterSeconds).toBe(300);
   });
 
   it("forces manual review for auth and billing failures", () => {

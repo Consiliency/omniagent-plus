@@ -1,0 +1,83 @@
+{
+  "schema": "manual-phase-closeout.v1",
+  "phase": "COORD",
+  "status": "accepted_implementation_awaiting_merge_closeout",
+  "acceptance_route": "manual_exact_head_pull_request",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/32",
+  "candidate_evidence": "plans/evidence/v2/COORD.json",
+  "implementation_source_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+  "verification_status": "passed_at_implementation_head",
+  "verification_artifact_path": "plans/evidence/v2/COORD.json",
+  "verification_summary": "Current source canonical hosted full gate and source-bound rehearsal passed, including strict custody, SQL metadata parity and nonmutating inbox refusal. Actual publication skipped.",
+  "spec_delta": {
+    "schema": "spec_delta_closeout.v1",
+    "decision": "no_spec_delta",
+    "target_surfaces": [
+      "docs/coordination-backend.md",
+      "docs/coordinator-routing.md",
+      "docs/worktree-leasing.md",
+      "docs/local-operator-cli.md"
+    ],
+    "redaction_posture": "metadata_only",
+    "downstream_handling": "INTEG consumes bounded settlement/replay ownership; WIRE remains independent; no external canon edit."
+  },
+  "doc_delta_decision": "docs_updated",
+  "produced_if_gates": [
+    "IF-0-COORD-4a",
+    "IF-0-COORD-4b",
+    "IF-0-COORD-4c",
+    "IF-0-COORD-4d"
+  ],
+  "gate_status": "accepted_all_required_production_reviews",
+  "merge_gates": [
+    "four source-grounded agent-harness Astra/Sol seats",
+    "separate independent",
+    "manual tools-enabled Opus5.5 subscription TUI",
+    "manual tools-enabled Gemini",
+    "current final-HEAD hosted required checks and rehearsal",
+    "current final-HEAD observed producer audit",
+    "post-merge main CI"
+  ],
+  "issue_inventory": [
+    "Consiliency/omniagent-plus#23",
+    "Consiliency/omniagent-plus#24"
+  ],
+  "issue_dispositions": [
+    {
+      "issue_id": "Consiliency/omniagent-plus#23",
+      "phase": "COORD",
+      "disposition": "closed",
+      "owner": "codex-execute-phase"
+    },
+    {
+      "issue_id": "Consiliency/omniagent-plus#24",
+      "phase": "COORD",
+      "disposition": "closed",
+      "owner": "codex-execute-phase"
+    }
+  ],
+  "issue_application": "Planned for authorized merge; not a claim that currently open issues have closed.",
+  "branch_protection": "optional by solo-owner decision",
+  "merged_sha": null,
+  "remaining": [
+    "Final metadata HEAD canonical checks/rehearsal and observed producer audit",
+    "Authorized merge and postmerge main CI",
+    "Apply enrolled issue dispositions and prune only merged clean worktrees"
+  ],
+  "recorded_at": "2026-10-04T04:26:28.720812+00:00",
+  "production_review_source_sha": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+  "production_review_record": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json",
+  "automation": {
+    "status": "executed",
+    "human_required": false,
+    "next_phase": "WIRE",
+    "next_skill": "codex-plan-phase",
+    "next_command": "codex-plan-phase specs/phase-plans-v2.md WIRE",
+    "next_model_hint": "plan",
+    "next_effort_hint": "high",
+    "artifact": "plans/phase-plan-v2-COORD.md",
+    "artifact_state": "tracked",
+    "remaining": "Final metadata HEAD checks/audit, authorized merge and postmerge main CI before terminal complete handoff."
+  },
+  "reflection_path": "/home/viperjuice/.codex/skills/codex-execute-phase/reflections/e93c45cc5899/codex-v2-coord-20260930/20261004-COORD-accepted-b9b5d38.md"
+}

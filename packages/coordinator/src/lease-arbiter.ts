@@ -1,3 +1,4 @@
+import { coordinationFailureCause, type BackendFailureCause } from "@omniagent-plus/state-ledger";
 import type {
   CoordinationMessageInput,
   CoordinationChannel,
@@ -6,6 +7,7 @@ import type {
   LeaseAcquireRequest,
   LeaseStore,
 } from "@omniagent-plus/worktree-leasing";
+import { createLeaseFromAcquireRequest } from "@omniagent-plus/worktree-leasing";
 import type { RouteDecisionLeaseArbitration } from "@consiliency/runtime-provider";
 
 export interface LeaseArbitrationRequest extends LeaseAcquireRequest {
@@ -18,6 +20,8 @@ export interface LeaseArbitrationDecision {
   readonly acquired: boolean;
   readonly launchAllowed: boolean;
   readonly inboxMessage?: CoordinationMessageInput;
+  readonly cause?: BackendFailureCause;
+  readonly notification?: { readonly sent: boolean; readonly cause?: BackendFailureCause };
 }
 
 export class LeaseArbiter {
@@ -36,7 +40,14 @@ export class LeaseArbiter {
   async arbitrate(
     request: LeaseArbitrationRequest,
   ): Promise<LeaseArbitrationDecision> {
-    const result = await this.store.acquire(request);
+    const now = request.now;
+    const lease = createLeaseFromAcquireRequest({ ...request, now });
+    request = { leaseId: lease.lease_id, holder: lease.holder, ttlSeconds: lease.ttl_seconds,
+      mode: lease.mode, scope: lease.scope, phase: lease.phase, now,
+      taskId: request.taskId, sendYieldRequest: request.sendYieldRequest };
+    let result;
+    try { result = await this.store.acquire(request); }
+    catch (error) { result = { granted: false as const, failure: "backend-unavailable" as const, cause: coordinationFailureCause(error) }; }
 
     if (result.granted && result.lease !== undefined) {
       return {
@@ -56,6 +67,7 @@ export class LeaseArbiter {
       return {
         acquired: false,
         launchAllowed: request.mode === "soft",
+        cause: result.cause ?? "unavailable",
         routeDecision: {
           status: "coordination_unavailable",
           mode: request.mode,
@@ -94,14 +106,20 @@ export class LeaseArbiter {
             now: request.now,
           }
         : undefined;
+    let notification: LeaseArbitrationDecision["notification"];
     if (inboxMessage !== undefined) {
-      await this.channel?.send(inboxMessage);
+      if (this.channel === undefined) notification = { sent: false, cause: "unavailable" };
+      else {
+        try { await this.channel.send(inboxMessage); notification = { sent: true }; }
+        catch (error) { notification = { sent: false, cause: coordinationFailureCause(error) }; }
+      }
     }
 
     return {
       acquired: false,
       launchAllowed: false,
       inboxMessage,
+      notification,
       routeDecision: {
         status: "blocked_hard_conflict",
         mode: "hard",

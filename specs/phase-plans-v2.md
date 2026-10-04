@@ -203,11 +203,11 @@ Make routing, worktree mutation, and off-device ownership decisions accurate
 under expiry, crash, clock skew, and backend failure.
 
 **Exit criteria**
-- [ ] EC-COORD-1 - Expired cooldowns unblock appropriately, unknown preferences are explicit, and send-turn checks the established session identity before dispatch.
-- [ ] EC-COORD-2 - One bounded retry/settlement policy handles Retry-After dates, negatives, hard stops, and balanced active-turn counts; diagnostics follow DATA content rules.
-- [ ] EC-COORD-3 - Cleanup proves managed path, registration, independent holder/fence, liveness, and dirty state; missing directories reconcile to released metadata with durable transition and cleared registry collision, without Git pruning or bypassing future acquisition checks. Corrupt state cannot authorize acquisition. Worktree locks pass DATA-equivalent initialized-identity, blocked-unprovable-lock and replacement-race fault cases.
-- [ ] EC-COORD-4 - Disposable PostgreSQL with migration roles proves server-time expiry, atomic concurrent hard acquire, holder-only renew/release, and crash-consistent event/projection replay. Worktree atomic writes satisfy DATA's supported fsync ordering. COORD separately freezes and tests the Supabase RPC wrapper harness and CLI-2 error mapping; SQL-only or mocked-client tests are not hosted Supabase acceptance. Local/fleet lease contracts remain distinct.
-- [ ] EC-COORD-5 - CLI dry-run/record/arbitrate effects and bounded inbox/query behavior are explicit; the CLI lane proves unknown-option rejection and known-option acceptance including route-task (CASE-CLI-4/CASE-CC-4); obsolete coordination APIs have a tested migration or retained ownership decision.
+- [x] EC-COORD-1 - Expired cooldowns unblock appropriately, unknown preferences are explicit, and send-turn checks the established session identity before dispatch.
+- [x] EC-COORD-2 - One bounded retry/settlement policy handles Retry-After dates, negatives, hard stops, and balanced active-turn counts; diagnostics follow DATA content rules.
+- [x] EC-COORD-3 - Cleanup proves managed path, registration, independent holder/fence, liveness, and dirty state; missing directories reconcile to released metadata with durable transition and cleared registry collision, without Git pruning or bypassing future acquisition checks. Corrupt state cannot authorize acquisition. Worktree locks pass DATA-equivalent initialized-identity, blocked-unprovable-lock and replacement-race fault cases.
+- [x] EC-COORD-4 - Disposable PostgreSQL with migration roles proves server-time expiry, atomic concurrent hard acquire, holder-only renew/release, and crash-consistent event/projection replay. Worktree atomic writes satisfy DATA's supported fsync ordering. COORD separately freezes and tests the Supabase RPC wrapper harness and CLI-2 error mapping; SQL-only or mocked-client tests are not hosted Supabase acceptance. Local/fleet lease contracts remain distinct.
+- [x] EC-COORD-5 - CLI dry-run/record/arbitrate effects and bounded inbox/query behavior are explicit; the CLI lane proves unknown-option rejection and known-option acceptance including route-task (CASE-CLI-4/CASE-CC-4); obsolete coordination APIs have a tested migration or retained ownership decision.
 
 **Scope notes**
 Decompose into 3 lanes: coordinator/rate limits; worktree registry/cleanup;

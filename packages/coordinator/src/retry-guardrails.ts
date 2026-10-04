@@ -8,6 +8,13 @@ import type {
 export function evaluateRetryGuardrails(
   input: RetryGuardrailInput,
 ): RetryGuardrailDecision {
+  for (const count of [input.repeatedFailures, input.maxRepeatedFailures ?? 0]) {
+    if (!Number.isSafeInteger(count) || count < 0) throw new TypeError("Retry counts must be nonnegative safe integers");
+  }
+  if (["auth", "billing", "policy_denied", "approval_required", "approval_denied"].includes(input.failure.category)
+    || input.idempotencySafe === false || (input.mutation === true && input.idempotencySafe !== true)) {
+    return { allowRetry: false, action: "manual_review", reason: "Failure or mutation requires manual review before retry" };
+  }
   if (input.classification !== undefined) {
     const result = applyRetryGuardrails({
       classification: input.classification,
@@ -16,6 +23,7 @@ export function evaluateRetryGuardrails(
     });
 
     if (result.allowRetry) {
+      if (!input.failure.retryable) return { allowRetry: false, action: "manual_review", reason: "Runtime failure is not retryable" };
       return {
         allowRetry: true,
         action:
@@ -63,7 +71,8 @@ export function evaluateRetryGuardrails(
     case "timeout":
     case "concurrency_limit":
     case "rate_limit":
-      if (input.repeatedFailures >= (input.maxRepeatedFailures ?? 2)) {
+      if (!input.failure.retryable) return { allowRetry: false, action: "manual_review", reason: "Runtime failure is not retryable" };
+      if (input.repeatedFailures >= Math.min(input.maxRepeatedFailures ?? 2, 2)) {
         return {
           allowRetry: false,
           action: "route_new_work_elsewhere",
@@ -74,6 +83,7 @@ export function evaluateRetryGuardrails(
         allowRetry: true,
         action: "retry_same_session",
         reason: "retryable runtime failure",
+        retryAfterSeconds: Math.min(300, 2 ** Math.min(9, input.repeatedFailures)),
       };
     default:
       return {

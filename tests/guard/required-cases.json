@@ -1,5 +1,15 @@
 {
   "setup": ["GUARD-SQL-positive", "GUARD-SQL-creation-cleanup", "GUARD-SQL-unreachable", "GUARD-SQL-invalid-migration", "GUARD-SQL-missing-role", "GUARD-SQL-privilege", "GUARD-SQL-missing-function", "GUARD-SQL-stale", "GUARD-SQL-superuser"],
-  "integration": ["GUARD-DB-probe", "GUARD-DB-default-identity"],
+  "integration": ["GUARD-DB-probe", "GUARD-DB-default-identity", "COORD-DB-privileges", "COORD-DB-clock-and-holder", "COORD-DB-concurrent-hard", "COORD-DB-rollback", "COORD-DB-expiry", "COORD-DB-query-pages", "COORD-DB-inbox-capacity", "COORD-DB-history-capacity"],
+  "sources": {
+    "COORD-DB-privileges": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-clock-and-holder": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-concurrent-hard": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-rollback": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-expiry": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-query-pages": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-inbox-capacity": "tests/guard/coordination.integration.db.test.ts",
+    "COORD-DB-history-capacity": "tests/guard/coordination.integration.db.test.ts"
+  },
   "commands": { "verify": ["setup", "integration"], "test:guard": ["setup", "integration"], "test:integration": ["integration"], "test": [] }
 }

@@ -1,0 +1,37 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-b9b5d38.json",
+  "status": "approved_all_seven_grounded",
+  "findings": [],
+  "prior_findings": "All R1 through R7 repairs independently rechecked; all seven current reviewers AGREE. Historical failed attempts and dissent remain unchanged. No continuing issue waived.",
+  "optional_dispositions": [
+    {
+      "id": "opus-specific-error-condition-name",
+      "disposition": "not_required_for_current_contract",
+      "reason": "The current program-limit category handler revalidates the entire original grammar before admission. The reviewer judged the more specific 54001 condition name equivalent for current behavior and non-blocking. No parser admission or metadata policy changes are required."
+    },
+    {
+      "id": "opus-future-jsonb-stack-window",
+      "disposition": "continuing_compatibility_scope",
+      "issue": "omniagent-plus#27",
+      "reason": "The reviewer measured the actual complete current function on the pinned PostgreSQL17.6 image: 243 stack-window probes passed, with the guarded JSON syntax cast exhausting first. A different top-level call site or future PostgreSQL/stack configuration can differ. PREP must reassess this before changing the supported SQL runtime; this is no waiver of a current regression or license to broaden authority."
+    },
+    {
+      "id": "opus-explicit-reader-rejection-assertions",
+      "disposition": "existing_evidence_sufficient",
+      "reason": "The admitted SQL controls already require deep valid metadata refusal without any inbox mutation, while actual frozen-reader comparisons from the independent reviewers and narrow SQL probes verify refusal parity in both directions. Extra mirrored assertions are optional; all reviewers approved current acceptance."
+    }
+  ],
+  "measured_current_gates": {
+    "source_head": "b9b5d3800fd6b81af7033bc409076c2044a2315d",
+    "ci_run": 37175911488,
+    "rehearsal_run": 37175911503,
+    "hosted_full": {"passed": 743, "skipped": 1},
+    "focused_integration": {"passed": 10, "skipped": 0},
+    "local_root": {"passed": 722, "skipped": 1},
+    "observed_producer_audit": "passed",
+    "publication": "skipped"
+  },
+  "remaining": ["Final acceptance metadata HEAD verification/rehearsal/audit", "Authorized merge and postmerge main CI", "Issue dispositions and merged-clean worktree pruning"]
+}

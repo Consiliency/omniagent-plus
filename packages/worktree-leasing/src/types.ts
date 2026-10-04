@@ -75,12 +75,54 @@ export interface StoredLeaseRecord {
   readonly status: "active" | "released";
   readonly releasedAt?: string;
   readonly updatedAt: string;
+  readonly managedRoot?: PathIdentity;
+  readonly pathIdentity?: PathIdentity;
+}
+
+export interface PathIdentity {
+  readonly path: string;
+  readonly dev: number;
+  readonly ino: number;
+}
+
+export interface PendingLeaseMutation {
+  readonly recordId: string;
+  readonly record: StoredLeaseRecord;
+  readonly operation: "acquire" | "renew" | "release" | "remove";
+  readonly removal?: {
+    readonly identity: PathIdentity;
+    readonly state: "prepared" | "removal_done";
+  };
+}
+
+export interface LeaseReclamationIntent {
+  readonly recordIds: readonly string[];
+  readonly leaseIds: readonly string[];
+  readonly watermarks: Readonly<Record<string, string>>;
+}
+
+export interface LeasePageOptions {
+  readonly limit?: number;
+  readonly cursor?: { readonly timestamp: string; readonly id: string };
+}
+
+export interface WorktreeLeaseManagerOptions {
+  readonly rootDir: string;
+  readonly managedRoot?: string;
+  readonly readOnly?: boolean;
+  readonly defaultTtlSeconds?: number;
+  readonly lockRetryMs?: number;
+  readonly lockTimeoutMs?: number;
+  readonly maxSnapshotBytes?: number;
 }
 
 export interface WorktreeLeaseRegistry {
   schema: "worktree_lease_registry.v0.1";
   updatedAt: string;
   records: Record<string, StoredLeaseRecord>;
+  pending?: Record<string, PendingLeaseMutation>;
+  reclamation?: LeaseReclamationIntent;
+  reclaimedThrough?: Record<string, string>;
 }
 
 export interface RenewWorktreeLeaseOptions {
@@ -126,7 +168,7 @@ export interface DiffSummary {
 }
 
 export interface ProcessLivenessResult {
-  readonly state: "alive" | "missing" | "different_host";
+  readonly state: "alive" | "missing" | "different_host" | "unknown";
   readonly processId: number;
   readonly holderHost: string;
   readonly currentHost: string;
@@ -153,6 +195,7 @@ export interface StaleRecoveryDecision {
 export interface CleanupLeaseOptions {
   readonly currentHost: string;
   readonly activeFencingToken: string;
+  readonly holder?: LockHolderIdentity;
   readonly processLiveness?: ProcessLivenessResult;
   readonly dirtyState?: WorktreeLease["dirtyState"];
   readonly branchMatches?: boolean;
@@ -162,6 +205,8 @@ export interface CleanupLeaseOptions {
 
 export interface CleanupResult {
   readonly deleted: boolean;
+  readonly reconciled?: boolean;
+  readonly releaseIncomplete?: boolean;
   readonly reason: string;
   readonly metadataOnlyEvidence: Record<string, MetadataOnlyValue>;
 }

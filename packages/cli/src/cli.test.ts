@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -20,6 +21,15 @@ function readCommandsFixture(): string[] {
 }
 
 describe("cli entrypoint", () => {
+  it("keeps command and selected state-root context for bad arguments without effects", async () => {
+    const root = await mkdtemp(join(tmpdir(), "cli-invalid-"));
+    const stateRoot = join(root, "absent");
+    const result = await executeCli(["--state-root", stateRoot, "route-task", "--task-id", "t", "--preferred-harness", "bad", "--record", "--json"], COMMAND_REGISTRY);
+    expect(result.exitCode).toBe(2);
+    expect(result.envelope.command).toBe("route-task");
+    expect(result.envelope.stateRoot).toBe("path:sha256:" + createHash("sha256").update(stateRoot).digest("hex"));
+    await expect(access(stateRoot)).rejects.toThrow();
+  });
   it("renders deterministic human output for the full command registry", async () => {
     const commands = readCommandsFixture();
     const result = await executeCli(["health"], COMMAND_REGISTRY);

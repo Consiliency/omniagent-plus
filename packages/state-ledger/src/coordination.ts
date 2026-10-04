@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { resolve } from "node:path";
 
 import {
   providerFamilyCooldownSchema,
   worktreeLeaseSchema,
+  worktreeLeaseRequestSchema,
   type ProviderFamilyCooldown,
   type WorktreeLease,
   type WorktreeLeaseRequest,
@@ -50,6 +52,7 @@ export class CoordinationStore {
   async setProviderCooldown(
     cooldown: ProviderFamilyCooldown,
   ): Promise<ProviderFamilyCooldown> {
+    cooldown = providerFamilyCooldownSchema.parse(cooldown);
     return withFilesystemLock(
       join(this.ledger.store.paths.locksDir, "coordination.lock"),
       async () => {
@@ -72,16 +75,23 @@ export class CoordinationStore {
       readonly now?: string;
     } = {},
   ): Promise<LeaseAcquisitionResult> {
+    request = worktreeLeaseRequestSchema.parse(request);
+    holder = { ...holder };
+    options = { ...options };
+    await this.assertStandaloneRoot();
     return withFilesystemLock(
       join(this.ledger.store.paths.locksDir, "coordination.lock"),
       async () => {
+        await this.assertStandaloneRoot();
         const now = options.now ?? nowIsoString();
         const leases = await this.readLeaseMap();
-        this.clearExpiredLeases(leases, now);
+        this.clearReleasedLeases(leases);
         const leaseKey = `${request.repoId}:${request.branchName}:${request.mode}`;
-        const existingLease = leases[leaseKey];
+        const leasePath = options.leasePath ?? request.repoRoot ?? join(request.repoId, request.branchName);
+        const existingLease = Object.values(leases).find((lease) => lease.repoId === request.repoId && lease.branchName === request.branchName
+          || resolve(lease.path) === resolve(leasePath));
 
-        if (existingLease !== undefined && request.mode === "exclusive_write") {
+        if (existingLease !== undefined) {
           return {
             acquired: false,
             existingLease,
@@ -89,10 +99,11 @@ export class CoordinationStore {
         }
 
         const ttlSeconds = options.ttlSeconds ?? request.requestedTtlSeconds ?? 300;
+        if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0 || !Number.isFinite(Date.parse(now))) throw new Error("Invalid lease clock or TTL.");
         const expiresAt = new Date(
           Date.parse(now) + ttlSeconds * 1_000,
         ).toISOString();
-        const lease: WorktreeLease = {
+        const lease: WorktreeLease = worktreeLeaseSchema.parse({
           id: randomUUID(),
           fencingToken: randomUUID(),
           repoId: request.repoId,
@@ -107,11 +118,11 @@ export class CoordinationStore {
           renewedAt: now,
           expiresAt,
           dirtyState: options.dirtyState ?? "unknown",
-        };
+        });
 
         leases[leaseKey] = lease;
-        await writeJsonAtomic(this.ledger.store.paths.worktreeLeasesPath, leases);
         await this.ledger.appendWorktreeLease(lease);
+        await writeJsonAtomic(this.ledger.store.paths.worktreeLeasesPath, leases);
         return {
           acquired: true,
           lease,
@@ -125,26 +136,33 @@ export class CoordinationStore {
   }
 
   private async readCooldownMap(): Promise<Record<string, ProviderFamilyCooldown>> {
-    const parsed = providerCooldownMapSchema.safeParse(
-      await readJsonFile<unknown>(this.ledger.store.paths.cooldownsPath),
-    );
-    return parsed.success ? parsed.data : {};
+    const raw = await readJsonFile<unknown>(this.ledger.store.paths.cooldownsPath);
+    const parsed = raw === undefined ? {} : providerCooldownMapSchema.parse(raw);
+    if (raw !== undefined && Object.keys(raw as Record<string, unknown>).length !== Object.keys(parsed).length) throw new Error("Unsupported cooldown identifier key.");
+    for (const [key, value] of Object.entries(parsed)) if (key !== value.provider) throw new Error("Cooldown map key does not match its payload.");
+    return Object.assign(Object.create(null) as Record<string, ProviderFamilyCooldown>, parsed);
   }
 
   private async readLeaseMap(): Promise<Record<string, WorktreeLease>> {
-    const parsed = worktreeLeaseMapSchema.safeParse(
-      await readJsonFile<unknown>(this.ledger.store.paths.worktreeLeasesPath),
-    );
-    return parsed.success ? parsed.data : {};
+    const raw = await readJsonFile<unknown>(this.ledger.store.paths.worktreeLeasesPath);
+    const parsed = raw === undefined ? {} : worktreeLeaseMapSchema.parse(raw);
+    if (raw !== undefined && Object.keys(raw as Record<string, unknown>).length !== Object.keys(parsed).length) throw new Error("Unsupported lease identifier key.");
+    for (const [key, value] of Object.entries(parsed)) if (key !== `${value.repoId}:${value.branchName}:${value.mode}`) throw new Error("Lease map key does not match its payload.");
+    return Object.assign(Object.create(null) as Record<string, WorktreeLease>, parsed);
   }
 
-  private clearExpiredLeases(
+  private async assertStandaloneRoot(): Promise<void> {
+    const paths = this.ledger.store.paths;
+    const marker = await readJsonFile<unknown>(join(paths.coordinationDir, "worktree-coord-root.json"));
+    if (marker !== undefined || await readJsonFile<unknown>(join(paths.coordinationDir, "worktree-lease-registry.json")) !== undefined)
+      throw new Error("Legacy physical acquisition is unsupported on a COORD-managed root.");
+  }
+
+  private clearReleasedLeases(
     leases: Record<string, WorktreeLease>,
-    now: string,
   ): void {
-    const nowMs = Date.parse(now);
     for (const [key, lease] of Object.entries(leases)) {
-      if (Date.parse(lease.expiresAt) <= nowMs) {
+      if (lease.release !== undefined) {
         delete leases[key];
       }
     }

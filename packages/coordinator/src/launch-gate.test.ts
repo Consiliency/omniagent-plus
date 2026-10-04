@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type {
   AgentRuntimeProvider,
@@ -87,6 +87,8 @@ class RecordingProvider implements AgentRuntimeProvider {
       runtime: "omnigent",
       targetHarness: "codex",
       title: "recording provider",
+      targetProvider: "openai",
+      identityProfileId: "profile-openai-primary",
       state: "idle",
       createdAt: "2026-06-30T00:00:00.000Z",
       updatedAt: "2026-06-30T00:00:00.000Z",
@@ -139,6 +141,52 @@ function createRouteDecision() {
 }
 
 describe("launch gate", () => {
+  it("detaches creation labels and decision before waiting for persistence", async () => {
+    const provider = new RecordingProvider([]);
+    const request = { runtime: "omnigent" as const, targetHarness: "codex" as CreateSessionRequest["targetHarness"], targetProvider: "openai" as const, identityProfileId: "profile-openai-primary", idempotencyKey: "original", title: "original" };
+    const decision = createRouteDecision();
+    let resume!: () => void;
+    const appendRouteDecision = vi.fn(async (_decision: unknown) => new Promise<void>((resolve) => { resume = resolve; }));
+    const pending = createSessionWithRouteDecision({ provider, request, decision, routeStore: { appendRouteDecision } });
+    request.targetHarness = "claude-code";
+    decision.selectedHarness = "claude-code";
+    resume();
+    expect((await pending).targetHarness).toBe("codex");
+    expect(appendRouteDecision.mock.calls[0]?.[0]).toMatchObject({ selectedHarness: "codex" });
+  });
+  it.each(["lookup", "persistence"])("detaches turn session and decision across the %s wait", async (boundary) => {
+    const provider = new RecordingProvider([]);
+    const session = await provider.getSessionInfo("original");
+    const request = { sessionId: "original", idempotencyKey: "turn", message: "continue" };
+    const decision = createRouteDecision();
+    let resume!: () => void;
+    let entered!: () => void;
+    const ready = new Promise<void>((resolve) => { entered = resolve; });
+    const wait = async () => { entered(); await new Promise<void>((resolve) => { resume = resolve; }); };
+    vi.spyOn(provider, "getSessionInfo").mockImplementation(async () => { if (boundary === "lookup") await wait(); return session; });
+    const appendRouteDecision = vi.fn(async (_decision: unknown) => { if (boundary === "persistence") await wait(); });
+    const pending = sendTurnWithRouteDecision({ provider, request, decision, routeStore: { appendRouteDecision } });
+    await ready;
+    request.sessionId = "unchecked-session";
+    decision.selectedProvider = "google";
+    resume();
+    expect((await pending).sessionId).toBe("original");
+    expect(appendRouteDecision.mock.calls[0]?.[0]).toMatchObject({ selectedProvider: "openai" });
+  });
+  it("rejects unknown, missing and mismatched established session labels before persistence or sending", async () => {
+    const provider = new RecordingProvider([]);
+    const matching = await provider.getSessionInfo("session-1");
+    const appendRouteDecision = vi.fn();
+    const request = { sessionId: "session-1", idempotencyKey: "turn", message: "continue" };
+    for (const session of [{ ...matching, id: "other" }, { ...matching, targetProvider: "google" as const }, { ...matching, targetProvider: undefined }, { ...matching, targetHarness: "claude-code" as const }, { ...matching, identityProfileId: "other" }]) {
+      vi.spyOn(provider, "getSessionInfo").mockResolvedValue(session);
+      await expect(sendTurnWithRouteDecision({ provider, routeStore: { appendRouteDecision }, decision: createRouteDecision(), request })).rejects.toMatchObject({ category: "state_conflict" });
+    }
+    vi.spyOn(provider, "getSessionInfo").mockRejectedValue(new Error("unknown session"));
+    await expect(sendTurnWithRouteDecision({ provider, routeStore: { appendRouteDecision }, decision: createRouteDecision(), request })).rejects.toThrow("unknown session");
+    expect(appendRouteDecision).not.toHaveBeenCalled();
+    expect(provider.sendTurnCalls).toBe(0);
+  });
   it("appends the route decision before backend launch", async () => {
     const sequence: string[] = [];
     const provider = new RecordingProvider(sequence);

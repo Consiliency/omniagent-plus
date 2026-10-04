@@ -4,6 +4,7 @@ import type {
 } from "@consiliency/runtime-provider";
 
 import { scoreTaskPortability } from "./portability.js";
+import { effectiveRouteClassification } from "./cooldowns.js";
 import type {
   IdentityPoolMember,
   LaunchGateAction,
@@ -17,21 +18,16 @@ function buildPortability(input: RoutePlannerInput): PortabilityScore {
 }
 
 function findPreferredCandidate(input: RoutePlannerInput): IdentityPoolMember | undefined {
-  if (input.preferredIdentityProfileId) {
-    return input.identityPool.candidates.find(
-      (candidate) => candidate.profile.id === input.preferredIdentityProfileId,
-    );
-  }
-
   return input.identityPool.candidates.find((candidate) => {
+    if (input.preferredIdentityProfileId !== undefined && candidate.profile.id !== input.preferredIdentityProfileId) return false;
     if (
-      input.preferredProvider
+      input.preferredProvider !== undefined
       && candidate.profile.provider !== input.preferredProvider
     ) {
       return false;
     }
     if (
-      input.preferredHarness
+      input.preferredHarness !== undefined
       && candidate.profile.harness !== input.preferredHarness
     ) {
       return false;
@@ -276,11 +272,11 @@ function buildDecision(
     preferredProvider: input.preferredProvider,
     preferredHarness: input.preferredHarness,
     preferredTarget:
-      input.preferredProvider || input.preferredHarness || input.preferredIdentityProfileId
+      preferredCandidate
         ? {
-            provider: input.preferredProvider,
-            harness: input.preferredHarness,
-            identityProfileId: input.preferredIdentityProfileId,
+            provider: preferredCandidate.profile.provider,
+            harness: preferredCandidate.profile.harness,
+            identityProfileId: preferredCandidate.profile.id,
           }
         : undefined,
     fallbackUsed,
@@ -329,7 +325,9 @@ export function planRoute(input: RoutePlannerInput): PlannedRoute {
   }
 
   const portability = buildPortability(input);
-  const preferredCandidate = findPreferredCandidate(input) ?? firstCandidate;
+  const preferredCandidate = findPreferredCandidate(input);
+  if (preferredCandidate === undefined) throw new TypeError("Unknown or contradictory preferred route target");
+  input = { ...input, latestClassification: effectiveRouteClassification(input.latestClassification, preferredCandidate.profile, Date.parse(input.identityPool.evaluatedAt)) };
   const fallbackCandidate = pickFallbackCandidate(
     input,
     preferredCandidate,

@@ -1,0 +1,89 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "9630711d0518a570e211e11c2335dc304c704067",
+  "review_base": "776109383f08b160d213533c435877aa57e87aeb",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-7761093.json",
+  "status": "pending_re_review",
+  "findings": [
+    {
+      "id": "local-acquire-clock",
+      "criteria": [
+        "EC-COORD-4"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Validate and detach the complete request before effects, then sample the default clock inside the acquired physical lock. Explicit request.now is captured and retained. Real lock contention with TTL1 now grants a live lease and refuses an immediate competing hard acquisition.",
+      "source": [
+        "packages/worktree-leasing/src/lease-store.ts",
+        "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+      ]
+    },
+    {
+      "id": "malformed-inbox-poison",
+      "criteria": [
+        "EC-COORD-4",
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Local and installed-SDK send share input fields from the existing frozen coordination contract and detach metadata before effects. SQL directly validates sender/type/scope/optional IDs/body before locking, normalization and pruning. Malformed requests leave local state absent, make zero SDK fetches, and preserve admitted SQL inbox bytes including a future-dated row; valid following requests remain readable.",
+      "source": [
+        "packages/state-ledger/src/coordination-channel.ts",
+        "packages/state-ledger/src/coordination-channel.test.ts",
+        "packages/state-ledger/src/supabase-coordination-channel.ts",
+        "packages/state-ledger/src/supabase-coordination-channel.test.ts",
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "tests/guard/coordination.integration.db.test.ts"
+      ]
+    }
+  ],
+  "optional_dispositions": [
+    {
+      "finding": "Opus R3 S1",
+      "disposition": "promoted_to_blocker_and_fixed",
+      "reason": "Astra correctness demonstrated a stale default acquisition clock. Sampling after physical acquisition restores lease lifetime."
+    },
+    {
+      "finding": "Opus R3 S2",
+      "disposition": "retained_coherent_resolved_original_tuple",
+      "reason": "Persisting the resolved original profile tuple provides original-target replay context even without explicit preference overrides. It does not grant identity or accounting authority; no regression demonstrated."
+    },
+    {
+      "finding": "Opus R3 S3",
+      "disposition": "retained_conservative_historical_evidence",
+      "reason": "Historical partial targets cannot establish original provider/harness/identity context. Refusing to borrow a selected fallback tuple prevents unsupported authority; new records retain complete original tuples."
+    },
+    {
+      "finding": "Opus R3 S4",
+      "disposition": "fixed",
+      "reason": "Library arbitration validates and detaches lease input before backend contact and before the availability catch. Invalid hard and soft requests cannot contact the backend or create launch permission.",
+      "source": [
+        "packages/coordinator/src/lease-arbiter.ts",
+        "packages/coordinator/src/lease-arbiter.test.ts"
+      ]
+    },
+    {
+      "finding": "Opus R3 S5",
+      "disposition": "fixed",
+      "reason": "Local inbox input is fully validated and detached before physical lock or state creation. Existing alias/getter/toJSON tests now prove captured values remain safe rather than relying on later mutable caller state.",
+      "source": [
+        "packages/state-ledger/src/coordination-channel.ts",
+        "packages/state-ledger/src/coordination-channel.test.ts",
+        "docs/coordination-backend.md"
+      ]
+    }
+  ],
+  "source_binding": {
+    "docs/coordination-backend.md": "da39d9d591b03c65d5bcbc1c95eaa8e4e7b15e04d66683f30567a28c7e32640d",
+    "packages/coordinator/src/lease-arbiter.test.ts": "33e6300cf290fef77da2eb2e93cc16f96b81368f762c24645619fb3d8528a542",
+    "packages/coordinator/src/lease-arbiter.ts": "8c93cccbdcb237cf6a0eda732126b508bdf6374fd1169ddbdf629895600b787e",
+    "packages/state-ledger/src/coordination-channel.test.ts": "60bc6b152979c8fccb05a9bc1aad62bd42a0f43b34fc02a31e9dd60e57cd32f7",
+    "packages/state-ledger/src/coordination-channel.ts": "61fdeeb9faaf9cc3e65544f18c73179cc4dee99bc15871ac9fa30dfa09e72891",
+    "packages/state-ledger/src/supabase-coordination-channel.test.ts": "e01382d6c0d200e90a2bce925ff3644269a0bc15c93635fd2c59d8e7a14ca755",
+    "packages/state-ledger/src/supabase-coordination-channel.ts": "73b048283035e80a42e47a6dcc7ce67278368530861ef08a2f6f33b2024a0658",
+    "packages/worktree-leasing/src/lease-store.ts": "51b050b74a50814bef9aaed759c858b81be783ee196e9a14aa8bcf7b310d96d4",
+    "packages/worktree-leasing/src/supabase-lease-store.test.ts": "b194bccce0b849335f79d4deaaf26bdd0261589c0a477c1b1b3997f2e9501eae",
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "d9f56285c63c16fe20f0738dd4d1eb0582d82c4171eb3abb3b7207d0a0dc611a",
+    "tests/guard/coordination.integration.db.test.ts": "579a5dbadda0e0d2236d383da4dc493c700b29dfbcfa358e84cd6b3279930dfb"
+  },
+  "binding": "Repairs remain subject to all seven fresh qualified reviews. Recording commit is later metadata, not retroactively measured.",
+  "rule": "All seven R3 seats finished before repairs. No scope dismissal, model fallback or gate waiver. R4 reviews the repair delta and nearby regressions against qualified R3 unchanged source; current-head hosted full gate, source-bound rehearsal, final observed audit and postmerge main CI remain mandatory."
+}

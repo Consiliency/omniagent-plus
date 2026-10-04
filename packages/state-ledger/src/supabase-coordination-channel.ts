@@ -6,11 +6,14 @@ import type {
   CoordinationMessageQuery,
   CoordinationMessageReceipt,
 } from "./coordination-channel.js";
-import { assertMetadataSafe, projectMetadataExport, coordinationMessageSchema, type CoordinationMessage } from "@consiliency/runtime-provider";
+import { assertMetadataSafe, projectMetadataExport, coordinationMessageSchema, consiliencyLeaseScopeSchema, coordinationMessageTypes, type CoordinationMessage } from "@consiliency/runtime-provider";
+import { z } from "zod";
+import { CoordinationBackendError, coordinationFailureCause, validateCoordinationPage, coordinationMessageInputSchema } from "./coordination-channel.js";
 
 type RpcResult<T> = {
   readonly data: T | null;
   readonly error: { readonly message: string; readonly code?: string } | null;
+  readonly status?: number;
 };
 
 export interface SupabaseCoordinationRpcClient {
@@ -24,12 +27,17 @@ async function rpcOrThrow<T>(
   client: SupabaseCoordinationRpcClient,
   fn: string,
   args: Record<string, unknown>,
+  decode: (value: unknown) => T,
 ): Promise<T> {
-  const { data, error } = await client.rpc(fn, args);
-  if (error !== null || data === null) {
-    throw new Error(error?.message ?? `Supabase RPC ${fn} returned no data.`);
+  try {
+    const response = await client.rpc(fn, args);
+    if (response.error) throw new CoordinationBackendError(coordinationFailureCause({ ...response.error, status: response.status }));
+    if (response.data === null || response.data === undefined || response.error !== null) throw new CoordinationBackendError("malformed-response");
+    try { return decode(response.data); }
+    catch { throw new CoordinationBackendError("malformed-response"); }
+  } catch (error) {
+    throw new CoordinationBackendError(coordinationFailureCause(error));
   }
-  return data as T;
 }
 
 export class SupabaseCoordinationChannel implements CoordinationChannel {
@@ -41,18 +49,28 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
 
   async send(message: CoordinationMessageInput): Promise<CoordinationMessageReceipt> {
     assertMetadataSafe(message);
-    return rpcOrThrow<CoordinationMessageReceipt>(
+    const parsed = coordinationMessageInputSchema.parse(projectMetadataExport(message, { inertOnly: true }));
+    const response = await rpcOrThrow<CoordinationMessageReceipt | { failure: "capacity" }>(
       this.client,
       "coordination_send_message",
-      { message: projectMetadataExport(message, { inertOnly: true }) },
+      { message: parsed },
+      (value) => z.union([z.object({ messageId: z.string().min(1), createdAt: z.string().datetime({ offset: true }) }),
+        z.object({ failure: z.literal("capacity") }).strict()]).parse(value),
     );
+    if ("failure" in response) throw new CoordinationBackendError(response.failure);
+    return response;
   }
 
   async list(query: CoordinationMessageQuery = {}): Promise<readonly CoordinationMessage[]> {
+    assertMetadataSafe(query, { inertOnly: true });
+    const page = validateCoordinationPage(query);
+    const scope = query.scope === undefined ? undefined : consiliencyLeaseScopeSchema.parse(query.scope);
+    const type = query.type === undefined ? undefined : z.enum(coordinationMessageTypes).parse(query.type);
     const response = await rpcOrThrow<{ readonly messages: CoordinationMessage[] }>(
       this.client,
       "coordination_list_messages",
-      { query },
+      { query: { scope, type, ...page } },
+      (value) => z.object({ messages: z.array(coordinationMessageSchema) }).parse(value),
     );
     return response.messages.map((message) => coordinationMessageSchema.parse(message));
   }
@@ -61,8 +79,11 @@ export class SupabaseCoordinationChannel implements CoordinationChannel {
 export function createSupabaseCoordinationChannel(options: {
   readonly url: string;
   readonly serviceRoleKey: string;
+  readonly fetch?: typeof globalThis.fetch;
 }): SupabaseCoordinationChannel {
-  const client: SupabaseClient = createClient(
+  if (!options.url?.trim() || !options.serviceRoleKey?.trim()) throw new CoordinationBackendError("unavailable");
+  try {
+    const client: SupabaseClient = createClient(
     options.url,
     options.serviceRoleKey,
     {
@@ -70,9 +91,11 @@ export function createSupabaseCoordinationChannel(options: {
         persistSession: false,
         autoRefreshToken: false,
       },
+      global: { fetch: options.fetch },
     },
   );
-  return new SupabaseCoordinationChannel(client);
+    return new SupabaseCoordinationChannel(client);
+  } catch { throw new CoordinationBackendError("validation"); }
 }
 
 export function createSupabaseCoordinationChannelFromEnv(
@@ -80,7 +103,7 @@ export function createSupabaseCoordinationChannelFromEnv(
 ): SupabaseCoordinationChannel | undefined {
   const url = env.OMNIAGENT_COORDINATION_SUPABASE_URL;
   const serviceRoleKey = env.OMNIAGENT_COORDINATION_SUPABASE_SERVICE_ROLE_KEY;
-  if (url === undefined || serviceRoleKey === undefined) {
+  if (!url?.trim() || !serviceRoleKey?.trim()) {
     return undefined;
   }
   return createSupabaseCoordinationChannel({ url, serviceRoleKey });

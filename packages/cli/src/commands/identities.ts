@@ -13,6 +13,7 @@ import type {
 import {
   identitiesListResultSchema,
   identitiesPreflightResultSchema,
+  type CliContext,
 } from "../types.js";
 
 function summarizeProfile(entry: LoadedIdentityProfile) {
@@ -83,6 +84,7 @@ async function runIdentitiesList(request: ParsedCliRequest) {
 
 async function runIdentitiesPreflight(
   request: ParsedIdentitiesPreflightRequest,
+  context?: CliContext,
 ) {
   const profiles = await listIdentityProfiles(request.profilesDir);
   const target = profiles.find((entry) => entry.profile.id === request.profileId);
@@ -106,7 +108,7 @@ async function runIdentitiesPreflight(
   ).at(-1);
   const authAvailable = request.authAvailable ?? inferMetadataOnlyAuthAvailability(target);
   const result = preflightIdentityProfile(target.profile, {
-    hostEnv: {},
+    hostEnv: context?.hostEnv === undefined ? {} : Object.fromEntries((target.profile.envAllowlist ?? []).flatMap((key) => context.hostEnv?.[key] === undefined ? [] : [[key, context.hostEnv[key]]])),
     activeSessions: request.activeSessions ?? latestStatus?.activeSessions ?? 0,
     activeTurns: request.activeTurns ?? latestStatus?.activeTurns ?? 0,
     authAvailable,
@@ -145,12 +147,13 @@ async function runIdentitiesPreflight(
 
 export async function runIdentitiesCommand(
   request: ParsedCliRequest,
+  context?: CliContext,
 ) {
   switch (request.command) {
     case "identities list":
       return runIdentitiesList(request);
     case "identities preflight":
-      return runIdentitiesPreflight(request);
+      return runIdentitiesPreflight(request, context);
     default:
       throw createCliError("internal_failure", "identities command dispatch received an unexpected request.");
   }

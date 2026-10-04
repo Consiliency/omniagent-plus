@@ -62,6 +62,10 @@ export type {
   LockAttemptOptions,
   LockAttemptResult,
   LockHolderIdentity,
+  LeasePageOptions,
+  LeaseReclamationIntent,
+  PathIdentity,
+  PendingLeaseMutation,
   ProcessLivenessResult,
   RenewWorktreeLeaseOptions,
   SequentialContinuationEvidence,
@@ -70,6 +74,7 @@ export type {
   StoredLeaseRecord,
   WorktreeLeaseAcquisition,
   WorktreeLeaseRegistry,
+  WorktreeLeaseManagerOptions,
   WorktreePlacement,
   WorktreePlacementOptions,
 } from "./types.js";

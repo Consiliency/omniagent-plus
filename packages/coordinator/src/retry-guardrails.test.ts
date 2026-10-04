@@ -5,6 +5,19 @@ import { classifyLimitSignal } from "@omniagent-plus/rate-limit-catalog";
 import { evaluateRetryGuardrails } from "./index.js";
 
 describe("retry guardrails", () => {
+  it("respects nonretryable and unsafe mutation posture despite a retryable classification", () => {
+    const classification = classifyLimitSignal({ bodyText: "Service overloaded" });
+    const failure = { schema: "runtime_failure.v0.1" as const, actor: "provider" as const, category: "transport" as const, message: "transient", retryable: true, scope: "turn" as const };
+    for (const input of [{ failure: { ...failure, retryable: false } }, { failure, idempotencySafe: false }, { failure, mutation: true }, { failure: { ...failure, category: "auth" as const } }]) {
+      expect(evaluateRetryGuardrails({ ...input, classification, repeatedFailures: 0 }).allowRetry).toBe(false);
+    }
+    expect(evaluateRetryGuardrails({ failure, classification, repeatedFailures: 0, mutation: true, idempotencySafe: true }).allowRetry).toBe(true);
+    for (const repeatedFailures of [-1, 0.5, NaN, Infinity]) expect(() => evaluateRetryGuardrails({ failure, repeatedFailures })).toThrow();
+    expect(evaluateRetryGuardrails({ failure, repeatedFailures: 1 }).retryAfterSeconds).toBe(2);
+    expect(evaluateRetryGuardrails({ failure, classification: { ...classification, retryAfterSeconds: Infinity }, repeatedFailures: 1 }).retryAfterSeconds).toBe(2);
+    expect(evaluateRetryGuardrails({ failure, classification: { ...classification, retryAfterSeconds: 999 }, repeatedFailures: 1 }).retryAfterSeconds).toBe(300);
+    expect(evaluateRetryGuardrails({ failure, classification, repeatedFailures: 3, maxRepeatedFailures: 100 }).allowRetry).toBe(false);
+  });
   it("requires manual review for auth and billing failures", () => {
     const decision = evaluateRetryGuardrails({
       failure: {

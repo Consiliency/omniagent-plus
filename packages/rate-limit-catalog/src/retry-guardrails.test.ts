@@ -4,6 +4,19 @@ import { classifyLimitSignal } from "./classifier.js";
 import { applyRetryGuardrails } from "./retry-guardrails.js";
 
 describe("retry guardrails", () => {
+  it("uses integer fallback for invalid delay evidence and refuses false reset authority", () => {
+    const transient = classifyLimitSignal({ statusCode: 503, bodyText: "Service overloaded" });
+    const hard = { ...transient, type: "fixed_window_usage_cap" as const, resetAt: undefined };
+    for (const retryAfterSeconds of [0.5, -1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(applyRetryGuardrails({ classification: { ...transient, retryAfterSeconds }, repeatedAttempts: 1 }).nextDelaySeconds).toBe(2);
+      expect(applyRetryGuardrails({ classification: { ...hard, retryAfterSeconds }, repeatedAttempts: 1 }).reason).toBe("hard_cap");
+    }
+    for (const retryAfterSeconds of [300, 301, Number.MAX_SAFE_INTEGER]) {
+      expect(applyRetryGuardrails({ classification: { ...transient, retryAfterSeconds }, repeatedAttempts: 0 }).nextDelaySeconds).toBe(300);
+    }
+    expect(applyRetryGuardrails({ classification: { ...hard, retryAfterSeconds: 0 }, repeatedAttempts: 0 }).reason).toBe("wait_for_reset");
+    expect(applyRetryGuardrails({ classification: { ...hard, resetAt: "invalid" }, repeatedAttempts: 0 }).reason).toBe("hard_cap");
+  });
   it("blocks hard usage caps until reset instead of retrying them like burst limits", () => {
     const classification = classifyLimitSignal({
       bodyText:

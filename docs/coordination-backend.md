@@ -1,5 +1,69 @@
 # Coordination Backend
 
+## COORD behavior
+
+COORD keeps contract0.6.3 pinned. The forward PostgreSQL migration uses server time
+after advisory lock acquisition for mutations; compatibility caller clocks are
+ignored. Query expiry uses server statement time without mutation. Holder checks
+and event/projection writes are transactional. RLS stays enabled; only
+service_role executes coordination RPCs. Tests use admitted disposable SQL.
+Local and SDK message inputs are validated and detached before effects; the SQL
+send RPC rejects invalid senders, scopes, IDs and bodies before locking, pruning
+or normalizing inbox state. Its recursive JSON metadata checks cover retained
+strings, fields, encoded JSON and provider payloads, preserving redacted
+placeholders and the fencingToken/boolean autoRefreshToken exceptions. Shared
+content-policy corpus tests prove refusal without mutation and valid readable
+pages. Invalid input cannot poison a later valid inbox page.
+SQL lexical checks preserve JavaScript whitespace, line and word boundaries.
+Encoded JSON is checked without dropping valid escaped text or silently skipping
+its metadata. Only absent envelope fields are omitted; nested body nulls remain.
+Temporary encoded-JSON inspection preserves distinct UTF-16 keys, surrogate pairs,
+invalid control-character boundaries and last-member semantics before checking
+surviving nonfinite numbers. Inspection markers use one per-call cryptographic
+namespace; their negligible collision probability is the same engineering
+assumption used for UUID message identities. Markers never enter retained bodies.
+If PostgreSQL's recursive JSON parser exhausts its stack, iterative syntax
+validation keeps malformed JSON as ordinary text and folds valid deep subtrees
+into inspection markers. Only surviving subtrees beyond the reader's depth limit
+are refused; a later duplicate member can still replace a deep value.
+Default local lease clocks start after physical acquisition, so lock contention
+does not consume a newly granted lease's lifetime. Explicit injected clocks remain
+deterministic. Library arbitration validates before contacting the backend;
+invalid soft requests never become launch permission.
+
+Lease and inbox lists default100, maximum500, positive whole limits. Cursor is
+after-(returned timestamp,ID), ascending whole-second UTC plus UTF-8 bytewise
+IDs (SQL C collation), including existing fractional rows. Scope/type/mode filters
+precede pagination. Read-only hard-route admission queries overlapping hard
+leases with limit1; an earlier soft page cannot hide conflict. Pages read current
+state, not pinned snapshots. CLI --cursor accepts JSON timestamp/id strings.
+
+Inbox entries expire after7days. Local creation/expiry uses an injected clock,
+never message.now; SQL uses server time. Writes normalize legacy future times
+and prune expiry under the same lock before enforcing10000 retained entries.
+Reads filter expiry without pruning. Overflow preserves unexpired entries.
+Local and SQL legacy timestamp normalization is durable even when admission is refused,
+so future-dated entries can subsequently expire; their IDs and bodies remain.
+These are retained advisory histories, not indefinitely append-only inboxes.
+Failed yield delivery leaves hard refusal intact with private sent=false/cause.
+No acknowledgement, transfer or ownership derives from delivery.
+
+Local live leases and event history are each bounded at10000. The protected
+acquisition plus latest-heartbeat records can exhaust the event budget before
+the live-lease bound; capacity depends on retained proof, not just lease count.
+SQL caps unprotected
+released/event history at10000, preserving active acquisition/current proof.
+Protected overflow refuses mutation. Bounded causes are authentication,
+permission, timeout, transport, validation, malformed-response, unavailable and
+capacity. Missing/blank config is unavailable; invalid URL is validation.
+Real SDK/offline-fetch tests prove mapping only; SQL tests prove SQL only.
+Neither establishes hosted Supabase acceptance or authorizes production migration.
+
+TTL values are whole seconds from1through7200; invalid mutation inputs refuse
+before local lock/state creation or routing arbitration effects.
+Default route-task is read-only. --record with valid preferences may acquire
+leases/request yield and persist actual arbitration; it never launches a provider.
+
 CS-2.2 adds the off-device control-plane lease layer for multi-agent
 coordination. The layer lives in `omniagent-plus`; it does not modify
 Consiliency canon, governed-pipeline, Portal projection code, or harness
@@ -24,7 +88,7 @@ The lease store is the only source of truth for lock state.
 - `LeaseStore.renew` extends heartbeat for the holder.
 - `LeaseStore.release` is holder-only and idempotent for missing leases.
 - `LeaseStore.query` reads the current projection.
-- `CoordinationChannel.send/list` is append-only inbox traffic.
+- `CoordinationChannel.send/list` is retained, expiring advisory inbox traffic.
 
 Inbox messages such as `announce-intent`, `request-yield`, `handoff`, and
 `done` never acquire, renew, release, transfer, or expire a lease. They may
@@ -53,9 +117,9 @@ to local soft coordination.
 
 The migration creates:
 
-- `coordination_lease_events`, an append-only lease event stream
+- `coordination_lease_events`, a bounded lease event history
 - `coordination_current_leases`, the current lease projection
-- `coordination_inbox_messages`, an append-only negotiation channel
+- `coordination_inbox_messages`, a bounded, expiring negotiation channel
 - RPC functions for acquire, renew, release, query, expiry, send, and list
 
 Hard acquire runs in a database transaction and checks live hard-mode scope

@@ -1,5 +1,10 @@
 import {
   createRuntimeFailure,
+  createSessionRequestSchema,
+  sendTurnRequestSchema,
+  routeDecisionSchema,
+  providerFamilyIds,
+  harnessIds,
   type AgentSession,
   type CreateSessionRequest,
   type RouteDecision,
@@ -84,7 +89,6 @@ function assertCreateSessionLabels(
 
   if (
     request.identityProfileId !== undefined
-    && decision.selectedIdentityProfileId !== undefined
     && decision.selectedIdentityProfileId !== request.identityProfileId
   ) {
     throw createRuntimeFailure({
@@ -101,16 +105,31 @@ function assertCreateSessionLabels(
 export async function createSessionWithRouteDecision(
   input: LaunchGateInput<CreateSessionRequest>,
 ): Promise<AgentSession> {
-  assertCreateSessionLabels(input.decision, input.request);
-  assertLaunchDecision(input.decision);
-  await persistRouteDecision(input.routeStore, input.decision);
-  return input.provider.createSession(input.request);
+  const { provider, routeStore } = input;
+  const request = createSessionRequestSchema.parse(input.request);
+  const decision = routeDecisionSchema.parse(input.decision);
+  assertCreateSessionLabels(decision, request);
+  assertLaunchDecision(decision);
+  await persistRouteDecision(routeStore, decision);
+  return provider.createSession(request);
 }
 
 export async function sendTurnWithRouteDecision(
   input: LaunchGateInput<SendTurnRequest>,
 ): Promise<TurnHandle> {
-  assertLaunchDecision(input.decision);
-  await persistRouteDecision(input.routeStore, input.decision);
-  return input.provider.sendTurn(input.request);
+  const { provider, routeStore } = input;
+  const request = sendTurnRequestSchema.parse(input.request);
+  const decision = routeDecisionSchema.parse(input.decision);
+  assertLaunchDecision(decision);
+  const session = await provider.getSessionInfo(request.sessionId);
+  if (session.id !== request.sessionId
+    || !harnessIds.includes(session.targetHarness)
+    || session.targetProvider === undefined || !providerFamilyIds.includes(session.targetProvider)
+    || session.targetHarness !== decision.selectedHarness
+    || session.targetProvider !== decision.selectedProvider
+    || session.identityProfileId !== decision.selectedIdentityProfileId) {
+    throw createRuntimeFailure({ actor: "policy", category: "state_conflict", message: "Established session does not match the route target", retryable: false, scope: "turn" });
+  }
+  await persistRouteDecision(routeStore, decision);
+  return provider.sendTurn(request);
 }

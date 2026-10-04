@@ -13,7 +13,13 @@ import {
   readJsonFile,
   withFilesystemLock,
   writeJsonAtomic,
+  validateCoordinationPage,
+  compareCoordinationTuple,
+  CoordinationBackendError,
+  type CoordinationPage,
+  type BackendFailureCause,
 } from "@omniagent-plus/state-ledger";
+import { z } from "zod";
 
 import { WorktreeLeasingError } from "./types.js";
 
@@ -39,24 +45,28 @@ export interface LeaseAcquireResult {
   readonly lease?: ConsiliencyLease;
   readonly conflict?: ConsiliencyLease;
   readonly failure?: LeaseStoreFailure;
+  readonly cause?: BackendFailureCause;
 }
 
 export interface LeaseRenewResult {
   readonly renewed: boolean;
   readonly lease?: ConsiliencyLease;
   readonly failure?: LeaseStoreFailure;
+  readonly cause?: BackendFailureCause;
 }
 
 export interface LeaseReleaseResult {
   readonly released: boolean;
   readonly failure?: LeaseStoreFailure;
+  readonly cause?: BackendFailureCause;
 }
 
-export interface LeaseQuery {
+export interface LeaseQuery extends CoordinationPage {
   readonly leaseId?: string;
   readonly scope?: ConsiliencyLeaseScope;
   readonly includeExpired?: boolean;
   readonly now?: string;
+  readonly mode?: "soft" | "hard";
 }
 
 export interface LeaseSnapshot {
@@ -95,12 +105,19 @@ interface LocalLeaseStoreState {
   readonly leases: Record<string, ConsiliencyLease>;
   readonly events: LeaseEvent[];
 }
+const eventSchema = z.object({ eventId: z.string().min(1), eventType: z.enum(["acquire", "renew", "release", "expire"]),
+  leaseId: z.string().min(1), holder: z.string().min(1), lease: consiliencyLeaseSchema.optional(),
+  recordedAt: z.string().datetime({ offset: true }), reason: z.string().optional(),
+}).strict();
+const localStateSchema = z.object({ schema: z.literal("consiliency.local_lease_store.v0.1"), updatedAt: z.string().datetime({ offset: true }),
+  leases: z.record(consiliencyLeaseSchema), events: z.array(eventSchema),
+}).strict();
 
 function emptyState(now: string): LocalLeaseStoreState {
   return {
     schema: "consiliency.local_lease_store.v0.1",
     updatedAt: now,
-    leases: {},
+    leases: Object.create(null) as Record<string, ConsiliencyLease>,
     events: [],
   };
 }
@@ -173,11 +190,13 @@ export class LocalLeaseStore implements LeaseStore {
   }
 
   async acquire(request: LeaseAcquireRequest): Promise<LeaseAcquireResult> {
+    const requestedNow = request.now;
+    const prepared = createLeaseFromAcquireRequest({ ...request, now: requestedNow });
     return this.withLeaseLock(async () => {
-      const now = toContractTimestamp(request.now ?? nowIsoString());
+      const now = toContractTimestamp(requestedNow ?? nowIsoString());
+      const lease = consiliencyLeaseSchema.parse({ ...prepared, acquired_at: now, heartbeat_at: now });
       const state = await this.readState(now);
       this.expireState(state, now);
-      const lease = createLeaseFromAcquireRequest({ ...request, now });
       const existingLeaseId = state.leases[lease.lease_id];
       if (existingLeaseId !== undefined) {
         await this.writeState(state, now);
@@ -225,6 +244,9 @@ export class LocalLeaseStore implements LeaseStore {
     holder: string,
     options: { readonly ttlSeconds?: number; readonly now?: string } = {},
   ): Promise<LeaseRenewResult> {
+    z.string().min(1).parse(leaseId);
+    z.string().min(1).parse(holder);
+    options = z.object({ ttlSeconds: z.number().int().min(1).max(7200).optional(), now: z.string().datetime({ offset: true }).optional() }).parse(options);
     return this.withLeaseLock(async () => {
       const now = toContractTimestamp(options.now ?? nowIsoString());
       const state = await this.readState(now);
@@ -268,6 +290,9 @@ export class LocalLeaseStore implements LeaseStore {
     holder: string,
     options: { readonly now?: string } = {},
   ): Promise<LeaseReleaseResult> {
+    z.string().min(1).parse(leaseId);
+    z.string().min(1).parse(holder);
+    options = z.object({ now: z.string().datetime({ offset: true }).optional() }).parse(options);
     return this.withLeaseLock(async () => {
       const now = toContractTimestamp(options.now ?? nowIsoString());
       const state = await this.readState(now);
@@ -297,16 +322,19 @@ export class LocalLeaseStore implements LeaseStore {
   }
 
   async query(query: LeaseQuery = {}): Promise<LeaseSnapshot> {
-    return this.withLeaseLock(async () => {
+      const page = validateCoordinationPage(query);
+      if (query.mode !== undefined) z.enum(["soft", "hard"]).parse(query.mode);
       const now = toContractTimestamp(query.now ?? nowIsoString());
       const state = await this.readState(now);
       const leases = Object.values(state.leases)
         .filter((lease) => query.includeExpired === true || !isLeaseExpired(lease, now))
         .filter((lease) => query.leaseId === undefined || lease.lease_id === query.leaseId)
         .filter((lease) => query.scope === undefined || leaseScopesOverlap(lease.scope, query.scope))
-        .sort((left, right) => left.lease_id.localeCompare(right.lease_id));
+        .filter((lease) => query.mode === undefined || lease.mode === query.mode)
+        .sort((left, right) => compareCoordinationTuple({ timestamp: left.acquired_at, id: left.lease_id }, { timestamp: right.acquired_at, id: right.lease_id }))
+        .filter((lease) => !page.cursor || compareCoordinationTuple({ timestamp: lease.acquired_at, id: lease.lease_id }, page.cursor) > 0)
+        .slice(0, page.limit);
       return { leases };
-    });
   }
 
   async expire(nowValue = nowIsoString()): Promise<number> {
@@ -324,20 +352,37 @@ export class LocalLeaseStore implements LeaseStore {
   }
 
   private async readState(now: string): Promise<LocalLeaseStoreState> {
-    const existing = await readJsonFile<LocalLeaseStoreState>(this.statePath);
-    if (existing?.schema === "consiliency.local_lease_store.v0.1") {
-      return {
-        ...existing,
-        leases: { ...existing.leases },
-        events: [...existing.events],
-      };
-    }
-    return emptyState(now);
+    const existing = await readJsonFile<unknown>(this.statePath);
+    if (existing === undefined) return emptyState(now);
+    const parsed = localStateSchema.parse(existing);
+    const entries = Object.entries((existing as LocalLeaseStoreState).leases).map(([key, value]) => [key, consiliencyLeaseSchema.parse(value)] as const);
+    for (const [key, lease] of entries) if (key !== lease.lease_id) throw new WorktreeLeasingError("corrupt_lease_store", "Fleet lease projection key does not match.");
+    return { ...parsed, leases: Object.assign(Object.create(null) as Record<string, ConsiliencyLease>, Object.fromEntries(entries)) };
   }
 
   private async writeState(state: LocalLeaseStoreState, now: string): Promise<void> {
+    if (Object.keys(state.leases).length > 10000) throw new CoordinationBackendError("capacity");
+    const protectedIndices = new Set<number>();
+    const latest = new Map<string, number>();
+    const acquisitions = new Map<string, number>();
+    state.events.forEach((event, index) => {
+      const lease = state.leases[event.leaseId];
+      if (!lease) return;
+      latest.set(lease.lease_id, index);
+      if (event.eventType === "acquire" && event.lease?.acquired_at === lease.acquired_at && event.holder === lease.holder) acquisitions.set(lease.lease_id, index);
+    });
+    for (const index of [...latest.values(), ...acquisitions.values()]) {
+      protectedIndices.add(index);
+    }
+    if (protectedIndices.size > 10000) throw new CoordinationBackendError("capacity");
+    let remove = Math.max(0, state.events.length - 10000);
+    const events = state.events.filter((_event, index) => {
+      if (remove > 0 && !protectedIndices.has(index)) { remove -= 1; return false; }
+      return true;
+    });
     await writeJsonAtomic(this.statePath, {
       ...state,
+      events,
       updatedAt: now,
     });
   }

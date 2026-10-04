@@ -81,6 +81,7 @@ export interface BuildIdentityPoolInput {
   readonly classificationByProvider?: Partial<
     Record<ProviderFamilyId, LimitClassification>
   >;
+  readonly classificationByProfileId?: Readonly<Record<string, LimitClassification | undefined>>;
   readonly capabilityFitByProfileId?: Readonly<Record<string, number>>;
   readonly providerHealth?: Readonly<Partial<Record<ProviderFamilyId, number>>>;
   readonly now?: string;
@@ -131,6 +132,9 @@ export interface RetryGuardrailInput {
   readonly classification?: LimitClassification;
   readonly repeatedFailures: number;
   readonly maxRepeatedFailures?: number;
+  readonly idempotencySafe?: boolean;
+  readonly mutation?: boolean;
+  readonly now?: string;
 }
 
 export type RetryGuardrailAction =

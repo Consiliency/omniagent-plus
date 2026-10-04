@@ -1,5 +1,51 @@
 # Coordinator Routing
 
+## COORD behavior
+
+COORD evaluates every cooldown source at one injected clock (default current
+time). Valid expired resets release fixed-window, monthly and unknown-limit
+cooldowns; missing/invalid resets and auth/billing/policy blocks remain blocked.
+Stale reset-bound classifications no longer pause an available identity.
+Only the three named reset-bound reason codes expire automatically. Free-text
+reasons such as provider_family_cooldown remain conservative blocks; an elapsed
+date does not establish their meaning. INTEG owns persisted status transitions.
+
+Preferred provider, harness and identity form one conjunctive target. Unknown or
+contradictory preferences reject before effects. Substitution follows existing
+portability/account-switch policy with explicit fallback and reason. sendTurn
+matches the established session ID/provider/harness/identity before persistence
+and sending; lookup failure refuses. Requests and decisions are detached before
+waiting, so later caller changes cannot redirect a checked launch. Matching sends
+remain persisted before launch.
+
+Retries respect failure.retryable, classification budgets and supplied idempotency
+posture. Mutation retries require idempotencySafe=true. Counters are nonnegative
+safe integers. Complete integer or IMF-fixdate Retry-After values are relative to
+injected now and capped at300seconds; invalid/overflow values are ignored.
+Missing valid delay evidence uses bounded deterministic exponential backoff.
+Delays on refused decisions are bounded recheck hints, not permission to retry
+or a replacement for the recorded reset time.
+The caller owns counters/timers; there is no automatic retry loop. Confidence is
+heuristic, not calibrated accuracy. Publication uses anchored known rate headers
+and DATA-safe excerpts before truncation.
+
+incrementActiveTurns stays increment-only; decrementActiveTurns settles explicit
+counts. ActiveTurnAccounting is a task-lifetime owner: begin requires a new
+(sessionId,turnId) tuple; settle(turnId,sessionId) decrements that owner once
+across repeated terminal signals, even when other sessions reuse the turn ID. INTEG owns
+scheduling and lifecycle persistence. Replay uses only preceding matching
+provider/harness/identity classifications; task scope does not imply session scope.
+Live routing applies the same target matching and expires reset-bound evidence
+before capacity, account-switch policy, fallback or reason generation. A declared
+session scope cannot control a new unrelated route. Model, project, organization
+and unattributed identity stops conservatively affect the matching provider and
+harness: routing cannot prove a different model, project, organization or identity.
+An explicit identity ID must match, and any session-bound evidence is excluded
+from new routes. The persisted preferred target records the complete original
+profile tuple; replay never fills a partial historical target from its fallback.
+CLI task-scoped evidence is limited to the selected
+classification task, and later mismatched evidence cannot mask an earlier match.
+
 `IF-0-COORDINATOR-9` freezes a durable coordinator boundary that plans and
 replays route decisions before any provider launch.
 

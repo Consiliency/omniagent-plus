@@ -14,6 +14,12 @@ export {
 } from "./coordination.js";
 export {
   LocalCoordinationChannel,
+  CoordinationBackendError,
+  coordinationFailureCause,
+  validateCoordinationPage,
+  compareCoordinationTuple,
+  type BackendFailureCause,
+  type CoordinationPage,
   type CoordinationChannel,
   type CoordinationMessageInput,
   type CoordinationMessageQuery,
@@ -36,6 +42,7 @@ export {
 } from "./replay.js";
 export {
   applyRetentionPolicy,
+  selectRetentionSequences,
   type RetentionPolicy,
   type RetentionResult,
 } from "./retention.js";
