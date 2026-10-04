@@ -1,0 +1,361 @@
+{
+  "schema": "coord-cr-reconciliation.v1",
+  "source_head": "29c8fe8baa44f7416e579d705efbc6f5b5e45a56",
+  "review_base": "3e50b88990477ff1a5e6b1a336c7c78b80e8b008",
+  "historical_review": "plans/evidence/v2/reviews/COORD-CR-3e50b88.json",
+  "status": "pending_re_review",
+  "findings": [
+    {
+      "id": "holder-null",
+      "criteria": [
+        "EC-COORD-4"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Nonempty holder validation and null-safe SQL equality precede expiry or mutation.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql",
+        "packages/worktree-leasing/src/supabase-lease-store.ts"
+      ],
+      "tests": [
+        "tests/guard/coordination.integration.db.test.ts",
+        "packages/worktree-leasing/src/supabase-lease-store.test.ts"
+      ]
+    },
+    {
+      "id": "cross-host-pid",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Self-holder absence proof requires actual host, PID and alive liveness together.",
+      "source": [
+        "packages/worktree-leasing/src/cleanup.ts"
+      ],
+      "tests": [
+        "packages/worktree-leasing/src/cleanup.test.ts"
+      ]
+    },
+    {
+      "id": "prepared-quarantine",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Classified path/Git uncertainty retains the pending key and permits unrelated mutations; shared persistence failures still propagate.",
+      "source": [
+        "packages/worktree-leasing/src/lease-manager.ts"
+      ],
+      "tests": [
+        "packages/worktree-leasing/src/coord-durability.test.ts"
+      ]
+    },
+    {
+      "id": "future-full-inbox",
+      "criteria": [
+        "EC-COORD-5"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Future-clock normalization is persisted under lock before capacity refusal, preserving retained messages for later expiry.",
+      "source": [
+        "packages/state-ledger/src/coordination-channel.ts"
+      ],
+      "tests": [
+        "packages/state-ledger/src/coordination-channel.test.ts",
+        "tests/guard/coordination.integration.db.test.ts"
+      ]
+    },
+    {
+      "id": "safe-count-dictionaries",
+      "criteria": [
+        "EC-COORD-2"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Null-prototype dictionaries survive mutations and all aggregate counts remain safe integers.",
+      "source": [
+        "packages/coordinator/src/active-turns.ts"
+      ],
+      "tests": [
+        "packages/coordinator/src/active-turns.test.ts",
+        "packages/coordinator/src/adaptive-concurrency.test.ts"
+      ]
+    },
+    {
+      "id": "request-detachment",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Requests are schema-detached before awaiting; authoritative registry and mutation publication serialize schema output only.",
+      "source": [
+        "packages/worktree-leasing/src/lease-manager.ts"
+      ],
+      "tests": [
+        "packages/worktree-leasing/src/coord-durability.test.ts"
+      ]
+    },
+    {
+      "id": "pending-ancestry",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Pending pre-append session/turn dependency IDs seed the existing DATA closure, including session ancestors.",
+      "source": [
+        "packages/worktree-leasing/src/lease-manager.ts"
+      ],
+      "tests": [
+        "packages/worktree-leasing/src/coord-durability.test.ts"
+      ]
+    },
+    {
+      "id": "classification-scope",
+      "criteria": [
+        "EC-COORD-1"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Provider/harness/identity/session/task and supported scope checks occur before any cooldown, adaptive, fallback, override or publication effect.",
+      "source": [
+        "packages/coordinator/src/cooldowns.ts",
+        "packages/coordinator/src/identity-pool.ts",
+        "packages/coordinator/src/route-planner.ts",
+        "packages/coordinator/src/replay.ts",
+        "packages/cli/src/commands/route-task.ts"
+      ],
+      "tests": [
+        "packages/cli/src/route-task.test.ts",
+        "packages/coordinator/src/replay.test.ts"
+      ]
+    },
+    {
+      "id": "expired-policy",
+      "criteria": [
+        "EC-COORD-1"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Latest applicable evidence wins; known expired classifications lose all live policy authority without resurrecting older classifications.",
+      "source": [
+        "packages/coordinator/src/cooldowns.ts",
+        "packages/coordinator/src/route-planner.ts",
+        "packages/cli/src/commands/route-task.ts"
+      ],
+      "tests": [
+        "packages/coordinator/src/route-planner.test.ts",
+        "packages/cli/src/route-task.test.ts"
+      ]
+    },
+    {
+      "id": "unavailable-preference",
+      "criteria": [
+        "EC-COORD-1"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "A refused preliminary route returns before state initialization, arbitration or record publication.",
+      "source": [
+        "packages/cli/src/commands/route-task.ts"
+      ],
+      "tests": [
+        "packages/cli/src/route-task.test.ts"
+      ]
+    },
+    {
+      "id": "cursor-keys",
+      "criteria": [
+        "EC-COORD-4"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "SQL cursor validation uses null-safe type checks on both required named keys; installed-SDK and local pages use returned timestamps/IDs.",
+      "source": [
+        "supabase/migrations/20260930000000_coordination_server_time.sql"
+      ],
+      "tests": [
+        "tests/guard/coordination.integration.db.test.ts",
+        "packages/worktree-leasing/src/lease-manager.test.ts",
+        "packages/worktree-leasing/src/supabase-lease-store.test.ts",
+        "packages/state-ledger/src/supabase-coordination-channel.test.ts"
+      ]
+    },
+    {
+      "id": "whole-retry-delay",
+      "criteria": [
+        "EC-COORD-2"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Only nonnegative safe integer delays establish wait authority; invalid evidence falls back to bounded integer exponential delay, and unsafe Retry-After is ignored.",
+      "source": [
+        "packages/rate-limit-catalog/src/retry-guardrails.ts",
+        "packages/rate-limit-catalog/src/rules.ts"
+      ],
+      "tests": [
+        "packages/rate-limit-catalog/src/retry-guardrails.test.ts",
+        "packages/rate-limit-catalog/src/classifier.test.ts"
+      ]
+    },
+    {
+      "id": "session-turn-owner",
+      "criteria": [
+        "EC-COORD-2"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Ownership and terminal settlement use the session/turn tuple, with independent duplicate settlement controls.",
+      "source": [
+        "packages/coordinator/src/active-turns.ts"
+      ],
+      "tests": [
+        "packages/coordinator/src/active-turns.test.ts"
+      ]
+    },
+    {
+      "id": "custody-control",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "The intentional lock-holder death test declares the existing owner-death control; strict rescue-count and quiescence validation remain unchanged.",
+      "source": [
+        "packages/worktree-leasing/src/locks.test.ts"
+      ],
+      "tests": [
+        "packages/worktree-leasing/src/locks.test.ts",
+        "tests/guard/process.test.ts"
+      ]
+    },
+    {
+      "id": "legacy-boundary",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Selected the explicitly offered documentation/compatibility option: no in-place adoption or new legacy renew/release/expiry takeover; operators stop/prove old holders and use a fresh root and disjoint paths. Existing acquisition/cooldown/inspection behavior remains, with map-key corruption checks.",
+      "source": [
+        "docs/worktree-leasing.md",
+        "packages/state-ledger/src/coordination.ts",
+        "packages/worktree-leasing/src/lease-manager.ts"
+      ],
+      "tests": [
+        "packages/state-ledger/src/coordination.test.ts",
+        "packages/cli/src/worktrees.test.ts"
+      ]
+    },
+    {
+      "id": "actual-release-cause",
+      "criteria": [
+        "EC-COORD-3"
+      ],
+      "disposition": "implemented_pending_independent_recheck",
+      "reason": "Normal release, stale recovery and cleanup reconciliation retain actual DATA causes and actors; removal-before-marker crash is recovered using prepared durable intent.",
+      "source": [
+        "packages/worktree-leasing/src/lease-manager.ts",
+        "packages/worktree-leasing/src/stale-recovery.ts",
+        "docs/worktree-leasing.md"
+      ],
+      "tests": [
+        "packages/worktree-leasing/src/cleanup.test.ts",
+        "packages/worktree-leasing/src/coord-durability.test.ts",
+        "packages/cli/src/worktrees.test.ts"
+      ]
+    },
+    {
+      "id": "acceptance-evidence",
+      "criteria": [
+        "EC-COORD-5"
+      ],
+      "disposition": "required_before_closeout",
+      "reason": "Missing acceptance evidence is still a merge gate, never waived. Source-bound hosted full verification, rehearsal, current producer audit, exact candidate reviews and post-merge CI are required.",
+      "source": [
+        "plans/phase-plan-v2-COORD.md"
+      ],
+      "tests": []
+    }
+  ],
+  "optional_dispositions": [
+    {
+      "finding": "Opus S2/S4/S6/S9",
+      "disposition": "documented",
+      "reason": "Unknown cooldown reason aliases remain conservative; pre-path acquisition cannot delete; refused delays are recheck hints; protected history may exhaust before the live-lease bound.",
+      "source": [
+        "docs/coordinator-routing.md",
+        "docs/worktree-leasing.md",
+        "docs/coordination-backend.md"
+      ]
+    },
+    {
+      "finding": "Opus S3",
+      "disposition": "retained_safe_existing_behavior",
+      "reason": "A failed final cleanup recheck retains a prepared intent and reports uncertainty. The next actual replay proves no effect before clearing; no deletion or takeover is granted by this report.",
+      "source": [
+        "packages/worktree-leasing/src/cleanup.ts",
+        "packages/worktree-leasing/src/lease-manager.ts"
+      ]
+    },
+    {
+      "finding": "Opus S5 obsolete HTTP dates",
+      "disposition": "not_contract_expansion",
+      "reason": "The documented IMF HTTP-date and complete integer forms are supported; obsolete RFC850/asctime formats are not newly claimed.",
+      "source": [
+        "packages/rate-limit-catalog/src/rules.ts",
+        "docs/coordinator-routing.md"
+      ]
+    },
+    {
+      "finding": "Opus S7 absent identity on both sides",
+      "disposition": "retained_contract_compatibility",
+      "reason": "Identity remains optional in the consumed public core schema. COORD rejects established-label mismatches without changing that frozen schema.",
+      "source": [
+        "packages/coordinator/src/launch-gate.ts",
+        "packages/core-contracts/src/types.ts"
+      ]
+    },
+    {
+      "finding": "Opus S1/S5 unsafe integer/S8/S10/S11/S12",
+      "disposition": "fixed",
+      "reason": "Identifier dictionaries, integer range, default host identity, legacy map keys, content validation failure categories and readiness wording are repaired.",
+      "source": [
+        "packages/coordinator/src/active-turns.ts",
+        "packages/rate-limit-catalog/src/rules.ts",
+        "packages/cli/src/commands/worktrees.ts",
+        "packages/state-ledger/src/coordination.ts",
+        "packages/state-ledger/src/coordination-channel.ts",
+        "docs/hardening-readiness.md"
+      ]
+    }
+  ],
+  "source_binding": {
+    "docs/worktree-leasing.md": "5cef20482f599d14b5caf6c06564b24fae0841045a3742669c789cecee054435",
+    "packages/cli/src/commands/route-task.ts": "712a71c8fc57945a169f4e6ef7c5fa75a487b8a2d1b0d34b917ad9821db5c6c4",
+    "packages/cli/src/route-task.test.ts": "a155a7b192e725df8943d585cad65b63a056b5ba298b2c65244f228e995a6704",
+    "packages/cli/src/worktrees.test.ts": "8ff005449e6fa6e1b2ceecee145032ad5038341fe249e2164efe3127e16ecba7",
+    "packages/coordinator/src/active-turns.test.ts": "2c48b7f689e82e875fad618653083277d35bc0843e2ee5d24247045dce598451",
+    "packages/coordinator/src/active-turns.ts": "89affbce46cc77fac92d1b26f256ffb881d9f93cfcd7d84b03136f775cffa8c0",
+    "packages/coordinator/src/adaptive-concurrency.test.ts": "df90637460ab164d8d647ac3e88fcfb0905b3260d722301c430a5693a152c1d6",
+    "packages/coordinator/src/cooldowns.ts": "6eea57c631ba55a233f7a27f81d990e7d55bb7989656a6dfe683b31605b5e2f9",
+    "packages/coordinator/src/identity-pool.ts": "d172c37f0b9d3a02cd4df7eb47f6cfdc39d8a183ae1c80d26222dbd43d8458f8",
+    "packages/coordinator/src/replay.test.ts": "bb6f29fd530efce12c4ae4061d644ba9b0dd1595243a94dc7cda7db5450f8703",
+    "packages/coordinator/src/replay.ts": "7c9033a01b148c5e41077d6b9c31ac5ef5a9021f56d72951041786200f0058a4",
+    "packages/coordinator/src/route-planner.test.ts": "c2ee93dedb285b490c2bb6d33b1d3fd4d3eaa5a6ec10d95cd690a092b2b7b4c3",
+    "packages/coordinator/src/route-planner.ts": "aa194be65ac3fdd63bfaa409f12994be882827ef13b16ebfb776f81b8a577250",
+    "packages/rate-limit-catalog/src/classifier.test.ts": "7f215235b2b3a47abc6ea907a3037674c706c5b7b27d0a24dc394a08e4b89f4b",
+    "packages/rate-limit-catalog/src/retry-guardrails.test.ts": "317e095257154db6f74790765fa174410ad707f777db2c96fb66203f18e22bd5",
+    "packages/rate-limit-catalog/src/retry-guardrails.ts": "8a6d907c0aba9e9f6a5f75881bbfe5249d5e699a2b347db750cf6b2c48d2ae55",
+    "packages/rate-limit-catalog/src/rules.ts": "b5b56a2dae89840815b7ac80b3a2bed04f210e417f51b74beae2b32f09d5d0ad",
+    "packages/state-ledger/src/coordination-channel.test.ts": "1ff9bab5e120589542878ae25dd7a8d5177769cbd814b543bdabdbfcb51b8f66",
+    "packages/state-ledger/src/coordination-channel.ts": "e4e32df500bb2a099d79430fafa07615131f1398ac2dcf2b1a05d897fbb30130",
+    "packages/state-ledger/src/coordination.test.ts": "78660cfb0662e2ffd4ad01b2da22d92a20ae71e39c23677d7c9238800ce5a85c",
+    "packages/state-ledger/src/coordination.ts": "d10d593126646d5afc9892adf9bca634694a8376fe7dcaeb1e78c8f93bf439dd",
+    "packages/state-ledger/src/supabase-coordination-channel.test.ts": "99cce7213728c34d1258e21281d636b32f53a59b9bcce91fbfdf2b1d562caf5f",
+    "packages/worktree-leasing/src/cleanup.test.ts": "e40881d44c10ec6f943c62b432bd87b3b96c0524428bc3fdbf30731373c5f70d",
+    "packages/worktree-leasing/src/cleanup.ts": "4931640d0b5255903a96c87d2f65e6bba116a792559f52dfa8ed5c42d16f491d",
+    "packages/worktree-leasing/src/coord-durability.test.ts": "07faf5e410bb7dd5076751c15a470fa06b032f2dec1f1011d46e4e5321aa0ee1",
+    "packages/worktree-leasing/src/lease-manager.test.ts": "e9066e98e32b3213ba4ac852a7a6d01257f30ac34c8bc00f0a3a1c6e627f9cef",
+    "packages/worktree-leasing/src/lease-manager.ts": "ad9d3e4c52d5e103ddf8575b3592e54b18a9a8c57762b93daa4630207cfada84",
+    "packages/worktree-leasing/src/locks.test.ts": "47df1be1aab06a8d4c32feb13063ea1330c8a3eb74d72b0883d173d0641c3974",
+    "packages/worktree-leasing/src/stale-recovery.ts": "b7ca2f7c875a6b6b25ecbe20d0212e9904e6bab0bdacdd73cc38a55d76cbfbb6",
+    "packages/worktree-leasing/src/supabase-lease-store.test.ts": "2361287dbdfb71b2d2ec70670395c2e5a58d33e6a6f1eac3cb0cae9cd85bbf78",
+    "packages/worktree-leasing/src/supabase-lease-store.ts": "6df9b4c21aa44b11f5311b745b546f2c5ca16bf6021dc7e764583988b60d0e5d",
+    "plans/phase-plan-v2-COORD.md": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "7d1ace5caf6867d7669e257291e74cc7dfeb00b1242ca9d18a4afe25bf2d4e7a",
+    "tests/guard/coordination.integration.db.test.ts": "f5cb2f0473889caab9e7830d711daff61c2f6e87c20f23bdcd61a6b44aedfaa4",
+    "tests/guard/process.test.ts": "91dd2f869469486c5b083f2394c437a9ebaacf172dfc0cb64d57b5a11a1e6b19"
+  },
+  "binding": "Repairs and prior dissent remain subject to fresh review. Recording commit is later metadata, never retroactively reviewed.",
+  "rule": "No unqualified scope dismissal or review waiver. Full current-head gates and all required grounded reviewers must pass before merge."
+}
