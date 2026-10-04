@@ -1,0 +1,28 @@
+{
+  "schema": "coord-custody-reconciliation.v1",
+  "source_head": "0e1b9a1558270b21f25be068f049aa1fab2d46cb",
+  "status": "implemented_pending_current_head_full_gate",
+  "supersedes": "plans/evidence/v2/reviews/COORD-CR-reconciliation-1039f64.json custody-determinism disposition only",
+  "failed_source": "72025db2c98c8a84b319b23cf32b819bcdb24f48",
+  "failed_runs": [
+    37167221821,
+    37167221842
+  ],
+  "tests_before_gate_failure": {
+    "passed": 739,
+    "skipped": 1
+  },
+  "cause": "Forced supervisor cleanup of direct vite-node still signaled its adopted compiler child. Wrapper removal alone does not prove strict zero-rescue. SQLite lock is owned directly by Node, not by a lock broker.",
+  "repair": "Held callback responds to explicit fixture crash input with process.exit(0), bypassing callback completion and SQLite finally; waitExit observes actual owner exit with natural descendant drainage before re-acquisition. No GUARD validator or accepted rescue count changes.",
+  "criteria": [
+    "EC-COORD-3"
+  ],
+  "source_binding": {
+    "packages/worktree-leasing/src/locks.test.ts": "d3c2c4bae198677ac59a3578773082f371b28a8489c9d227d60ef459af920037"
+  },
+  "remaining": [
+    "Current-head local full suite",
+    "Current-head hosted full gate and source-bound rehearsal",
+    "Fresh all-seven production review"
+  ]
+}
