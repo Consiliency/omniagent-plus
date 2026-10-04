@@ -1,0 +1,55 @@
+{
+  "schema": "wire-phase-evidence.v1",
+  "phase": "WIRE",
+  "status": "planning_blocked",
+  "plan": "plans/phase-plan-v2-WIRE.md",
+  "plan_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+  "plan_sha256": "c6216dba173a63e5a9e9c4a7133fa53f1007b020b925e26d026c979a032969c5",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
+  "standing_review_summary": "Six usable standing AGREE: fresh Astra correctness atc6424d3 and five explicitly carried approvals from215bb03; required Opus reviewer and Fable-only president unavailable.",
+  "plan_content_blockers": [],
+  "full_plan_approval": false,
+  "implementation_started": false,
+  "production_source_changed": false,
+  "implementation_verification": "not_run",
+  "interface_gate": "IF-0-WIRE-5 unaccepted",
+  "exit_criteria": [
+    "EC-WIRE-1 unaccepted",
+    "EC-WIRE-2 unaccepted",
+    "EC-WIRE-3 unaccepted",
+    "EC-WIRE-4 unaccepted"
+  ],
+  "manifest_status": "committed, not executing or completed",
+  "blocker": {
+    "class": "unretryable_external_outage",
+    "human_required": false,
+    "source": "Authenticated first-party Opus5.5 subscription TUI reports weekly usage limit; no usable review verdict.",
+    "reported_reset": "2026-10-06T14:00:00-04:00",
+    "missing_roles": [
+      "manual Opus5.5 reviewer",
+      "Fable-only Opus panel president"
+    ],
+    "waiver": false,
+    "fallback": false
+  },
+  "optional_dispositions": [
+    {
+      "source": "Astra correctness delta review",
+      "suggestion": "Quarantine cleanup control for neighboring IDs alpha and alpha:beta",
+      "disposition": "Covered by approved private namespace iteration-boundary contract; explicitly include this control during SL-2 execution, no new goal or public identifier restriction."
+    }
+  ],
+  "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261004.json",
+  "pr": "omniagent-plus#33",
+  "issue_dispositions": {
+    "omniagent-plus#25": "open; progress comment only",
+    "omniagent-plus#30": "open; preserved candidate and worktrees, incorporation not accepted",
+    "omniagent-plus#19": "open tracker; progress comment",
+    "omniagent-plus#26": "carried INTEG",
+    "omniagent-plus#27": "carried PREP",
+    "omniagent-plus#20": "carried owner license decision in PREP"
+  },
+  "resumption": "Recheck upstream, obtain required manual Opus plan approval and qualified president ruling; only then start authorized serial implementation, full CR reconciliation/gates, merge, postmerge CI and appropriate issue closure/pruning.",
+  "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
+  "binding": "Receipt records actual planning/review source. Its recording commit is later metadata; no future verification/merge is claimed."
+}
