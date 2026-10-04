@@ -1,0 +1,31 @@
+{
+  "schema": "wire-plan-reconciliation.v1",
+  "reviewed_source": "13042c1e11ae052e81eed58a19b629395efe8195",
+  "status": "repaired_in_plan_pending_recheck",
+  "implementation_started": false,
+  "findings": [
+    {"id":"PLAN-1","source":"All four grounded harness seats and separate independent review","criteria":["EC-WIRE-1","EC-WIRE-4"],"finding":"Incorrect fake/live ownership and missing actual fake-server request rejection controls.","repair":"SL-4 owns fake-omnigent-server.ts and live-omnigent-smoke.test.ts; existing conformance must cover malformed/oversized/aborted request refusal, handled rejection, response cleanup and subsequent valid service. Preserve GUARD skip enrollment."},
+    {"id":"PLAN-2","source":"Separate independent review","criteria":["EC-WIRE-3"],"finding":"Caller mutation can change send/cancel scope after lease acquisition is queued.","repair":"Validate and detach mutation inputs before first await/queue; explicitly test mutation during lease/fence waits with consistent lease/fence/key/wire target and body."},
+    {"id":"PLAN-3","source":"Sol adversarial and alternative-approach","criteria":["EC-WIRE-3"],"finding":"CLI provider maps and injected history/events lack capacity coverage.","repair":"Shared finite OmnigentTransportLimits consumed by HTTP and CLI options; SL-3 owns admission before transport effects, mapper inputs, concurrent reservations, closed transient cleanup and protected idempotency."},
+    {"id":"PLAN-4","source":"Sol adversarial","criteria":["EC-WIRE-1","EC-WIRE-3"],"finding":"No frozen retained-byte/key limit or runner capture contract.","repair":"Freeze aggregate64MiB retained state, bounded UTF-8 accounting and exact ceilings/defaults; runner options carry deadline/abort/capture cap, transport independently rejects oversize before JSON.parse and bounds waiting. No giant key can evade count-only admission."},
+    {"id":"PLAN-5","source":"Astra red-team","criteria":["EC-WIRE-1","EC-WIRE-3"],"finding":"Per-page bounds do not bound cumulative paginated collection.","repair":"All history/session/child collection walks share row/byte/page/deadline budgets including stale-cursor restart; advancing tiny-page probes must refuse finitely before retaining more data."},
+    {"id":"PLAN-6","source":"Sol alternative-approach","criteria":["EC-WIRE-3"],"finding":"Unknown create result can evict its key and duplicate a dispatched mutation.","repair":"Bounded uncertain-create tombstones return deterministic same-key failure with zero second POST/CLI create; only proven pre-dispatch refusal can release capacity."},
+    {"id":"PLAN-7","source":"Sol alternative-approach","criteria":["EC-WIRE-1"],"finding":"Base query/fragment behavior and per-turn timeout precedence unclear.","repair":"Reject base query/fragment before effects; per-turn timeout can shorten but never extend transport request deadline, independently of terminal turn execution."},
+    {"id":"PLAN-8","source":"Sol adversarial","criteria":["EC-WIRE-4"],"finding":"Fresh per-seat review checkout requirement not explicit.","repair":"Require qualified fresh immutable per-seat harness snapshots and separate manual/native checkouts with exact source/delta binding."},
+    {"id":"PLAN-9","source":"IF-0-VC-2 command validation","criteria":["EC-WIRE-4"],"finding":"Qualified validator interprets pnpm --filter package name as missing path.","repair":"Use pnpm --dir packages/omnigent-transport typecheck and direct node scripts/smoke-packed-omnigent-transport.mjs; complete verification command validation passes."}
+  ],
+  "optional_dispositions": [
+    {"source":"Separate independent review","suggestion":"Freeze numeric defaults and ceilings in SL-0","disposition":"Incorporated before implementation."},
+    {"source":"Fresh tagged upstream inspection","suggestion":"Version-specific event dispositions must reflect skills removal and two metadata additions","disposition":"Incorporated; preserve v0.12 default, no administrative authority."},
+    {"source":"Manual Gemini first plan review","finding":"Seven existing missing implementation features","disposition":"All are explicitly scheduled in original/revised plan. This was plan-only, not implementation acceptance. Preserve DISAGREE; rerun with explicit plan-only scope rather than counting an approval."}
+  ],
+  "required_review_blocker": {
+    "seat":"manual:claude-opus-5-5:max:TUI-tools",
+    "status":"UNAVAILABLE",
+    "reported_reset":"2026-10-06T14:00:00-04:00",
+    "source":"External WIRE-plan-13042c1-opus/attempt-1-incomplete.txt reports first-party subscription weekly usage limit; qualified driver stalled, retry interrupted with cleanup.",
+    "president":"Fable-only required Opus president unavailable; no ruling or fallback claimed.",
+    "waiver":false
+  },
+  "acceptance":"No WIRE IF/EC is accepted. Required complete plan review and president ruling precede implementation; implementation/full verification/merge remain pending."
+}

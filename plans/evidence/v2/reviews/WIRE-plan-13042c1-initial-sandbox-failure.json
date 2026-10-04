@@ -1,0 +1,235 @@
+{
+  "schema": "wire-review.v1",
+  "phase": "WIRE",
+  "kind": "plan",
+  "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+  "delta_base": "f33471de858d3be1fc01a50696abdcb4ab717a87",
+  "plan_sha256": "5a4ed47b49f6402813362601bf311ba8c7a910ca169c8d9a0297f37e5deb34e5",
+  "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+  "prescript": {
+    "schema": "wire-cr-prescript.v1",
+    "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+    "open_issues": [
+      {
+        "issue": "omniagent-plus#27",
+        "title": "Audit HY-3/HY-4/ID-1: reconcile package distribution and retained evidence"
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "title": "Audit sections 3.1-3.4: connect provider lifecycle to durable operator replay"
+      },
+      {
+        "issue": "omniagent-plus#25",
+        "title": "Audit TR-1..TR-9: bound transport resources and preserve lifecycle contracts"
+      },
+      {
+        "issue": "omniagent-plus#20",
+        "title": "Audit HY-1/HY-2/HY-5/HY-6: establish PR verification and distribution decisions"
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "title": "Track v2 audit remediation: dispositions, phase gates, and release acceptance"
+      }
+    ],
+    "continuing_items": [
+      {
+        "issue": "omniagent-plus#25",
+        "related_pr": "omniagent-plus#30",
+        "disposition": "WIRE blocker if unresolved",
+        "criteria": [
+          "EC-WIRE-1",
+          "EC-WIRE-2",
+          "EC-WIRE-3",
+          "EC-WIRE-4"
+        ],
+        "source": [
+          "packages/omnigent-transport/src",
+          "plans/phase-plan-v2-WIRE.md",
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "Bounded transport, content posture, event dispositions, protected replay/fences, concurrent cold start and independent consumer proof are in scope; published v0.12 default must survive selective PR30 reconciliation."
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "disposition": "INTEG carries runtime persistence/scheduling, unless WIRE primitive is defective",
+        "source": [
+          "specs/phase-plans-v2.md",
+          "docs/lifecycle-and-events.md"
+        ],
+        "reason": "No persistence composition in WIRE; admission/lifecycle/cleanup primitives and published invariants must work now."
+      },
+      {
+        "issue": "omniagent-plus#27",
+        "related_issue": "omniagent-plus#20",
+        "disposition": "PREP carries release/dependency/license decisions",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "Existing packed consumers/full verification/rehearsal remain required now. No license or release mutation."
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "disposition": "roadmap tracker remains open",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "WIRE acceptance does not imply INTEG/PREP/SHIP acceptance."
+      },
+      {
+        "issues": [
+          "omniagent-plus#23",
+          "omniagent-plus#24"
+        ],
+        "disposition": "accepted COORD in omniagent-plus#32; historical evidence only",
+        "source": [
+          "plans/evidence/v2/COORD.json",
+          "plans/phase-plan-v2-COORD.md"
+        ],
+        "reason": "Preserve accepted routing/custody/SQL and DATA frozen contracts; any new regression blocks regardless of closed issue state."
+      }
+    ],
+    "prior_records": [],
+    "rule": "Scope dispositions are provisional. Block on any EC/contract/invariant/regression. No blanket waiver; no issue mutations."
+  },
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "DISAGREE",
+      "usable": true,
+      "source_grounded": false,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "Approval is withheld because repository inspection could not run.\n\nBoth the initial inspection and a minimal `git rev-parse HEAD` failed before command execution. The sandbox reported:\n\n> failed to register synthetic bubblewrap mount target \u2026/reviewed-tree/.agents: Quota exceeded (os error 122)\n\nThis is a review-environment blocker, not an implementation defect. I could not verify commit `13042c1e11ae052e81eed58a19b629395efe8195`, inspect the WIRE plan or delta, assess EC-WIRE-1..4, or validate recorded evidence. No files were changed, and no source-level findings were established.\n\nRepair the sandbox mount/quota failure and repeat the read-only review before accepting this candidate. The verdict below declines approval because verification was blocked; it does not assert that the code is defective.\n\nDISAGREE",
+      "review_sha256": "f021d88239c12c876d3417093059b5a7b75d9898a3247e3dce4215cbe5d043fc",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "DISAGREE",
+      "usable": true,
+      "source_grounded": false,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "# WIRE Review Report\n\nBlocking review failure: repository inspection could not begin. Every read-only command failed before execution because the sandbox could not register the `.agents` mount, returning exit 101 with `Quota exceeded (os error 122)`. Attempts included `git rev-parse HEAD`, `git status`, and a diagnostic file read; none produced repository data.\n\nConsequently, I could not verify the immutable source binding, requested delta, plans, implementation, tests, evidence, or EC-WIRE-1..4. This is an execution-environment failure\u2014not a product defect\u2014but the WIRE candidate cannot be accepted without the mandatory grounded review.\n\nDISAGREE",
+      "review_sha256": "97b1f04900c9c745e11656e9f0726c0dc971d1836b4a92dc31d70554ef352d27",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "DISAGREE",
+      "usable": true,
+      "source_grounded": false,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "Review blocked: both read-only command attempts failed before execution because the sandbox could not register its `.agents` mount target: `Quota exceeded (os error 122)`.\n\nI could not verify the committed HEAD, inspect the WIRE plan or source, or evaluate recorded evidence. No implementation defects were established; this is a review infrastructure failure.\n\nApproval remains withheld pending a completed review of the specified immutable source.\n\nDISAGREE",
+      "review_sha256": "820063f644fe99dc68da4def78d6fa72fbceeeda787df9003ee26f59d96e7f57",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "DISAGREE",
+      "usable": true,
+      "source_grounded": false,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "## Review report\n\nI could not complete the source review. Every read-only command failed before execution because the sandbox could not initialize its mounts:\n\n`failed to register synthetic bubblewrap mount target .../.agents: Quota exceeded (os error 122)`\n\nThe same failure occurred for `.codex`. Consequently, I could not verify the pinned commit, delta, plans, production code, tests, fixtures, history, or hosted evidence. This is an infrastructure blocker, not an identified code defect, but the candidate cannot be approved without the mandated independent verification.\n\nDISAGREE",
+      "review_sha256": "630cbb6979aee8310d33ca9e96a37e4e6afea320c364d6abb56eb8dadc0c4521",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "UNAVAILABLE",
+      "usable": false,
+      "source_grounded": false,
+      "metadata": {
+        "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "model": "claude-opus-5-5",
+        "status": "UNAVAILABLE",
+        "detail": "first-party subscription TUI reports weekly usage limit",
+        "reported_reset": "2026-10-06T14:00:00-04:00",
+        "approval": false,
+        "first_attempt": {
+          "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+          "model": "claude-opus-5-5",
+          "exit_code": 1,
+          "detail": "claude_tui_stalled"
+        },
+        "retry": "Interrupted after the same subscription limit was established; qualified adapter finally drains its process group.",
+        "president": "Required Fable-only Opus president is likewise unavailable; no fallback attempted.",
+        "source_of_limit": "attempt-1-incomplete.txt provider TUI output, not a code-review verdict"
+      },
+      "review": "First-party TUI weekly subscription limit; no code-review approval."
+    },
+    {
+      "seat": "manual:Gemini 3.1 Pro (High):tools",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "DISAGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "model": "Gemini 3.1 Pro (High)",
+        "exit_code": 0,
+        "review_chars": 5061
+      },
+      "review": "### Blockers\n\n1. **Missing Finite Options in `OmnigentHttpClientOptions`**\n   - **File:** `packages/omnigent-transport/src/types.ts`\n   - **Line:** ~148\n   - **EC/Invariant:** EC-WIRE-1, IF-0-WIRE-5\n   - **Issue:** `OmnigentHttpClientOptions` is missing the finite positive resource options defined in the plan: `requestTimeoutMs`, `maxResponseBytes`, `maxSseFrameBytes`, `maxHistoryItems`, `maxSessions`, `maxTurnsPerSession`, `maxEventsPerSession`, `maxStreamsPerSession`, and `wireVersion`.\n   - **Repair:** Add these properties to the interface to enforce resource bounds at admission/construction sites and provide the required explicit version policy.\n\n2. **Unbounded Network Buffers and Missing HTTP Deadlines**\n   - **File:** `packages/omnigent-transport/src/http-client.ts`\n   - **Line:** 550 (`openSessionStream`) and 741 (`requestJson`)\n   - **EC/Invariant:** EC-WIRE-1 (request/body deadlines, byte overflow)\n   - **Issue:** HTTP methods `openSessionStream` and `requestJson` do not enforce a `requestTimeoutMs` or limit `maxResponseBytes`. Requests lack a deadline `AbortController`, and there is no byte-counting during iteration, which fails to prevent unconstrained resource usage.\n   - **Repair:** Apply `AbortSignal.timeout()` based on `requestTimeoutMs` for handshakes/bodies. In `requestJson`, accumulate byte size when reading the stream and throw a typed failure if `maxResponseBytes` is exceeded.\n\n3. **Incorrect SSE Framing and Unbounded Memory**\n   - **File:** `packages/omnigent-transport/src/sse-stream.ts`\n   - **Line:** 666-667 and 655\n   - **EC/Invariant:** EC-WIRE-1 (UTF-8/chunk boundaries, CR framing, oversize streams, data whitespace)\n   - **Issue:** `parseOmnigentSseStream` splits frames on `\\r?\\n\\r?\\n`, completely missing bare CR (`\\r\\r`) chunk boundaries. It uses `.trim()` which destroys intentional data whitespace instead of stripping exactly one optional space after `data:`. Additionally, it does not enforce `maxSseFrameBytes` on the growing `buffer`, risking an OOM crash on no-delimiter input.\n   - **Repair:** Implement `maxSseFrameBytes` tracking on `buffer`. Use a framing regex or state machine that safely splits on `\\r\\n|\\n|\\r`. Strip exactly one optional space after `data:` and preserve the rest of the payload text.\n\n4. **Missing Provider Capacity Enforcement**\n   - **File:** `packages/omnigent-transport/src/http-provider.ts`\n   - **Line:** Entire file\n   - **EC/Invariant:** EC-WIRE-3 (provider capacity refusal, bounding state)\n   - **Issue:** There is no capacity enforcement for `maxSessions`, `maxTurnsPerSession`, `maxEventsPerSession`, or `maxStreamsPerSession`. Capacity is not reserved before async network effects, meaning concurrent reservation exhaustions are not protected, and tiny hostile frames can grow retained sets indefinitely.\n   - **Repair:** Track and reserve capacities for sessions, turns, events, and streams. Throw a typed capacity refusal failure *before* executing async network effects.\n\n5. **CLI Exposes Command Secrets and Uses Unsafe Parsing**\n   - **File:** `packages/omnigent-transport/src/cli-client.ts`\n   - **Line:** 58 and 73\n   - **EC/Invariant:** EC-WIRE-1 (CLI bounded typed redacted failures)\n   - **Issue:** `commandFailure` includes raw `result.stderr` in the mapped error message, potentially leaking command secrets and bypassing redaction. `parseJsonResult` does not validate object shapes and throws a native `SyntaxError` on malformed output rather than a mapped, nonretryable failure.\n   - **Repair:** Remove raw `stderr` from the failure message. Wrap `JSON.parse` in a try-catch that throws a typed failure with bounded diagnostics, and validate the parsed JSON envelope shape before casting.\n\n6. **Static Fixture Claimed as Live Detection**\n   - **File:** `packages/omnigent-transport/src/capability-probe.ts`\n   - **Line:** 47-52\n   - **EC/Invariant:** EC-WIRE-4 (static fixture claimed live detection)\n   - **Issue:** `buildSnapshot` directly loads static fixture metadata via `loadOmnigentSourceMetadata()` and sets its `commit` and `package_version` as the live snapshot's `gitSha` and `version`.\n   - **Repair:** Remove fixture metadata from live snapshot construction. Only include `version` and `gitSha` if they are derived directly from the live `provider.health()` surface.\n\n7. **Incomplete Event Dispositions and Silent Drops**\n   - **File:** `packages/omnigent-transport/src/event-mapper.ts`\n   - **Line:** 203\n   - **EC/Invariant:** EC-WIRE-2 (complete tagged event dispositions, metadata drops)\n   - **Issue:** Numerous tagged events (such as `session.permission_mode`, `session.skills`, `response.elicitation_resolved`) and unknown event extensions fall through to the `default` case and are silently dropped (returning `[]`). They do not produce the required bounded metadata diagnostics.\n   - **Repair:** Define explicit mapping cases for all stream events defined in the types. For explicitly dropped and unknown events, emit a bounded metadata diagnostic event instead of silently returning an empty array.\n\n### Decision\nDISAGREE\n",
+      "review_sha256": "47a4feef0bb13a7deceb2a8d5981b1a80c10f135a969b2250c7f2f097b5686a5",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "separate-independent:data_independent_design",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "head_verified": true,
+        "tests_run": false
+      },
+      "review": "Reviewed exact 13042c1e11ae052e81eed58a19b629395efe8195. Two plan blockers remain.\n\nP1 \u2014 Freeze mutation inputs before asynchronous lease acquisition (EC-WIRE-3).\nThe plan requires preserved mutation fencing but does not schedule caller-alias controls. sendTurn captures the lease session ID while passing the original request into its delayed callback; subsequent fence reads and dispatch reread that mutable request. Cancellation similarly captures scope at http-provider.ts:896 but passes the original handle at910-914; its callback at932 reads handle.sessionId. A JavaScript caller can change A to B while waiting, causing B operation under A lease. Repair: explicitly require validated detached inputs before first await/lease queue, with production-entrypoint mutation tests during lease/fence-read waits. Assert consistent lease/fence scope, idempotency identity and wire target/body.\n\nP2 \u2014 Correct verification ownership and enumerate actual fake-server rejection handling (EC-WIRE-1/4, CASE-TR-9).\nSL-4 names nonexistent fake-server.ts and omnigent.live.smoke.test.ts. Conformance imports fake-omnigent-server.ts; GUARD enrolls live-omnigent-smoke.test.ts. The actual fake server discards its asynchronous handler promise at171 while malformed request JSON rejects from readBody. CASE-TR-9 requires fake-server rejection controls which the lane omits. Repair: own existing paths, preserve GUARD live-smoke enrollment, schedule malformed/aborted request tests proving bounded HTTP refusal, no unhandled rejection/hanging response, continued valid-request service.\n\nOtherwise roadmap digest matches, lane ownership does not overlap, and plan addresses protected capacity, versioned replay, content posture, reader cleanup, cold-start races and source-bound acceptance. Existing scheduled defects/pending implementation evidence are not acceptance claims.\nOptional suggestion: specify numeric defaults and integer/timer ceilings in SL-0 before dependent lanes.\nRead-only review; no builds or implementation tests.\nPARTIALLY AGREE\n",
+      "review_sha256": "dc0e0aa7fa6fd76e938dc5f8a9068b4039ef75855db96afdc597d2b4349d11c5",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    }
+  ],
+  "status": "changes_requested_or_unavailable",
+  "president": {
+    "status": "UNAVAILABLE",
+    "required": true,
+    "ladder": [
+      "fable"
+    ],
+    "reported_reset": "2026-10-06T14:00:00-04:00",
+    "ruling": null,
+    "waiver": false
+  },
+  "binding": "Recording commit follows measured source; no implementation or merge approval inferred."
+}
