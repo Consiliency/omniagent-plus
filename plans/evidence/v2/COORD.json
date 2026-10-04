@@ -1,0 +1,411 @@
+{
+  "schema": "coord-acceptance-candidate.v1",
+  "phase": "COORD",
+  "status": "verified_implementation_pending_production_review",
+  "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+  "base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c",
+  "pull_request": "https://github.com/Consiliency/omniagent-plus/pull/32",
+  "source_binding": {
+    ".phase-loop-generated-outputs.json": "2b521a10c51f04bf1ef5f0ee3d8bf018389a752289132b00d467dfaf4d0d53d6",
+    "docs/coordination-backend.md": "dd89d383b71001165e0d05f78346324403bb8e10706a38ca1e9634eded56af6a",
+    "docs/coordinator-routing.md": "2288bbf80396fbf83ae3c67f7a81ebc01a39cb459342627051ed1bb230ae3a8b",
+    "docs/durable-state.md": "8c48b83f343ce81e92f6f915fde7686fa73d0376c934fad5135f0e3aafeeadda",
+    "docs/hardening-readiness.md": "3f568b4fa07dbabeae40bfe053712ff0b65d442660b98427efb102affb45ecda",
+    "docs/local-operator-cli.md": "f8f801bfa605287eabedc23cef962da3c063a7e37475172bdbd179dcf3071272",
+    "docs/worktree-leasing.md": "5cef20482f599d14b5caf6c06564b24fae0841045a3742669c789cecee054435",
+    "fixtures/hardening/readiness/docs-contract.json": "b0f125d27f48611b18eb5c36d0049389b69d69218f83306f0628b33ca3922009",
+    "packages/cli/src/args.test.ts": "c94c0951eb90284f3de52b9cf2bd8d883c96127965d9c906bda9b934a38fb999",
+    "packages/cli/src/args.ts": "a1802cbb51334deb2d9af450d0a5a91bf2cf6bb40e2e7c1bc77b1f044a1a3669",
+    "packages/cli/src/classify-limit.test.ts": "4a70acf0d7350f89993a184ec7b2bf2da1f13e25d82d8e1608143e4e44faf316",
+    "packages/cli/src/cli.test.ts": "afd4750b1a867eab645e503015c67ad352e776157609499fa1ccf9ebd16af34e",
+    "packages/cli/src/command-registry.ts": "ab1324b807de917bf130182611069605a75ac9da4867c3819569cd0cc0d9bbc0",
+    "packages/cli/src/commands/coordination.ts": "417916e151539aeabf8a6429fa06f04a69f62715d9aee46ce23a6d6ee57a5be0",
+    "packages/cli/src/commands/identities.ts": "305a396e9fd1f3d0cf72f7d1a914740cdf8c10cb14cfafabbfbba8704243a6f7",
+    "packages/cli/src/commands/route-task.ts": "712a71c8fc57945a169f4e6ef7c5fa75a487b8a2d1b0d34b917ad9821db5c6c4",
+    "packages/cli/src/commands/worktrees.ts": "e569531c9f370d4af3cf3ad40275227aafa22435075893494d2e4c939eb71568",
+    "packages/cli/src/coordination.test.ts": "106cb8e2620d073e1cd585483fa205672d45c46a92dafb0229406760f4607436",
+    "packages/cli/src/errors.ts": "e9e95a0e5ba424bf735e8ecd92c5bc2837e9c81b2b800b46dcde6a35cc25cb26",
+    "packages/cli/src/identities.test.ts": "41a3f5ff2e6686cd20adb3c116df88dc386dd32a77bcc88b72e6f9feea0d9104",
+    "packages/cli/src/route-task.test.ts": "a155a7b192e725df8943d585cad65b63a056b5ba298b2c65244f228e995a6704",
+    "packages/cli/src/runtime.ts": "84b59b80739e7b8a6ac59286f53aa61e8652d6358a593cf27d7a8d2227a0579f",
+    "packages/cli/src/types.ts": "ffe410888681b48c128f0b4500c8d8c044c6c2f63ca06d7c7cc5b7d826624496",
+    "packages/cli/src/worktrees.test.ts": "8ff005449e6fa6e1b2ceecee145032ad5038341fe249e2164efe3127e16ecba7",
+    "packages/coordinator/src/active-turns.test.ts": "2c48b7f689e82e875fad618653083277d35bc0843e2ee5d24247045dce598451",
+    "packages/coordinator/src/active-turns.ts": "89affbce46cc77fac92d1b26f256ffb881d9f93cfcd7d84b03136f775cffa8c0",
+    "packages/coordinator/src/adaptive-concurrency.test.ts": "df90637460ab164d8d647ac3e88fcfb0905b3260d722301c430a5693a152c1d6",
+    "packages/coordinator/src/adaptive-concurrency.ts": "1e47335d6380835013be97b2fe67c95735e225f3287d50478cfa2a4ba06712fb",
+    "packages/coordinator/src/cooldowns.test.ts": "4d48efb7b1180a65dc3d5aa01ccf6d53b9df89a4def4f4b9b1b44661c957b68f",
+    "packages/coordinator/src/cooldowns.ts": "6eea57c631ba55a233f7a27f81d990e7d55bb7989656a6dfe683b31605b5e2f9",
+    "packages/coordinator/src/failure-policy.test.ts": "6482b80d0da1fc44ef9a2544c183b51cf5de4fe2fab65e970f369f5419efbf8a",
+    "packages/coordinator/src/identity-pool.ts": "d172c37f0b9d3a02cd4df7eb47f6cfdc39d8a183ae1c80d26222dbd43d8458f8",
+    "packages/coordinator/src/index.ts": "4c154e378ff00d4f2fdca5c7e274e9ae678cd70c826ccff90222132be3fe7789",
+    "packages/coordinator/src/launch-gate.test.ts": "30dd6280b03b940dd48a7f5b5055e7306b2dd8eddab3b99a71330dca2bffcc82",
+    "packages/coordinator/src/launch-gate.ts": "0fe03e20977398d3db93f9462fd564895d674fffd43c587429ee91a7857b352a",
+    "packages/coordinator/src/lease-arbiter.test.ts": "074b4f83550fa7d46f592eba84168127fe16c55fa4d91df81965dd19d1b2b5ec",
+    "packages/coordinator/src/lease-arbiter.ts": "d1823364e80c0ace414b03b3f2f9a454737d4247f958f26eb3282c102c2fc637",
+    "packages/coordinator/src/replay.test.ts": "bb6f29fd530efce12c4ae4061d644ba9b0dd1595243a94dc7cda7db5450f8703",
+    "packages/coordinator/src/replay.ts": "7c9033a01b148c5e41077d6b9c31ac5ef5a9021f56d72951041786200f0058a4",
+    "packages/coordinator/src/retry-guardrails.test.ts": "0efe1bfbf130973827ee5d8f6a465f42e15f61358742740b1bf215fffe47ffbb",
+    "packages/coordinator/src/retry-guardrails.ts": "1ecd4507366e812aa489a0a538384514c3c1f55423dfa1c82bceb26a32f57640",
+    "packages/coordinator/src/route-planner.test.ts": "c2ee93dedb285b490c2bb6d33b1d3fd4d3eaa5a6ec10d95cd690a092b2b7b4c3",
+    "packages/coordinator/src/route-planner.ts": "aa194be65ac3fdd63bfaa409f12994be882827ef13b16ebfb776f81b8a577250",
+    "packages/coordinator/src/types.ts": "510d493d57de54e167b8ff1bcb0bcd19d28b0dcfb037c381f04b0fa0a4df850e",
+    "packages/rate-limit-catalog/src/classifier.test.ts": "7f215235b2b3a47abc6ea907a3037674c706c5b7b27d0a24dc394a08e4b89f4b",
+    "packages/rate-limit-catalog/src/provider-rules.ts": "a899df314ec40ae8eb3ac0eb3bb5363034ab89e0a2b774ddfe7bbecf975aced3",
+    "packages/rate-limit-catalog/src/retry-guardrails.test.ts": "317e095257154db6f74790765fa174410ad707f777db2c96fb66203f18e22bd5",
+    "packages/rate-limit-catalog/src/retry-guardrails.ts": "8a6d907c0aba9e9f6a5f75881bbfe5249d5e699a2b347db750cf6b2c48d2ae55",
+    "packages/rate-limit-catalog/src/rules.ts": "b5b56a2dae89840815b7ac80b3a2bed04f210e417f51b74beae2b32f09d5d0ad",
+    "packages/rate-limit-catalog/src/types.ts": "e6446f30e9f4c23db83aa0fbf6e5ee0c7a55abcab85d6cfe00507e4431e2e393",
+    "packages/state-ledger/src/coordination-channel.test.ts": "1ff9bab5e120589542878ae25dd7a8d5177769cbd814b543bdabdbfcb51b8f66",
+    "packages/state-ledger/src/coordination-channel.ts": "e4e32df500bb2a099d79430fafa07615131f1398ac2dcf2b1a05d897fbb30130",
+    "packages/state-ledger/src/coordination.test.ts": "78660cfb0662e2ffd4ad01b2da22d92a20ae71e39c23677d7c9238800ce5a85c",
+    "packages/state-ledger/src/coordination.ts": "d10d593126646d5afc9892adf9bca634694a8376fe7dcaeb1e78c8f93bf439dd",
+    "packages/state-ledger/src/index.ts": "242f3bd8853da33b52884ffcf6aa2a4f75fedbd42103832345d90f068434c7db",
+    "packages/state-ledger/src/retention.ts": "9297809f95352d5fb117d54d3acb1cec59aa3a5610cbe58908a08f8bef61345c",
+    "packages/state-ledger/src/supabase-coordination-channel.test.ts": "99cce7213728c34d1258e21281d636b32f53a59b9bcce91fbfdf2b1d562caf5f",
+    "packages/state-ledger/src/supabase-coordination-channel.ts": "49cc530c42dd6ef0d1585ff4a3673044038055b78f34ecca5372e4d66ee57443",
+    "packages/worktree-leasing/package.json": "1110c43ec6de39959de3ba800c46f0c8a42cf82d465c66efefe7d4fd262b92d2",
+    "packages/worktree-leasing/src/cleanup.test.ts": "e40881d44c10ec6f943c62b432bd87b3b96c0524428bc3fdbf30731373c5f70d",
+    "packages/worktree-leasing/src/cleanup.ts": "4931640d0b5255903a96c87d2f65e6bba116a792559f52dfa8ed5c42d16f491d",
+    "packages/worktree-leasing/src/coord-durability.test.ts": "07faf5e410bb7dd5076751c15a470fa06b032f2dec1f1011d46e4e5321aa0ee1",
+    "packages/worktree-leasing/src/git.ts": "95a1ae4757e87553b8ed370d68556ad3f67c2a96a6ceb3a97fefb19fa571af4f",
+    "packages/worktree-leasing/src/hardening-recovery.test.ts": "84a338b0d120097ca213dc0d16aff1691eee1d93ed83c305b78b409a5feca07b",
+    "packages/worktree-leasing/src/index.ts": "bba82825ec80c4b20b1c4077283afa47dbace0fb0c38eb7f0464f9056dac9f0a",
+    "packages/worktree-leasing/src/lease-manager.test.ts": "e9066e98e32b3213ba4ac852a7a6d01257f30ac34c8bc00f0a3a1c6e627f9cef",
+    "packages/worktree-leasing/src/lease-manager.ts": "ad9d3e4c52d5e103ddf8575b3592e54b18a9a8c57762b93daa4630207cfada84",
+    "packages/worktree-leasing/src/lease-store.ts": "921d27ec1623f27ace43032303449c9c6d651a39d86359cf6dfa798ee24cb48b",
+    "packages/worktree-leasing/src/locks.test.ts": "47df1be1aab06a8d4c32feb13063ea1330c8a3eb74d72b0883d173d0641c3974",
+    "packages/worktree-leasing/src/locks.ts": "64aec1c239bc95ee8054f3eb7fcb9cee307731ef3cc3488a55de213646f05302",
+    "packages/worktree-leasing/src/process-liveness.test.ts": "1395a3c82707c063113e418d841cd174d1fc63a55f37242881a13902d3b3e0b4",
+    "packages/worktree-leasing/src/process-liveness.ts": "552289b087b3aa32c1f7da0f9e5b03962d77bce521b37190f0793cfa36c91d65",
+    "packages/worktree-leasing/src/stale-recovery.ts": "b7ca2f7c875a6b6b25ecbe20d0212e9904e6bab0bdacdd73cc38a55d76cbfbb6",
+    "packages/worktree-leasing/src/supabase-lease-store.test.ts": "2361287dbdfb71b2d2ec70670395c2e5a58d33e6a6f1eac3cb0cae9cd85bbf78",
+    "packages/worktree-leasing/src/supabase-lease-store.ts": "6df9b4c21aa44b11f5311b745b546f2c5ca16bf6021dc7e764583988b60d0e5d",
+    "packages/worktree-leasing/src/types.ts": "a2700ee443cb885b9c42b49e6c05d054b6c7d758f3f574d928e40b6926f9fa04",
+    "plans/phase-plan-v2-COORD.md": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
+    "pnpm-lock.yaml": "454113a71b84bd161dbf34d92b9f4a28f2388c4cf4492b0513a5c4243bbd835b",
+    "scripts/verify.mjs": "3f99f60bdd13bba1bb032ae39da03aa453a54410ee02b0ad22a79b10d662aa63",
+    "supabase/migrations/20260930000000_coordination_server_time.sql": "7d1ace5caf6867d7669e257291e74cc7dfeb00b1242ca9d18a4afe25bf2d4e7a",
+    "tests/guard/coordination.integration.db.test.ts": "f5cb2f0473889caab9e7830d711daff61c2f6e87c20f23bdcd61a6b44aedfaa4",
+    "tests/guard/orchestration.test.ts": "0c5d006504b687a8b37b56f02a1a2238cce4f60f2ad903b4b4ee2e43f391c223",
+    "tests/guard/required-cases.json": "f6ce534a9142584fc3670408768c310a69fbc0a0015097d267596c40e7ddae0e"
+  },
+  "plan_sha256": "ec531882048451d89d481bd6344b0f8f2f4b1c6b46d86d1f71e78311b78c85fa",
+  "local_verification": {
+    "frozen_install": "passed",
+    "build": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "root_tests": {
+      "command": "pnpm test",
+      "passed": 701,
+      "skipped": 1,
+      "failed": 0,
+      "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+      "skip": "Explicitly gated live Omnigent smoke is not enabled. Database project is separately admitted by the canonical hosted full gate."
+    },
+    "logs": [
+      {
+        "path": "/tmp/coord-repaired-typecheck.log",
+        "sha256": "13f436242b83ef48b56c3f9e3949a8add842b7f1abdb515e6e74823d036e6c85"
+      },
+      {
+        "path": "/tmp/coord-repaired-lint.log",
+        "sha256": "b543827ce56a63357c629028555ecec2cc964dda33dbbf2a9a2872b1a2ab20f8"
+      },
+      {
+        "path": "/tmp/coord-repaired-build.log",
+        "sha256": "c2001a7098c07a282f63322b45f9300e72976163ae07607b3756b708bfc2186d"
+      },
+      {
+        "path": "/tmp/coord-root-9ae3790-sequential.log",
+        "sha256": "81efb3b7311bc81beffbd80f956af9e65e5ad5fdc8f088afa37bf383272f81c2"
+      },
+      {
+        "path": "/tmp/coord-audit-9ae3790.log",
+        "sha256": "338a80ebef9f6f2cef7ca07293b7ca17a54f0ee3b6d0200c38257532b4d2d6aa"
+      },
+      {
+        "path": "/tmp/coord-install-9ae3790.log",
+        "sha256": "0f3377f9d00a2898b68d09f55121840c0d9465dda1cc33a3015b2c4f73f6682a"
+      }
+    ],
+    "earlier_attempts": [
+      {
+        "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+        "status": "failed",
+        "cause": "Executor ran output displacement concurrently with tests; module-resolution errors. Sequential rerun above passed. No source or gate waiver."
+      }
+    ],
+    "local_full_sql": {
+      "status": "failed_before_admission",
+      "cause": "Disposable pinned PostgreSQL responds internally; mapped host TCP closes. No SQL pass claimed; no fixture/source/credential substitution.",
+      "access_attempts": [
+        {
+          "source": "owned disposable container",
+          "probe": "internal psql and readiness marker",
+          "result": "passed",
+          "details": "Metadata only; no credential values."
+        },
+        {
+          "source": "mapped host endpoint",
+          "probe": "psql TCP readiness",
+          "result": "failed",
+          "details": "Connection closes; client exit 2. Container cleaned."
+        }
+      ]
+    }
+  },
+  "hosted_verification": [
+    {
+      "run_id": 37165112979,
+      "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112979",
+      "jobs": [
+        {
+          "databaseId": 111326333530,
+          "name": "verify / verify",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112979/job/111326333530"
+        },
+        {
+          "databaseId": 111327014804,
+          "name": "guard-required",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112979/job/111327014804"
+        }
+      ]
+    },
+    {
+      "run_id": 37165112981,
+      "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112981",
+      "jobs": [
+        {
+          "databaseId": 111326333536,
+          "name": "verify / verify",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112981/job/111326333536"
+        },
+        {
+          "databaseId": 111327060274,
+          "name": "rehearsal",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112981/job/111327060274"
+        },
+        {
+          "databaseId": 111327060768,
+          "name": "publish-npm",
+          "status": "completed",
+          "conclusion": "skipped",
+          "url": "https://github.com/Consiliency/omniagent-plus/actions/runs/37165112981/job/111327060768"
+        }
+      ]
+    }
+  ],
+  "hosted_runner_summaries": {
+    "full_verify": {
+      "passed": 722,
+      "skipped": 1
+    },
+    "focused_integration": {
+      "passed": 10,
+      "skipped": 0
+    },
+    "ci_log_sha256": "fab0e9a7ee424a607e0122171b465ea088bf11104f45d2582f3efc2dddc83d4f"
+  },
+  "hosted_sql": {
+    "status": "passed",
+    "mandatory_coord_case_count": 8,
+    "topology": "approved canonical hosted github-service",
+    "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+    "proof_boundary": "Admitted PostgreSQL function/role/transaction/skew/concurrency/rollback/query/capacity controls. No hosted Supabase production acceptance claimed."
+  },
+  "packed_rehearsal": {
+    "status": "passed",
+    "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+    "manifest_sha256": "c47ad914bb1b5f0ca3df5f17b0a55fe2a16aa1f4c4086b90d808a207792febeb",
+    "manifest": {
+      "schema": "guard-artifacts.v1",
+      "source_sha": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+      "lockfile_sha256": "454113a71b84bd161dbf34d92b9f4a28f2388c4cf4492b0513a5c4243bbd835b",
+      "package_manifest_sha256": {
+        "@consiliency/runtime-provider": "7ab54854fb04d8a6b920a7f7517db0be8ffe404f478c4494555a9ba8adb913e5",
+        "@consiliency/pipeline-provider-adapter": "fbb6ab41b922f1a6b957e80a5d4fae2403ecab7467ac56789f3947d540c3e81c",
+        "@consiliency/omnigent-transport": "709f567bc638c5905e7bdee306b1a74a6502e19a7b330592144dfbcfd6a0d117"
+      },
+      "identity": {
+        "tested_source_sha": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+        "github_sha": "bcb41d3e594493a8b5dacfda385db6307fc6410c",
+        "pr_head_sha": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+        "pr_base_sha": "b576d921f999fe514959bc0e3989e9271bb8449c"
+      },
+      "packages": [
+        {
+          "name": "@consiliency/runtime-provider",
+          "version": "0.2.0",
+          "tarball": "consiliency-runtime-provider-0.2.0.tgz",
+          "sha256": "640d07c7f1f366379b15067f5e6a7c9fcc7242f130f16c61176fdf02f96ef02d"
+        },
+        {
+          "name": "@consiliency/pipeline-provider-adapter",
+          "version": "0.2.0",
+          "tarball": "consiliency-pipeline-provider-adapter-0.2.0.tgz",
+          "sha256": "95b4eccac4d95e7b0d7f1b93ecfe1552084ad886d7dd67c95b9ef2271ce09c24"
+        },
+        {
+          "name": "@consiliency/omnigent-transport",
+          "version": "0.7.0",
+          "tarball": "consiliency-omnigent-transport-0.7.0.tgz",
+          "sha256": "99cf0decb7f81006ba1e972b5a8c10dd2fa24e8533f11b49e8a246b3684f9dbf"
+        }
+      ]
+    },
+    "publication": "skipped"
+  },
+  "audit": {
+    "positive": {
+      "status": "passed",
+      "source_head": "9ae37900d18a88d68e9543faeb6aad582e2891a9",
+      "phase": "COORD",
+      "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+      "producer_record": ".phase-loop/generated-outputs/record.json"
+    },
+    "controls": {
+      "source_head": "3e50b88990477ff1a5e6b1a336c7c78b80e8b008",
+      "phase": "COORD",
+      "runtime": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+      "controls": [
+        {
+          "control": "baseline",
+          "exit_code": 0,
+          "expected": 0,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-baseline.log",
+          "sha256": "5599ea8160f50a546167eab653c1b2e8addfd436c8234e93ad223642d4c1f4e7"
+        },
+        {
+          "control": "wrong-phase",
+          "exit_code": 1,
+          "expected": 1,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-wrong-phase.log",
+          "sha256": "8e35adab2bbd9d089b4e186f400a6be0ab81b9007fe823fbe80010352019882e"
+        },
+        {
+          "control": "changed-artifact",
+          "exit_code": 1,
+          "expected": 1,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-changed-artifact.log",
+          "sha256": "b5df2bc6f4266f957ea75712dc3ddd3ea05ba368c2ff8263eb70b2e7fbf3c480"
+        },
+        {
+          "control": "symlink-artifact",
+          "exit_code": 1,
+          "expected": 1,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-symlink-artifact.log",
+          "sha256": "aff8dc98e37199175760e2127267f2bde7e4a36f0f607342887f740cc065f269"
+        },
+        {
+          "control": "unproduced-output",
+          "exit_code": 1,
+          "expected": 1,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-unproduced-output.log",
+          "sha256": "6f5897119c0ed745d57b87a01d7594a5239e26b6cad503ec9fc2bab50fcf3bc3"
+        },
+        {
+          "control": "undeclared-output",
+          "exit_code": 1,
+          "expected": 1,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-undeclared-output.log",
+          "sha256": "e7e60f90e78b4edddf780717e01e30bddc52d119ebe0f45f8f5102db37cd1fbe"
+        },
+        {
+          "control": "stale-head",
+          "exit_code": 1,
+          "expected": 1,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-stale-head.log",
+          "sha256": "e14bdc625309f1b4c100e8e9fe4ea91bf3d99e0db7acdff84d03ef67a6ed4df3"
+        },
+        {
+          "control": "restored-positive",
+          "exit_code": 0,
+          "expected": 0,
+          "log": "/home/viperjuice/workspace/coord-reviews/audit-control-restored-positive.log",
+          "sha256": "5599ea8160f50a546167eab653c1b2e8addfd436c8234e93ad223642d4c1f4e7"
+        }
+      ]
+    },
+    "binding": "Historical hostile controls bind their actual disposable clone/source/runtime; current candidate positive audit reran producers. Final metadata HEAD requires another observed producer run and external current-head receipt."
+  },
+  "review": {
+    "status": "pending",
+    "historical_dissent": "plans/evidence/v2/reviews/COORD-CR-3e50b88.json",
+    "reconciliation": "plans/evidence/v2/reviews/COORD-CR-reconciliation-3e50b88.json",
+    "required": [
+      "four source-grounded agent-harness Astra/Sol seats",
+      "separate independent",
+      "manual tools-enabled Opus5.5 subscription TUI",
+      "manual tools-enabled Gemini"
+    ],
+    "prescript": "Executed separately before each CR; actual open issues, earlier dissent and provisional source/EC dispositions."
+  },
+  "criteria": [
+    {
+      "id": "EC-COORD-1",
+      "status": "verified_pending_production_review"
+    },
+    {
+      "id": "EC-COORD-2",
+      "status": "verified_pending_production_review"
+    },
+    {
+      "id": "EC-COORD-3",
+      "status": "verified_pending_production_review"
+    },
+    {
+      "id": "EC-COORD-4",
+      "status": "verified_pending_production_review"
+    },
+    {
+      "id": "EC-COORD-5",
+      "status": "verified_pending_production_review"
+    }
+  ],
+  "issue_inventory": [
+    "Consiliency/omniagent-plus#23",
+    "Consiliency/omniagent-plus#24"
+  ],
+  "issue_dispositions": [
+    {
+      "issue_id": "Consiliency/omniagent-plus#23",
+      "phase": "COORD",
+      "disposition": "closed",
+      "owner": "codex-execute-phase"
+    },
+    {
+      "issue_id": "Consiliency/omniagent-plus#24",
+      "phase": "COORD",
+      "disposition": "closed",
+      "owner": "codex-execute-phase"
+    }
+  ],
+  "issue_application": "Planned for authorized merge; not a claim that currently open issues have closed.",
+  "continuing_issues": [
+    "omniagent-plus#19 tracker",
+    "omniagent-plus#25 WIRE and unmerged omniagent-plus#30",
+    "omniagent-plus#26 INTEG",
+    "omniagent-plus#20/omniagent-plus#27 PREP"
+  ],
+  "doc_delta_decision": "docs_updated",
+  "publication": "not_performed",
+  "branch_protection": "optional by solo-owner decision",
+  "future_sha_honesty": "This records actual checked source. Its recording commit and later acceptance metadata commits are not retroactively claimed as tested or reviewed; required final-HEAD hosted checks, audit and post-merge main CI remain gates.",
+  "recorded_at": "2026-10-04T00:36:17.852960+00:00"
+}
