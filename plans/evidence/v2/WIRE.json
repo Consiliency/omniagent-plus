@@ -3,10 +3,10 @@
   "phase": "WIRE",
   "status": "planning_blocked",
   "plan": "plans/phase-plan-v2-WIRE.md",
-  "plan_source": "0256ae9ff52a9a461742b331531fa8c091e3486b",
+  "plan_source": "230ce79b011067f627c3f975eab38c094ef21f17",
   "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-0256ae9-pending.json",
-  "standing_review_summary": "Six historical AGREE retain original c6424d3/215bb03 bindings. New v0.17 compatibility assessment at0256ae9 requires fresh required plan reviews; none of those historical approvals is counted as fresh.",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-230ce79-standing.json",
+  "standing_review_summary": "Six fresh source-bound AGREE at230ce79 after v0.17 assessment; historical approvals not counted. Manual Opus and Fable-only president missing.",
   "plan_content_blockers": [],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -21,18 +21,27 @@
   ],
   "manifest_status": "committed, not executing or completed",
   "blocker": {
-    "class": "required_plan_reviews_pending",
+    "class": "required_manual_opus_and_president_unavailable",
     "human_required": false,
-    "source": "Refreshed source-bound plan reviews and Fable-only president pending after upstream recheck. Historical October6 weekly-limit report is not a current outage claim.",
+    "source": "Fresh first-party five-hour quota rejection, reported reset2026-10-13T00:50Z; historical October6 weekly outage is not current.",
     "missing_roles": [
-      "fresh four owner harness seats",
-      "fresh separate independent reviewer",
-      "manual tools-enabled Gemini3.8FlashHigh reviewer",
       "manual subscription Opus5.5 TUI reviewer",
       "Fable-only Opus president"
     ],
     "waiver": false,
-    "fallback": false
+    "fallback": false,
+    "quota": {
+      "api_error_status": 429,
+      "api_error": "usage_limit_reached",
+      "auth": "firstParty claude.ai subscription; current successful probe is not quota availability proof",
+      "review_or_president_approval": false,
+      "rateLimitType": "five_hour",
+      "status": "rejected",
+      "overageStatus": "rejected",
+      "overageDisabledReason": "org_level_disabled",
+      "reported_reset_utc": "2026-10-13T00:50:00+00:00",
+      "reported_reset_new_york": "2026-10-12T20:50:00-04:00"
+    }
   },
   "optional_dispositions": [
     {

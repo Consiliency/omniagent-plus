@@ -1,0 +1,141 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+  "delta_base": "9ea0c4540d4a5c810e54f67ff212e4b66b89d619",
+  "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+  "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261012.json",
+  "status": "six_fresh_agree_required_opus_and_president_unavailable",
+  "review_scope": "Plan and assessment only; no production changes/IF/EC acceptance",
+  "historical_approvals_counted_as_fresh": false,
+  "required_reviewers": 7,
+  "usable_agree": 6,
+  "reviews": [
+    {
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "status": "OK",
+      "detail": null,
+      "usable": true,
+      "source_grounded": true,
+      "review_sha256": "3f6781e6879abc537b017a65bc5ac2bd98245dadf5b9e130d5d100175727cafe",
+      "verdict": "AGREE",
+      "carried": false,
+      "report_private": true
+    },
+    {
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "status": "OK",
+      "detail": null,
+      "usable": true,
+      "source_grounded": true,
+      "review_sha256": "c038ffd78800b5a7483a3c090c4edca035144c5ae037b46f68df71f09bbf9c57",
+      "verdict": "AGREE",
+      "carried": false,
+      "report_private": true
+    },
+    {
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "status": "OK",
+      "detail": null,
+      "usable": true,
+      "source_grounded": true,
+      "review_sha256": "5c02fc31a915e31fc1f9cfd04aa6ec7e12c7ccd7be3306c4def1b9de38eeca0c",
+      "verdict": "AGREE",
+      "carried": false,
+      "report_private": true
+    },
+    {
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "status": "OK",
+      "detail": null,
+      "usable": true,
+      "source_grounded": true,
+      "review_sha256": "e62cbb522a98bda33e6dae747ad4866c2e4d90a1faeb5e605ccd1f03356ea218",
+      "verdict": "AGREE",
+      "carried": false,
+      "report_private": true
+    },
+    {
+      "seat": "separate-native-independent",
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "e11747f0c8971ec08650853a8f6d47898151a03cb36af7bc687662ef48252916",
+      "report_private": true,
+      "scope": "Plan sufficiency only; no implementation tests or acceptance"
+    },
+    {
+      "seat": "manual:Gemini3.8FlashHigh:tools",
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "a623758232a0bc3df0ea954a8d5587acd1764aae75e913a1b8f32e8b08a6cbfc",
+      "report_private": true,
+      "scope": "Plan sufficiency only; no implementation tests or acceptance"
+    }
+  ],
+  "owner_model_change": {
+    "authority": "Owner explicitly authorized Gemini3.8FlashHigh with manual tools-enabled review retained on2026-10-12.",
+    "previous": "Gemini3.1Pro(High)",
+    "model": "Gemini3.8Flash(High)",
+    "model_id": "gemini-3.8-flash-high",
+    "availability_source": "live agy catalog"
+  },
+  "manual_opus": {
+    "status": "UNAVAILABLE",
+    "usable": false,
+    "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+    "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+    "route": "qualified subscription self-PTY TUI, Read/Write/Grep/Glob",
+    "first_party_auth_confirmed": true,
+    "review_report_file_exists": false,
+    "adapter_detail": "claude_tui_stalled",
+    "captured_error_text_is_not_review": true,
+    "fresh_quota": {
+      "api_error_status": 429,
+      "api_error": "usage_limit_reached",
+      "auth": "firstParty claude.ai subscription; current successful probe is not quota availability proof",
+      "review_or_president_approval": false,
+      "rateLimitType": "five_hour",
+      "status": "rejected",
+      "overageStatus": "rejected",
+      "overageDisabledReason": "org_level_disabled",
+      "reported_reset_utc": "2026-10-13T00:50:00+00:00",
+      "reported_reset_new_york": "2026-10-12T20:50:00-04:00"
+    },
+    "interrupted_attempts_counted_as_approval": false
+  },
+  "president": {
+    "required": true,
+    "status": "not_invoked_missing_usable_opus_and_quota",
+    "attempted": false,
+    "ladder": [
+      "fable"
+    ],
+    "waiver": false
+  },
+  "prescript_sha256": "a64fb8b40942eb25bb8c774f339de3d189121a7f63662ae44538d680a78610f6",
+  "continuing_issue_34": "Unrelated Python floor/CI tooling PREP; no WIRE absorption. Recheck if it lands; present regressions still block.",
+  "optional_dispositions": [
+    {
+      "source": "fresh independent",
+      "suggestion": "Caller mutation while hybrid ensureReady is pending",
+      "disposition": "Include as existing before-first-await immutable-input control in SL-2; no scope/goal change."
+    }
+  ],
+  "binding": "Actual seven-role review input is230ce79; receipt-recording commits are later metadata. Required Opus/president and implementation/merge proof remain absent."
+}
