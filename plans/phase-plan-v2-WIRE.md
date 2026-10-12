@@ -13,11 +13,11 @@ automation:
 
 Consumes accepted DATA and COORD on main f33471de858d3be1fc01a50696abdcb4ab717a87. Owns omniagent-plus#25 and reconciles the unpublished candidate omniagent-plus#30 (aee2df42ebdd5679664477c9b2c754e6eb5942ea). Preserve core-contracts0.6.3, DATA schemas, the published v0.12 default replay policy, and mutation authority. Execute serially in one private worktree. No worker fanout, dependency upgrades, version bump, publication, live user-data access or automatic mutation retry.
 
-Latest stable upstream was rechecked on 2026-10-04: v0.16.0, source82a74473ee4c01163c4269f4296b10a158f0e47e, release2026-09-29. Freeze official tagged v0.12/v0.15/v0.16 fixtures and provenance; do not confuse fixture identity with runtime detection. New error descriptors and undelivered uncertainty need handling, but owner/admin/sign-in surfaces grant no local approval authority. PREP retains release/license/dependency decisions; INTEG retains durable composition.
+Latest stable upstream was rechecked on 2026-10-12: v0.17.0 at12b5f67d2529b43eab7366a7288fb89f7587e48b, released2026-10-06. The tagged source/OpenAPI assessment in `plans/evidence/v2/reviews/WIRE-upstream-20261012.json` preserves official v0.12/v0.15/v0.16 fixture policies. v0.17 is research input only: its unchanged stream-event union does not qualify its new process-epoch header, shutdown behavior or runner recovery. No v0.17 support or fixture regeneration is claimed. Recheck all required plan roles against this assessment; historical approvals retain their original bindings. Fixture identity is not runtime detection. Error descriptors and undelivered uncertainty need handling, but owner/admin/sign-in surfaces grant no local approval authority. PREP retains release/license/dependency decisions; INTEG retains durable composition.
 
 ## External Inputs
 
-Tagged Omnigent releases v0.12.0, v0.15.0 and v0.16.0, their official OpenAPI/event schemas and source commits are external fixture inputs. Record URL, tag commit and artifact digests in WIRE-upstream evidence before fixture regeneration. The qualified harness source4a62fc1/runtime0.7.21 is an external review/audit tool input. Internal source identities below describe measured history, not required future commit topology.
+Tagged Omnigent releases v0.12.0, v0.15.0 and v0.16.0, their official OpenAPI/event schemas and source commits are external fixture inputs; pinned v0.17.0 is only a compatibility-assessment input. Record URL, tag commit and artifact digests in WIRE-upstream evidence before fixture regeneration. The qualified harness source4a62fc1/runtime0.7.21 is an external review/audit tool input. Internal source identities below describe measured history, not required future commit topology.
 
 ## Resolved contracts
 
