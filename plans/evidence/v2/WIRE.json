@@ -3,10 +3,10 @@
   "phase": "WIRE",
   "status": "planning_blocked",
   "plan": "plans/phase-plan-v2-WIRE.md",
-  "plan_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
-  "plan_sha256": "c6216dba173a63e5a9e9c4a7133fa53f1007b020b925e26d026c979a032969c5",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
-  "standing_review_summary": "Six usable standing AGREE: fresh Astra correctness atc6424d3 and five explicitly carried approvals from215bb03; required Opus reviewer and Fable-only president unavailable.",
+  "plan_source": "0256ae9ff52a9a461742b331531fa8c091e3486b",
+  "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-0256ae9-pending.json",
+  "standing_review_summary": "Six historical AGREE retain original c6424d3/215bb03 bindings. New v0.17 compatibility assessment at0256ae9 requires fresh required plan reviews; none of those historical approvals is counted as fresh.",
   "plan_content_blockers": [],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -21,13 +21,15 @@
   ],
   "manifest_status": "committed, not executing or completed",
   "blocker": {
-    "class": "unretryable_external_outage",
+    "class": "required_plan_reviews_pending",
     "human_required": false,
-    "source": "Authenticated first-party Opus5.5 subscription TUI reports weekly usage limit; no usable review verdict.",
-    "reported_reset": "2026-10-06T14:00:00-04:00",
+    "source": "Refreshed source-bound plan reviews and Fable-only president pending after upstream recheck. Historical October6 weekly-limit report is not a current outage claim.",
     "missing_roles": [
-      "manual Opus5.5 reviewer",
-      "Fable-only Opus panel president"
+      "fresh four owner harness seats",
+      "fresh separate independent reviewer",
+      "manual tools-enabled Gemini3.8FlashHigh reviewer",
+      "manual subscription Opus5.5 TUI reviewer",
+      "Fable-only Opus president"
     ],
     "waiver": false,
     "fallback": false
@@ -39,7 +41,7 @@
       "disposition": "Covered by approved private namespace iteration-boundary contract; explicitly include this control during SL-2 execution, no new goal or public identifier restriction."
     }
   ],
-  "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261004.json",
+  "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261012.json",
   "pr": "omniagent-plus#33",
   "issue_dispositions": {
     "omniagent-plus#25": "open; progress comment only",
@@ -49,7 +51,9 @@
     "omniagent-plus#27": "carried PREP",
     "omniagent-plus#20": "carried owner license decision in PREP"
   },
-  "resumption": "Recheck upstream, obtain required manual Opus plan approval and qualified president ruling; only then start authorized serial implementation, full CR reconciliation/gates, merge, postmerge CI and appropriate issue closure/pruning.",
+  "resumption": "Collect fresh seven-role source-bound plan approvals plus qualified Fable-only president; then serial implementation, full actual-source CR reconciliation/gates, merge, postmerge CI and authorized issue/worktree closeout.",
   "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
-  "binding": "Receipt records actual planning/review source. Its recording commit is later metadata; no future verification/merge is claimed."
+  "binding": "Receipt records actual planning/review source. Its recording commit is later metadata; no future verification/merge is claimed.",
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
+  "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained."
 }
