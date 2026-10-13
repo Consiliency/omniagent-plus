@@ -5,7 +5,7 @@
   "delta_base": "9ea0c4540d4a5c810e54f67ff212e4b66b89d619",
   "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
   "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261012.json",
-  "status": "six_fresh_agree_required_opus_and_president_unavailable",
+  "status": "changes_requested_president_pending",
   "review_scope": "Plan and assessment only; no production changes/IF/EC acceptance",
   "historical_approvals_counted_as_fresh": false,
   "required_reviewers": 7,
@@ -86,6 +86,20 @@
       "review_sha256": "a623758232a0bc3df0ea954a8d5587acd1764aae75e913a1b8f32e8b08a6cbfc",
       "report_private": true,
       "scope": "Plan sufficiency only; no implementation tests or acceptance"
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "f0ba03d717576b9165ced8f43627cc212fd310c4c8a2941d8a60f6b46fec9331",
+      "report_private": true,
+      "route": "qualified subscription self-PTY TUI",
+      "transport_detail": "claude_tui_file_output",
+      "scope": "Actual tools-enabled read-only plan review, parent-verified input binding; no tests or implementation proof"
     }
   ],
   "owner_model_change": {
@@ -96,33 +110,51 @@
     "availability_source": "live agy catalog"
   },
   "manual_opus": {
-    "status": "UNAVAILABLE",
-    "usable": false,
+    "seat": "manual:claude-opus-5-5:max:TUI-tools",
     "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
     "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
-    "route": "qualified subscription self-PTY TUI, Read/Write/Grep/Glob",
-    "first_party_auth_confirmed": true,
-    "review_report_file_exists": false,
-    "adapter_detail": "claude_tui_stalled",
-    "captured_error_text_is_not_review": true,
-    "fresh_quota": {
-      "api_error_status": 429,
-      "api_error": "usage_limit_reached",
-      "auth": "firstParty claude.ai subscription; current successful probe is not quota availability proof",
-      "review_or_president_approval": false,
-      "rateLimitType": "five_hour",
-      "status": "rejected",
-      "overageStatus": "rejected",
-      "overageDisabledReason": "org_level_disabled",
-      "reported_reset_utc": "2026-10-13T00:50:00+00:00",
-      "reported_reset_new_york": "2026-10-12T20:50:00-04:00"
+    "verdict": "PARTIALLY AGREE",
+    "usable": true,
+    "source_grounded": true,
+    "carried": false,
+    "review_sha256": "f0ba03d717576b9165ced8f43627cc212fd310c4c8a2941d8a60f6b46fec9331",
+    "report_private": true,
+    "route": "qualified subscription self-PTY TUI",
+    "transport_detail": "claude_tui_file_output",
+    "scope": "Actual tools-enabled read-only plan review, parent-verified input binding; no tests or implementation proof",
+    "status": "OK",
+    "exit_code": 0,
+    "review_report_file_exists": true,
+    "previous_quota_attempt": {
+      "status": "UNAVAILABLE",
+      "usable": false,
+      "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+      "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+      "route": "qualified subscription self-PTY TUI, Read/Write/Grep/Glob",
+      "first_party_auth_confirmed": true,
+      "review_report_file_exists": false,
+      "adapter_detail": "claude_tui_stalled",
+      "captured_error_text_is_not_review": true,
+      "fresh_quota": {
+        "api_error_status": 429,
+        "api_error": "usage_limit_reached",
+        "auth": "firstParty claude.ai subscription; current successful probe is not quota availability proof",
+        "review_or_president_approval": false,
+        "rateLimitType": "five_hour",
+        "status": "rejected",
+        "overageStatus": "rejected",
+        "overageDisabledReason": "org_level_disabled",
+        "reported_reset_utc": "2026-10-13T00:50:00+00:00",
+        "reported_reset_new_york": "2026-10-12T20:50:00-04:00"
+      },
+      "interrupted_attempts_counted_as_approval": false
     },
-    "interrupted_attempts_counted_as_approval": false
+    "reset_readiness": "Actual required review succeeded after reported reset on2026-10-13; historical quota is not current blocker."
   },
   "president": {
     "required": true,
-    "status": "not_invoked_missing_usable_opus_and_quota",
-    "attempted": false,
+    "status": "running_required_fable_only_reconciliation",
+    "attempted": true,
     "ladder": [
       "fable"
     ],
@@ -137,5 +169,20 @@
       "disposition": "Include as existing before-first-await immutable-input control in SL-2; no scope/goal change."
     }
   ],
-  "binding": "Actual seven-role review input is230ce79; receipt-recording commits are later metadata. Required Opus/president and implementation/merge proof remain absent."
+  "binding": "Actual seven-role review input is230ce79; receipt-recording commits are later metadata. Required Opus/president and implementation/merge proof remain absent.",
+  "usable_reviewers": 7,
+  "findings": [
+    {
+      "id": "Opus-B1",
+      "class": "blocking",
+      "criterion": "EC-WIRE-3/TR-3 idempotency, no uncertain mutation replay",
+      "repair": "Protect post-dispatch uncertain sendTurn outcomes across same-key repeats; zero second POST/attach, definitive pre-acceptance zero-effect refusal remains retryable."
+    },
+    {
+      "id": "Opus-B2",
+      "class": "blocking",
+      "criterion": "EC-WIRE-3 collision-safe cancellation/reconnect",
+      "repair": "Production alpha/alpha:beta controls must cover every namespace iteration: install/cleanup, reconnect with live delivery, interrupt fallback/consumption, admission and alias/pending cleanup, with zero cross-session effect."
+    }
+  ]
 }
