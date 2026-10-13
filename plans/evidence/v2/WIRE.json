@@ -73,5 +73,7 @@
     "reported_reset_utc": "2026-10-17T18:00:00+00:00"
   },
   "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
-  "plan_source": "757ff06c097a90cc1e0633342b7d4280f851b4a1"
+  "plan_source": "757ff06c097a90cc1e0633342b7d4280f851b4a1",
+  "upstream_recheck": "plans/evidence/v2/reviews/WIRE-upstream-20261013.json",
+  "upstream_recheck_scope": "New stablev0.18.0 source triage only; mapped sandbox blobs unchanged17->18, server/OpenAPI lifecycle changed. Default12/optional15/16 and rejection of unsupported17/18 remain; no adoption, fixture or test/compatibility proof."
 }
