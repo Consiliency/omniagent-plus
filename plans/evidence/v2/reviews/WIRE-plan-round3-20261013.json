@@ -1,0 +1,33 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "round": 3,
+  "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+  "source_binding": "Actual pre-amendment input only; bind final amended recording HEAD before reviewer dispatch.",
+  "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+  "status": "fresh_full_seven_role_review_pending",
+  "required_reviewers": 7,
+  "usable_agree": 0,
+  "reviews": [],
+  "carried_approvals": false,
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-678436c-pending.json",
+  "repair": [
+    "P1: distinguish HTTP-status4xx/local admission-capacity/proven pre-dispatch retry from cached synchronous denied:true/malformed2xx authoritative results and persisted rejection identity; stream-proven disconnect keeps original handle; exactly one POST.",
+    "Fold O1 refusal-origin classification, O2 late stream proof/uncertainty-not-rejection/protected tuple collision, O3 malformed/oversized/nonzero/abort-after-spawn CLI uncertainty controls.",
+    "Document O4 permitted host-service-only readiness and O5 process-local protection lost on restart/rotation; durable composition remains INTEG omniagent-plus#26.",
+    "Clarify stale historical absence wording while preserving round1/round2 dissent and BLOCKED presidents."
+  ],
+  "president": {
+    "required": true,
+    "status": "pending_after_seven_fresh_reviews",
+    "ladder": [
+      "fable"
+    ],
+    "waiver": false
+  },
+  "round_cap": 3,
+  "checkpoint": "Diagnose scope/input and wrong retry-class premise; never waive required role, published invariant or IF/EC.",
+  "implementation_started": false,
+  "production_source_changed": false,
+  "verification": "not_run"
+}
