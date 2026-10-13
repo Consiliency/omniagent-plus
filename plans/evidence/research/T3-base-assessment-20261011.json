@@ -1,0 +1,269 @@
+{
+  "assessment_date": "2026-10-11",
+  "scope": "Assess T3 Code extensibility and suitability as an execution base for omniagent-plus; no implementation, migration, live-provider invocation, or roadmap change.",
+  "conclusion": {
+    "recommendation": "Prioritize a bounded T3 adapter and server-admission feasibility spike before investing further in Omnigent-specific WIRE/INTEG work. Keep Omnigent operational until the spike passes.",
+    "qualified_answer": "T3 development main is a credible better execution and operator platform for this project's solo multi-host coding workflow. It is not clearly a better general extension framework: native drivers are build-time registrations and universal custom policy needs server integration.",
+    "confidence": {
+      "extension_seams": "High: inspected documentation, registry, native interface, ACP configuration, external MCP tools, and runtime composition.",
+      "migration_cost": "Medium: mapped current public contracts and safety boundaries; no T3 adapter implemented.",
+      "live_provider_parity": "Unproven: replay tests pass, but no live Opus TUI, Gemini CLI, or cross-host integrated launch was exercised."
+    }
+  },
+  "snapshots": [
+    {
+      "repository": "Consiliency/omniagent-plus",
+      "commit": "f33471de858d3be1fc01a50696abdcb4ab717a87",
+      "working_tree": "/home/viperjuice/code/omniagent-plus",
+      "status": "clean; unchanged"
+    },
+    {
+      "repository": "Consiliency/omniagent-plus",
+      "branch": "codex/v2-wire-20261004",
+      "commit": "9ea0c4540d4a5c810e54f67ff212e4b66b89d619",
+      "status": "clean; unchanged"
+    },
+    {
+      "repository": "pingdotgg/t3code",
+      "commit": "74f9df3abfb62b3a977390f01321b93a63c29cc5",
+      "latest_stable": "v0.0.45",
+      "stable_commit": "6c8fed35dded9ff71c5b46807125457acbb76be6",
+      "stable_published_at": "2026-10-02T18:17:31Z",
+      "latest_prerelease_observed": "v0.0.46-nightly.20261011.2980",
+      "note": "The inspected provider-core packages, ACP registry configuration, external orchestration MCP tools, and V2 durable effect outbox are development-main findings. They are not the stable v0.0.45 architecture, and the nightly has not been asserted identical to the pinned main."
+    },
+    {
+      "repository": "omnigent-ai/omnigent",
+      "commit": "4c35f65bd743b5349e47d6468e6a1a431d86b5c3",
+      "latest_stable": "v0.17.0",
+      "stable_commit": "12b5f67d2529b43eab7366a7288fb89f7587e48b",
+      "stable_published_at": "2026-10-06T02:02:33Z",
+      "note": "Policy modules, headless harness plugin registry and typed Python client verified in the stable tag, not only main."
+    }
+  ],
+  "extension_paths": [
+    {
+      "name": "T3 external bridge",
+      "interface": "OAuth-authenticated HTTP MCP for orchestration and typed authenticated WebSocket RPC; HTTP orchestration snapshots/history are read routes.",
+      "source_files": [
+        "docs/user/outside-agents.md",
+        "apps/server/src/mcp/toolkits/orchestrator/tools.ts",
+        "packages/contracts/src/rpc.ts",
+        "packages/contracts/src/environmentHttp.ts"
+      ],
+      "benefit": "Reuse T3 execution and UI without initially forking.",
+      "constraints": [
+        "New outside-agent OAuth enrollment requires operator approval.",
+        "RPC contracts and client packages are internal workspace code, not a independently versioned public SDK.",
+        "Only requests sent through the bridge are governed by its policy. This boundary limitation also applies to an external wrapper around Omnigent."
+      ]
+    },
+    {
+      "name": "T3 local ACP command",
+      "interface": "Configurable executable, literal arguments and environment settings; generic ACP protocol adapter.",
+      "source_files": [
+        "docs/user/providers-acp.md",
+        "packages/provider-acp-registry"
+      ],
+      "benefit": "Add an ACP-speaking agent without a custom native driver or rebuilding T3.",
+      "constraints": [
+        "An arbitrary TUI or phase-loop CLI entrypoint is not an ACP server.",
+        "ACP does not provide portable native subagent lineage or account isolation.",
+        "Generic rollback may start a fresh native session; permission enforcement depends on the agent.",
+        "Bridge capabilities must be reported truthfully and backed by replay fixtures."
+      ]
+    },
+    {
+      "name": "T3 native driver",
+      "interface": "ProviderAdapterV2 and ProviderDriver with ProviderHost infrastructure; packages/provider-<name> server/client/settings/testing exports.",
+      "source_files": [
+        "docs/internals/adding-a-provider.md",
+        "packages/provider-core/src/server/ProviderAdapter.ts",
+        "packages/provider-core/src/server/driver.ts",
+        "packages/provider-core/package.json",
+        "apps/server/src/provider/builtInDrivers.ts",
+        "apps/server/src/orchestration-v2/builtInProviderAdapterDrivers.ts"
+      ],
+      "benefit": "Rich native session, turn, steering, interruption, fork/rollback, background work and lifecycle integration.",
+      "constraints": [
+        "Static server and client registrations require a source build.",
+        "provider-core is private workspace code; there is no demonstrated stable third-party native plugin loader.",
+        "Fast-moving V2 requires pinned versions and contract/replay compatibility checks."
+      ]
+    },
+    {
+      "name": "T3 admission service",
+      "interface": "New service integrated into shared launch/command paths and rechecked immediately before provider-side execution, using Effect service composition.",
+      "source_files": [
+        "docs/internals/effect-services.md",
+        "apps/server/src/orchestration-v2/RuntimePolicy.ts",
+        "apps/server/src/orchestration-v2/ThreadManagementService.ts",
+        "apps/server/src/orchestration-v2/ProviderSessionManager.ts",
+        "apps/server/src/orchestration-v2/ProviderTurnStartService.ts",
+        "apps/server/src/orchestration-v2/runtimeLayer.ts"
+      ],
+      "benefit": "Possible common enforcement across UI, MCP, scheduled jobs, delegation and recovery.",
+      "constraints": [
+        "This is an architectural proposal, not an existing configurable policy hook.",
+        "Requires a maintained server fork or an upstream-supported seam.",
+        "An early launch check alone cannot authorize a queued effect indefinitely; lease/identity/cooldown need a dispatch-time recheck.",
+        "Session opening can trigger hooks/processes; gating only startTurn may be too late.",
+        "Native autonomous child work and per-tool filesystem fencing require an explicitly defined enforcement scope."
+      ]
+    },
+    {
+      "name": "Omnigent installed extensions",
+      "interface": "Python entry points for community headless harnesses and sandbox providers; custom function policies via server/agent/session configuration; typed HTTP/SSE SDK.",
+      "source_files": [
+        "designs/harness-plugin-interface.md",
+        "omnigent/harness_plugins.py",
+        "omnigent/onboarding/sandboxes/registry.py",
+        "docs/POLICIES.md",
+        "sdks/python-client/README.md"
+      ],
+      "benefit": "More operator-configurable backend extension and policy mechanisms already in stable v0.17.0.",
+      "constraints": [
+        "Community native TUI harness metadata is explicitly rejected by the loader.",
+        "Not every native provider execution path should be assumed governed by a mediated-tool policy without coverage proof.",
+        "Browser extensions primarily supply pages/navigation, not arbitrary server plugins."
+      ]
+    }
+  ],
+  "runtime_findings": [
+    {
+      "finding": "V2 commits command receipt, events, projections and outbox effects transactionally before publishing.",
+      "sources": [
+        "apps/server/src/orchestration-v2/EventSink.ts",
+        "docs/internals/overview.md"
+      ],
+      "implication": "Good foundation for durable orchestration; an accepted command is not completed execution."
+    },
+    {
+      "finding": "Process-loss recovery cancels process-bound pending/running effects and requeues explicitly replay-safe running effects.",
+      "sources": [
+        "apps/server/src/orchestration-v2/EffectOutbox.ts",
+        "apps/server/src/orchestration-v2/EffectWorker.ts"
+      ],
+      "implication": "Avoids blind mutation replay; does not prove exactly-once native execution across every crash boundary."
+    },
+    {
+      "finding": "Persisted usage-limit recovery already handles reset time, snooze, idempotent commands and optional automatic resumption.",
+      "sources": [
+        "apps/server/src/orchestration-v2/UsageLimitRecoveryWorker.ts",
+        "packages/provider-core/src/server/usageLimits.ts"
+      ],
+      "implication": "Quota recovery alone is not a strong unique feature of omniagent-plus."
+    },
+    {
+      "finding": "Each T3 environment owns its execution/state; repository correlation explicitly does not route work between environments.",
+      "sources": [
+        "docs/internals/remote.md"
+      ],
+      "implication": "Remote connectivity is not a global cross-host scheduler."
+    },
+    {
+      "finding": "workspaceLease is a per-process semaphore map, and V2 outbox leases are local execution claims.",
+      "sources": [
+        "apps/server/src/workspace/workspaceLease.ts",
+        "apps/server/src/orchestration-v2/EffectOutbox.ts"
+      ],
+      "implication": "Neither replaces our fleet holder/fence/expiry contract."
+    },
+    {
+      "finding": "Portable handoffs summarize content with whitespace normalization and 240-character text prefixes.",
+      "sources": [
+        "docs/internals/context-handoffs.md",
+        "apps/server/src/orchestration-v2/ContextHandoffService.ts"
+      ],
+      "implication": "Provider switching does not imply lossless native memory migration."
+    },
+    {
+      "finding": "T3 built-in Claude integration uses claude-agent-sdk.query.",
+      "sources": [
+        "apps/server/src/orchestration-v2/Adapters/ClaudeAdapterV2.ts"
+      ],
+      "implication": "It does not automatically replace our exact manual Opus TUI review leg."
+    }
+  ],
+  "carryover_and_mapping": {
+    "retain": [
+      "Fleet lease contracts and holder/fence enforcement",
+      "Routing, identity and provider-family cooldown decisions",
+      "State ledger for policy and review evidence",
+      "Metadata-only export/content controls",
+      "agent-harness and governed-pipeline workflow contracts",
+      "Independent panel/merge gate and manual review-leg requirements"
+    ],
+    "required_contract_changes": [
+      "Add T3 runtime/backend IDs with schema compatibility tests; current runtimeIds accepts only omnigent.",
+      "Make agent specifications an explicit backend-discriminated contract; current type is OmnigentAgentSpecRef.",
+      "Map neutral sessions/turn handles to environment/project/thread/app run and provider instance; an app run may span native turns.",
+      "Map stream snapshots/cursors, changed nodes and native IDs to neutral events without duplicate terminal settlement.",
+      "Treat interrupt acknowledgment separately from observed terminal cancellation.",
+      "Apply DATA content controls to projected evidence; do not copy raw full-content T3 history into a metadata-only ledger."
+    ],
+    "ownership_proposal": "T3 owns provider execution and provider conversation history. Consiliency coordination owns routing/lease authority and approval/evidence records. Avoid two independently authoritative execution logs.",
+    "our_sources": [
+      "packages/core-contracts/src/provider.ts",
+      "packages/core-contracts/src/types.ts",
+      "packages/core-contracts/src/schemas.ts",
+      "packages/coordinator/src/launch-gate.ts",
+      "packages/agent-harness-adapter/src/phase-loop.ts",
+      "packages/governed-pipeline-adapter/src/governed-pipeline.ts",
+      "docs/coordination-backend.md",
+      "specs/phase-plans-v2.md"
+    ],
+    "roadmap_status": "DATA and COORD accepted on main; WIRE and INTEG are not accepted there. Existing unmerged WIRE branch preserved."
+  },
+  "proposed_spike_acceptance": [
+    "Drive one real provider through create/send/stream/history/resume/interrupt and prove environment, provider instance and identity mapping.",
+    "Inject duplicate commands and restart around acceptance/provider-start/result boundaries; preserve command identity and terminal uniqueness without blind prompt replay.",
+    "Race two hosts for one fleet resource; expired or stale holders and unreachable lease authority must fail closed before new provider work.",
+    "Exercise UI, external MCP, delegation, scheduled/recovery and native continuation paths against the same admission decision, or document a deliberately narrower owned-call boundary.",
+    "Demonstrate actual required manual Opus TUI and Gemini workflow, preserving subscription authentication and tool use.",
+    "Verify metadata-only exports, bounded history/replay and truthful fork/rollback/background capabilities.",
+    "Rebase the integration across a T3 update and measure changed registrations/contracts; reject a design that requires broad orchestrator or client rewrites."
+  ],
+  "verification": {
+    "runtime": {
+      "node": "24.21.0",
+      "pnpm": "11.10.0",
+      "vite_plus": "1.0.0",
+      "vitest": "5.0.1"
+    },
+    "install": {
+      "command": "pnpm --filter 't3...' install --frozen-lockfile --ignore-scripts --network-concurrency 4 --fetch-timeout 120000",
+      "result": "success",
+      "diagnostic": "Initial attempt timed out downloading public packages. Retried with lower concurrency and longer per-request timeout; dependencies installed successfully. No source changes or lifecycle scripts."
+    },
+    "preflight": "Generic skill helper warned because it recognizes npm/yarn markers rather than pnpm. The frozen install, local vp/tsc versions and actual import resolution of effect, @effect/vitest, @effect/platform-node and workspace contracts verified readiness.",
+    "tests": [
+      {
+        "cwd": "t3code/apps/server",
+        "command": "TMPDIR=/home/viperjuice/workspace/t3t-20261011 pnpm exec vp test run src/orchestration-v2/ProjectionRecovery.test.ts src/mcp/McpToolAccess.test.ts src/orchestration-v2/testkit/OrchestratorReplayRecovery.integration.test.ts",
+        "files_passed": 3,
+        "tests_passed": 56,
+        "exit_code": 0
+      },
+      {
+        "cwd": "t3code/apps/server",
+        "command": "TMPDIR=/home/viperjuice/workspace/t3t-20261011 pnpm exec vp test run src/orchestration-v2/runtimeLayer.test.ts --testNamePattern 'receipt|idempot|usage-limit recovery'",
+        "files_passed": 1,
+        "tests_passed": 23,
+        "tests_excluded_by_filter": 50,
+        "exit_code": 0
+      }
+    ],
+    "upstream_ci": {
+      "url": "https://github.com/pingdotgg/t3code/actions/runs/38164123035",
+      "commit": "74f9df3abfb62b3a977390f01321b93a63c29cc5",
+      "conclusion": "success"
+    },
+    "limits": [
+      "No full repository tests or builds were run.",
+      "No graphical UI, live providers, OAuth enrollment, migration or T3-to-Consiliency adapter was tested.",
+      "Replay recovery tests use provider transcripts/testkits, not live subscription executions.",
+      "Omnigent extension support was source-audited in main and the stable tag; its tests were not executed."
+    ]
+  }
+}
