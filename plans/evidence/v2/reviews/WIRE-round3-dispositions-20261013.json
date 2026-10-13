@@ -1,0 +1,23 @@
+{
+  "schema": "wire-plan-finding-dispositions.v1",
+  "scope": "Plan requirements only; no production edit or IF/EC acceptance",
+  "source_round": 3,
+  "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+  "source_plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+  "checkpoint": "Refusal origin and persisted deterministic provisional rejection must be specified together. Preserve published initial persistence; narrowly proven explicit same-key retry cleanup under exclusive lease. Fresh full seven roles and Fable-only president required; no carry, waiver, role change or descope.",
+  "dispositions": [
+    {"id": "R3-1", "classification": "EC-WIRE-3 blocker", "owner": "SL-2", "decision": "Remove only the same-instance origin-proven released refusal's reused provisional ID under exclusive lease before explicit retry dispatch, from shared/local/stream rejection state. Bound proof in existing key/byte capacities. Keep official rejected IDs and unrelated rejection/cancellation/closure fences. Shared-store failure prevents POST; cached denial, malformed2xx and uncertainty never qualify. Leased403/hard-cap429/post-binding4xx by queued-only/item_id matrix, then state/history/reconnect/replacement; exactly two POSTs, correlated delivery, no suppression. Post-binding4xx is a definitive refusal, not a stream-proven disconnect; failed official identity remains rejected. No automatic resend or fence/schema/public-handle change. Closure review pending."},
+    {"id": "O-a", "classification": "nonblocking control", "owner": "SL-1/SL-2", "decision": "HTTP5xx with and without stream binding: no second POST; original typed uncertainty, or original proven accepted handle when existing authoritative stream identity proves acceptance. No provisional rejection persistence for uncertainty."},
+    {"id": "O-b", "classification": "nonblocking clarification", "owner": "SL-1/SL-2", "decision": "Post-dispatch acknowledgement-body capture overflow is uncertain body failure. Successfully bounded and read malformed2xx is authoritative cached rejection. Separate controls keep one POST with their distinct persistence behavior, including stream proof."},
+    {"id": "O-c", "classification": "nonblocking control", "owner": "SL-1", "decision": "Disable automatic mutation redirects at fetch construction (manual/error policy);307/308 cannot replay bodies. Returned3xx is ambiguous and protected, not released4xx refusal. No automatic follow or second POST."},
+    {"id": "O-d", "classification": "nonblocking control", "owner": "SL-1/SL-2", "decision": "Test typed HTTP403 cancel/close rollback and shared-fence preservation distinctly from synchronous2xx policy denial. Send retry classification never removes authoritative cancellation/closure fences."},
+    {"id": "O-e", "classification": "nonblocking control", "owner": "SL-1", "decision": "Explicit401 normalization under omniagent-plus#25 TR-9; bounded allowlisted diagnostics, no raw body/stderr authority."},
+    {"id": "O-f", "classification": "nonblocking limitation", "owner": "SL-0/SL-3", "decision": "Existing command-runner result cannot prove pre-spawn refusal. Only transport-local validation/admission before invocation proves zero effects. Runner rejection, malformed/oversized/nonzero result or deadline/abort after invocation remains protected uncertainty unless existing authoritative proof resolves it."},
+    {"id": "O-g", "classification": "nonblocking documentation/downstream item", "owner": "SL-4; INTEG omniagent-plus#26", "decision": "Document process-local proof loss on restart/rotation. Replacement without released-refusal proof never blanket-clears persisted rejections or infers cached denial is retryable. Replacement after successful cleanup sees corrected shared state. Durable cross-process idempotency stays INTEG; no WIRE waiver."},
+    {"id": "O-h", "classification": "mandatory actual-source CR check", "owner": "SL-2 implementation reviewers", "decision": "Verify uncertainty rollback and late authoritative proof do not leave provisional active state indefinitely blocking admission. Preserve bounded same-key protected uncertainty when unrelated work is admissible; no automatic retry or uncertainty rejection. EC-WIRE-3 regression blocks approval."},
+    {"id": "O-i", "classification": "nonblocking test clarity", "owner": "SL-2", "decision": "Retitle transport-failure eviction test as definitive status refusal; add distinct5xx protected-no-eviction control. RuntimeFailure.retryable is not release authority."}
+  ],
+  "prior_findings": "P1, B1, B2, O1-O5 and N1-N7 remain required; no prior approval extended to changed source.",
+  "implementation_started": false,
+  "production_source_changed": false
+}

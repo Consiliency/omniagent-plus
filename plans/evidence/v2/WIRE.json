@@ -1,14 +1,13 @@
 {
   "schema": "wire-phase-evidence.v1",
   "phase": "WIRE",
-  "status": "planning_blocked_fresh_round3_reviews_pending",
+  "status": "planning_blocked_R3-1_amended_fresh_round4_pending",
   "plan": "plans/phase-plan-v2-WIRE.md",
-  "plan_source": "5862cbaa331f423ce334fa7286ac6c733955a6ae",
-  "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json",
-  "standing_review_summary": "Round2 actual9716c833: six AGREE, manual Opus PARTIALLY AGREE, qualified Fable BLOCKED P1. Wording repaired in actual5862cbaa; round3 full fresh seven-role recheck pending, none carried.",
+  "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
+  "standing_review_summary": "Round3 actual7333dd38/76f9cd89: sixAGREE/manualOpusPARTIALLYAGREE; qualifiedFableBLOCKEDR3-1. Narrow lease-held own-provisional cleanup amendment and O-a..i dispositions await all seven fresh roles/president; no carry.",
   "plan_content_blockers": [
-    "P1 refusal-class wording repaired; full fresh closure review and president pending"
+    "R3-1 amendment requires fresh closure review and president"
   ],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -25,7 +24,7 @@
   "blocker": {
     "class": "fresh_seven_role_plan_recheck_required",
     "human_required": false,
-    "source": "Qualified round2 Fable president requires all seven fresh roles and a new ruling after P1; third-round checkpoint never waives criteria.",
+    "source": "Actual round3 qualified Fable president requires narrow R3-1 amendment/O-a..i and fresh full roster/president after checkpoint.",
     "waiver": false,
     "fallback": false
   },
@@ -39,9 +38,9 @@
     "omniagent-plus#27": "carried PREP",
     "omniagent-plus#20": "carried owner license decision in PREP"
   },
-  "resumption": "Full fresh seven-role plan recheck with no carry, then Fable-only president and three-round scope/input checkpoint; serial implementation only after approval; actual-source CR/full gates/merge/postmerge remain mandatory.",
+  "resumption": "Fresh full seven-role review, no carry, then Fable-only president; serial implementation only after approval. Actual-source CR/full gates/merge/postmerge mandatory.",
   "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
-  "binding": "Actual amendment commit5862cbaa binds plan76f9cd89. This receipt recording is later metadata. Review clones bind final actual recording HEAD plus the same plan digest; no future implementation/acceptance/merge is claimed.",
+  "binding": "New plan digest binds current bytes; actual source identity is recorded only after commit. Round3 original source/digests/dissent preserved.",
   "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
   "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained.",
   "required_controls": [
@@ -58,18 +57,17 @@
     }
   ],
   "planning_source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
-  "review_scope": "Amended round3 plan sufficiency only; P1 wording repair after all seven round2 reviews and Fable ruling finished; no implementation.",
-  "current_review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json",
+  "review_scope": "Round4 plan sufficiency only after all seven round3 reports and qualified Fable BLOCKED ruling; no implementation.",
+  "current_review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
   "reviews": [],
   "usable_agree": 0,
   "president": {
     "required": true,
-    "status": "pending_after_seven_fresh_round3_reviews",
+    "status": "pending_after_seven_fresh_reviews",
     "ladder": [
       "fable"
     ],
-    "waiver": false,
-    "fallback": false
+    "waiver": false
   },
-  "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-678436c-pending.json"
+  "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json"
 }

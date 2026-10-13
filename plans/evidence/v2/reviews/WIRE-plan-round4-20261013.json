@@ -1,0 +1,27 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "round": 4,
+  "source_binding": "Current plan bytes; actual commit identity recorded after commit. Every fresh clone review binds its actual measured HEAD and this digest. No future output pin.",
+  "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+  "status": "fresh_full_seven_role_review_pending",
+  "required_reviewers": 7,
+  "usable_agree": 0,
+  "reviews": [],
+  "carried_approvals": false,
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json",
+  "dispositions": "plans/evidence/v2/reviews/WIRE-round3-dispositions-20261013.json",
+  "president": {
+    "required": true,
+    "status": "pending_after_seven_fresh_reviews",
+    "ladder": [
+      "fable"
+    ],
+    "waiver": false
+  },
+  "round_cap": 3,
+  "checkpoint": "Round3 diagnosed combined refusal/tombstone premise; actual qualified Fable ruling directs narrow R3-1 amendment, O-a..i disposition and full seven-role recheck. Owner loop until merge-ready retained; no EC descope/waiver.",
+  "implementation_started": false,
+  "production_source_changed": false,
+  "verification": "not_run"
+}
