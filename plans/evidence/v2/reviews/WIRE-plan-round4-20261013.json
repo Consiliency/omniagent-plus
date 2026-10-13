@@ -2,26 +2,128 @@
   "schema": "wire-plan-standing-review.v1",
   "phase": "WIRE",
   "round": 4,
-  "source_binding": "Current plan bytes; actual commit identity recorded after commit. Every fresh clone review binds its actual measured HEAD and this digest. No future output pin.",
+  "source_binding": "All seven actual fresh round4 reports bind0ed94b1/43598a31. SixAGREE/manualOpusPARTIALLYAGREE R4-1..3. Actual Fable attempt unavailable on fresh weekly429; no ruling/approval. Historical review does not approve the new alternative.",
   "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
-  "status": "fresh_full_seven_role_review_pending",
+  "status": "completed_manual_Opus_partial_president_unavailable",
   "required_reviewers": 7,
-  "usable_agree": 0,
-  "reviews": [],
+  "usable_agree": 6,
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "ad3a59dacfd01b9ade643d2d0a6b289e37df58862cdce7392c44dab6bac50aee"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "a2d4eeb75c9d6c4b3f9b6923be09eb17eefbb5252d26ff8bd3550ab37210e769"
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "232bb3a69aefa273eef5a6fa7529f1fd06c4426444fe701b44f2b3f359b9b671"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "cf385a3e9fc530de844d06d4d593ebefe653b9c226cc1fa53da00691935ca79d"
+    },
+    {
+      "seat": "separate-native-independent",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "c77eabc211b039818e112bc2505a6e59bd021750a79cab10239aac82f951d88c",
+      "scope": "actual plan-source inspection; no implementation or phase acceptance"
+    },
+    {
+      "seat": "manual:Gemini3.8FlashHigh:tools",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "28b540f0441fa5fb70e0dc1a3c0ec40dd63d24f415109ec9ae5bfbe00a93375f",
+      "scope": "actual plan-source inspection; no implementation or phase acceptance"
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+      "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "5992dca139a16072968e1dced1d6a319a43d20a6ac127f9639e9d6505bec35e0",
+      "scope": "actual plan-source inspection; no implementation or phase acceptance"
+    }
+  ],
   "carried_approvals": false,
   "historical_review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json",
   "dispositions": "plans/evidence/v2/reviews/WIRE-round3-dispositions-20261013.json",
   "president": {
     "required": true,
-    "status": "pending_after_seven_fresh_reviews",
+    "status": "UNAVAILABLE",
+    "model": "claude-opus-5-5",
     "ladder": [
       "fable"
     ],
-    "waiver": false
+    "route": "Actual invoke_president, qualified first-party subscription self-PTY TUI",
+    "exit_code": 1,
+    "detail": "claude_tui_stalled",
+    "report_exists": false,
+    "quota": {
+      "timestamp": "2026-10-13T17:20:11.421Z",
+      "api_error_status": 429,
+      "api_error_is_usage_limit": true,
+      "safe_quota_metadata": [
+        {
+          "status": "rejected",
+          "resetsAt": 1792260000,
+          "rateLimitType": "seven_day",
+          "overageStatus": "rejected",
+          "overageDisabledReason": "org_level_disabled"
+        }
+      ],
+      "raw_body_retained": false,
+      "president_approval": false
+    },
+    "waiver": false,
+    "fallback": false
   },
   "round_cap": 3,
   "checkpoint": "Round3 diagnosed combined refusal/tombstone premise; actual qualified Fable ruling directs narrow R3-1 amendment, O-a..i disposition and full seven-role recheck. Owner loop until merge-ready retained; no EC descope/waiver.",
   "implementation_started": false,
   "production_source_changed": false,
-  "verification": "not_run"
+  "verification": "not_run",
+  "source_head": "0ed94b1b97d13d5720b1cc0e602475a6389cd393",
+  "blocking_findings": [
+    "R4-1: no-proof tombstone dispatch",
+    "R4-2: stale read/install after cleanup",
+    "R4-3: initial persistence failure skips rollback"
+  ]
 }

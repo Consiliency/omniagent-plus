@@ -1,0 +1,28 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "round": 5,
+  "source_head": "757ff06c097a90cc1e0633342b7d4280f851b4a1",
+  "source_binding": "Actual amended plan commit and digest; subsequent recording metadata is not an approval. Every future review must bind its own actual snapshot HEAD and this measured digest.",
+  "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+  "status": "planning_blocked_full_review_required_manual_Opus_weekly_limit",
+  "required_reviewers": 7,
+  "usable_agree": 0,
+  "reviews": [],
+  "carried_approvals": false,
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
+  "dispositions": "plans/evidence/v2/reviews/WIRE-round4-dispositions-20261013.json",
+  "president": {
+    "required": true,
+    "status": "pending_new_input_after_reported_reset",
+    "ladder": [
+      "fable"
+    ],
+    "waiver": false,
+    "reported_reset_utc": "2026-10-17T18:00:00+00:00"
+  },
+  "checkpoint": "Choose earlier R3 president-permitted official-only persistence alternative; no deletion of authoritative shared provisional tombstones. Proposed published-doc refinement, no DATA/fence schema change. Fresh full7/president required; no new ruling/approval or EC descope.",
+  "implementation_started": false,
+  "production_source_changed": false,
+  "verification": "not_run"
+}

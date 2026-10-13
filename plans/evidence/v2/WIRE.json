@@ -1,13 +1,14 @@
 {
   "schema": "wire-phase-evidence.v1",
   "phase": "WIRE",
-  "status": "planning_blocked_R3-1_amended_fresh_round4_pending",
+  "status": "planning_blocked_round5_alternative_requires_fresh_full_review",
   "plan": "plans/phase-plan-v2-WIRE.md",
-  "plan_sha256": "43598a316d3ba9d34ab5b90eafe33a07c159f5fafbd06f76d8fbe863057dbc97",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
-  "standing_review_summary": "Round3 actual7333dd38/76f9cd89: sixAGREE/manualOpusPARTIALLYAGREE; qualifiedFableBLOCKEDR3-1. Narrow lease-held own-provisional cleanup amendment and O-a..i dispositions await all seven fresh roles/president; no carry.",
+  "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261013.json",
+  "standing_review_summary": "Round4 actual0ed94b1/43598a31: sixAGREE/manualOpusPARTIAL R4-1..3. Actual Fable weekly429/no ruling. New alternative never deletes shared rejections and adds no-proof refusal/read-install serialization/persistence-failure rollback, proposed only; zero approvals carried.",
   "plan_content_blockers": [
-    "R3-1 amendment requires fresh closure review and president"
+    "R4-1..3 addressed as proposed requirements; full fresh closure review/president required",
+    "Published rejection-persistence refinement/new SL-4 contract path remains unapproved"
   ],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -22,9 +23,10 @@
   ],
   "manifest_status": "committed, not executing or completed",
   "blocker": {
-    "class": "fresh_seven_role_plan_recheck_required",
+    "class": "unretryable_external_outage",
     "human_required": false,
-    "source": "Actual round3 qualified Fable president requires narrow R3-1 amendment/O-a..i and fresh full roster/president after checkpoint.",
+    "source": "Actual Fable president weekly429 observed2026-10-13T17:20UTC, reported resetOct17 18UTC/2pmEDT. Current-source manual Opus and Fable ruling remain mandatory; no role replacement/fallback/waiver.",
+    "reported_reset_utc": "2026-10-17T18:00:00+00:00",
     "waiver": false,
     "fallback": false
   },
@@ -38,9 +40,9 @@
     "omniagent-plus#27": "carried PREP",
     "omniagent-plus#20": "carried owner license decision in PREP"
   },
-  "resumption": "Fresh full seven-role review, no carry, then Fable-only president; serial implementation only after approval. Actual-source CR/full gates/merge/postmerge mandatory.",
+  "resumption": "Recheck actual required Opus readiness after reported reset, full fresh7 and Fable-only plan ruling; serial implementation only after approval. All implementation/full-gate/merge/postmerge obligations retained.",
   "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
-  "binding": "New plan digest binds current bytes; actual source identity is recorded only after commit. Round3 original source/digests/dissent preserved.",
+  "binding": "Actual amendment 757ff06c097a90cc1e0633342b7d4280f851b4a1 with measured plan digest a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1. Later metadata does not alter plan bytes or extend prior approval.",
   "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
   "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained.",
   "required_controls": [
@@ -57,17 +59,19 @@
     }
   ],
   "planning_source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
-  "review_scope": "Round4 plan sufficiency only after all seven round3 reports and qualified Fable BLOCKED ruling; no implementation.",
-  "current_review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
+  "review_scope": "New proposed official-only released-refusal persistence alternative and R4 repairs; no production or canonical contract edit adopted.",
+  "current_review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261013.json",
   "reviews": [],
   "usable_agree": 0,
   "president": {
     "required": true,
-    "status": "pending_after_seven_fresh_reviews",
+    "status": "pending_new_input_after_reported_reset",
     "ladder": [
       "fable"
     ],
-    "waiver": false
+    "waiver": false,
+    "reported_reset_utc": "2026-10-17T18:00:00+00:00"
   },
-  "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json"
+  "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
+  "plan_source": "757ff06c097a90cc1e0633342b7d4280f851b4a1"
 }
