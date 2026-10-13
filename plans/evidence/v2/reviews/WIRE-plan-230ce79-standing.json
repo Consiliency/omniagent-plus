@@ -5,7 +5,7 @@
   "delta_base": "9ea0c4540d4a5c810e54f67ff212e4b66b89d619",
   "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
   "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261012.json",
-  "status": "changes_requested_president_pending",
+  "status": "plan_changes_required_full_seven_role_rerun",
   "review_scope": "Plan and assessment only; no production changes/IF/EC acceptance",
   "historical_approvals_counted_as_fresh": false,
   "required_reviewers": 7,
@@ -153,11 +153,17 @@
   },
   "president": {
     "required": true,
-    "status": "running_required_fable_only_reconciliation",
-    "attempted": true,
+    "status": "BLOCKED",
+    "usable": true,
+    "source_head": "230ce79b011067f627c3f975eab38c094ef21f17",
+    "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+    "model": "fable (qualified claude-opus-5-5 max)",
     "ladder": [
       "fable"
     ],
+    "route": "first-party subscription self-PTY TUI, tools enabled",
+    "review_sha256": "25c0744563436b6a88e0fa18cc998a7becd130fabf043ae59e21d1b155f0a765",
+    "report_private": true,
     "waiver": false
   },
   "prescript_sha256": "a64fb8b40942eb25bb8c774f339de3d189121a7f63662ae44538d680a78610f6",
@@ -184,5 +190,6 @@
       "criterion": "EC-WIRE-3 collision-safe cancellation/reconnect",
       "repair": "Production alpha/alpha:beta controls must cover every namespace iteration: install/cleanup, reconnect with live delivery, interrupt fallback/consumption, admission and alias/pending cleanup, with zero cross-session effect."
     }
-  ]
+  ],
+  "full_plan_approval": false
 }

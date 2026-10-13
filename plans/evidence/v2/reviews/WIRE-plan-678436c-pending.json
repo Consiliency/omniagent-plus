@@ -1,0 +1,29 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "source_head": "678436c02ef1b2eb5222b8d4a5f97ee14f01f9e6",
+  "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+  "status": "fresh_full_roster_pending",
+  "required_reviewers": 7,
+  "usable_agree": 0,
+  "reviews": [],
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-230ce79-standing.json",
+  "carried_approvals": false,
+  "repair": [
+    "Protected post-dispatch uncertain create/send results with zero second POST/create/attach; definitive pre-acceptance429/policy/capacity/pre-dispatch refusals stay retryable.",
+    "Required neighbor-session controls at every namespace iteration.",
+    "President-recommended N3/N4/N5/N7 controls and N1/N2/N6 documentation/verification dispositions folded into existing lanes; no dependency/version/architecture change."
+  ],
+  "president": {
+    "required": true,
+    "status": "pending_after_seven_fresh_reviews",
+    "ladder": [
+      "fable"
+    ],
+    "waiver": false
+  },
+  "implementation_started": false,
+  "production_source_changed": false,
+  "verification": "not_run",
+  "binding": "678436c is actual amended plan commit; subsequent manifest/receipt recording is metadata. Review snapshot binds actual final recording HEAD and this unchanged plan digest, never an invented future output."
+}

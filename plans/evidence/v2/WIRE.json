@@ -3,13 +3,13 @@
   "phase": "WIRE",
   "status": "planning_blocked",
   "plan": "plans/phase-plan-v2-WIRE.md",
-  "plan_source": "230ce79b011067f627c3f975eab38c094ef21f17",
-  "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-230ce79-standing.json",
-  "standing_review_summary": "Seven fresh usable plan reviews at230ce79: six AGREE and manual Opus PARTIALLY AGREE with two EC-WIRE-3 blockers. Fable-only president is running. No historical approval counted as fresh.",
+  "plan_source": "678436c02ef1b2eb5222b8d4a5f97ee14f01f9e6",
+  "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-678436c-pending.json",
+  "standing_review_summary": "Prior230ce79: six AGREE and Opus PARTIALLY AGREE; qualified Fable president BLOCKED. B1/B2 repaired in amended plan; seven fresh source-bound reviews required, none carried.",
   "plan_content_blockers": [
-    "Opus-B1",
-    "Opus-B2"
+    "Opus-B1 repair proposed, fresh closure review pending",
+    "Opus-B2 repair proposed, fresh closure review pending"
   ],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -24,23 +24,12 @@
   ],
   "manifest_status": "committed, not executing or completed",
   "blocker": {
-    "class": "plan_changes_requested_pending_president",
+    "class": "fresh_seven_role_plan_recheck_required",
     "human_required": false,
-    "source": "Fresh required manual Opus succeeded after quota reset; two in-scope idempotency/namespace controls need reconciliation. President pending.",
-    "missing_roles": [
-      "Qualified Fable-only president ruling",
-      "Reconciled standing approval after bounded repair"
-    ],
+    "source": "Qualified Fable president BLOCKED230ce79 and requires all seven fresh roles then new president after B1/B2 repair. Current amendment is not implementation approval.",
     "waiver": false,
     "fallback": false
   },
-  "optional_dispositions": [
-    {
-      "source": "Astra correctness delta review",
-      "suggestion": "Quarantine cleanup control for neighboring IDs alpha and alpha:beta",
-      "disposition": "Covered by approved private namespace iteration-boundary contract; explicitly include this control during SL-2 execution, no new goal or public identifier restriction."
-    }
-  ],
   "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261012.json",
   "pr": "omniagent-plus#33",
   "issue_dispositions": {
@@ -55,5 +44,18 @@
   "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
   "binding": "Receipt records actual planning/review source. Its recording commit is later metadata; no future verification/merge is claimed.",
   "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
-  "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained."
+  "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained.",
+  "required_controls": [
+    {
+      "source": "Qualified Fable president, Opus-B2",
+      "reclassified_from": [
+        {
+          "source": "Astra correctness delta review",
+          "suggestion": "Quarantine cleanup control for neighboring IDs alpha and alpha:beta",
+          "disposition": "Covered by approved private namespace iteration-boundary contract; explicitly include this control during SL-2 execution, no new goal or public identifier restriction."
+        }
+      ],
+      "disposition": "Required alpha/alpha:beta production controls cover install/cleanup, reconnect with live delivery, interrupt fallback/consumption, admission and alias/pending cleanup, zero cross-session effect. New plan specifies these; implementation/test acceptance absent."
+    }
+  ]
 }
