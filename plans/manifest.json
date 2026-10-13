@@ -1703,6 +1703,18 @@
             "implementation_started": false
           },
           "transition": "committed"
+        },
+        {
+          "at": "2026-10-13T16:00:24.864314+00:00",
+          "by": "codex-plan-phase",
+          "metadata": {
+            "amendment": "Round2 Fable BLOCKED P1; wording repaired after all seven reviews. Full fresh round3 required, no carry/waiver.",
+            "implementation_started": false,
+            "ledger_warning": "update_lifecycle refuses committed->committed; typed append_entry preserves history. An unavailable load_manifest name was corrected to read_manifest before writing.",
+            "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+            "plan_source": "5862cbaa331f423ce334fa7286ac6c733955a6ae"
+          },
+          "transition": "committed"
         }
       ],
       "owner_skill": "codex-plan-phase",
@@ -1718,7 +1730,7 @@
       "status": "committed",
       "task_summary": null,
       "type": "phase",
-      "updated_at": "2026-10-13T15:28:41.754510+00:00"
+      "updated_at": "2026-10-13T16:00:24.864314+00:00"
     }
   ],
   "schema_version": 1

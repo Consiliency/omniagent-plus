@@ -3,13 +3,12 @@
   "phase": "WIRE",
   "status": "planning_blocked_fresh_round3_reviews_pending",
   "plan": "plans/phase-plan-v2-WIRE.md",
-  "plan_source": "678436c02ef1b2eb5222b8d4a5f97ee14f01f9e6",
+  "plan_source": "5862cbaa331f423ce334fa7286ac6c733955a6ae",
   "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-678436c-pending.json",
-  "standing_review_summary": "Prior230ce79: six AGREE and Opus PARTIALLY AGREE; qualified Fable president BLOCKED. B1/B2 repaired in amended plan; seven fresh source-bound reviews required, none carried.",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-round3-20261013.json",
+  "standing_review_summary": "Round2 actual9716c833: six AGREE, manual Opus PARTIALLY AGREE, qualified Fable BLOCKED P1. Wording repaired in actual5862cbaa; round3 full fresh seven-role recheck pending, none carried.",
   "plan_content_blockers": [
-    "Opus-B1 repair proposed, fresh closure review pending",
-    "Opus-B2 repair proposed, fresh closure review pending"
+    "P1 refusal-class wording repaired; full fresh closure review and president pending"
   ],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -26,7 +25,7 @@
   "blocker": {
     "class": "fresh_seven_role_plan_recheck_required",
     "human_required": false,
-    "source": "Qualified Fable president BLOCKED230ce79 and requires all seven fresh roles then new president after B1/B2 repair. Current amendment is not implementation approval.",
+    "source": "Qualified round2 Fable president requires all seven fresh roles and a new ruling after P1; third-round checkpoint never waives criteria.",
     "waiver": false,
     "fallback": false
   },
@@ -42,7 +41,7 @@
   },
   "resumption": "Full fresh seven-role plan recheck with no carry, then Fable-only president and three-round scope/input checkpoint; serial implementation only after approval; actual-source CR/full gates/merge/postmerge remain mandatory.",
   "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
-  "binding": "planning_source_head9716c833 names the actual pre-amendment input, not a future output. New plan digest binds repaired bytes; source binding will be recorded from the actual amendment commit before launching review. Historical outcomes are preserved.",
+  "binding": "Actual amendment commit5862cbaa binds plan76f9cd89. This receipt recording is later metadata. Review clones bind final actual recording HEAD plus the same plan digest; no future implementation/acceptance/merge is claimed.",
   "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
   "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained.",
   "required_controls": [
