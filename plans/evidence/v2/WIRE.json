@@ -1,14 +1,14 @@
 {
   "schema": "wire-phase-evidence.v1",
   "phase": "WIRE",
-  "status": "planning_blocked_round5_alternative_requires_fresh_full_review",
+  "status": "planning_blocked_R5-1_and_required_manual_Opus_Fable",
   "plan": "plans/phase-plan-v2-WIRE.md",
   "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
-  "review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261013.json",
-  "standing_review_summary": "Round4 actual0ed94b1/43598a31: sixAGREE/manualOpusPARTIAL R4-1..3. Actual Fable weekly429/no ruling. New alternative never deletes shared rejections and adds no-proof refusal/read-install serialization/persistence-failure rollback, proposed only; zero approvals carried.",
+  "review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261014.json",
+  "standing_review_summary": "Six latest actual reports on d976d5b/a0be3cd4: manual Gemini AGREE, four input-repaired/recovered harness seats and native independent PARTIALLY AGREE for R5-1. Candidate/prescript inputs repaired; old reports/error and explicit citation corrections retained. Opus/Fable pending, no aggregate approval or plan repair.",
   "plan_content_blockers": [
-    "R4-1..3 addressed as proposed requirements; full fresh closure review/president required",
-    "Published rejection-persistence refinement/new SL-4 contract path remains unapproved"
+    "R5-1: supported optional-hook ordinary-send/retry path is not specified by unconditional exclusive-lease restoration wording; EC-WIRE-3/TR3-4/IF-0-WIRE-5. Truly unleased raw-factory403/429 retry controls needed.",
+    "Proposed published rejection-persistence refinement remains unapproved; required current-plan Opus/Fable reconciliation must finish before applying R5 repair."
   ],
   "full_plan_approval": false,
   "implementation_started": false,
@@ -23,9 +23,9 @@
   ],
   "manifest_status": "committed, not executing or completed",
   "blocker": {
-    "class": "unretryable_external_outage",
+    "class": "plan_content_blocker_and_required_reviewer_outage",
     "human_required": false,
-    "source": "Actual Fable president weekly429 observed2026-10-13T17:20UTC, reported resetOct17 18UTC/2pmEDT. Current-source manual Opus and Fable ruling remain mandatory; no role replacement/fallback/waiver.",
+    "source": "Actual R5-1 independently substantiated after inputs-only retry and explicit correction of injecting test-helper citation. Opus/Fable last actual weekly429 was Oct13; Oct14 authentication works but quota not re-proven, reported resetOct17 18UTC/2pmEDT. No role replacement/fallback/waiver.",
     "reported_reset_utc": "2026-10-17T18:00:00+00:00",
     "waiver": false,
     "fallback": false
@@ -40,8 +40,8 @@
     "omniagent-plus#27": "carried PREP",
     "omniagent-plus#20": "carried owner license decision in PREP"
   },
-  "resumption": "Recheck actual required Opus readiness after reported reset, full fresh7 and Fable-only plan ruling; serial implementation only after approval. All implementation/full-gate/merge/postmerge obligations retained.",
-  "operational_handoff": "Dedicated exact-source external clone; primary and planning tracked legacy handoff pointers preserved.",
+  "resumption": "Recheck current source/upstream and actual required Opus readiness; finish current-plan Opus plus actual Fable-only reconciliation of all latest six findings/limits and R5 draft before plan edits. Then any amendment needs fresh full7/Fable; serial implementation only after approval, all original acceptance/hosted/merge/postmerge gates retained.",
+  "operational_handoff": ".dev-skills/handoffs/codex-plan-phase/20261014-WIRE-review-recovery.md; latest.md updated only by owned workflow, dated prior handoffs retained.",
   "binding": "Actual amendment 757ff06c097a90cc1e0633342b7d4280f851b4a1 with measured plan digest a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1. Later metadata does not alter plan bytes or extend prior approval.",
   "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
   "model_change_authority": "Owner explicitly authorized available Gemini3.8Flash(High) on2026-10-12 after Gemini3.1Pro disappeared from live agy catalog; tools-enabled manual route retained.",
@@ -58,22 +58,94 @@
       "disposition": "Required alpha/alpha:beta production controls cover install/cleanup, reconnect with live delivery, interrupt fallback/consumption, admission and alias/pending cleanup, zero cross-session effect. New plan specifies these; implementation/test acceptance absent."
     }
   ],
-  "planning_source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
-  "review_scope": "New proposed official-only released-refusal persistence alternative and R4 repairs; no production or canonical contract edit adopted.",
-  "current_review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261013.json",
-  "reviews": [],
-  "usable_agree": 0,
+  "planning_source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+  "review_scope": "Current unchanged plan with completed input-only candidate/prescript repair, R5-1 optional-lease contract ambiguity and citation erratum. Private clarification draft not applied; no production/canonical contract change adopted.",
+  "current_review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261014.json",
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "684bf3438607d5921806a260011d5eed78370fb169d394dcdfa211d539278491",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "1bf65ea5724595cf806bf31929ad05603cb69b4324c8e35512fbeaf3b6ffba8c",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "7cc919edb8c89c7e12538bf77083bb3a93ccd597b81fa8ffd52bb65d7234f440",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "49ddc30dc4ac56d0cc79240666ba3bbc1f5acf1600f9e9c8555ac90494eb3e89",
+      "report_private": true
+    },
+    {
+      "seat": "manual:Gemini3.8FlashHigh:tools",
+      "verdict": "AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "86ea02dbbec38dde44fd2c7cac71c2cd27736144beccf1d1424402099b221093",
+      "report_private": true
+    },
+    {
+      "seat": "separate-native-independent",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "6c2d21a48be6c73e2daebbe3ffbc93eda77c4b4d305387b11ec5bf329b94ea7f",
+      "report_private": true
+    }
+  ],
+  "usable_agree": 1,
   "president": {
     "required": true,
-    "status": "pending_new_input_after_reported_reset",
+    "status": "pending_required_Fable_only",
     "ladder": [
       "fable"
     ],
-    "waiver": false,
-    "reported_reset_utc": "2026-10-17T18:00:00+00:00"
+    "ruling": null,
+    "reported_reset_utc": "2026-10-17T18:00:00Z",
+    "current_round_attempted": false,
+    "last_actual_availability": "Other actual Fable attempts onOct13 endedHTTP429/seven_day. Oct14authproven does not prove quota readiness."
   },
-  "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-round4-20261013.json",
+  "previous_round_review": "plans/evidence/v2/reviews/WIRE-plan-round5-20261013.json",
   "plan_source": "757ff06c097a90cc1e0633342b7d4280f851b4a1",
   "upstream_recheck": "plans/evidence/v2/reviews/WIRE-upstream-20261013.json",
-  "upstream_recheck_scope": "New stablev0.18.0 source triage only; mapped sandbox blobs unchanged17->18, server/OpenAPI lifecycle changed. Default12/optional15/16 and rejection of unsupported17/18 remain; no adoption, fixture or test/compatibility proof."
+  "upstream_recheck_scope": "New stablev0.18.0 source triage only; mapped sandbox blobs unchanged17->18, server/OpenAPI lifecycle changed. Default12/optional15/16 and rejection of unsupported17/18 remain; no adoption, fixture or test/compatibility proof.",
+  "historical_planning_source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+  "usable_reviewers": 6,
+  "partial": 5
 }
