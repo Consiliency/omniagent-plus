@@ -1,0 +1,410 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "source_head": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+  "delta_base": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+  "plan_sha256": "c6216dba173a63e5a9e9c4a7133fa53f1007b020b925e26d026c979a032969c5",
+  "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+  "prescript": {
+    "schema": "wire-cr-prescript.v1",
+    "head": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+    "open_issues": [
+      {
+        "issue": "omniagent-plus#27",
+        "title": "Audit HY-3/HY-4/ID-1: reconcile package distribution and retained evidence"
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "title": "Audit sections 3.1-3.4: connect provider lifecycle to durable operator replay"
+      },
+      {
+        "issue": "omniagent-plus#25",
+        "title": "Audit TR-1..TR-9: bound transport resources and preserve lifecycle contracts"
+      },
+      {
+        "issue": "omniagent-plus#20",
+        "title": "Audit HY-1/HY-2/HY-5/HY-6: establish PR verification and distribution decisions"
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "title": "Track v2 audit remediation: dispositions, phase gates, and release acceptance"
+      }
+    ],
+    "continuing_items": [
+      {
+        "issue": "omniagent-plus#25",
+        "related_pr": "omniagent-plus#30",
+        "disposition": "WIRE blocker if unresolved",
+        "criteria": [
+          "EC-WIRE-1",
+          "EC-WIRE-2",
+          "EC-WIRE-3",
+          "EC-WIRE-4"
+        ],
+        "source": [
+          "packages/omnigent-transport/src",
+          "plans/phase-plan-v2-WIRE.md",
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "Bounded transport, content posture, event dispositions, protected replay/fences, concurrent cold start and independent consumer proof are in scope; published v0.12 default must survive selective PR30 reconciliation."
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "disposition": "INTEG carries runtime persistence/scheduling, unless WIRE primitive is defective",
+        "source": [
+          "specs/phase-plans-v2.md",
+          "docs/lifecycle-and-events.md"
+        ],
+        "reason": "No persistence composition in WIRE; admission/lifecycle/cleanup primitives and published invariants must work now."
+      },
+      {
+        "issue": "omniagent-plus#27",
+        "related_issue": "omniagent-plus#20",
+        "disposition": "PREP carries release/dependency/license decisions",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "Existing packed consumers/full verification/rehearsal remain required now. No license or release mutation."
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "disposition": "roadmap tracker remains open",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "WIRE acceptance does not imply INTEG/PREP/SHIP acceptance."
+      },
+      {
+        "issues": [
+          "omniagent-plus#23",
+          "omniagent-plus#24"
+        ],
+        "disposition": "accepted COORD in omniagent-plus#32; historical evidence only",
+        "source": [
+          "plans/evidence/v2/COORD.json",
+          "plans/phase-plan-v2-COORD.md"
+        ],
+        "reason": "Preserve accepted routing/custody/SQL and DATA frozen contracts; any new regression blocks regardless of closed issue state."
+      }
+    ],
+    "prior_records": [
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-plan-13042c1-initial-sandbox-failure.json",
+        "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "status": "changes_requested_or_unavailable",
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-plan-13042c1-storage-attempts.json",
+        "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "status": null,
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-plan-13042c1.json",
+        "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "status": "changes_requested_or_unavailable",
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-plan-215bb03.json",
+        "source_head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+        "status": "changes_requested_or_unavailable",
+        "findings": [],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-plan-reconciliation-13042c1.json",
+        "source_head": null,
+        "status": "repaired_in_plan_pending_recheck",
+        "findings": [
+          {
+            "id": "PLAN-1",
+            "source": "All four grounded harness seats and separate independent review",
+            "criteria": [
+              "EC-WIRE-1",
+              "EC-WIRE-4"
+            ],
+            "finding": "Incorrect fake/live ownership and missing actual fake-server request rejection controls.",
+            "repair": "SL-4 owns fake-omnigent-server.ts and live-omnigent-smoke.test.ts; existing conformance must cover malformed/oversized/aborted request refusal, handled rejection, response cleanup and subsequent valid service. Preserve GUARD skip enrollment."
+          },
+          {
+            "id": "PLAN-2",
+            "source": "Separate independent review",
+            "criteria": [
+              "EC-WIRE-3"
+            ],
+            "finding": "Caller mutation can change send/cancel scope after lease acquisition is queued.",
+            "repair": "Validate and detach mutation inputs before first await/queue; explicitly test mutation during lease/fence waits with consistent lease/fence/key/wire target and body."
+          },
+          {
+            "id": "PLAN-3",
+            "source": "Sol adversarial and alternative-approach",
+            "criteria": [
+              "EC-WIRE-3"
+            ],
+            "finding": "CLI provider maps and injected history/events lack capacity coverage.",
+            "repair": "Shared finite OmnigentTransportLimits consumed by HTTP and CLI options; SL-3 owns admission before transport effects, mapper inputs, concurrent reservations, closed transient cleanup and protected idempotency."
+          },
+          {
+            "id": "PLAN-4",
+            "source": "Sol adversarial",
+            "criteria": [
+              "EC-WIRE-1",
+              "EC-WIRE-3"
+            ],
+            "finding": "No frozen retained-byte/key limit or runner capture contract.",
+            "repair": "Freeze aggregate64MiB retained state, bounded UTF-8 accounting and exact ceilings/defaults; runner options carry deadline/abort/capture cap, transport independently rejects oversize before JSON.parse and bounds waiting. No giant key can evade count-only admission."
+          },
+          {
+            "id": "PLAN-5",
+            "source": "Astra red-team",
+            "criteria": [
+              "EC-WIRE-1",
+              "EC-WIRE-3"
+            ],
+            "finding": "Per-page bounds do not bound cumulative paginated collection.",
+            "repair": "All history/session/child collection walks share row/byte/page/deadline budgets including stale-cursor restart; advancing tiny-page probes must refuse finitely before retaining more data."
+          },
+          {
+            "id": "PLAN-6",
+            "source": "Sol alternative-approach",
+            "criteria": [
+              "EC-WIRE-3"
+            ],
+            "finding": "Unknown create result can evict its key and duplicate a dispatched mutation.",
+            "repair": "Bounded uncertain-create tombstones return deterministic same-key failure with zero second POST/CLI create; only proven pre-dispatch refusal can release capacity."
+          },
+          {
+            "id": "PLAN-7",
+            "source": "Sol alternative-approach",
+            "criteria": [
+              "EC-WIRE-1"
+            ],
+            "finding": "Base query/fragment behavior and per-turn timeout precedence unclear.",
+            "repair": "Reject base query/fragment before effects; per-turn timeout can shorten but never extend transport request deadline, independently of terminal turn execution."
+          },
+          {
+            "id": "PLAN-8",
+            "source": "Sol adversarial",
+            "criteria": [
+              "EC-WIRE-4"
+            ],
+            "finding": "Fresh per-seat review checkout requirement not explicit.",
+            "repair": "Require qualified fresh immutable per-seat harness snapshots and separate manual/native checkouts with exact source/delta binding."
+          },
+          {
+            "id": "PLAN-9",
+            "source": "IF-0-VC-2 command validation",
+            "criteria": [
+              "EC-WIRE-4"
+            ],
+            "finding": "Qualified validator interprets pnpm --filter package name as missing path.",
+            "repair": "Use pnpm --dir packages/omnigent-transport typecheck and direct node scripts/smoke-packed-omnigent-transport.mjs; complete verification command validation passes."
+          }
+        ],
+        "optional_dispositions": [
+          {
+            "source": "Separate independent review",
+            "suggestion": "Freeze numeric defaults and ceilings in SL-0",
+            "disposition": "Incorporated before implementation."
+          },
+          {
+            "source": "Fresh tagged upstream inspection",
+            "suggestion": "Version-specific event dispositions must reflect skills removal and two metadata additions",
+            "disposition": "Incorporated; preserve v0.12 default, no administrative authority."
+          },
+          {
+            "source": "Manual Gemini first plan review",
+            "finding": "Seven existing missing implementation features",
+            "disposition": "All are explicitly scheduled in original/revised plan. This was plan-only, not implementation acceptance. Preserve DISAGREE; rerun with explicit plan-only scope rather than counting an approval."
+          }
+        ]
+      },
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-plan-reconciliation-215bb03.json",
+        "source_head": null,
+        "status": "repaired_pending_delta_recheck",
+        "findings": [
+          {
+            "id": "PLAN-10",
+            "source": "Grounded Astra correctness plan review",
+            "criteria": [
+              "EC-WIRE-3"
+            ],
+            "finding": "Delimiter-joined session/idempotency keys alias distinct accepted tuples; existing extracted-method probes reproduced wrong handle and skipped second lease/dispatch for completed/concurrent requests.",
+            "repair": "SL-2 explicitly owns collision-safe tuple/nested-map keys across all private session namespaces and iteration boundaries. Production sendTurn tests distinguish (alpha:beta,gamma) and (alpha,beta:gamma), genuine duplicates, concurrency and capacity reservation. CLI new compound caches consume the same rule. No delimiter ban, DATA change or public handle format change.",
+            "code_fix_claimed": false
+          }
+        ],
+        "optional_dispositions": []
+      },
+      {
+        "path": "plans/evidence/v2/reviews/WIRE-upstream-20261004.json",
+        "source_head": null,
+        "status": null,
+        "findings": [],
+        "optional_dispositions": []
+      }
+    ],
+    "rule": "Scope dispositions are provisional. Block on any EC/contract/invariant/regression. No blanket waiver; no issue mutations."
+  },
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "Reviewed `c6424d35cbf509debff5d84a6b24fb735d59df57`, delta `215bb03..HEAD`. **No remaining blocker in this narrow plan revision.**\n\nPLAN-10 is resolved at the planning level. The [new contract](/mnt/workspace/users/viperjuice/wrt/pl-panel-ocoom1uf/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:33) assigns collision-safe private keys and iteration boundaries to SL-2, preserves accepted identifiers and public handles, and extends the rule to new CLI caches. Its production-entrypoint tests distinguish the reported tuples for completed/concurrent calls, leases, dispatch and capacity reservations while preserving genuine duplicates. The surrounding contracts retain protected idempotency, zero-effect capacity refusal, quarantine and fencing requirements.\n\nI independently reproduced the existing defect using the extracted `sendTurn` method: both colliding cases returned the first session\u2019s handle with only one lease/dispatch. Genuine duplicates reused their result; a noncolliding control dispatched twice. An extracted cleanup probe also demonstrated cross-session prefix deletion, covered by the new iteration-boundary requirement. These observations establish the repair target, not implementation completion.\n\nOptional: explicitly add a quarantine-cleanup test using neighboring session IDs `alpha` and `alpha:beta` to make that iteration requirement directly falsifiable.\n\nRoadmap and historical review-plan digests match; review JSON parses; `git diff --check` passes; the checkout remains unchanged. No installs, builds or repository test suites were run. Recorded hosted verification binds historical `b9b5d38`, not this candidate. Required Opus/president reviews and future implementation gates remain pending; this report supplies only the requested correctness-seat delta review.\n\nAGREE",
+      "review_sha256": "d4397a9bddd52853648845d74dc4c2b5680ff909820de7715f10bc3febe0990f",
+      "carried": false,
+      "delta_base": "215bb032a897e135093cf2c7b0a6383632c6bf06"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "# WIRE Plan Review\n\nNo plan blockers found.\n\nThe exact HEAD is `215bb032a897e135093cf2c7b0a6383632c6bf06`. The delta from `13042c1e11ae052e81eed58a19b629395efe8195` changes only planning and review evidence.\n\nThe revised plan addresses all nine reconciliation findings:\n\n- Shared HTTP/CLI limits, exact defaults and ceilings, retained-byte accounting, pagination budgets, and runner capture contracts are frozen at `plans/phase-plan-v2-WIRE.md:24-30`.\n- Mutation inputs are detached before asynchronous lease/fence work, uncertain creates retain deterministic tombstones, and duplicate mutations are prohibited.\n- Actual fake-server and live-smoke paths are owned, with malformed, oversized, and aborted request controls at `plans/phase-plan-v2-WIRE.md:91-100`.\n- The plan covers URL prefixes, timeout precedence, HTTP/SSE cleanup, every newline/UTF-8 split, exact `data:` whitespace, envelope precedence, versioned event dispositions, content labels, protected replay state, CLI admission, concurrent startup, and independent packed consumers.\n- EC-WIRE-1..4 remain unchecked and falsifiable at `plans/phase-plan-v2-WIRE.md:118-123`.\n\nThe roadmap SHA-256 matches the plan header. JSON evidence parses, recorded review hashes verify, `git diff --check` passes, and the worktree remained clean.\n\nThe evidence accurately preserves the unavailable Opus reviewer and president as blocking prerequisites; it does not claim plan acceptance, implementation, verification, or merge approval. Those mandatory gates must still complete before implementation begins.\n\nAGREE",
+      "review_sha256": "a58c817ca7ac7c5c36761a8bef590aad7c4e5c84b8a56b833f8da7426a2e3a0a",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained.",
+      "carried": true,
+      "carried_into_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "carry_policy": "Standing AGREE on unchanged plan contracts; new narrow compound-key repair independently rechecked by the dissenting seat. Original source binding preserved; not a fresh invocation."
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "No plan-content blockers found at `215bb032a897e135093cf2c7b0a6383632c6bf06`, reviewing delta `13042c1..HEAD`.\n\nThe revised plan addresses PLAN-1 through PLAN-9 with concrete ownership and falsifiable acceptance tests:\n\n- [Resource and lifecycle contracts](/mnt/workspace/users/viperjuice/wrt/pl-panel-heyueis_/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:24) cover shared HTTP/CLI limits, cumulative pagination, detached mutation inputs, protected uncertainty tombstones, parser cleanup, and preserved v0.12 replay.\n- [SL-4](/mnt/workspace/users/viperjuice/wrt/pl-panel-heyueis_/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:93) owns the actual fake/live files and explicitly tests malformed, oversized, and aborted requests while preserving GUARD enrollment.\n- [Review and verification gates](/mnt/workspace/users/viperjuice/wrt/pl-panel-heyueis_/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:110) retain fresh reviewer checkouts, required independent/manual approvals, president adjudication, hosted verification, SQL/custody, packed rehearsal, and final-source binding.\n\nVerification observed:\n\n- Roadmap and historical plan digests match; all six stored review-text hashes match.\n- `git diff --check` passes. Production source is unchanged from accepted main; checkout remains clean.\n- Extracted-function probes reproduced unbounded advancing pagination and repeated uncertain-create dispatch. These are explicitly scheduled repairs under PLAN-5 and PLAN-6, not missing implementation findings.\n- Recorded hosted verification binds historical COORD source `b9b5d38`, not this candidate.\n\nNo builds, installs, or repository edits were performed. The omniagent-plus#30 commit is absent from this clone, and upstream artifact fetches were unavailable, limiting independent verification of those inputs.\n\nThis agreement covers the revised plan. The records correctly preserve unavailable Opus/president reviews and unresolved approval gates; WIRE implementation acceptance remains pending.\n\nAGREE",
+      "review_sha256": "57cf201d11253e33cefb30af27cd51026557bb93034c6833c43c0b9c22d9299c",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained.",
+      "carried": true,
+      "carried_into_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "carry_policy": "Standing AGREE on unchanged plan contracts; new narrow compound-key repair independently rechecked by the dissenting seat. Original source binding preserved; not a fresh invocation."
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "# WIRE plan review\n\nNo blocking plan defects found.\n\nReviewed exact HEAD `215bb032a897e135093cf2c7b0a6383632c6bf06`, delta `13042c1e11ae052e81eed58a19b629395efe8195..HEAD`. Production source is unchanged from `f33471d`; the worktree is clean, `git diff --check` passed, all reviewed JSON parses, and the roadmap digest matches.\n\nThe revised plan addresses PLAN-1 through PLAN-9:\n\n- Shared finite HTTP/CLI limits, exact defaults and ceilings, pagination budgets, runner capture, and retained-byte accounting are frozen at [phase-plan-v2-WIRE.md:24](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:24).\n- URL behavior, deadline precedence, SSE framing/cleanup, versioned dispositions, immutable mutation inputs, uncertain-create tombstones, and bounded CLI/provider lifecycle are specified at [phase-plan-v2-WIRE.md:25](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:25).\n- The production construction sites and adversarial acceptance cases are lane-owned and falsifiable at [phase-plan-v2-WIRE.md:58](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:58), [phase-plan-v2-WIRE.md:69](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:69), and [phase-plan-v2-WIRE.md:80](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:80).\n- SL-4 now owns the actual fake/live files and requires malformed, oversized, and aborted-request recovery plus continued service at [phase-plan-v2-WIRE.md:91](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:91).\n- Fresh per-seat checkouts and the complete mandatory review topology are explicit at [phase-plan-v2-WIRE.md:112](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:112).\n\nThis approves plan content only. The original reviews bind `13042c1`, not this revised HEAD. Manual Opus and the required president remain unavailable, and the reconciliation correctly leaves implementation and every WIRE EC unaccepted at [WIRE-plan-reconciliation-13042c1.json:22](/mnt/workspace/users/viperjuice/wrt/pl-panel-0ds3zk_5/review/reviewed-tree/plans/evidence/v2/reviews/WIRE-plan-reconciliation-13042c1.json:22). Implementation must not begin until those required current-head gates pass.\n\nRecorded hosted/packed evidence is historical COORD evidence bound to `b9b5d38`, not WIRE proof. No builds or implementation tests were run, consistent with the plan-only review constraint. An attempted public upstream recheck failed at DNS resolution; committed immutable-tag evidence was internally consistent, and the environment failure was not treated as a product defect.\n\nAGREE",
+      "review_sha256": "ef0b87b196beb4b79efea27dea4b9d38d3b2fcd42858266c9df18ddfc9095583",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained.",
+      "carried": true,
+      "carried_into_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "carry_policy": "Standing AGREE on unchanged plan contracts; new narrow compound-key repair independently rechecked by the dissenting seat. Original source binding preserved; not a fresh invocation."
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "verdict": "UNAVAILABLE",
+      "usable": false,
+      "source_grounded": false,
+      "metadata": {
+        "head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+        "model": "claude-opus-5-5",
+        "status": "UNAVAILABLE",
+        "approval": false,
+        "attempted_at_this_source": false,
+        "reason": "Existing first-party weekly limit blocks required current plan review; unavailable is never carried as approval.",
+        "reported_reset": "2026-10-06T14:00:00-04:00",
+        "president": "Fable-only required president not invoked; no ruling/fallback claimed."
+      },
+      "review": "First-party TUI weekly subscription limit; no code-review approval.",
+      "carried": false
+    },
+    {
+      "seat": "manual:Gemini 3.1 Pro (High):tools",
+      "source_head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+        "model": "Gemini 3.1 Pro (High)",
+        "exit_code": 0,
+        "review_chars": 4449
+      },
+      "review": "# WIRE Plan Review (PLAN ONLY)\n\nReviewed immutable source `215bb032a897e135093cf2c7b0a6383632c6bf06`, delta `13042c1e11ae052e81eed58a19b629395efe8195..HEAD`. This is a plan-only review; execution has deliberately not begun.\n\n## Plan Reconciliation Verification\n\nThe revised plan (`plans/phase-plan-v2-WIRE.md`) successfully integrates all findings from `WIRE-plan-reconciliation-13042c1.json`:\n\n*   **PLAN-1 (Fake/live ownership & rejection controls)**: Addressed in SL-4. `fake-omnigent-server.ts` and `live-omnigent-smoke.test.ts` are correctly owned, and tasks explicitly schedule malformed/oversized/aborted request refusals and handled rejections without hanging responses.\n*   **PLAN-2 (Mutation input validation)**: Addressed in SL-2 and Resolved Contracts. The plan explicitly requires detaching and validating create/send/cancel inputs before their first await or lease queue, ensuring immutable session/idempotency identity and preventing caller alias mutations from crossing exclusive fences.\n*   **PLAN-3 (CLI provider capacity bounds)**: Addressed in SL-3 and Resolved Contracts. `OmnigentCliProviderOptions` now shares the finite `OmnigentTransportLimits` policy. CLI admission capacity and concurrent reservations are bounded *before* transport effects.\n*   **PLAN-4 (Retained-byte/key limits)**: Addressed. A finite aggregate retained state of 64MiB and bounded UTF-8 accounting are frozen. Giant keys are refused before JSON parsing, and command runner options enforce explicit capture caps.\n*   **PLAN-5 (Paginated collection bounds)**: Addressed in SL-1 and Resolved Contracts. All history/session/child paginations share cumulative budgets for rows (10,000 max), response bytes, pages (128 max), and deadlines. Advancing tiny-page probes correctly triggers aggregate exhaustion refusal.\n*   **PLAN-6 (Uncertain create tombstones)**: Addressed in SL-2. Post-dispatch uncertain creates retain bounded deterministic failure tombstones, returning the same failure on same-key repeats without generating a duplicate `POST`/CLI create.\n*   **PLAN-7 (Base query and timeout precedence)**: Addressed in SL-1. Base URLs with queries/fragments are rejected before effects. Per-turn timeouts may shorten but never extend the transport `requestTimeoutMs`.\n*   **PLAN-8 (Fresh checkout requirement)**: Addressed in Verification section. The plan explicitly demands \"fresh immutable per-seat harness snapshots and separate manual/native clones\" with exact source/delta identity.\n*   **PLAN-9 (Verification command errors)**: Addressed. SL-0 now correctly invokes `pnpm --dir packages/omnigent-transport typecheck` and SL-4 uses `node scripts/smoke-packed-omnigent-transport.mjs`.\n\n## Scope & Compliance\n\nThe plan completely covers `omniagent-plus#25` (TR-1..9) and safely incorporates `omniagent-plus#30` while strictly preserving `v0.12` default replay via an explicit version policy.\n*   **DATA & COORD Contracts**: `core-contracts@0.6.3` remains frozen. No INTEG persistence/scheduling composition or PREP release mutation bleeds into this WIRE phase.\n*   **Bounded Transport**: Prefix URLs, HTTP/SSE deadlines, accurate CR/LF/UTF-8 splitting, finite capacities, exact data whitespace preservation (removing only one optional space), and reader cleanup are rigorously bounded.\n*   **Dispositions**: Explicit mapping/drop policies exist for all tagged events. Bounded metadata diagnostics are produced without raw payload disclosure or implicit administrative authority.\n*   **Idempotency & Replay**: Numbered reconnect cursors, late acknowledgments, cancellation quarantine, and exclusive mutation fencing are correctly preserved against capacity refusals and tiny-frame exhaustion.\n*   **Process & Fixture Controls**: CLI failures are redacted safely, concurrent readiness/spawn are safely serialized, and static fixtures are correctly demoted from live detection claims. Packed consumer proofs maintain strict ledger/harness independence.\n\nThe previous manual Gemini review (in `WIRE-plan-13042c1.json`) correctly identified deficiencies in the *existing codebase* (e.g., unbounded network buffers, CLI command secrets, silent event drops). Because this is a **PLAN ONLY** review, and the revised plan explicitly schedules and assigns verifiable repairs for all these deficiencies across SL-1 through SL-4, the plan is correct, bounded, and compliant. The existing unimplemented code state is not a defect of the plan.\n\n## Decision\nAGREE\n",
+      "review_sha256": "c59c9c7bce34d133eeba724be3f0c478bc6d826104407a22bde53ee49c7b1724",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained.",
+      "carried": true,
+      "carried_into_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "carry_policy": "Standing AGREE on unchanged plan contracts; new narrow compound-key repair independently rechecked by the dissenting seat. Original source binding preserved; not a fresh invocation."
+    },
+    {
+      "seat": "separate-independent:data_independent_design",
+      "source_head": "215bb032a897e135093cf2c7b0a6383632c6bf06",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "head_verified": true,
+        "tests_run": false
+      },
+      "review": "Reviewed exact215bb032a897e135093cf2c7b0a6383632c6bf06, delta from13042c1e11ae052e81eed58a19b629395efe8195. tests_run: false.\n\nNo remaining plan blockers.\nBoth prior findings are resolved: plan lines28/76 require validated detached create/send/cancel inputs before awaits/lease queuing, with consistent lease/fence/idempotency/wire identity under caller mutation; lines93/98 own actual fake-server/live-smoke paths and schedule malformed/oversized/aborted requests, handled rejection, cleanup and continued service preserving GUARD enrollment.\nNearby amendments provide implementable shared HTTP/CLI capacities, exact defaults/byte budgets, bounded runner capture/waiting, aggregate pagination budgets, uncertain-create tombstones and timeout precedence. Protected idempotency/fence evidence is retained; v0.12 compatibility and DATA schemas remain frozen.\nRoadmap digest matches, lane ownership does not overlap and production source is unchanged. Prior dissent/unavailable attempts are preserved. IF/EC acceptance and implementation honestly remain pending.\nOptional suggestions: none.\nIndependent plan-quality approval only. Required Opus review and Fable-only president remain UNAVAILABLE; full plan approval and permission to begin implementation are not established.\nAGREE\n",
+      "review_sha256": "998ef7067ac83ff058ad8c39075ffc55e573828ced474de83eb51c4c8a6ea315",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained.",
+      "carried": true,
+      "carried_into_source": "c6424d35cbf509debff5d84a6b24fb735d59df57",
+      "carry_policy": "Standing AGREE on unchanged plan contracts; new narrow compound-key repair independently rechecked by the dissenting seat. Original source binding preserved; not a fresh invocation."
+    }
+  ],
+  "harness_seats": 4,
+  "required_reviewers": 7,
+  "usable_agree": 6,
+  "status": "blocked_required_opus_and_president",
+  "president": {
+    "required": true,
+    "status": "UNAVAILABLE",
+    "attempted": false,
+    "ruling": null,
+    "ladder": [
+      "fable"
+    ],
+    "reported_reset": "2026-10-06T14:00:00-04:00",
+    "waiver": false
+  },
+  "binding": "Source binds the current plan and actual delta. Five AGREE rows retain original215bb03 bindings and explicit carried attribution; one dissenting seat is fresh. Metadata recording commits are not already-reviewed source. No implementation/phase/merge acceptance."
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "source_head": "0256ae9ff52a9a461742b331531fa8c091e3486b",
+  "delta_base": "9ea0c4540d4a5c810e54f67ff212e4b66b89d619",
+  "plan_sha256": "f6a23f830b95b3d29b0388f7216c424531b157eb9e4d813ac2906ac086144d24",
+  "upstream": "plans/evidence/v2/reviews/WIRE-upstream-20261012.json",
+  "status": "required_fresh_reviews_pending",
+  "review_scope": "Plan and fresh compatibility assessment only; no production source changes or implementation acceptance.",
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-c6424d3.json",
+  "historical_approvals_counted_as_fresh": false,
+  "required_reviewers": 7,
+  "usable_agree": 0,
+  "reviews": [],
+  "owner_model_change": {
+    "authority": "Owner explicitly selected available Gemini 3.8 Flash (High), with change recorded and manual tools-enabled review retained, on 2026-10-12.",
+    "previous": "Gemini 3.1 Pro (High)",
+    "model": "Gemini 3.8 Flash (High)",
+    "model_id": "gemini-3.8-flash-high",
+    "availability_source": "agy models live catalog"
+  },
+  "president": {
+    "required": true,
+    "status": "pending",
+    "attempted": false,
+    "ladder": ["fable"],
+    "waiver": false
+  },
+  "binding": "0256ae9 binds actual revised plan/assessment. Later receipt commits do not invent source review or implementation proof. Three-round checkpoint diagnoses scope/input; required ECs and approvals remain mandatory."
+}

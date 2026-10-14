@@ -1,0 +1,23 @@
+{
+  "schema":"wire-plan-reconciliation.v1",
+  "reviewed_source":"215bb032a897e135093cf2c7b0a6383632c6bf06",
+  "status":"repaired_pending_delta_recheck",
+  "findings":[
+    {
+      "id":"PLAN-10",
+      "source":"Grounded Astra correctness plan review",
+      "criteria":["EC-WIRE-3"],
+      "finding":"Delimiter-joined session/idempotency keys alias distinct accepted tuples; existing extracted-method probes reproduced wrong handle and skipped second lease/dispatch for completed/concurrent requests.",
+      "repair":"SL-2 explicitly owns collision-safe tuple/nested-map keys across all private session namespaces and iteration boundaries. Production sendTurn tests distinguish (alpha:beta,gamma) and (alpha,beta:gamma), genuine duplicates, concurrency and capacity reservation. CLI new compound caches consume the same rule. No delimiter ban, DATA change or public handle format change.",
+      "code_fix_claimed":false
+    }
+  ],
+  "standing_review_policy":"Rerun the dissenting Astra correctness seat on the narrow delta. Three other harness seats, manual Gemini and native independent reviewer retain their usable AGREE from215bb03, explicitly carried with original source/plan binding; no unavailable seat is carried as approval.",
+  "required_missing_reviews":{
+    "manual_opus":"UNAVAILABLE, first-party weekly limit",
+    "president":"Not invoked; required Fable-only Opus quota unavailable",
+    "reported_reset":"2026-10-06T14:00:00-04:00",
+    "waiver":false
+  },
+  "acceptance":"No full plan approval, implementation start, IF/EC acceptance or merge is claimed."
+}

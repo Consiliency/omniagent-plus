@@ -1,0 +1,122 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "round": 3,
+  "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+  "source_binding": "All seven actual reviews bind7333dd38 and76f9cd89; sixAGREE/manualOpusPARTIALLYAGREE; qualifiedFableBLOCKEDR3-1. Historical measured review, no approval extended to amendment.",
+  "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+  "status": "completed_blocked_R3-1",
+  "required_reviewers": 7,
+  "usable_agree": 6,
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "df6ad379501cf6d65b0d3d87b767be6876655c9d9507445c9b479173886baa10"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "a0eee49da3e6328e0caf409635aa839bb6241bdb1d8bb33f68e8a33142a3c174"
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "8bc9a2a4012f77428496c3196f8117493e739e5eff40579fbed47e09c0b26310"
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "1514c35a4797a9707b983eb102c93e3180626477d17f2f1f5469978399a31b02"
+    },
+    {
+      "seat": "separate-native-independent",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "53ca73aea792d04166ca5234f569bb9e618121265d6fafb944d42c2e43324459",
+      "scope": "actual plan-source inspection; no implementation or phase acceptance"
+    },
+    {
+      "seat": "manual:Gemini3.8FlashHigh:tools",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "9be4b4254ae58165c1ee6cfc7014c2930e33d9fe776d263bef4f30545cce7a6d",
+      "scope": "actual plan-source inspection; no implementation or phase acceptance"
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "7333dd3891c3dfbfd060ec44751c23c61e68e8bd",
+      "plan_sha256": "76f9cd89c2cd9fc96119d9d4141723456db49086831dc008b937ce1ead2a2f0e",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "42030949df17d176aab2fd908ca15ed29affe4fca2c8a712ba4591c3d14f7147",
+      "scope": "actual plan-source inspection; no implementation or phase acceptance"
+    }
+  ],
+  "carried_approvals": false,
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-678436c-pending.json",
+  "repair": [
+    "P1: distinguish HTTP-status4xx/local admission-capacity/proven pre-dispatch retry from cached synchronous denied:true/malformed2xx authoritative results and persisted rejection identity; stream-proven disconnect keeps original handle; exactly one POST.",
+    "Fold O1 refusal-origin classification, O2 late stream proof/uncertainty-not-rejection/protected tuple collision, O3 malformed/oversized/nonzero/abort-after-spawn CLI uncertainty controls.",
+    "Document O4 permitted host-service-only readiness and O5 process-local protection lost on restart/rotation; durable composition remains INTEG omniagent-plus#26.",
+    "Clarify stale historical absence wording while preserving round1/round2 dissent and BLOCKED presidents."
+  ],
+  "president": {
+    "required": true,
+    "status": "BLOCKED_R3-1",
+    "model": "claude-opus-5-5",
+    "ladder": [
+      "fable"
+    ],
+    "route": "qualified subscription self-PTY TUI via invoke_president",
+    "report_sha256": "bc36fff3cde696cf260d0980de90721a064840cbc83c9ef2aa3584179628e1b4",
+    "exit_code": 0,
+    "detail": "claude_tui_file_output",
+    "waiver": false
+  },
+  "round_cap": 3,
+  "checkpoint": "Diagnose scope/input and wrong retry-class premise; never waive required role, published invariant or IF/EC.",
+  "implementation_started": false,
+  "production_source_changed": false,
+  "verification": "not_run",
+  "format_reask": {
+    "original_report_sha256": "cacf6189889d045e00e3728e72d75822fc52a074986bc6e63b369f197b347395",
+    "original_adapter_exit_code": 1,
+    "detail": "claude_tui_stalled; final verdict grammar malformed",
+    "usable_reask_report_sha256": "42030949df17d176aab2fd908ca15ed29affe4fca2c8a712ba4591c3d14f7147",
+    "exit_code": 0,
+    "detail_reask": "claude_tui_file_output",
+    "substantive_verdict": "PARTIALLY AGREE",
+    "scope": "Formatting corrected by same qualified reviewer route; original preserved, no substantive approval manufactured."
+  }
+}

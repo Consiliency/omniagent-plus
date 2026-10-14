@@ -1,0 +1,235 @@
+{
+  "schema": "wire-review.v1",
+  "phase": "WIRE",
+  "kind": "plan",
+  "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+  "delta_base": "f33471de858d3be1fc01a50696abdcb4ab717a87",
+  "plan_sha256": "5a4ed47b49f6402813362601bf311ba8c7a910ca169c8d9a0297f37e5deb34e5",
+  "runtime_head": "4a62fc1657cacb32175aaf8790c4f107c6e4007b",
+  "prescript": {
+    "schema": "wire-cr-prescript.v1",
+    "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+    "open_issues": [
+      {
+        "issue": "omniagent-plus#27",
+        "title": "Audit HY-3/HY-4/ID-1: reconcile package distribution and retained evidence"
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "title": "Audit sections 3.1-3.4: connect provider lifecycle to durable operator replay"
+      },
+      {
+        "issue": "omniagent-plus#25",
+        "title": "Audit TR-1..TR-9: bound transport resources and preserve lifecycle contracts"
+      },
+      {
+        "issue": "omniagent-plus#20",
+        "title": "Audit HY-1/HY-2/HY-5/HY-6: establish PR verification and distribution decisions"
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "title": "Track v2 audit remediation: dispositions, phase gates, and release acceptance"
+      }
+    ],
+    "continuing_items": [
+      {
+        "issue": "omniagent-plus#25",
+        "related_pr": "omniagent-plus#30",
+        "disposition": "WIRE blocker if unresolved",
+        "criteria": [
+          "EC-WIRE-1",
+          "EC-WIRE-2",
+          "EC-WIRE-3",
+          "EC-WIRE-4"
+        ],
+        "source": [
+          "packages/omnigent-transport/src",
+          "plans/phase-plan-v2-WIRE.md",
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "Bounded transport, content posture, event dispositions, protected replay/fences, concurrent cold start and independent consumer proof are in scope; published v0.12 default must survive selective PR30 reconciliation."
+      },
+      {
+        "issue": "omniagent-plus#26",
+        "disposition": "INTEG carries runtime persistence/scheduling, unless WIRE primitive is defective",
+        "source": [
+          "specs/phase-plans-v2.md",
+          "docs/lifecycle-and-events.md"
+        ],
+        "reason": "No persistence composition in WIRE; admission/lifecycle/cleanup primitives and published invariants must work now."
+      },
+      {
+        "issue": "omniagent-plus#27",
+        "related_issue": "omniagent-plus#20",
+        "disposition": "PREP carries release/dependency/license decisions",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "Existing packed consumers/full verification/rehearsal remain required now. No license or release mutation."
+      },
+      {
+        "issue": "omniagent-plus#19",
+        "disposition": "roadmap tracker remains open",
+        "source": [
+          "specs/phase-plans-v2.md"
+        ],
+        "reason": "WIRE acceptance does not imply INTEG/PREP/SHIP acceptance."
+      },
+      {
+        "issues": [
+          "omniagent-plus#23",
+          "omniagent-plus#24"
+        ],
+        "disposition": "accepted COORD in omniagent-plus#32; historical evidence only",
+        "source": [
+          "plans/evidence/v2/COORD.json",
+          "plans/phase-plan-v2-COORD.md"
+        ],
+        "reason": "Preserve accepted routing/custody/SQL and DATA frozen contracts; any new regression blocks regardless of closed issue state."
+      }
+    ],
+    "prior_records": [],
+    "rule": "Scope dispositions are provisional. Block on any EC/contract/invariant/regression. No blanket waiver; no issue mutations."
+  },
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:correctness",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "Reviewed `13042c1e11ae052e81eed58a19b629395efe8195` against `f33471d`. This is a plan-only change; the roadmap digest matches and the working tree remains unchanged.\n\nOne blocker:\n\n- **P2 \u2014 SL-4 misses the existing fake-server rejection path.** [The ownership list](/mnt/workspace/users/viperjuice/wrt/pl-panel-c490yzne/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:93) names nonexistent `fake-server.ts`, while conformance tests use `fake-omnigent-server.ts`. Its [request callback](/mnt/workspace/users/viperjuice/wrt/pl-panel-c490yzne/review/reviewed-tree/packages/omnigent-transport/src/fake-omnigent-server.ts:171) discards the handler promise. An in-memory probe using the extracted callback and body-reading path produced an unhandled `SyntaxError` for malformed JSON and left the response unfinished. [CASE-TR-9 explicitly requires fake-server rejection coverage](/mnt/workspace/users/viperjuice/wrt/pl-panel-c490yzne/review/reviewed-tree/plans/audit-remediation-disposition-20260905.md:335), but SL-4 does not explicitly schedule this repair or its acceptance test. Assign the actual file to SL-4 and require malformed-body/request-error tests proving handled rejection and response cleanup. This is a plan-completeness gap, not a newly introduced implementation regression.\n\nOptional correction: the same ownership list names `omnigent.live.smoke.test.ts`; the existing file is `live-omnigent-smoke.test.ts`.\n\nThe remaining contracts substantially cover EC-WIRE-1..4, including protected capacity refusal, versioned replay, truthful content labels, and pending verification gates. Recorded COORD verification binds historical `b9b5d38`, not this candidate. No builds or installs were performed. The referenced omniagent-plus#30 commit is absent from this clone, so its source delta was not independently compared.\n\nPARTIALLY AGREE",
+      "review_sha256": "57a89b62fff58ee97aad444f59a57a5cb3386de86f0194122915ece464fe446e",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:adversarial",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "# WIRE plan review\n\nReviewed exact source `13042c1e11ae052e81eed58a19b629395efe8195` and delta `f33471de858d3be1fc01a50696abdcb4ab717a87..HEAD`. The delta is plan-only, the worktree is clean, `git diff --check` passes, the manifest parses, and the recorded roadmap digest matches the current roadmap.\n\n## Blockers\n\n1. **CASE-TR-9 / EC-WIRE-1 ownership names nonexistent files.**  \n   `plans/phase-plan-v2-WIRE.md:93` assigns `fake-server.ts`, `fake-server.test.ts`, and `omnigent.live.smoke.test.ts`, none of which exists. The relevant implementation is `packages/omnigent-transport/src/fake-omnigent-server.ts`; its request callback discards `handleRequest` rejections at lines 171\u2013173, exactly the fake-server rejection case WIRE must repair. The live test is `live-omnigent-smoke.test.ts`, whose exact name is enforced by `scripts/verify.mjs:29` and GUARD tests. Creating the misspelled live test would introduce an additional skipped test and fail verification. Repair the lane ownership with the actual filenames and test the existing fake server\u2019s rejection path.\n\n2. **EC-WIRE-3 / TR-4 does not cover the production CLI provider\u2019s retained state.**  \n   The plan adds `maxSessions` and related limits only to `OmnigentHttpClientOptions` (`phase-plan-v2-WIRE.md:24`), and the capacity lane owns only `http-provider.ts` (`:69\u201378`). However, `cli-client.ts:249\u2013252` has production `sessionAgentIds` and `sessions` maps, while close merely changes state at `:341\u2013351`; neither has admission, cleanup, or capacity bounds. SL-3 tests only output failures and process races (`phase-plan-v2-WIRE.md:80\u201389`), so EC-WIRE-3 could pass while CLI mode remains unbounded. Add compatible CLI/common capacity options and tests for reservation before command effects, close cleanup, and concurrent refusal.\n\n3. **The retained-byte contract is not frozen or independently falsifiable.**  \n   The plan requires retained keys and bytes to be counted (`phase-plan-v2-WIRE.md:29`) and tests \u201ctext/key exhaustion\u201d (`:76`), but its option freeze has no retained-byte or key-byte budget. Core request schemas accept idempotency keys of any nonempty length (`packages/core-contracts/src/schemas.ts:81,97`), so count-only turn/session limits do not bound even one retained key. Likewise, CLI output is already materialized as an arbitrary string before `parseJsonResult` (`cli-client.ts:68\u201373`), while no CLI output limit or runner-side enforcement contract is specified. Freeze exact limits or explicit derivations, require UTF-8 byte accounting before retention/parsing where possible, and specify typed zero-effect refusal tests.\n\n4. **The mandatory review topology omits fresh per-seat clones.**  \n   `phase-plan-v2-WIRE.md:112` requires immutable by-reference source for the four harness seats but does not require each seat to use a fresh immutable clone. Add that explicit condition and retain source/delta identity for each seat; sharing one pre-existing review checkout does not satisfy the required isolation.\n\nThe remainder is well scoped: it preserves v0.12 defaults, DATA contracts and mutation fences; assigns HTTP/SSE, mapping, lifecycle, CLI, fixture and packed-consumer work coherently; keeps acceptance criteria unchecked; and retains the required hosted, custody, producer-audit, packed-rehearsal, manual-review, president, and post-merge gates.\n\nPARTIALLY AGREE",
+      "review_sha256": "05ba11f13156e9bff9e1faf24b9fd6ef1cc73ecd011bf41345a70061c126cc19",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-6-astra:max:red-team",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "Reviewed `13042c1e11ae052e81eed58a19b629395efe8195` against `f33471de858d3be1fc01a50696abdcb4ab717a87`. This is a plan-only change. Two plan gaps need correction:\n\n1. **[P2] Specify aggregate pagination bounds.** [The resource contracts](/mnt/workspace/users/viperjuice/wrt/pl-panel-myvai2va/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:25) require per-response deadlines/caps and history rejection before mapper construction, but do not explicitly bound paginated collection. [requestAllPages](/mnt/workspace/users/viperjuice/wrt/pl-panel-myvai2va/review/reviewed-tree/packages/omnigent-transport/src/http-client.ts:692) accumulates rows and cursors for history, sessions, and child sessions. An extracted-function probe accepted 4,096 tiny pages with fresh cursors; its repeated-cursor control correctly rejected after two requests. Individually bounded responses therefore leave aggregate exhaustion possible. **EC-WIRE-1/3 repair:** assign SL-1 cumulative collection limits for all three endpoints, enforced during collection, with adversarial advancing-page tests proving finite requests and retained memory. This is a coverage gap, not a claim that WIRE implementation is complete.\n\n2. **[P2] Correct SL-4 ownership to reference the existing files.** [The owned-file list](/mnt/workspace/users/viperjuice/wrt/pl-panel-myvai2va/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:93) names nonexistent `fake-server.ts` and `omnigent.live.smoke.test.ts`. The actual files are `fake-omnigent-server.ts` and `live-omnigent-smoke.test.ts`; neither belongs to a declared lane. [Conformance tests import the existing server](/mnt/workspace/users/viperjuice/wrt/pl-panel-myvai2va/review/reviewed-tree/packages/omnigent-transport/src/conformance.test.ts:15). **EC-WIRE-4/ownership repair:** use the actual paths and explicitly assign the TR-9 fake-server handling disposition. If renaming is intended, declare both paths and the import migration.\n\nThe remaining plan substantially covers versioned replay, protected idempotency/fences, content posture, parser cleanup, and cold-start races. The roadmap digest matches, all WIRE acceptance boxes remain unchecked, and frozen production surfaces are unchanged.\n\nValidation: `git diff --check` passed; read-only probes and ownership checks completed. Recorded COORD verification is bound to `b9b5d38`, not this WIRE candidate. No builds, installs, or repository edits were performed; missing dependencies are not findings.\n\nPARTIALLY AGREE",
+      "review_sha256": "c54f0e7212e75149fc6ab6af9f6dc3bef1ebb648ed36d783e751aeaa0782f50b",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+        "status": "OK",
+        "detail": null,
+        "usable": true,
+        "source_grounded": true,
+        "preflight_notices": []
+      },
+      "review": "# WIRE plan review \u2014 `13042c1`\n\nThe plan is directionally strong but has four implementation-blocking gaps.\n\n## Blocking findings\n\n1. **EC-WIRE-3: ambiguous session creation is not protected from duplicate mutation.**  \n   The current provider deletes every create idempotency entry after any rejection ([http-provider.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/omnigent-transport/src/http-provider.ts:312)), while the POST carries no upstream idempotency key ([http-client.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/omnigent-transport/src/http-client.ts:428)). The contract requires a repeated create key to return the original session or a deterministic failure ([agent-runtime-provider-omnigent-spec.md](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/specs/agent-runtime-provider-omnigent-spec.md:491)). The plan protects successful keys and \u201cuncertain turns,\u201d but does not explicitly protect uncertain creates or test a duplicate after a post-dispatch timeout ([phase-plan-v2-WIRE.md](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:29)).  \n   **Repair:** require bounded uncertain-create tombstones and tests proving that repeating the key returns the same deterministic uncertainty with zero second POST. Distinguish safe pre-dispatch refusal from post-dispatch ambiguity.\n\n2. **EC-WIRE-3: the public CLI provider is omitted from provider-capacity design.**  \n   All new capacity options belong to `OmnigentHttpClientOptions` ([phase-plan-v2-WIRE.md](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:24)), and SL-2 capacity tests target only the HTTP provider. However, the public CLI provider retains unbounded session maps ([cli-client.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/omnigent-transport/src/cli-client.ts:249)) and accepts unbounded history/event arrays before mapper construction ([cli-client.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/omnigent-transport/src/cli-client.ts:296)). This contradicts the plan\u2019s promise to bound provider state at production admission sites.  \n   **Repair:** extend the shared finite policy to `OmnigentCliProviderOptions`, reserve session capacity before invoking the transport, bound history/events before mapping, and add zero-effect CLI capacity tests.\n\n3. **TR-9 / EC-WIRE-4: SL-4 owns nonexistent fake/live paths instead of the actual construction paths.**  \n   The plan names `fake-server.ts`, `fake-server.test.ts`, and `omnigent.live.smoke.test.ts` ([phase-plan-v2-WIRE.md](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:93)). The tree and history instead use [fake-omnigent-server.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/omnigent-transport/src/fake-omnigent-server.ts:160) and [live-omnigent-smoke.test.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/omnigent-transport/src/live-omnigent-smoke.test.ts:22); the verification reducer hard-codes the latter path ([verify.mjs](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/scripts/verify.mjs:29)). Consequently, the existing fake-server rejection boundary is not lane-owned, and following the proposed live-test name would break skip accounting.  \n   **Repair:** use the existing filenames. If a rename is intentional, explicitly own both rename endpoints and the verification reducer.\n\n4. **EC-WIRE-1: the URL/deadline interface freeze remains under-specified.**  \n   \u201cBase query/fragment are not silently reinterpreted\u201d does not decide whether they are rejected, discarded, preserved, or merged ([phase-plan-v2-WIRE.md](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/plans/phase-plan-v2-WIRE.md:25)). Likewise, the new global `requestTimeoutMs` has no defined precedence against the existing per-turn `SendTurnRequest.timeoutMs` ([types.ts](/mnt/workspace/users/viperjuice/wrt/pl-panel-3uz00pey/review/reviewed-tree/packages/core-contracts/src/types.ts:100)). Different implementations could satisfy the present prose while behaving incompatibly.  \n   **Repair:** freeze exact base-query/fragment behavior and timeout precedence, then add direct boundary tests for both.\n\n## Verification observations\n\n- HEAD exactly matches `13042c1e11ae052e81eed58a19b629395efe8195`.\n- The delta contains only `plans/manifest.json` and the new WIRE plan.\n- The recorded roadmap SHA-256 matches the current roadmap.\n- `git diff --check` passed and the checkout remained clean.\n- Builds/tests were not run, as required for this read-only planning review.\n- The unpublished omniagent-plus#30 commit was absent, and public upstream lookup failed at DNS resolution; neither limitation was treated as a defect.\n\nPARTIALLY AGREE",
+      "review_sha256": "a12d982c9ea8b76b9d9f4d4730aef68af989f62bd5ab4c28fb3a009f558ffeb1",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "UNAVAILABLE",
+      "usable": false,
+      "source_grounded": false,
+      "metadata": {
+        "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "model": "claude-opus-5-5",
+        "status": "UNAVAILABLE",
+        "detail": "first-party subscription TUI reports weekly usage limit",
+        "reported_reset": "2026-10-06T14:00:00-04:00",
+        "approval": false,
+        "first_attempt": {
+          "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+          "model": "claude-opus-5-5",
+          "exit_code": 1,
+          "detail": "claude_tui_stalled"
+        },
+        "retry": "Interrupted after the same subscription limit was established; qualified adapter finally drains its process group.",
+        "president": "Required Fable-only Opus president is likewise unavailable; no fallback attempted.",
+        "source_of_limit": "attempt-1-incomplete.txt provider TUI output, not a code-review verdict"
+      },
+      "review": "First-party TUI weekly subscription limit; no code-review approval."
+    },
+    {
+      "seat": "manual:Gemini 3.1 Pro (High):tools",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "DISAGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "head": "13042c1e11ae052e81eed58a19b629395efe8195",
+        "model": "Gemini 3.1 Pro (High)",
+        "exit_code": 0,
+        "review_chars": 5061
+      },
+      "review": "### Blockers\n\n1. **Missing Finite Options in `OmnigentHttpClientOptions`**\n   - **File:** `packages/omnigent-transport/src/types.ts`\n   - **Line:** ~148\n   - **EC/Invariant:** EC-WIRE-1, IF-0-WIRE-5\n   - **Issue:** `OmnigentHttpClientOptions` is missing the finite positive resource options defined in the plan: `requestTimeoutMs`, `maxResponseBytes`, `maxSseFrameBytes`, `maxHistoryItems`, `maxSessions`, `maxTurnsPerSession`, `maxEventsPerSession`, `maxStreamsPerSession`, and `wireVersion`.\n   - **Repair:** Add these properties to the interface to enforce resource bounds at admission/construction sites and provide the required explicit version policy.\n\n2. **Unbounded Network Buffers and Missing HTTP Deadlines**\n   - **File:** `packages/omnigent-transport/src/http-client.ts`\n   - **Line:** 550 (`openSessionStream`) and 741 (`requestJson`)\n   - **EC/Invariant:** EC-WIRE-1 (request/body deadlines, byte overflow)\n   - **Issue:** HTTP methods `openSessionStream` and `requestJson` do not enforce a `requestTimeoutMs` or limit `maxResponseBytes`. Requests lack a deadline `AbortController`, and there is no byte-counting during iteration, which fails to prevent unconstrained resource usage.\n   - **Repair:** Apply `AbortSignal.timeout()` based on `requestTimeoutMs` for handshakes/bodies. In `requestJson`, accumulate byte size when reading the stream and throw a typed failure if `maxResponseBytes` is exceeded.\n\n3. **Incorrect SSE Framing and Unbounded Memory**\n   - **File:** `packages/omnigent-transport/src/sse-stream.ts`\n   - **Line:** 666-667 and 655\n   - **EC/Invariant:** EC-WIRE-1 (UTF-8/chunk boundaries, CR framing, oversize streams, data whitespace)\n   - **Issue:** `parseOmnigentSseStream` splits frames on `\\r?\\n\\r?\\n`, completely missing bare CR (`\\r\\r`) chunk boundaries. It uses `.trim()` which destroys intentional data whitespace instead of stripping exactly one optional space after `data:`. Additionally, it does not enforce `maxSseFrameBytes` on the growing `buffer`, risking an OOM crash on no-delimiter input.\n   - **Repair:** Implement `maxSseFrameBytes` tracking on `buffer`. Use a framing regex or state machine that safely splits on `\\r\\n|\\n|\\r`. Strip exactly one optional space after `data:` and preserve the rest of the payload text.\n\n4. **Missing Provider Capacity Enforcement**\n   - **File:** `packages/omnigent-transport/src/http-provider.ts`\n   - **Line:** Entire file\n   - **EC/Invariant:** EC-WIRE-3 (provider capacity refusal, bounding state)\n   - **Issue:** There is no capacity enforcement for `maxSessions`, `maxTurnsPerSession`, `maxEventsPerSession`, or `maxStreamsPerSession`. Capacity is not reserved before async network effects, meaning concurrent reservation exhaustions are not protected, and tiny hostile frames can grow retained sets indefinitely.\n   - **Repair:** Track and reserve capacities for sessions, turns, events, and streams. Throw a typed capacity refusal failure *before* executing async network effects.\n\n5. **CLI Exposes Command Secrets and Uses Unsafe Parsing**\n   - **File:** `packages/omnigent-transport/src/cli-client.ts`\n   - **Line:** 58 and 73\n   - **EC/Invariant:** EC-WIRE-1 (CLI bounded typed redacted failures)\n   - **Issue:** `commandFailure` includes raw `result.stderr` in the mapped error message, potentially leaking command secrets and bypassing redaction. `parseJsonResult` does not validate object shapes and throws a native `SyntaxError` on malformed output rather than a mapped, nonretryable failure.\n   - **Repair:** Remove raw `stderr` from the failure message. Wrap `JSON.parse` in a try-catch that throws a typed failure with bounded diagnostics, and validate the parsed JSON envelope shape before casting.\n\n6. **Static Fixture Claimed as Live Detection**\n   - **File:** `packages/omnigent-transport/src/capability-probe.ts`\n   - **Line:** 47-52\n   - **EC/Invariant:** EC-WIRE-4 (static fixture claimed live detection)\n   - **Issue:** `buildSnapshot` directly loads static fixture metadata via `loadOmnigentSourceMetadata()` and sets its `commit` and `package_version` as the live snapshot's `gitSha` and `version`.\n   - **Repair:** Remove fixture metadata from live snapshot construction. Only include `version` and `gitSha` if they are derived directly from the live `provider.health()` surface.\n\n7. **Incomplete Event Dispositions and Silent Drops**\n   - **File:** `packages/omnigent-transport/src/event-mapper.ts`\n   - **Line:** 203\n   - **EC/Invariant:** EC-WIRE-2 (complete tagged event dispositions, metadata drops)\n   - **Issue:** Numerous tagged events (such as `session.permission_mode`, `session.skills`, `response.elicitation_resolved`) and unknown event extensions fall through to the `default` case and are silently dropped (returning `[]`). They do not produce the required bounded metadata diagnostics.\n   - **Repair:** Define explicit mapping cases for all stream events defined in the types. For explicitly dropped and unknown events, emit a bounded metadata diagnostic event instead of silently returning an empty array.\n\n### Decision\nDISAGREE\n",
+      "review_sha256": "47a4feef0bb13a7deceb2a8d5981b1a80c10f135a969b2250c7f2f097b5686a5",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    },
+    {
+      "seat": "separate-independent:data_independent_design",
+      "source_head": "13042c1e11ae052e81eed58a19b629395efe8195",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "metadata": {
+        "head_verified": true,
+        "tests_run": false
+      },
+      "review": "Reviewed exact 13042c1e11ae052e81eed58a19b629395efe8195. Two plan blockers remain.\n\nP1 \u2014 Freeze mutation inputs before asynchronous lease acquisition (EC-WIRE-3).\nThe plan requires preserved mutation fencing but does not schedule caller-alias controls. sendTurn captures the lease session ID while passing the original request into its delayed callback; subsequent fence reads and dispatch reread that mutable request. Cancellation similarly captures scope at http-provider.ts:896 but passes the original handle at910-914; its callback at932 reads handle.sessionId. A JavaScript caller can change A to B while waiting, causing B operation under A lease. Repair: explicitly require validated detached inputs before first await/lease queue, with production-entrypoint mutation tests during lease/fence-read waits. Assert consistent lease/fence scope, idempotency identity and wire target/body.\n\nP2 \u2014 Correct verification ownership and enumerate actual fake-server rejection handling (EC-WIRE-1/4, CASE-TR-9).\nSL-4 names nonexistent fake-server.ts and omnigent.live.smoke.test.ts. Conformance imports fake-omnigent-server.ts; GUARD enrolls live-omnigent-smoke.test.ts. The actual fake server discards its asynchronous handler promise at171 while malformed request JSON rejects from readBody. CASE-TR-9 requires fake-server rejection controls which the lane omits. Repair: own existing paths, preserve GUARD live-smoke enrollment, schedule malformed/aborted request tests proving bounded HTTP refusal, no unhandled rejection/hanging response, continued valid-request service.\n\nOtherwise roadmap digest matches, lane ownership does not overlap, and plan addresses protected capacity, versioned replay, content posture, reader cleanup, cold-start races and source-bound acceptance. Existing scheduled defects/pending implementation evidence are not acceptance claims.\nOptional suggestion: specify numeric defaults and integer/timer ceilings in SL-0 before dependent lanes.\nRead-only review; no builds or implementation tests.\nPARTIALLY AGREE\n",
+      "review_sha256": "dc0e0aa7fa6fd76e938dc5f8a9068b4039ef75855db96afdc597d2b4349d11c5",
+      "normalization": "Bare issue references qualified; independent report transcribed without changing findings. Original external file retained."
+    }
+  ],
+  "status": "changes_requested_or_unavailable",
+  "president": {
+    "status": "UNAVAILABLE",
+    "required": true,
+    "ladder": [
+      "fable"
+    ],
+    "reported_reset": "2026-10-06T14:00:00-04:00",
+    "ruling": null,
+    "waiver": false
+  },
+  "binding": "Recording commit follows measured source; no implementation or merge approval inferred."
+}

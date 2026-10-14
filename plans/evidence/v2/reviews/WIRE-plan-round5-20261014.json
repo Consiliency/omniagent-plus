@@ -1,0 +1,129 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "round": 5,
+  "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+  "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+  "status": "planning_blocked_R5-1_and_required_manual_Opus_Fable",
+  "required_reviewers": 7,
+  "usable_reviewers": 6,
+  "usable_agree": 1,
+  "partial": 5,
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "684bf3438607d5921806a260011d5eed78370fb169d394dcdfa211d539278491",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "1bf65ea5724595cf806bf31929ad05603cb69b4324c8e35512fbeaf3b6ffba8c",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "7cc919edb8c89c7e12538bf77083bb3a93ccd597b81fa8ffd52bb65d7234f440",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "49ddc30dc4ac56d0cc79240666ba3bbc1f5acf1600f9e9c8555ac90494eb3e89",
+      "report_private": true
+    },
+    {
+      "seat": "manual:Gemini3.8FlashHigh:tools",
+      "verdict": "AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "86ea02dbbec38dde44fd2c7cac71c2cd27736144beccf1d1424402099b221093",
+      "report_private": true
+    },
+    {
+      "seat": "separate-native-independent",
+      "verdict": "PARTIALLY AGREE",
+      "source_head": "d976d5be82d0f3998893500b995f8862970c3bd7",
+      "plan_sha256": "a0be3cd4a73f60557f8efdb3489994c030e4436227dafb46da67be16f46228f1",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "report_sha256": "6c2d21a48be6c73e2daebbe3ffbc93eda77c4b4d305387b11ec5bf329b94ea7f",
+      "report_private": true
+    }
+  ],
+  "president": {
+    "required": true,
+    "status": "pending_required_Fable_only",
+    "ladder": [
+      "fable"
+    ],
+    "ruling": null,
+    "reported_reset_utc": "2026-10-17T18:00:00Z",
+    "current_round_attempted": false,
+    "last_actual_availability": "Other actual Fable attempts onOct13 endedHTTP429/seven_day. Oct14authproven does not prove quota readiness."
+  },
+  "manual_Opus": {
+    "required": true,
+    "status": "pending_required_current_plan_review",
+    "current_round_attempted": false
+  },
+  "full_plan_approval": false,
+  "implementation_started": false,
+  "production_source_changed": false,
+  "findings": [
+    {
+      "id": "R5-1",
+      "status": "unresolved",
+      "scope": "EC-WIRE-3/TR3-4 optional fleet-hook path versus unconditional lease-only provisional restoration",
+      "bounded_repair": "Distinguish configured leased shared checks/restoration from supported unleased locally serialized proof/check/admission/restoration; no configured lease/store-failure fallback; truly unleased raw-factory403/429 retry controls, all original fence/protected-result safeguards retained.",
+      "citation_correction": "Existing429 retry tests5277/5324 inject lease/store through helper38-45, so are not unleased proof. Public optional hooks, production fallback, raw unleased send test309-364 and published retry contract establish gap. Original reports retained; native correction and both Sol reports disclose it."
+    }
+  ],
+  "optional": [
+    {
+      "owner": "SL4/omniagent-plus#25",
+      "item": "Reconcile roadmap historical no_spec_delta with proposed canonical_spec_update after approval/acceptance, not a present blocker."
+    }
+  ],
+  "input_repair": {
+    "completed": true,
+    "source_changed": false,
+    "plan_changed": false,
+    "candidate_grounding": "Four supplemental/recovery harness reports actually inspected candidate object in their staged trees; no incorporation qualified.",
+    "prescript": "Contained actual metadata-only input, two untracked JSON files in disposable clone only.",
+    "failed_attempt_preserved": "Astra correctness ERROR/exit1, capped65536-byte private log, cause unproven; one exact-model retry completed usable. No failed attempt approval."
+  },
+  "draft_repair": {
+    "status": "private author proposal, not applied or approved",
+    "sha256": "6591e47f5724b11dc6879febf009462a7d2de8834f772a352b513adca6c92e98"
+  },
+  "scope": "Latest six actual source-bound reviews only. Original attempts/superseded independent AGREE preserved separately; no standing old approval or missing role counted. No full gate, implementation, architecture or merge approval.",
+  "verification": "not_run; plan review only",
+  "carried_approvals": false
+}
