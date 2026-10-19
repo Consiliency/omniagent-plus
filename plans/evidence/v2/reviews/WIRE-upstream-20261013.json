@@ -1,0 +1,155 @@
+{
+  "schema": "wire-upstream-release-triage.v1",
+  "checked_at_utc": "2026-10-13T18:05:44.042341+00:00",
+  "release": {
+    "repo": "omnigent-ai/omnigent",
+    "tag": "v0.18.0",
+    "commit": "a8676d23e88df7918f4f8ef1c7c4e3186e710354",
+    "published_at": "2026-10-13T08:34:10Z",
+    "url": "https://github.com/omnigent-ai/omnigent/releases/tag/v0.18.0"
+  },
+  "comparison": "Tagged v0.17.0 to v0.18.0, actual existing paths/blob digests; initial nonexistent src-prefixed search was corrected before making a source claim.",
+  "sandbox_mapping": {
+    "omnigent/onboarding/sandboxes/base.py": {
+      "v017_sha256": "ec46b10bc8c768e3f4ed1a2b5a230f21ad442ca60403b272910e23a734a161f1",
+      "v018_sha256": "ec46b10bc8c768e3f4ed1a2b5a230f21ad442ca60403b272910e23a734a161f1"
+    },
+    "omnigent/onboarding/sandboxes/types.py": {
+      "v017_sha256": "dfecd1b5bb7d4a182c751c5451465fd6abe51fb28c74873b28ee24bb1bdb9344",
+      "v018_sha256": "dfecd1b5bb7d4a182c751c5451465fd6abe51fb28c74873b28ee24bb1bdb9344"
+    },
+    "omnigent/onboarding/sandboxes/registry.py": {
+      "v017_sha256": "4e0854c2a76617c19ced516a43be5dcac88d1a73afd0a8168c86d265b27ac2ee",
+      "v018_sha256": "4e0854c2a76617c19ced516a43be5dcac88d1a73afd0a8168c86d265b27ac2ee"
+    },
+    "omnigent/onboarding/sandboxes/e2b.py": {
+      "v017_sha256": "5e058ef965eafa05ac48ee25a86ee2b048ee8c7a88337ba19e187c8611bb563e",
+      "v018_sha256": "5e058ef965eafa05ac48ee25a86ee2b048ee8c7a88337ba19e187c8611bb563e"
+    },
+    "omnigent/onboarding/sandboxes/openshell.py": {
+      "v017_sha256": "453fe1e6a58e2d77398765e20bc7200103a2daa0ecbb443bad8f543bf4479d1f",
+      "v018_sha256": "453fe1e6a58e2d77398765e20bc7200103a2daa0ecbb443bad8f543bf4479d1f"
+    },
+    "omnigent/onboarding/sandboxes/kubernetes.py": {
+      "v017_sha256": "25c42df7a492397257e45d18909bd30fe09cbe98b0052dc7a07ba1ffb5d1984f",
+      "v018_sha256": "25c42df7a492397257e45d18909bd30fe09cbe98b0052dc7a07ba1ffb5d1984f"
+    },
+    "omnigent/onboarding/sandboxes/agent_sandbox.py": {
+      "v017_sha256": "65bd664d57cc0b32ea1882cfee888fefc94dcd5144fd69d493befac4aa39e305",
+      "v018_sha256": "65bd664d57cc0b32ea1882cfee888fefc94dcd5144fd69d493befac4aa39e305"
+    },
+    "omnigent/onboarding/sandboxes/agent_sandbox_warm_pool.py": {
+      "v017_sha256": "3596f86fd497ea436eb1751089fcdacd8ff78b999a25787427a4d4a05284ed87",
+      "v018_sha256": "3596f86fd497ea436eb1751089fcdacd8ff78b999a25787427a4d4a05284ed87"
+    },
+    "omnigent/server/managed_sandbox_reaper.py": {
+      "v017_sha256": "9597da581311e6ab5a5a79daed85946aa4f66dfd7837aa758f536da10bef5703",
+      "v018_sha256": "9597da581311e6ab5a5a79daed85946aa4f66dfd7837aa758f536da10bef5703"
+    },
+    "omnigent/inner/bwrap_sandbox.py": {
+      "v017_sha256": "95b8fb53c7932252fb9e81fd7ad06a14ee12ce07961ee2b69528950542537859",
+      "v018_sha256": "95b8fb53c7932252fb9e81fd7ad06a14ee12ce07961ee2b69528950542537859"
+    },
+    "omnigent/inner/seatbelt_sandbox.py": {
+      "v017_sha256": "de43c9babc58e3eaf3d3e8fd39c23c2cefd9c215e3db84ea7f566a86514ccb29",
+      "v018_sha256": "de43c9babc58e3eaf3d3e8fd39c23c2cefd9c215e3db84ea7f566a86514ccb29"
+    },
+    "omnigent/inner/credential_proxy.py": {
+      "v017_sha256": "8f67d82bdd6e955f2963c835f0ceb18d8c5993d7ba1b0c8a5583397a6618ea22",
+      "v018_sha256": "8f67d82bdd6e955f2963c835f0ceb18d8c5993d7ba1b0c8a5583397a6618ea22"
+    },
+    "omnigent/inner/egress/proxy.py": {
+      "v017_sha256": "34d55297ca1d87b5723c2055b1e9e1fc074f34472282c130e4cafe9b62651d49",
+      "v018_sha256": "34d55297ca1d87b5723c2055b1e9e1fc074f34472282c130e4cafe9b62651d49"
+    }
+  },
+  "mapped_paths_all_unchanged": true,
+  "openapi": {
+    "v017_sha256": "fa99adf0e29e6f3f929a92ecd66d636ce0736d9954781a46f3311f1f072e3657",
+    "v018_sha256": "fff4482aacf8758a68eb37ac1a610a84b620a0dbcc07c86a204e7227443a98a1",
+    "event_or_error_schema_names_checked": [
+      "BrowserActionRequestEvent",
+      "CancelledEvent",
+      "ClientTaskCancelEvent",
+      "CompactionCompletedEvent",
+      "CompactionFailedEvent",
+      "CompactionInProgressEvent",
+      "CompletedEvent",
+      "CreatedEvent",
+      "ElicitationRequestEvent",
+      "ElicitationResolvedEvent",
+      "ErrorData",
+      "ErrorDetail",
+      "ErrorEvent",
+      "ErrorResponse",
+      "ExtensionAssetErrorResponse",
+      "ExtensionLoadErrorResponse",
+      "FailedEvent",
+      "HTTPValidationError",
+      "HeartbeatEvent",
+      "InProgressEvent",
+      "IncompleteEvent",
+      "OutputFileDoneEvent",
+      "OutputItemDoneEvent",
+      "OutputTextDeltaEvent",
+      "PolicyDeniedEvent",
+      "QueuedEvent",
+      "ReasoningStartedEvent",
+      "ReasoningSummaryTextDeltaEvent",
+      "ReasoningTextDeltaEvent",
+      "ResourceEventData",
+      "RetryErrorDetail",
+      "RetryEvent",
+      "ServerStreamEvent",
+      "SessionAgentChangedEvent",
+      "SessionBtwSidechatEvent",
+      "SessionChangedFilesInvalidatedEvent",
+      "SessionChildSessionUpdatedEvent",
+      "SessionCodexApprovalModeEvent",
+      "SessionCollaborationModeEvent",
+      "SessionCreatedEvent",
+      "SessionHeartbeatEvent",
+      "SessionInputConsumedEvent",
+      "SessionInterruptedEvent",
+      "SessionMcpStartupEvent",
+      "SessionModelEvent",
+      "SessionModelOptionsEvent",
+      "SessionPermissionModeEvent",
+      "SessionPresenceEvent",
+      "SessionReasoningEffortEvent",
+      "SessionResourceCreatedEvent",
+      "SessionResourceDeletedEvent",
+      "SessionSandboxStatusEvent",
+      "SessionStatusEvent",
+      "SessionSupersededEvent",
+      "SessionTerminalActivityEvent",
+      "SessionTerminalPendingEvent",
+      "SessionTitleEvent",
+      "SessionTodosEvent",
+      "SessionUsageEvent",
+      "ToolOutputDeltaEvent",
+      "TurnCancelledEvent",
+      "TurnCompletedEvent",
+      "TurnFailedEvent",
+      "TurnStartedEvent",
+      "ValidationError"
+    ],
+    "changed_event_or_error_schema_names": [],
+    "paths_added": [
+      "/v1/agents/{agent_id}"
+    ],
+    "paths_removed": []
+  },
+  "limits": "Source triage only;49 server/OpenAPI files changed, including session orchestration/routes, runner tunnel/init and shutdown state. No unchanged named schema claim qualifies lifecycle/epoch/recovery/runtime or gateway behavior. No install, tests, live seat/server, dependency or architecture adoption.",
+  "wire_policy": "Defaultv0.12, explicitv0.15/v0.16 remain frozen;v0.17/v0.18 assessment-only and unsupported wireVersion must refuse at construction. No fixture regeneration/support added.",
+  "sandbox_policy": "Existing pinned reuse proposal/SSH-first/directE2Bbaseline remains; mapped provider primitives unchanged does not supply placement/auth/lease/evidence/signature/qualification guarantees.",
+  "t3": {
+    "stable": "v0.0.45",
+    "published_at": "2026-10-02T18:17:31Z",
+    "url": "https://github.com/pingdotgg/t3code/releases/tag/v0.0.45",
+    "latest_observed_prerelease": "v0.0.46-nightly.20261013.3066",
+    "prerelease_published_at": "2026-10-13T14:50:47Z",
+    "adopted": false
+  },
+  "historical_inputs_preserved": true
+}

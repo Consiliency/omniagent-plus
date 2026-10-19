@@ -1,0 +1,126 @@
+{
+  "schema": "wire-plan-standing-review.v1",
+  "phase": "WIRE",
+  "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+  "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+  "status": "round2_blocked_P1_full_seven_role_rerun_required",
+  "required_reviewers": 7,
+  "usable_agree": 6,
+  "reviews": [
+    {
+      "seat": "codex:gpt-6-astra:max:correctness",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "bc61f4c7e69c2bbeafe641b2357487aff54b15b070a601c31c9d33fbbaa9bf28",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:adversarial",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "ac823a50269fbbf2c7333a5711ae481aed5c414b4e49aefd5afbd691bc24cc81",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-6-astra:max:red-team",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "0054c563694fe5083d881b49ad104ccb61015ff974c3763d1f44fba43c875ca9",
+      "report_private": true
+    },
+    {
+      "seat": "codex:gpt-5.6-sol:max:alternative-approach",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "review_sha256": "d95f4117655436b89c2df6b39d6c827acd5481e25211181b07e8349bc349fd1f",
+      "report_private": true
+    },
+    {
+      "seat": "separate-native-independent",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "scope": "actual plan-source inspection; no implementation or phase acceptance",
+      "review_sha256": "1774632b60c5bb3d791341d099535a4c523b6032b205a8137d1c33181f23f5af",
+      "report_private": true
+    },
+    {
+      "seat": "manual:Gemini3.8FlashHigh:tools",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "scope": "actual plan-source inspection; no implementation or phase acceptance",
+      "review_sha256": "fe9b2fd041c54a2fc151b1f3e9c6b0b27fbe2ddeb2fa1d50b9f7f125a1356495",
+      "report_private": true
+    },
+    {
+      "seat": "manual:claude-opus-5-5:max:TUI-tools",
+      "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+      "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+      "verdict": "PARTIALLY AGREE",
+      "usable": true,
+      "source_grounded": true,
+      "carried": false,
+      "scope": "actual plan-source inspection; no implementation or phase acceptance",
+      "review_sha256": "cf5dae46ed9a7bbe7d67dc9a2ae84e2358427e9954b4c5f077ff7378f3017661",
+      "report_private": true
+    }
+  ],
+  "historical_review": "plans/evidence/v2/reviews/WIRE-plan-230ce79-standing.json",
+  "carried_approvals": false,
+  "repair": [
+    "Historical round2 text grouped synchronous policy denial with retryable status refusals. President independently found P1 contradicts published cached/persisted denial; new round3 wording distinguishes HTTP-status4xx/local/pre-dispatch refusal from cached denied:true/malformed2xx and stream-proven acceptance.",
+    "Required neighbor-session controls at every namespace iteration.",
+    "President-recommended N3/N4/N5/N7 controls and N1/N2/N6 documentation/verification dispositions folded into existing lanes; no dependency/version/architecture change."
+  ],
+  "president": {
+    "required": true,
+    "status": "BLOCKED",
+    "usable": true,
+    "source_head": "9716c83367ba0b1c9cd2c3550afdecdb545b9151",
+    "plan_sha256": "08eff6cf9ebb026deb9e5ed106b50706cf80c1c36dc2fcab6cbfbac9754cc38c",
+    "model": "fable (qualified claude-opus-5-5 max)",
+    "ladder": [
+      "fable"
+    ],
+    "review_sha256": "5e438b25b99aff2da05947e70f2a04b133afa7e5fcc2d844f1bdb1343355965a",
+    "report_private": true,
+    "waiver": false
+  },
+  "implementation_started": false,
+  "production_source_changed": false,
+  "verification": "not_run",
+  "binding": "Actual fresh seven-role round2 input9716c833/08eff6cf; six AGREE, manual Opus PARTIALLY AGREE and qualified Fable BLOCKED. Original reports retained privately; no carried approvals or implementation/acceptance.",
+  "usable_reviewers": 7,
+  "round": 2,
+  "findings": [
+    {
+      "id": "Opus-P1",
+      "class": "blocking",
+      "criterion": "EC-WIRE-3 / omniagent-plus#25 TR-3 / published cached synchronous denial",
+      "repair": "Only HTTP-status4xx/local admission-capacity/proven pre-dispatch failure releases keys; cached denied:true/malformed2xx preserves authoritative result/rejection identity; stream-bound disconnect returns proven handle; one POST."
+    }
+  ]
+}
