@@ -1,0 +1,206 @@
+{
+  "date": "2026-10-11",
+  "scope": "Source and live issue/PR investigation of agent-harness sandbox integration and Omnigent reuse. No implementation, configuration change, review-seat launch, credential access or cloud provisioning.",
+  "pins": {
+    "agent_harness_current_main": "0f146ffc3d531867fbe4097e0a4a0aa285433a16",
+    "agent_harness_original_checkout": "570bdda0e30ec57fc49b14b7477fc5dbefcdd1b6",
+    "omnigent_main": "4c35f65bd743b5349e47d6468e6a1a431d86b5c3",
+    "omnigent_stable": "v0.17.0",
+    "omnigent_stable_commit": "12b5f67d2529b43eab7366a7288fb89f7587e48b",
+    "omniagent_plus_main": "f33471de858d3be1fc01a50696abdcb4ab717a87"
+  },
+  "conclusion": "Omnigent contains reusable sandbox provider lifecycle, managed host/session infrastructure, Linux/macOS tool confinement and secretless credential/egress proxy implementations. It is not a conformant agent-harness ExecutingBackend or proof that subscription TUI seats satisfy the declared profiles. Prefer adapters around upstream primitives rather than rebuilding vendor provisioning in agent-harness, while retaining harness admission, snapshot and lease evidence.",
+  "current_state": [
+    {
+      "finding": "The remote placement driver and lease journal merged in agent-harness#1492, but launch-site flag _NONLOCAL_EXECUTION_DRIVER is false. No concrete remote backend or reconnect ships in that change.",
+      "sources": [
+        "phase-loop-runtime/src/phase_loop_runtime/panel_invoker.py",
+        "phase-loop-runtime/src/phase_loop_runtime/sandbox_placement.py",
+        "phase-loop-runtime/src/phase_loop_runtime/placement_lease.py"
+      ],
+      "url": "https://github.com/Consiliency/agent-harness/pull/1492"
+    },
+    {
+      "finding": "Latest remote plan sequences self-hosted SSH first, then reconnect, placed Claude, and Codex/Grok subordinate-uid placement; cloud remains follow-on. Replacing that order would be a plan change.",
+      "sources": [
+        "plans/detailed-remote-seat-placement-896-20261010.md"
+      ]
+    },
+    {
+      "finding": "Active v11 replaces retired EC-HARDEN-5 with EC-HARDEN-6: seat capabilities are declared, authorized and recorded. The old SBXEXEC/SBXFETCH/SBXSEAT separation design is proposal-only and must not be confused with today's admission target.",
+      "sources": [
+        "specs/phase-plans-v11.md",
+        "docs/proposals/review-seat-sandbox.phases.md",
+        "plans/detailed-seat-sandbox-permissions-1132-20260928.md"
+      ]
+    },
+    {
+      "finding": "Codex tool startup has independent nested namespace and staged-tree write permission problems. agent-harness#1489 is an open targeted fix for agent-harness#1470; changing sandbox suppliers does not establish the fix.",
+      "sources": [
+        "phase-loop-runtime/src/phase_loop_runtime/seat_jail.py"
+      ],
+      "urls": [
+        "https://github.com/Consiliency/agent-harness/issues/1335",
+        "https://github.com/Consiliency/agent-harness/issues/1470",
+        "https://github.com/Consiliency/agent-harness/pull/1489"
+      ]
+    },
+    {
+      "finding": "Gemini tooled jail remains unqualified because inference and other Google APIs share front-end IPs; existing IP-based filtering cannot distinguish them.",
+      "sources": [
+        "phase-loop-runtime/src/phase_loop_runtime/seat_jail.py",
+        "plans/detailed-1244-sandbox-selection-20261004.md"
+      ]
+    },
+    {
+      "finding": "Existing Omnigent board backing is frozen to v0.4, intended for breadth harnesses, and no production from_env/from_config caller was found. Its default session creation does not request managed sandbox placement.",
+      "sources": [
+        "phase-loop-runtime/src/phase_loop_runtime/advisor_board/backing_omnigent.py",
+        "specs/phase-plans-v11.md"
+      ]
+    },
+    {
+      "finding": "Our TypeScript agent-harness adapter is request/result mapping; it does not provision a sandbox.",
+      "sources": [
+        "packages/agent-harness-adapter/src/phase-loop.ts"
+      ]
+    }
+  ],
+  "upstream_reuse": [
+    {
+      "name": "Provider lifecycle",
+      "sources": [
+        "docs/extending/sandbox_providers.md",
+        "omnigent/onboarding/sandboxes/base.py",
+        "omnigent/onboarding/sandboxes/registry.py",
+        "omnigent/onboarding/sandboxes/types.py"
+      ],
+      "provides": [
+        "prepare/provision/attach/terminate/resume/keep_alive",
+        "optional file copy, captured execution, streaming execution and foreground execution",
+        "community sandbox-provider registration"
+      ],
+      "limits": [
+        "Capabilities are provider declarations, not destination-bound proof of confinement.",
+        "Managed-only providers do not promise arbitrary exec/put transport.",
+        "No owner/lease fencing or snapshot receipt contract in the general launcher API."
+      ]
+    },
+    {
+      "name": "Managed hosts and cleanup",
+      "sources": [
+        "omnigent/server/managed_sandbox_reaper.py",
+        "omnigent/onboarding/sandboxes/agent_sandbox.py",
+        "omnigent/onboarding/sandboxes/agent_sandbox_warm_pool.py",
+        "designs/AGENT_SANDBOX_WARM_POOLS.md"
+      ],
+      "provides": [
+        "authenticated host startup",
+        "idle keepalive and generation-aware cleanup retries",
+        "optional retained storage and Kubernetes warm-pool allocation"
+      ],
+      "limits": [
+        "Suspend/retention is not confirmed destruction.",
+        "Provider lifetimes and cost cleanup settings require explicit configuration.",
+        "General managed session startup clones repositories; a review must instead use the exact revalidated staged snapshot."
+      ]
+    },
+    {
+      "name": "Tool confinement and credential proxy",
+      "sources": [
+        "omnigent/inner/bwrap_sandbox.py",
+        "omnigent/inner/seatbelt_sandbox.py",
+        "omnigent/inner/credential_proxy.py",
+        "omnigent/inner/egress/proxy.py",
+        "designs/SANDBOX_CREDENTIAL_PROXY.md",
+        "tests/inner/egress/test_proxy.py",
+        "tests/inner/test_credential_proxy.py",
+        "tests/e2e/test_claude_sdk_credential_proxy.py"
+      ],
+      "provides": [
+        "Linux mount/network namespace and seccomp tool sandbox",
+        "macOS Seatbelt tool sandbox",
+        "TLS-inspecting egress with method/path rules and private-destination denial",
+        "parent-held credentials, host-bound injection and optional placeholders"
+      ],
+      "limits": [
+        "These mechanisms are integrated with Omnigent helpers/tools, not a demonstrated generic wrapper for our manual subscription TUI/agy seats.",
+        "Must replay actual provider traffic, verify trust/certificate handling and Google endpoint isolation.",
+        "Linux helper seccomp blocks creation of new namespaces; reuse does not automatically cure nested Codex sandbox failures.",
+        "Default backend selection can choose none when Linux bwrap is missing; qualify an explicit required profile."
+      ]
+    },
+    {
+      "name": "Windows",
+      "sources": [
+        "omnigent/inner/windows_jobobject_sandbox.py"
+      ],
+      "provides": [
+        "process-tree cleanup",
+        "optional resource limits"
+      ],
+      "limits": [
+        "This backend explicitly does not enforce filesystem or network isolation. A remote Linux sandbox remains a candidate; do not report native Windows profile parity."
+      ]
+    },
+    {
+      "name": "E2B adapter",
+      "sources": [
+        "omnigent/onboarding/sandboxes/e2b.py",
+        "deploy/e2b/README.md"
+      ],
+      "provides": [
+        "template provisioning",
+        "upload, streaming command handles and termination",
+        "lifetime handling"
+      ],
+      "limits": [
+        "Control credentials are normally read from environment, unlike the harness plan's owner-only key-file contract.",
+        "Creates with omnigent-name metadata, not the harness owner/lease reservation/fence protocol.",
+        "Command timeout is disabled for install/clone operations; adapter must enforce harness deadline/output bounds.",
+        "No generic per-placement egress attestation, snapshot verification or kill-by-lease fencing."
+      ]
+    }
+  ],
+  "proposed_responsibility_split": {
+    "agent_harness": [
+      "board semantics and president rulings",
+      "qualified subscription CLI/TUI launch requirements",
+      "fresh review-isolation authorization",
+      "exact staged snapshot and source identity",
+      "placement state machine, one execution owner and no retry after uncertain launch",
+      "owner/lease fence and confirmed release",
+      "deadline/output limits and grounded seat evidence"
+    ],
+    "omnigent": [
+      "provider SDK plumbing",
+      "sandbox host provisioning and optional managed execution",
+      "file transfer and process transport where supported",
+      "provider lifecycle and optional managed warm pools",
+      "configured tool sandbox and egress/credential proxy"
+    ],
+    "omniagent_plus": [
+      "a shared optional integration/adapter package",
+      "routing and identity normalization",
+      "fleet worktree/resource lease authority",
+      "policy/evidence projection without transcript duplication"
+    ]
+  },
+  "recommended_next_work": [
+    "Map the current ExecutingBackend requirements to one upstream SandboxLifecycle/ExecTransport provider, naming gaps rather than treating capability booleans as proof.",
+    "Preserve the owner-approved SSH-first order; choose whether upstream primitive reuse belongs in the SSH guest/control implementation or in the already-planned cloud follow-on. Do not silently substitute a new control plane.",
+    "Build one qualification path with no live provider account: transfer exact stage, independently verify digest, execute a harmless owned workload, return bounded receipt, renew, cancel, confirm release and reject a late execution after kill.",
+    "Qualify one real required review leg on that same path with subscription identity, tools, known output and correctly recorded seat capabilities.",
+    "Evaluate upstream egress/credential proxy against Gemini's actual inference protocol and hostile alternate-host/direct-egress cases before promising tools.",
+    "Reconcile older Omnigent backing and TypeScript transport version contracts before treating either as a production sandbox integration."
+  ],
+  "verification": {
+    "source_audit": true,
+    "stable_source_presence": "Verified v0.17.0 includes provider, credential proxy, tool sandbox and related test files. Warm-pool and specific source behavior inspected primarily at pinned main.",
+    "runtime_tests_run_this_assessment": false,
+    "live_sandbox_runs": false,
+    "live_subscription_runs": false,
+    "limits": "Implementation/test source is evidence of existing mechanisms, not proof of our fleet or seat conformance. Earlier 79 T3 tests belong to the prior T3 assessment and do not validate this sandbox comparison.",
+    "preserved": "Original agent-harness checkout has pre-existing untracked .pmcp/; left untouched. omniagent-plus and its WIRE branch unchanged."
+  }
+}
